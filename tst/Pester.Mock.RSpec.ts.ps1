@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = [PesterConfiguration] @{
-    Debug = @{
+    Debug  = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $true
         WriteDebugMessagesFrom = "Mock"
@@ -311,7 +311,7 @@ i -PassThru:$PassThru {
 
                                         # make sure we would fail if we searched too low or too high
                                         Should -Invoke a -Exactly 0 -Scope 3
-                                        Should -Invoke a -Exactly (3+1) -Scope 5
+                                        Should -Invoke a -Exactly (3 + 1) -Scope 5
                                     }
                                 }
                             }
@@ -342,9 +342,9 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-                Should = @{ ErrorAction = 'Continue' }
-            })
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.StandardOutput | Verify-Null # the "won't reach this" should not run because the mock filter will throw before it
@@ -381,8 +381,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.StandardOutput | Verify-Equal 'This should be called'
@@ -432,8 +432,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $t = $r.Containers[0].Blocks[0].Tests[0]
                 $t.StandardOutput | Verify-Equal 'mock'
@@ -455,8 +455,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $t = $r.Containers[0].Blocks[0].Tests[0]
                 $t.StandardOutput | Verify-Equal 'mock'
@@ -475,8 +475,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $t = $r.Containers[0].Blocks[0].Tests[0]
                 $t.StandardOutput | Verify-Equal 'mmm'
@@ -503,8 +503,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $t = $r.Containers[0].Blocks[0].Tests[0]
                 $t.Result | Verify-Equal "Passed"
@@ -521,8 +521,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $t = $r.Containers[0].Blocks[0].Tests[0]
                 $t.StandardOutput | Verify-Equal 'mock'
@@ -546,8 +546,8 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
-                })
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
 
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
@@ -580,8 +580,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -610,8 +610,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -635,8 +635,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -662,8 +662,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -687,8 +687,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -718,8 +718,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -762,8 +762,8 @@ i -PassThru:$PassThru {
 
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $command = & ($m) { Get-Command -Name f }
@@ -793,8 +793,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -840,8 +840,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -869,8 +869,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -913,8 +913,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -947,8 +947,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
@@ -979,8 +979,8 @@ i -PassThru:$PassThru {
 
             # just trigger empty run to get cleanup
             Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = {}; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = {}; PassThru = $true }
+                })
 
             $moduleCommands = & (Get-Module m) { Get-Command | Where-Object { $_.Name -like "*aaa" } }
             $moduleCommands | Verify-Null
@@ -1011,8 +1011,8 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Failed"
@@ -1056,8 +1056,78 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true }
-            })
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Mocks use current session state if module has the same name" {
+        t "Mock uses the current session state if running in module instead of resolving the module by name" {
+            # Not taking the current module when running inside of it will result in injecting mocks in a different session
+            # state when InModuleScope is used and the module is re-impored
+            # https://github.com/pester/Pester/issues/1939#issuecomment-840330972
+
+            $sb = {
+                # import module m and bind our tests to it
+                Get-Module m | Remove-Module
+                New-Module -Name m -ScriptBlock {
+                    $id = [System.Guid]::NewGuid().Guid
+                    function Get-Id { $id }
+
+                    Export-ModuleMember -Function ""
+                } | Import-Module
+
+
+                InModuleScope m {
+                    Describe 'm1' {
+                        It 'we are in m, but also have m imported and they are not the same' {
+                            # It is running after discovery, so the currently imported module m
+                            # is the second one, not the first one that we are bound to
+                            $mA = Get-Id
+                            $mB = &(Get-Module m) { Get-Id }
+                            $mA | Should -Not -Be $mB
+                        }
+
+                        It 'i1' {
+                            # with the incorrect behavior mock will resolve module m by name
+                            # and inject mocks into the second module, not into current session state
+                            Mock Test-Path { "mock" }
+                            # so test path would return False, instead of "mock"
+                            Test-Path "aaa" | Should -Be "mock"
+                        }
+                    }
+                }
+
+                # import it one more time under the same name
+                #
+                # (when reproducing with scriptblock module you must not
+                # use the same scriptblock, otherwise it won't work
+                # the same way as with files, probably because files are
+                # parsed again every time, but scriptblock is reused)
+                Get-Module m | Remove-Module
+                New-Module -Name m -ScriptBlock {
+                    $id = [System.Guid]::NewGuid().Guid
+                    function Get-Id { $id }
+
+                    Export-ModuleMember -Function ""
+                } | Import-Module
+
+                InModuleScope m {
+                    Describe 'm2' {
+                        It 'i2' {
+                            Mock Test-Path { "mock 2" }
+                            Test-Path "aaa" | Should -Be "mock 2"
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
