@@ -159,10 +159,19 @@ foreach ($l in $f) {
         $null = $sbf.AppendLine("$l`n")
         $generated = $true
         $margin = $matches.margin
+        $null = $sbf.AppendLine("$margin``````")
 
-        foreach ($l in ($generatedConfig -split "`n")) {
+        $generatedLines = @($generatedConfig -split "`n")
+        for ($i=0; $i -lt $generatedLines.Count; $i++) {
+            $l = $generatedLines[$i]
             $m = if ($l) { $margin } else { $null }
-            $null = $sbf.AppendLine("$m$l")
+
+            if ($i -eq $generatedLines.Count-1) {
+                #last line should be blank - replace with codeblock end
+                $null = $sbf.AppendLine("$margin```````n")
+            } else {
+                $null = $sbf.AppendLine("$m$l")
+            }
         }
     }
     elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
