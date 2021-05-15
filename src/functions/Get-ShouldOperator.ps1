@@ -47,6 +47,7 @@ function Get-ShouldOperator {
         $RuntimeParameterDictionary = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
         $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
         $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
+        $ParameterAttribute.Position = 0
 
         $AttributeCollection.Add($ParameterAttribute)
 
