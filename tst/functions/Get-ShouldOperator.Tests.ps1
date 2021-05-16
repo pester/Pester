@@ -35,9 +35,12 @@ InPesterModuleScope {
                 $BGT = Get-ShouldOperator -Name BeGreaterThan
             }
 
-            It 'Should return a help examples object' {
-                # BeOfType doesn't work here. PowerShell's help system is weird
-                ($BGT | Get-Member)[0].TypeName | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
+            It 'Should return a PesterAssertionHelp-object' {
+                $BGT.Name | Should -BeExactly 'BeGreaterThan'
+                $BGT.Aliases | Should -BeExactly @('GT')
+                # BeOfType doesn't currently work with PSCustomObject typenames
+                $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionHelp'
+                $BGT.Help.PSTypeNames[0] | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
             }
 
             It 'Returns help for all internal Pester assertion operators' {

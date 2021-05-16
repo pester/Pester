@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>PesterAssertionHelp</Name>
+      <ViewSelectedBy>
+        <TypeName>PesterAssertionHelp</TypeName>
+      </ViewSelectedBy>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text>ASSERTION NAME</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>Name</PropertyName>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+              <NewLine />
+              <ExpressionBinding>
+                <CustomControlName>PesterAssertionHelpAliasControl</CustomControlName>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <PropertyName>Help</PropertyName>
+                <CustomControlName>MamlHelpControl</CustomControlName>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </View>
+  </ViewDefinitions>
+  <Controls>
+    <Control>
+      <Name>PesterAssertionHelpAliasControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <ScriptBlock>if($_.Aliases.Count -gt 0) { "ALIASES`n" }</ScriptBlock>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <ScriptBlock>$margin = ' ' * 4
+if($_.Aliases.Count -gt 0) { "$margin$($_.Aliases -join "`n$margin")`n`n"}</ScriptBlock>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>MamlHelpControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text>SYNTAX</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>syntax</PropertyName>
+                    <CustomControlName>MamlSyntaxControl</CustomControlName>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+              <Text>SYNOPSIS</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>synopsis</PropertyName>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+              <NewLine />
+              <Text>EXAMPLES</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>Examples</PropertyName>
+                    <CustomControl>
+                      <CustomEntries>
+                        <CustomEntry>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <PropertyName>Example</PropertyName>
+                              <EnumerateCollection />
+                              <CustomControlName>MamlExampleControl</CustomControlName>
+                            </ExpressionBinding>
+                          </CustomItem>
+                        </CustomEntry>
+                      </CustomEntries>
+                    </CustomControl>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+              <NewLine />
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>MamlSyntaxControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>syntaxitem</PropertyName>
+                <EnumerateCollection />
+                <CustomControl>
+                  <CustomEntries>
+                    <CustomEntry>
+                      <CustomItem>
+                        <ExpressionBinding>
+                          <PropertyName>Name</PropertyName>
+                        </ExpressionBinding>
+                        <ExpressionBinding>
+                          <PropertyName>parameter</PropertyName>
+                          <EnumerateCollection />
+                          <CustomControlName>MamlParameterControl</CustomControlName>
+                        </ExpressionBinding>
+                        <NewLine />
+                        <NewLine />
+                      </CustomItem>
+                    </CustomEntry>
+                  </CustomEntries>
+                </CustomControl>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>MamlParameterControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text> </Text>
+              <ExpressionBinding>
+                <ScriptBlock>"["</ScriptBlock>
+                <ItemSelectionCondition>
+                  <ScriptBlock>$_.required -ne 'true'</ScriptBlock>
+                </ItemSelectionCondition>
+              </ExpressionBinding>
+              <Text>-</Text>
+              <ExpressionBinding>
+                <PropertyName>name</PropertyName>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <ScriptBlock>" &lt;$($_.parameterValue)&gt;"</ScriptBlock>
+                <ItemSelectionCondition>
+                  <ScriptBlock>$null -ne $_.psobject.members['parameterValue']</ScriptBlock>
+                </ItemSelectionCondition>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <ScriptBlock>"]"</ScriptBlock>
+                <ItemSelectionCondition>
+                  <ScriptBlock>$_.required -ne 'true'</ScriptBlock>
+                </ItemSelectionCondition>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>MamlExampleControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>title</PropertyName>
+              </ExpressionBinding>
+              <NewLine />
+              <NewLine />
+              <ExpressionBinding>
+                <PropertyName>introduction</PropertyName>
+                <CustomControl>
+                  <CustomEntries>
+                    <CustomEntry>
+                      <CustomItem>
+                        <ExpressionBinding>
+                          <PropertyName>Text</PropertyName>
+                        </ExpressionBinding>
+                      </CustomItem>
+                    </CustomEntry>
+                  </CustomEntries>
+                </CustomControl>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <PropertyName>code</PropertyName>
+                <EnumerateCollection />
+              </ExpressionBinding>
+              <NewLine />
+              <NewLine />
+              <ExpressionBinding>
+                <PropertyName>remarks</PropertyName>
+                <EnumerateCollection />
+                <CustomControlName>MamlTextControl</CustomControlName>
+              </ExpressionBinding>
+              <NewLine />
+              <NewLine />
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+    <Control>
+      <Name>MamlTextControl</Name>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <EntrySelectedBy>
+              <TypeName>MamlParaTextItem</TypeName>
+            </EntrySelectedBy>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>Text</PropertyName>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+          <CustomEntry>
+            <CustomItem>
+              <ExpressionBinding>
+                <PropertyName>Text</PropertyName>
+              </ExpressionBinding>
+              <NewLine />
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </Control>
+  </Controls>
+</Configuration>

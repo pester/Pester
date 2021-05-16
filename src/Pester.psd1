@@ -24,7 +24,11 @@
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '3.0'
 
-    TypesToProcess    = @()
+    # Type files (.ps1xml) to be loaded when importing this module
+    TypesToProcess = @()
+
+    # Format files (.ps1xml) to be loaded when importing this module
+    FormatsToProcess = @('Pester.Format.ps1xml')
 
     # Functions to export from this module
     FunctionsToExport = @(

@@ -78,7 +78,15 @@ function Get-ShouldOperator {
                 & $SafeCommands['Write-Warning'] ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
             }
             else {
-                $help
+                # Update syntax to use Should -Operator as command-name
+                foreach ($syntax in $help.syntax.syntaxItem) { $syntax.name = "Should -$($operator.Name)" }
+
+                [PSCustomObject]@{
+                    PSTypeName = 'PesterAssertionHelp'
+                    Name = $operator.Name
+                    Aliases = @($operator.Alias)
+                    Help = $help
+                }
             }
         }
         else {
