@@ -18,7 +18,7 @@ namespace Pester.Tracing
                 var key = $"{point.Line}:{point.Column}";
                 if (!Hits.ContainsKey(point.Path))
                 {
-                    var lineColumn = new Dictionary<string, CodeCoveragePoint> { [key] = point };
+                    var lineColumn = new Dictionary<string, List<CodeCoveragePoint>> { [key] = new List<CodeCoveragePoint> { point } };
                     Hits.Add(point.Path, lineColumn);
                     continue;
                 }
@@ -26,25 +26,32 @@ namespace Pester.Tracing
                 var hits = Hits[point.Path];
                 if (!hits.ContainsKey(key))
                 {
-                    hits.Add(key, point);
+                    hits.Add(key, new List<CodeCoveragePoint> { point });
                     continue;
                 }
+                else
+                {
+                    var pointsOnLineAndColumn = hits[key];
+                    pointsOnLineAndColumn.Add(point);
+                }
 
-                // if the key is there do nothing, we already set it to false
             }
         }
 
         // list of what Pester figures out from the AST that we care about for CC
         // keyed as path -> line:column -> CodeCoveragePoint
-        public Dictionary<string, Dictionary<string, CodeCoveragePoint>> Hits { get; } = new Dictionary<string, Dictionary<string, CodeCoveragePoint>>();
+        public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>();
 
-        public void Trace(IScriptExtent extent, ScriptBlock _, int __)
+        public void Trace(IScriptExtent extent, ScriptBlock sb, int level)
         {
+            //if (!extent?.File?.Contains("pester") ?? false)
+            //{
+            //    System.Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text} l: {level}");
+            //}
+
             // ignore unbound scriptblocks
             if (extent?.File == null)
                 return;
-
-            // Console.WriteLine($"{extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
             if (!Hits.TryGetValue(extent.File, out var lineColumn))
                 return;
 
@@ -53,14 +60,21 @@ namespace Pester.Tracing
                 return;
 
 
-            var point = lineColumn[key2];
-            if (point.Hit == true)
+            var points = lineColumn[key2];
+            if (points.TrueForAll(a=>a.Hit))
+            {
                 return;
+            }
 
-            point.Hit = true;
-            point.Text = extent.Text;
+            for(var i =0; i < points.Count; i++)
+            {
+                var point = points[i];
+                point.Hit = true;
+                point.Text = extent.Text;
+                points[i] = point;
+            }
 
-            lineColumn[key2] = point;
+            lineColumn[key2] = points;
         }
     }
 }

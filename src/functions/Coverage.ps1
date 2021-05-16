@@ -383,6 +383,7 @@ function New-CoverageBreakpoint {
         StartColumn        = $Command.Extent.StartColumnNumber
         EndColumn          = $Command.Extent.EndColumnNumber
         Command            = Get-CoverageCommandText -Ast $Command
+        Ast                = $Command
         # keep property for breakpoint but we will set it later
         Breakpoint         = $null
         BreakpointLocation = $params
@@ -656,12 +657,15 @@ function Get-CoverageReport {
     if ($null -ne $Measure) {
 
         # re-key the measures to use columns that are corrected for BP placement
+        # also 1 column in tracer can map to multiple columns for BP, when there are assignements, so expand them
         $bpm = @{}
         foreach ($path in $Measure.Keys) {
             $lines = @{}
 
             foreach ($line in $Measure[$path].Values) {
-                $lines.Add("$($line.Line):$($line.BpColumn)", $line)
+                foreach ($point in $line) {
+                    $lines.Add("$($point.BpLine):$($point.BpColumn)", $point)
+                }
             }
 
             $bpm.Add($path, $lines)
@@ -1061,24 +1065,25 @@ function Start-TraceScript ($Breakpoints) {
         $location = $breakpoint.BreakpointLocation
 
         $hitColumn = $location.Column
+        $hitLine = $location.Line
 
         # breakpoints for some actions bind to different column than the hits, we need to adjust
         # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
         # but we are getting the whole assignment from profiler, so we need to offset it
-        $firstLine, $null = $breakpoint.Command -split "`n",2
-        if ($firstLine -like "*=*") {
-            $ast = [System.Management.Automation.Language.Parser]::ParseInput($breakpoint.Command, [ref]$null, [ref]$null)
-
-            $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
-            if ($assignment) {
-                if ($assignment.Right) {
-                    $hitColumn = $location.Column - $assignment.Right.Extent.StartColumnNumber + 1
-                }
+        $parent = $breakpoint.Ast.Parent
+        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.AssignmentStatementAst]) {
+            if ($parent -is [System.Management.Automation.Language.IfStatementAst]) {
+                break
             }
+            $parent = $parent.Parent
         }
 
+        if ($parent -is [System.Management.Automation.Language.AssignmentStatementAst]) {
+            $hitLine = $parent.Extent.StartLineNumber
+            $hitColumn = $parent.Extent.StartColumnNumber
+        }
 
-        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
+        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script,$hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
     }
 
     $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
