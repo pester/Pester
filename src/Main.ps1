@@ -538,9 +538,6 @@ function Invoke-Pester {
 
     .LINK
     https://pester.dev/docs/quick-start
-
-    .LINK
-    about_Pester
     #>
 
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
