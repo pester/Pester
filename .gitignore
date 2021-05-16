@@ -3,6 +3,7 @@ Test.xml
 vendor/packages/
 .DS_Store
 .vscode/
+!.vscode/settings.json
 coverage.xml
 testResults.xml
 
