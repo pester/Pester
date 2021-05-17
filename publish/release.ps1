@@ -1,4 +1,4 @@
-# build should provide '%system.teamcity.build.checkoutDir%'
+﻿# build should provide '%system.teamcity.build.checkoutDir%'
 param (
     [Parameter(Mandatory)]
     [String] $PsGalleryApiKey,

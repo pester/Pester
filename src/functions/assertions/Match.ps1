@@ -1,4 +1,4 @@
-function Should-Match($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-Match($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Uses a regular expression to compare two objects.

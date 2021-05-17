@@ -1,4 +1,4 @@
-#Be
+﻿#Be
 function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS

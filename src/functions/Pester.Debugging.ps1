@@ -1,4 +1,4 @@
-function Count-Scopes {
+﻿function Count-Scopes {
     param(
         [Parameter(Mandatory = $true)]
         $ScriptBlock)

@@ -1,4 +1,4 @@
-# session state bound functions that act as endpoints,
+﻿# session state bound functions that act as endpoints,
 # so the internal funtions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )

@@ -1,4 +1,4 @@
-function Context {
+﻿function Context {
     <#
 .SYNOPSIS
 Provides logical grouping of It blocks within a single Describe block.

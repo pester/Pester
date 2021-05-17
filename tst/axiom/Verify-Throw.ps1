@@ -1,4 +1,4 @@
-function Verify-Throw {
+﻿function Verify-Throw {
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ScriptBlock]$ScriptBlock

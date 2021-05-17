@@ -1,4 +1,4 @@
-# In practice tests and your code are placed in two
+﻿# In practice tests and your code are placed in two
 # separate files. Tests belong in .Tests.ps1 file and code belongs
 # in .ps1 file. Open the Get-Planet.ps1 file as well, please.
 

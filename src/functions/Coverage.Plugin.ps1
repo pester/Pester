@@ -1,4 +1,4 @@
-function Get-CoveragePlugin {
+﻿function Get-CoveragePlugin {
     New-PluginObject -Name "Coverage" -RunStart {
         param($Context)
 

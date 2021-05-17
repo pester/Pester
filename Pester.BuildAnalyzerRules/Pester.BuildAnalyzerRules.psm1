@@ -1,4 +1,4 @@
-# Get list of SafeCommands
+﻿# Get list of SafeCommands
 $SafeCommands = & { . "$PSScriptRoot/../src/functions/Pester.SafeCommands.ps1"; $Script:SafeCommands }
 # Workaround as RuleSuppressionID-based suppression is bugged. returns error.
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester

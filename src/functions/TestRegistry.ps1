@@ -1,4 +1,4 @@
-function New-TestRegistry {
+﻿function New-TestRegistry {
     param(
         [Switch]
         $PassThru,

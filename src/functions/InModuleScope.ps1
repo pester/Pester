@@ -1,4 +1,4 @@
-function InModuleScope {
+﻿function InModuleScope {
     <#
 .SYNOPSIS
    Allows you to execute parts of a test script within the

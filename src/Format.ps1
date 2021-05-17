@@ -1,4 +1,4 @@
-# PESTER_BUILD
+﻿# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
     . "$PSScriptRoot/TypeClass.ps1"

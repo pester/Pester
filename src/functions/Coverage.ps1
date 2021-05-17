@@ -1,4 +1,4 @@
-function Enter-CoverageAnalysis {
+﻿function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,

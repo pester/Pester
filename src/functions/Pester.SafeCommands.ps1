@@ -1,4 +1,4 @@
-# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
+﻿# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
 # Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
 # If someone monkeys with Get-Command before they import Pester, they may break something.
 

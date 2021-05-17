@@ -6,5 +6,8 @@
   "editor.formatOnSave": true,
   "powershell.codeFormatting.addWhitespaceAroundPipe": true,
   "powershell.codeFormatting.pipelineIndentationStyle": "IncreaseIndentationForFirstPipeline",
-  "yaml.format.singleQuote": true
+  "yaml.format.singleQuote": true,
+  "[powershell]": {
+    "files.encoding": "utf8bom"
+  }
 }

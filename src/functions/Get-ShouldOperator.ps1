@@ -1,4 +1,4 @@
-function Get-ShouldOperator {
+﻿function Get-ShouldOperator {
     <#
     .SYNOPSIS
     Display the assertion operators available for use with Should.
