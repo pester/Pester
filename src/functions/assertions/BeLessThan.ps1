@@ -34,10 +34,12 @@ Uses PowerShell's -ge operator to compare the two values.
 
 .EXAMPLE
 2 | Should -BeGreaterOrEqual 0
+
 This test passes, as PowerShell evaluates `2 -ge 0` as true.
 
 .EXAMPLE
 2 | Should -BeGreaterOrEqual 2
+
 This test also passes, as PowerShell evaluates `2 -ge 2` as true.
 #>
     if ($Negate) {

@@ -43,14 +43,17 @@ Asserts that the value is false, or falsy.
 
 .EXAMPLE
 $false | Should -BeFalse
+
 This test passes. $false is false.
 
 .EXAMPLE
 0 | Should -BeFalse
+
 This test passes. 0 is false.
 
 .EXAMPLE
 $null | Should -BeFalse
+
 PowerShell does not enter a `If ($null) {}` block.
 This test passes as a "falsy" result.
 #>
