@@ -6,11 +6,13 @@ This comparison is case sensitive.
 
 .EXAMPLE
 "I am a value" | Should -MatchExactly "I am"
+
 The "I am" regular expression (RegEx) pattern matches the string.
 This test passes.
 
 .EXAMPLE
 "I am a value" | Should -MatchExactly "I Am"
+
 Because MatchExactly is case sensitive, this test fails.
 For a case insensitive test, see Match.
 #>

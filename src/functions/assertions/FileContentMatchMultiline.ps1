@@ -10,17 +10,19 @@ of the whole file, instead of the beginning and end of a line.
 
 .EXAMPLE
 $Content = "I am the first line.`nI am the second line."
-PS C:\>Set-Content -Path TestDrive:\file.txt -Value $Content -NoNewline
-PS C:\>'TestDrive:\file.txt' | Should -FileContentMatchMultiline 'first line\.\r?\nI am'
+Set-Content -Path TestDrive:\file.txt -Value $Content -NoNewline
+'TestDrive:\file.txt' | Should -FileContentMatchMultiline 'first line\.\r?\nI am'
 
 This regular expression (RegEx) pattern matches the file contents, and the test passes.
 
 .EXAMPLE
 'TestDrive:\file.txt' | Should -FileContentMatchMultiline '^I am the first.*\n.*second line\.$'
+
 Using the file from Example 1, this RegEx pattern also matches, and this test also passes.
 
 .EXAMPLE
 'TestDrive:\file.txt' | Should -FileContentMatchMultiline '^I am the first line\.$'
+
 FileContentMatchMultiline uses the '$' symbol to match the end of the file,
 not the end of any single line within the file. This test fails.
 #>

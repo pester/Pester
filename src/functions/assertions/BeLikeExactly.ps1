@@ -6,13 +6,13 @@ This comparison is case-sensitive.
 
 .EXAMPLE
 $actual = "Actual value"
-PS C:\>$actual | Should -BeLikeExactly "Actual *"
+$actual | Should -BeLikeExactly "Actual *"
 
 This test will pass, as the string matches the provided pattern.
 
 .EXAMPLE
 $actual = "Actual value"
-PS C:\>$actual | Should -BeLikeExactly "actual *"
+$actual | Should -BeLikeExactly "actual *"
 
 This test will fail, as -BeLikeExactly is case-sensitive.
 #>

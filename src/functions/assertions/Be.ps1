@@ -7,14 +7,14 @@ and throws if the two objects are not the same.
 
 .EXAMPLE
 $actual = "Actual value"
-PS C:\>$actual | Should -Be "actual value"
+$actual | Should -Be "actual value"
 
 This test will pass. -Be is not case sensitive.
 For a case sensitive assertion, see -BeExactly.
 
 .EXAMPLE
 $actual = "Actual value"
-PS C:\>$actual | Should -Be "not actual value"
+$actual | Should -Be "not actual value"
 
 This test will fail, as the two strings are not identical.
 #>

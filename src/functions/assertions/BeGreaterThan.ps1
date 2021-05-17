@@ -6,6 +6,7 @@ Uses PowerShell's -gt operator to compare the two values.
 
 .EXAMPLE
 2 | Should -BeGreaterThan 0
+
 This test passes, as PowerShell evaluates `2 -gt 0` as true.
 #>
     if ($Negate) {

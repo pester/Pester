@@ -6,13 +6,14 @@ This search is case sensitive and uses regular expressions to match the text.
 
 .EXAMPLE
 Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
-PS C:\>'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I am'
+'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I am'
 
 Create a new file and verify its content. This test passes.
 The 'I am' regular expression (RegEx) pattern matches against the txt file contents.
 
 .EXAMPLE
 'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I Am'
+
 This test checks a case-sensitive pattern against the "I am a file." string from Example 1.
 Because the RegEx pattern fails to match, this test fails.
 #>
