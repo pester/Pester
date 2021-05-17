@@ -1,4 +1,4 @@
-$script:ReportStrings = DATA {
+﻿$script:ReportStrings = DATA {
     @{
         StartMessage      = "Executing all tests in '{0}'"
         FilterMessage     = ' matching test name {0}'

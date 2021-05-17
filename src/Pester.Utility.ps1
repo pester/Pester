@@ -1,4 +1,4 @@
-function or {
+﻿function or {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0)]

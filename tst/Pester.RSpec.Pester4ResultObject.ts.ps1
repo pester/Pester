@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 # excluding this, as it produces errors because errors are processed differently between v4 and v5, but it is still useful to have around to confirm the overall shape of the result object is correct
 return (i -PassThru:$PassThru { })
 

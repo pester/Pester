@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 # TODO: GetPesterPsVersion & GetPesterOs are used in critical paths in Pester
 # I debugged quite a few test here, and will test this later via P, but here

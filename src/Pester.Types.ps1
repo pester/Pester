@@ -1,4 +1,4 @@
-# e.g. $minimumVersionRequired = "5.1.0.0" -as [version]
+﻿# e.g. $minimumVersionRequired = "5.1.0.0" -as [version]
 $minimumVersionRequired = $ExecutionContext.SessionState.Module.PrivateData.RequiredAssemblyVersion -as [version]
 
 # Check if the type exists, which means we have a conflict because the assembly is already loaded

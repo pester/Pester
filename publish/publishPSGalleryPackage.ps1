@@ -1,4 +1,4 @@
-param (
+﻿param (
     [Parameter(Mandatory)]
     [string] $ApiKey,
     [Parameter(Mandatory)]

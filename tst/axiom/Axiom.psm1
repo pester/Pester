@@ -1,4 +1,4 @@
-. $PSScriptRoot\Verify-Equal.ps1
+﻿. $PSScriptRoot\Verify-Equal.ps1
 
 . $PSScriptRoot\Verify-True.ps1
 . $PSScriptRoot\Verify-False.ps1

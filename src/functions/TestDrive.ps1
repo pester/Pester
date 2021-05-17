@@ -1,4 +1,4 @@
-function Get-TestDrivePlugin {
+﻿function Get-TestDrivePlugin {
 
     # TODO: add OnStart block and put this in it
 

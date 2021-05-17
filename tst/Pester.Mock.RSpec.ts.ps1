@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 

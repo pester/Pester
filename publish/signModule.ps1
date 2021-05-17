@@ -1,4 +1,4 @@
-param($Thumbprint, $Path)
+﻿param($Thumbprint, $Path)
 $ErrorActionPreference = 'Stop'
 
 $cert = Get-ChildItem Cert:\CurrentUser\My |

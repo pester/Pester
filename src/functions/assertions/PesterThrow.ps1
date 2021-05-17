@@ -1,4 +1,4 @@
-function Should-Throw {
+﻿function Should-Throw {
     param (
         [ScriptBlock] $ActualValue,
         [string] $ExpectedMessage,

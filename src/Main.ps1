@@ -1,4 +1,4 @@
-function Assert-ValidAssertionName {
+﻿function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
