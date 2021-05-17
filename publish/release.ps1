@@ -23,8 +23,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $m = Test-ModuleManifest $bin/Pester.psd1
-$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
-{
+$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease) {
     "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
 }
 else {
@@ -57,20 +56,20 @@ if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
 
 
 $files = @(
-"nunit_schema_2.5.xsd"
-"junit_schema_4.xsd"
-"Pester.psd1"
-"Pester.psm1"
-"report.dtd"
-"bin\net452\Pester.dll"
-"bin\net452\Pester.pdb"
-"bin\netstandard2.0\Pester.dll"
-"bin\netstandard2.0\Pester.pdb"
-"en-US\about_BeforeEach_AfterEach.help.txt"
-"en-US\about_Mocking.help.txt"
-"en-US\about_Pester.help.txt"
-"en-US\about_Should.help.txt"
-"en-US\about_TestDrive.help.txt"
+    "nunit_schema_2.5.xsd"
+    "junit_schema_4.xsd"
+    "Pester.psd1"
+    "Pester.psm1"
+    "report.dtd"
+    "bin\net452\Pester.dll"
+    "bin\net452\Pester.pdb"
+    "bin\netstandard2.0\Pester.dll"
+    "bin\netstandard2.0\Pester.pdb"
+    "en-US\about_BeforeEach_AfterEach.help.txt"
+    "en-US\about_Mocking.help.txt"
+    "en-US\about_Pester.help.txt"
+    "en-US\about_Should.help.txt"
+    "en-US\about_TestDrive.help.txt"
 )
 
 $notFound = @()

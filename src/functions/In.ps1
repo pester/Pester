@@ -19,11 +19,11 @@ function In {
     https://github.com/pester/Pester/wiki/In
 
     #>
-    [CmdletBinding(DefaultParameterSetName="Default")]
+    [CmdletBinding(DefaultParameterSetName = "Default")]
     param(
-        [Parameter(Mandatory, ParameterSetName="Default", Position=0)]
+        [Parameter(Mandatory, ParameterSetName = "Default", Position = 0)]
         [String] $Path,
-        [Parameter(Mandatory, ParameterSetName="TestDrive", Position=0)]
+        [Parameter(Mandatory, ParameterSetName = "TestDrive", Position = 0)]
         [Switch] $TestDrive,
         [Parameter(Mandatory, Position = 1)]
         [Alias("Execute")]

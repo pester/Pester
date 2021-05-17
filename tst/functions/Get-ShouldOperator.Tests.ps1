@@ -9,7 +9,7 @@ InPesterModuleScope {
                 $OpCount = $AssertionOperators.Count
 
                 $get1 = Get-ShouldOperator
-                Add-ShouldOperator -Name 'test' -Test {'test'}
+                Add-ShouldOperator -Name 'test' -Test { 'test' }
                 $get2 = Get-ShouldOperator
             }
 
@@ -41,7 +41,7 @@ InPesterModuleScope {
             }
 
             It 'Returns help for all internal Pester assertion operators' {
-                $AssertionOperators.Keys | Where-Object {$_ -ne 'test'} | ForEach-Object {
+                $AssertionOperators.Keys | Where-Object { $_ -ne 'test' } | ForEach-Object {
                     Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty -Because "$_ should have help"
                 }
             }

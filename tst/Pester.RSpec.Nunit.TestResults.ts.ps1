@@ -88,7 +88,7 @@ i -PassThru:$PassThru {
             $xmlTestCase.result | Verify-Equal "Failure"
             $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $failureLine = $sb.StartPosition.StartLine+3
+            $failureLine = $sb.StartPosition.StartLine + 3
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
             $message[-4] | Verify-Equal "Expected: 'Test'"
@@ -99,7 +99,7 @@ i -PassThru:$PassThru {
             $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
-         t "should write a failed test result when there are multiple errors" {
+        t "should write a failed test result when there are multiple errors" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Failed testcase" {
@@ -448,9 +448,9 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true };
-                Output = @{ Verbosity = 'None' }
-            })
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true };
+                    Output = @{ Verbosity = 'None' }
+                })
 
             $xmlResult = $r | ConvertTo-NUnitReport
 

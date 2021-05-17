@@ -6,14 +6,14 @@
 function Get-MockPlugin () {
     New-PluginObject -Name "Mock" `
         -ContainerRunStart {
-            param($Context)
+        param($Context)
 
-            $Context.Block.PluginData.Mock = @{
-                Hooks       = [System.Collections.Generic.List[object]]@()
-                CallHistory = @{}
-                Behaviors   = @{}
-            }
-        } -EachBlockSetupStart {
+        $Context.Block.PluginData.Mock = @{
+            Hooks       = [System.Collections.Generic.List[object]]@()
+            CallHistory = @{}
+            Behaviors   = @{}
+        }
+    } -EachBlockSetupStart {
         param($Context)
         $Context.Block.PluginData.Mock = @{
             Hooks       = [System.Collections.Generic.List[object]]@()
@@ -311,8 +311,8 @@ function Get-AllMockBehaviors {
             Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
         }
         $bs = @(if ($currentTest.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
-            $currentTest.PluginData.Mock.Behaviors.$CommandName
-        })
+                $currentTest.PluginData.Mock.Behaviors.$CommandName
+            })
         if ($null -ne $bs -and $bs.Count -gt 0) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found behaviors for '$CommandName' in the test."
@@ -337,8 +337,8 @@ function Get-AllMockBehaviors {
 
         # action
         $bs = @(if ($block.PluginData.Mock.Behaviors.ContainsKey($CommandName)) {
-            $block.PluginData.Mock.Behaviors.$CommandName
-        })
+                $block.PluginData.Mock.Behaviors.$CommandName
+            })
 
         if ($null -ne $bs -and 0 -lt @($bs).Count) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -693,7 +693,7 @@ https://pester.dev/docs/commands/Assert-MockCalled
         [Parameter(Position = 1)]
         [int]$Times = 1,
 
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
@@ -858,7 +858,7 @@ to the original.
         [Parameter(Position = 1)]
         [int]$Times = 1,
 
-        [ScriptBlock]$ParameterFilter = {$True},
+        [ScriptBlock]$ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
@@ -1197,28 +1197,28 @@ function Invoke-Mock {
     # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
     # then the default mock for Remove-Item should be effective.
     $behaviors = if ($targettingAModule) {
-            # we have default module behavior add it to the filtered behaviors if there are any
-            if ($null -ne $moduleDefaultBehavior) {
-                $moduleBehaviors.Add($moduleDefaultBehavior)
-            }
-            else {
-                # we don't have default module behavior add the default non-module behavior if we have any
-                if ($null -ne $nonModuleDefaultBehavior) {
-                    $moduleBehaviors.Add($nonModuleDefaultBehavior)
-                }
-            }
-
-            $moduleBehaviors
+        # we have default module behavior add it to the filtered behaviors if there are any
+        if ($null -ne $moduleDefaultBehavior) {
+            $moduleBehaviors.Add($moduleDefaultBehavior)
         }
         else {
-            # we are not targetting a mock in a module use the non module behaviors
+            # we don't have default module behavior add the default non-module behavior if we have any
             if ($null -ne $nonModuleDefaultBehavior) {
-                # add the default non-module behavior if we have any
-                $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
+                $moduleBehaviors.Add($nonModuleDefaultBehavior)
             }
-
-            $nonModuleBehaviors
         }
+
+        $moduleBehaviors
+    }
+    else {
+        # we are not targetting a mock in a module use the non module behaviors
+        if ($null -ne $nonModuleDefaultBehavior) {
+            # add the default non-module behavior if we have any
+            $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
+        }
+
+        $nonModuleBehaviors
+    }
 
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 

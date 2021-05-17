@@ -316,7 +316,7 @@ function Should-InvokeVerifiableInternal {
             if ($b.ModuleName) {
                 $message += "in module $($b.ModuleName) "
             }
-            $message += "to be called with $($b.Filter)"
+            $message += "to be called with $(if ($null -ne $b.Filter) { $b.Filter.ToString().Trim() })"
         }
 
         return [PSCustomObject] @{
@@ -370,7 +370,7 @@ function Should-InvokeInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $ModuleName =  $ContextInfo.TargetModule
+    $ModuleName = $ContextInfo.TargetModule
     $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
@@ -565,7 +565,7 @@ function Resolve-Command {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
 
-        if ($null -ne $callerSessionState.Module -and $callerSessionState.Module.Name -eq $ModuleName) { 
+        if ($null -ne $callerSessionState.Module -and $callerSessionState.Module.Name -eq $ModuleName) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "We are already running in $ModuleName. Using that."
             }
@@ -578,7 +578,7 @@ function Resolve-Command {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
             }
-            
+
             # this is the target session state in which we will insert the mock
             $SessionState = $module.SessionState
         }

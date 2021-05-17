@@ -726,8 +726,8 @@ function Get-CommonParentPath {
 
     $pathsToTest = @(
         $Path |
-        Normalize-Path |
-        & $SafeCommands['Select-Object'] -Unique
+            Normalize-Path |
+            & $SafeCommands['Select-Object'] -Unique
     )
 
     if ($pathsToTest.Count -gt 0) {
@@ -1065,7 +1065,7 @@ function Start-TraceScript ($Breakpoints) {
         # breakpoints for some actions bind to different column than the hits, we need to adjust
         # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
         # but we are getting the whole assignment from profiler, so we need to offset it
-        $firstLine, $null = $breakpoint.Command -split "`n",2
+        $firstLine, $null = $breakpoint.Command -split "`n", 2
         if ($firstLine -like "*=*") {
             $ast = [System.Management.Automation.Language.Parser]::ParseInput($breakpoint.Command, [ref]$null, [ref]$null)
 
