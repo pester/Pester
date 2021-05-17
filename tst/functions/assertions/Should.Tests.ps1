@@ -23,8 +23,8 @@ InPesterModuleScope {
             "   "    | Should -Not -BeNullOrEmpty
             @(1, 2, 3) | Should -Not -BeNullOrEmpty
             12345    | Should -Not -BeNullOrEmpty
-            $item1 = New-Object PSObject -Property @{Id = 1; Name = "foo"}
-            $item2 = New-Object PSObject -Property @{Id = 2; Name = "bar"}
+            $item1 = New-Object PSObject -Property @{Id = 1; Name = "foo" }
+            $item2 = New-Object PSObject -Property @{Id = 2; Name = "bar" }
             @($item1, $item2) | Should -Not -BeNullOrEmpty
         }
 
@@ -70,7 +70,7 @@ InPesterModuleScope {
             }
 
             It 'does not throw without ErrorAction Stop' {
-                $errors = @({ $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Verify-AssertionFailed)
+                $errors = @( { $(ReturnNothing) | Should -Not -BeNullOrEmpty } | Verify-AssertionFailed)
 
                 $errors.Count | Should -Be 1
             }

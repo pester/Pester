@@ -62,15 +62,15 @@ Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
-        foreach {
-            $r = & $_.FullName -PassThru
-            if ($r.Failed -gt 0) {
-                [PSCustomObject]@{
-                    FullName = $_.FullName
-                    Count = $r.Failed
+            foreach {
+                $r = & $_.FullName -PassThru
+                if ($r.Failed -gt 0) {
+                    [PSCustomObject]@{
+                        FullName = $_.FullName
+                        Count    = $r.Failed
+                    }
                 }
-            }
-        })
+            })
 
 
     if (0 -lt $result.Count) {
@@ -131,8 +131,7 @@ $configuration.Debug.ShowNavigationMarkers = $false
 if ($null -ne $File -and 0 -lt @($File).Count) {
     $configuration.Run.Path = $File
 }
-else
-{
+else {
     $configuration.Run.Path = "$PSScriptRoot/tst"
 }
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'

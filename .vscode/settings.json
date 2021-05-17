@@ -1,10 +1,10 @@
 {
   "powershell.codeFormatting.preset": "Stroustrup",
-
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
-
   "editor.tabSize": 4,
-  "editor.formatOnSave": false,
-  "powershell.codeFormatting.addWhitespaceAroundPipe": true
+  "editor.formatOnSave": true,
+  "powershell.codeFormatting.addWhitespaceAroundPipe": true,
+  "powershell.codeFormatting.pipelineIndentationStyle": "IncreaseIndentationForFirstPipeline",
+  "yaml.format.singleQuote": true
 }

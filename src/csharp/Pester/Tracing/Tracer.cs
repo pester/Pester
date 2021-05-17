@@ -77,7 +77,7 @@ namespace Pester.Tracing
             var countBindingFlags = BindingFlags.Instance | BindingFlags.NonPublic;
             if (version == 3)
             {
-                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList 
+                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList
                 // Count is public property
                 countBindingFlags = BindingFlags.Instance | BindingFlags.Public;
             }
@@ -89,9 +89,9 @@ namespace Pester.Tracing
 
             if (version == 3)
             {
-                // we do the same operation as in the TraceLineAction below, but here 
-                // we resolve the static things like types and properties, and then in the 
-                // action we just use them to get the live data without the overhead of looking 
+                // we do the same operation as in the TraceLineAction below, but here
+                // we resolve the static things like types and properties, and then in the
+                // action we just use them to get the live data without the overhead of looking
                 // up properties all the time. This might be internally done in the reflection code
                 // did not measure the impact, and it is probably done for us in the reflection api itself
                 // in modern verisons of runtime
@@ -168,8 +168,8 @@ namespace Pester.Tracing
             _tracer2 = null;
         }
 
-        // keeping this public so I can write easier repros when something goes wrong, 
-        // in that case we just need to patch, trace and unpatch and if that works then 
+        // keeping this public so I can write easier repros when something goes wrong,
+        // in that case we just need to patch, trace and unpatch and if that works then
         // maybe the UI host does not work
         public static void TraceLine(bool justTracer2 = false)
         {

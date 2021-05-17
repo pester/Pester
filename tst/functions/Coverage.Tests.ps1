@@ -879,8 +879,8 @@ InPesterModuleScope {
             It 'Includes script files by default when using wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
                 $PesterTests = @($coverageInfo |
-                    Select-Object -ExpandProperty Path |
-                    Where-Object { $_ -notmatch '\.tests.ps1$' })
+                        Select-Object -ExpandProperty Path |
+                        Where-Object { $_ -notmatch '\.tests.ps1$' })
                 $PesterTests.Count | Should -Be 3
                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.psm1)
                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.ps1)
@@ -889,15 +889,15 @@ InPesterModuleScope {
             It 'Excludes test files by default when using wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
                 $PesterTests = @($coverageInfo |
-                    Select-Object -ExpandProperty Path |
-                    Where-Object { $_ -match '\.tests.ps1$' })
+                        Select-Object -ExpandProperty Path |
+                        Where-Object { $_ -match '\.tests.ps1$' })
                 $PesterTests | Should -BeNullOrEmpty
             }
             It 'Includes test files when specified in wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *.tests.ps1)"
                 $PesterTests = @($coverageInfo |
-                    Select-Object -ExpandProperty Path |
-                    Where-Object { $_ -match '\.tests.ps1$' })
+                        Select-Object -ExpandProperty Path |
+                        Where-Object { $_ -match '\.tests.ps1$' })
                 $PesterTests.Count | Should -Be 2
                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
                 $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)

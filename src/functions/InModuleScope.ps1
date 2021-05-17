@@ -126,8 +126,8 @@ function Get-ScriptModule {
     if ($scriptModules.Count -eq 0) {
         $actualTypes = @(
             $modules |
-            & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
-            & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
+                & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
+                & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
         )
 
         $actualTypes = $actualTypes -join ', '

@@ -651,7 +651,7 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
     # grouping the tests together if we used just the name, and not the linenumber (which remains static)
     $node = [PSCustomObject] @{
-        Path = $TestSuiteGroup.Group[0].Path
+        Path              = $TestSuiteGroup.Group[0].Path
         TotalCount        = 0
         Duration          = [timespan]0
         PassedCount       = 0
@@ -718,7 +718,7 @@ function Get-TestSuiteInfo ($TestSuite, $Path) {
 
     $suite = @{
         resultMessage = 'Failure'
-        success = if ($TestSuite.FailedCount -eq 0) {
+        success       = if ($TestSuite.FailedCount -eq 0) {
             'True'
         }
         else {
@@ -791,7 +791,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     if ($testName -eq $ParameterizedSuiteName) {
         $paramString = ''
         if ($null -ne $TestResult.Data) {
-            $paramsUsedInTestName =$false
+            $paramsUsedInTestName = $false
 
             if (-not $paramsUsedInTestName) {
                 $params = @(
@@ -897,8 +897,8 @@ function Get-ErrorForXmlReport ($TestResult) {
         if ($multipleErrors) {
             $c = 0
             $(foreach ($err in $TestResult.ErrorRecord) {
-                "[$(($c++))] $($err.DisplayErrorMessage)"
-            }) -join [Environment]::NewLine
+                    "[$(($c++))] $($err.DisplayErrorMessage)"
+                }) -join [Environment]::NewLine
         }
         else {
             $TestResult.ErrorRecord.DisplayErrorMessage
@@ -911,8 +911,8 @@ function Get-ErrorForXmlReport ($TestResult) {
         if ($multipleErrors) {
             $c = 0
             $(foreach ($err in $TestResult.ErrorRecord) {
-                "[$(($c++))] $($err.DisplayStackTrace)"
-            }) -join [Environment]::NewLine
+                    "[$(($c++))] $($err.DisplayStackTrace)"
+                }) -join [Environment]::NewLine
         }
         else {
             [string] $TestResult.ErrorRecord.DisplayStackTrace
@@ -921,7 +921,7 @@ function Get-ErrorForXmlReport ($TestResult) {
 
     @{
         FailureMessage = $failureMessage
-        StackTrace = $st
+        StackTrace     = $st
     }
 }
 
@@ -937,7 +937,7 @@ function Get-RunTimeEnvironment() {
     }
     elseif ($IsMacOS -or $IsLinux) {
         $osSystemInformation = @{
-            Name = "Unknown"
+            Name    = "Unknown"
             Version = "0.0.0.0"
         }
         try {
@@ -956,7 +956,7 @@ function Get-RunTimeEnvironment() {
     }
     else {
         $osSystemInformation = @{
-            Name = "Unknown"
+            Name    = "Unknown"
             Version = "0.0.0.0"
         }
     }

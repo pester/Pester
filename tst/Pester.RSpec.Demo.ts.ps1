@@ -195,12 +195,12 @@ i -PassThru:$PassThru {
             }
         }
 
-       t "should will fail on the first failure by default" {
+        t "should will fail on the first failure by default" {
 
             function Get-User {
                 @{
                     Name = "Jakub"
-                    Age = 31
+                    Age  = 31
                 }
             }
 
@@ -218,7 +218,7 @@ i -PassThru:$PassThru {
             function Get-User {
                 @{
                     Name = "Jakub"
-                    Age = 31
+                    Age  = 31
                 }
             }
 

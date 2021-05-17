@@ -34,8 +34,8 @@ function Verify-PathEqual {
         throw "Actual is null or empty."
     }
 
-    $e = ($expected -replace "\\",'/').Trim('/')
-    $a = ($actual -replace "\\",'/').Trim('/')
+    $e = ($expected -replace "\\", '/').Trim('/')
+    $a = ($actual -replace "\\", '/').Trim('/')
 
     if ($e -ne $a) {
         throw "Expected path '$e' to be equal to '$a'."
@@ -186,7 +186,7 @@ i -PassThru:$PassThru {
 
         t "StringArrayOption can be assigned an array of Strings" {
             $config = [PesterConfiguration]::Default
-            $path = "C:\",  "D:\"
+            $path = "C:\", "D:\"
             $config.Run.Path = $path
 
             Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
@@ -295,14 +295,14 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Advanced interface - Run paths"  {
+    b "Advanced interface - Run paths" {
         t "Running from multiple paths" {
             $container1 = "$PSScriptRoot/testProjects/BasicTests/folder1"
             $container2 = "$PSScriptRoot/testProjects/BasicTests/folder2"
 
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = $container1, $container2
+                Run    = @{
+                    Path     = $container1, $container2
                     PassThru = $true
                 }
                 Output = @{
@@ -317,8 +317,8 @@ i -PassThru:$PassThru {
 
         t "Filtering based on tags" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -342,8 +342,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test based on line of It" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -363,8 +363,8 @@ i -PassThru:$PassThru {
 
         t "Filtering tests based on line of Describe" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -387,8 +387,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test with testcases based on line of It" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -411,8 +411,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test based on name will find the test" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -448,7 +448,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
             }
 
@@ -469,7 +469,7 @@ i -PassThru:$PassThru {
 
         t "Merges configuration when hashtable is provided" {
             $MyOptions = @{
-                Run = @{
+                Run    = @{
                     PassThru = $true
                 }
                 Filter = @{

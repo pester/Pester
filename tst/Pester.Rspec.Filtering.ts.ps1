@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
-    Debug = @{
+    Debug  = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $true
         WriteDebugMessagesFrom = "*Filter"

@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors  = $true
+        ShowFullErrors = $true
     }
 }
 $PSDefaultParameterValues = @{}
@@ -49,7 +49,7 @@ i -PassThru:$PassThru {
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
-                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1,0
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Describing d"
@@ -71,7 +71,7 @@ i -PassThru:$PassThru {
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
-                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1,0
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Context c"
@@ -95,7 +95,7 @@ i -PassThru:$PassThru {
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
-                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1,0
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Describing d - demo.ps1"
@@ -117,7 +117,7 @@ i -PassThru:$PassThru {
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
-                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1,0
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Context c - demo.ps1"

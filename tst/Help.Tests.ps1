@@ -32,18 +32,19 @@ Describe "Testing module help" -ForEach @{ exportedFunctions = $exportedFunction
 
         # Skipped until Assert-MockCalled and Assert-VerifiableMock are removed
         It "Has at least one example" -Skip {
-             $help.Examples | Should -Not -BeNullOrEmpty
+            $help.Examples | Should -Not -BeNullOrEmpty
         }
 
         # Skipped until Assert-MockCalled are removed
         It "All static parameters have description" -Skip {
             if ($help.parameters) {
                 $parametersMissingHelp = @($help.parameters | ForEach-Object Parameter |
-                Where-Object { $_.psobject.properties.name -notcontains 'description' } |
-                ForEach-Object name)
+                        Where-Object { $_.psobject.properties.name -notcontains 'description' } |
+                        ForEach-Object name)
 
                 $parametersMissingHelp | Should -Be @()
-            } else {
+            }
+            else {
                 Set-ItResult -Skipped -Because "no static parameters to test"
             }
         }

@@ -78,7 +78,7 @@ function New-Fixture {
 
     $Name = $Name -replace '.ps(m?)1', ''
 
-    if($Name -notmatch '^\S+$') {
+    if ($Name -notmatch '^\S+$') {
         throw "Name is not valid. Whitespace are not allowed in a function name."
     }
 
