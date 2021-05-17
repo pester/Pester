@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd"[]>
+<report name="Pester (05/16/2021 14:41:28)">
+  <sessioninfo id="this" start="1621176088237" dump="1621176088372" />
+  <package name="C:/Users/jajares/Desktop/cov">
+    <class name="C:/Users/jajares/Desktop/cov/abc" sourcefilename="abc.ps1">
+      <method name="&lt;script&gt;" desc="()" line="1">
+        <counter type="INSTRUCTION" missed="1" covered="10" />
+        <counter type="LINE" missed="0" covered="6" />
+        <counter type="METHOD" missed="0" covered="1" />
+      </method>
+      <counter type="INSTRUCTION" missed="1" covered="10" />
+      <counter type="LINE" missed="0" covered="6" />
+      <counter type="METHOD" missed="0" covered="1" />
+      <counter type="CLASS" missed="0" covered="1" />
+    </class>
+    <sourcefile name="abc.ps1">
+      <line nr="1" mi="0" ci="3" mb="0" cb="0" />
+      <line nr="2" mi="1" ci="2" mb="0" cb="0" />
+      <line nr="4" mi="0" ci="2" mb="0" cb="0" />
+      <line nr="6" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="7" mi="0" ci="1" mb="0" cb="0" />
+      <line nr="10" mi="0" ci="1" mb="0" cb="0" />
+      <counter type="INSTRUCTION" missed="1" covered="10" />
+      <counter type="LINE" missed="0" covered="6" />
+      <counter type="METHOD" missed="0" covered="1" />
+      <counter type="CLASS" missed="0" covered="1" />
+    </sourcefile>
+    <counter type="INSTRUCTION" missed="1" covered="10" />
+    <counter type="LINE" missed="0" covered="6" />
+    <counter type="METHOD" missed="0" covered="1" />
+    <counter type="CLASS" missed="0" covered="1" />
+  </package>
+  <counter type="INSTRUCTION" missed="1" covered="10" />
+  <counter type="LINE" missed="0" covered="6" />
+  <counter type="METHOD" missed="0" covered="1" />
+  <counter type="CLASS" missed="0" covered="1" />
+</report>

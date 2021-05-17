@@ -1071,7 +1071,7 @@ function Start-TraceScript ($Breakpoints) {
         # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
         # but we are getting the whole assignment from profiler, so we need to offset it
         $parent = $breakpoint.Ast.Parent
-        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.AssignmentStatementAst]) {
+        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.AssignmentStatementAst] -and $parent -isnot [System.Management.Automation.Language.ReturnStatementAst]) {
             if ($parent -is [System.Management.Automation.Language.IfStatementAst]) {
                 break
             }
@@ -1081,6 +1081,10 @@ function Start-TraceScript ($Breakpoints) {
         if ($parent -is [System.Management.Automation.Language.AssignmentStatementAst]) {
             $hitLine = $parent.Extent.StartLineNumber
             $hitColumn = $parent.Extent.StartColumnNumber
+        }
+        elseif ($parent -is [System.Management.Automation.Language.ReturnStatementAst]) {
+            $hitLine = $parent.Extent.StartLineNumber
+            $hitColumn = $parent.Extent.StartColumnNumber + 7 # offset by the length of 'return '
         }
 
         $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script,$hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))

@@ -42,12 +42,12 @@ namespace Pester.Tracing
         // keyed as path -> line:column -> CodeCoveragePoint
         public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>();
 
-        public void Trace(IScriptExtent extent, ScriptBlock sb, int level)
+        public void Trace(IScriptExtent extent, ScriptBlock _, int __)
         {
-            //if (!extent?.File?.Contains("pester") ?? false)
-            //{
-            //    System.Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text} l: {level}");
-            //}
+            if (extent?.File?.Contains("CoverageTestFile") ?? false)
+            {
+                System.Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
+            }
 
             // ignore unbound scriptblocks
             if (extent?.File == null)
