@@ -23,6 +23,10 @@
               </Frame>
               <NewLine />
               <ExpressionBinding>
+                <ScriptBlock>$_</ScriptBlock>
+                <ItemSelectionCondition>
+                  <PropertyName>Aliases</PropertyName>
+                </ItemSelectionCondition>
                 <CustomControlName>PesterAssertionHelpAliasControl</CustomControlName>
               </ExpressionBinding>
               <ExpressionBinding>
@@ -42,13 +46,30 @@
         <CustomEntries>
           <CustomEntry>
             <CustomItem>
-              <ExpressionBinding>
-                <ScriptBlock>if($_.Aliases.Count -gt 0) { "ALIASES`n" }</ScriptBlock>
-              </ExpressionBinding>
-              <ExpressionBinding>
-                <ScriptBlock>$margin = ' ' * 4
-if($_.Aliases.Count -gt 0) { "$margin$($_.Aliases -join "`n$margin")`n`n"}</ScriptBlock>
-              </ExpressionBinding>
+              <Text>ALIASES</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>Aliases</PropertyName>
+                    <EnumerateCollection />
+                    <CustomControl>
+                      <CustomEntries>
+                        <CustomEntry>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <ScriptBlock>$_</ScriptBlock>
+                            </ExpressionBinding>
+                            <NewLine />
+                          </CustomItem>
+                        </CustomEntry>
+                      </CustomEntries>
+                    </CustomControl>
+                  </ExpressionBinding>
+                </CustomItem>
+              </Frame>
+              <NewLine />
             </CustomItem>
           </CustomEntry>
         </CustomEntries>
