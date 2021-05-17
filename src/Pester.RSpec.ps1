@@ -405,7 +405,7 @@ function New-PesterConfiguration {
     $config = New-PesterConfiguration
     $config.Run.PassThru = $true
 
-    Invoke-Pester -Configuration $c
+    Invoke-Pester -Configuration $config
     ```
 
     Creates a default [PesterConfiguration] object and changes the Run.PassThru option
