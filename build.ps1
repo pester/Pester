@@ -206,7 +206,7 @@ $script = @(
     "$PSScriptRoot/src/Pester.Types.ps1"
     "$PSScriptRoot/src/Pester.State.ps1"
     "$PSScriptRoot/src/Pester.Utility.ps1"
-    "$PSScriptRoot/src/Pester.Runtime.ps1"
+    "$PSScriptRoot/src/runtime/*"
     "$PSScriptRoot/src/TypeClass.ps1"
     "$PSScriptRoot/src/Format.ps1"
     "$PSScriptRoot/src/Pester.RSpec.ps1"

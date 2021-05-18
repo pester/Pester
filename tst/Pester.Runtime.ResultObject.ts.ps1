@@ -5,14 +5,15 @@ Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 
 Get-Module Pester.Runtime.Wrapper, Pester.Utility, P, Pester, Axiom | Remove-Module
 
-. $PSScriptRoot\..\src\Pester.Utility.ps1
 New-Module -Name Pester.Runtime.Wrapper -ScriptBlock {
-    # make sure that the Pester.Runtime code runs in a module,
+    # make sure that the functions in runtime run in a module,
     # because in the end it would be inlined into a module as well
     # so the behavior here needs to reflect that to avoid false positive
     # issues, like $Data variable in test conflicting with a parameter $Data
     # in the runtime, which won't happen when they are isolated by a module
-    . $PSScriptRoot\..\src\Pester.Runtime.ps1
+    foreach ($path in (Get-ChildItem $PSScriptRoot\..\src\runtime -Recurse) | Select-Object -ExpandProperty FullName) {
+        . $path
+    }
 } | Import-Module -DisableNameChecking
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
