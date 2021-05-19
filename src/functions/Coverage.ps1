@@ -1082,13 +1082,30 @@ function Start-TraceScript ($Breakpoints) {
     }
 
     $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
-    [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
-    Set-PSDebug -Trace 1
+
+    # detect if profiler is imported and running and in that case just add us as a second tracer
+    # to not disturb the profiling session
+    $profilerType = "Profiler.Tracer" -as [Type]
+    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
+        $profilerType::Register($tracer)
+    }
+    else {
+        [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+        Set-PSDebug -Trace 1
+    }
 
     $tracer
 }
 
 function Stop-TraceScript {
-    Set-PSDebug -Trace 0
-    [Pester.Tracing.Tracer]::Unpatch()
+    # detect if profiler is imported and running and in that case just remove us as a second tracer
+    # to not disturb the profiling session
+    $profilerType = "Profiler.Tracer" -as [Type]
+    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
+        $profilerType::Unregister()
+    }
+    else {
+        Set-PSDebug -Trace 0
+        [Pester.Tracing.Tracer]::Unpatch()
+    }
 }
