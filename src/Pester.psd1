@@ -4,7 +4,7 @@
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.2.0'
+    ModuleVersion     = '5.3.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -95,7 +95,7 @@
         # It's for rebuilding PowerShellGet (and PoshCode) NuGet-style packages
         # We had to do this because it's the only place we're allowed to extend the manifest
         # https://connect.microsoft.com/PowerShell/feedback/details/421837
-        PSData = @{
+        PSData                  = @{
             # The primary categorization of this module (from the TechNet Gallery tech tree).
             Category     = "Scripting Techniques"
 
@@ -112,14 +112,14 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.0-rc1'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.1'
 
             # Prerelease string of this module
-            Prerelease   = 'rc2'
+            Prerelease   = 'alpha1'
         }
 
         # Minimum assembly version required
-        RequiredAssemblyVersion = '5.2.0'
+        RequiredAssemblyVersion = '5.3.0'
     }
 
     # HelpInfo URI of this module

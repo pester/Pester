@@ -62,15 +62,15 @@ Get-Module Pester | Remove-Module
 
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
-        foreach {
-            $r = & $_.FullName -PassThru
-            if ($r.Failed -gt 0) {
-                [PSCustomObject]@{
-                    FullName = $_.FullName
-                    Count = $r.Failed
+            foreach {
+                $r = & $_.FullName -PassThru
+                if ($r.Failed -gt 0) {
+                    [PSCustomObject]@{
+                        FullName = $_.FullName
+                        Count    = $r.Failed
+                    }
                 }
-            }
-        })
+            })
 
 
     if (0 -lt $result.Count) {
@@ -121,18 +121,17 @@ New-Module -Name TestHelpers -ScriptBlock {
 
 $configuration = [PesterConfiguration]::Default
 
-$configuration.Debug.WriteDebugMessages = $false
-# $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
+$configuration.Output.Verbosity = "Normal"
+$configuration.Debug.WriteDebugMessages = $true
+$configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
-# $configuration.Output.Verbosity = "Detailed"
 $configuration.Debug.ShowFullErrors = $false
 $configuration.Debug.ShowNavigationMarkers = $false
 
 if ($null -ne $File -and 0 -lt @($File).Count) {
     $configuration.Run.Path = $File
 }
-else
-{
+else {
     $configuration.Run.Path = "$PSScriptRoot/tst"
 }
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
@@ -146,8 +145,9 @@ if ($CI) {
     # not using code coverage, it is still very slow
     $configuration.CodeCoverage.Enabled = $false
     $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
-    $configuration.CodeCoverage.SingleHitBreakpoints = $true
 
+    # experimental, uses the Profiler based tracer to do code coverage without using breakpoints
+    $configuration.CodeCoverage.UseBreakpoints = $false
 
     $configuration.TestResult.Enabled = $true
 }

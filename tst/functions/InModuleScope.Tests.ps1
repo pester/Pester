@@ -115,7 +115,7 @@ Describe 'InModuleScope parameter binding' {
             SomeParam = 'SomeValue'
         }
 
-        $myArgs = "foo",123
+        $myArgs = "foo", 123
 
         $sb = {
             param
@@ -124,7 +124,7 @@ Describe 'InModuleScope parameter binding' {
                 [System.String]
                 $SomeParam,
 
-                [Parameter(ValueFromRemainingArguments=$true)]
+                [Parameter(ValueFromRemainingArguments = $true)]
                 $RemainingArgs
             )
             "$SomeParam"

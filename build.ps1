@@ -5,9 +5,11 @@
         Used to build and import the Pester module during Pester development.
 
         The code that should be excluded from the build is wrapped in this if:
+        # PESTER_BUILD
         if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
             ...Your code here...
-        } # endif
+        }
+        # end PESTER_BUILD
 
         This will exclude the code from execution when dot-sourcing, but keep it when running the
         file directly. When inlining into single file, the regex below will omit the wrapped code.
@@ -15,9 +17,11 @@
 
         You can also include the code in build. Which will run the code only when dot-sources into Pester.psm1.
 
+        # PESTER_BUILD
         if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
             ...Your code here...
-        } # endif
+        }
+        # end PESTER_BUILD
 
         Or any other if that uses the variable.
 
@@ -126,7 +130,8 @@ function Format-NicelyMini ($value) {
         }
     }
 
-    if ($value -is [object[]]) {
+    # does not work with [object[]] when building for some reason
+    if ($value -is [System.Collections.IEnumerable]) {
         if (0 -eq $value.Count) {
             return '@()'
         }
@@ -136,6 +141,7 @@ function Format-NicelyMini ($value) {
         return "@($($v -join ', '))"
     }
 }
+
 # generate help for config object and insert it
 $configuration = [PesterConfiguration]::Default
 $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
@@ -144,7 +150,7 @@ $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
     foreach ($r in $section.PSObject.Properties.Name) {
         $option = $section.$r
         $default = Format-NicelyMini $option.Default
-        "  ${r}: $($option.Description)`n  Default value: $default`n"
+        "  ${r}: $($option.Description)`n  Default value: ${default}`n"
     }
 }
 
@@ -229,10 +235,9 @@ foreach ($f in $files) {
         $null = $sb.AppendLine("# file $relativePath")
         $noBuild = $false
         foreach ($l in $lines) {
-            # when inlining the code skip everything wrapped in this if
-            # if (something with PESTER_BUILD) {
-            # } # endif
-            if ($l -match '^\s*if.*PESTER_BUILD') {
+            # when inlining the code skip everything wrapped in # PESTER_BUILD, # end PESTER_BUILD
+            #
+            if ($l -match '^.*#\s*PESTER_BUILD') {
                 # start skipping lines
                 $noBuild = $true
             }
@@ -242,7 +247,7 @@ foreach ($f in $files) {
                 $null = $sb.AppendLine($l)
             }
 
-            if ($l -match "\s*}\s*#\s*end\s*if\s*$") {
+            if ($l -match '^.*#\s*end\s*PESTER_BUILD') {
                 # stop skipping lines
                 $noBuild = $false
             }

@@ -94,7 +94,7 @@ i -PassThru:$PassThru {
             $xmlTestCase.status | Verify-Equal "Failed"
             $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $failureLine = $sb.StartPosition.StartLine+3
+            $failureLine = $sb.StartPosition.StartLine + 3
             $message = $xmlTestCase.failure.message -split "`n" -replace "`r"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
             $message[-4] | Verify-Equal "Expected: 'Test'"

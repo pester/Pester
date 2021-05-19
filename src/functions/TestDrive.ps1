@@ -9,8 +9,7 @@ function Get-TestDrivePlugin {
     New-PluginObject -Name "TestDrive" -EachBlockSetupStart {
         param($Context)
 
-        if ($Context.Block.IsRoot)
-        {
+        if ($Context.Block.IsRoot) {
             return
         }
 
@@ -18,24 +17,23 @@ function Get-TestDrivePlugin {
             # this is top-level block setup test drive
             $path = New-TestDrive
             $Context.Block.PluginData.Add('TestDrive', @{
-                TestDriveAdded   = $true
-                TestDriveContent = $null
-                TestDrivePath    = $path
-            })
+                    TestDriveAdded   = $true
+                    TestDriveContent = $null
+                    TestDrivePath    = $path
+                })
         }
         else {
             $testDrivePath = $Context.Block.Parent.PluginData.TestDrive.TestDrivePath
             $Context.Block.PluginData.Add('TestDrive', @{
-                TestDriveAdded   = $false
-                TestDriveContent = Get-TestDriveChildItem -TestDrivePath $testDrivePath
-                TestDrivePath    = $testDrivePath
-            })
+                    TestDriveAdded   = $false
+                    TestDriveContent = Get-TestDriveChildItem -TestDrivePath $testDrivePath
+                    TestDrivePath    = $testDrivePath
+                })
         }
     } -EachBlockTearDownEnd {
         param($Context)
 
-        if ($Context.Block.IsRoot)
-        {
+        if ($Context.Block.IsRoot) {
             return
         }
 
@@ -113,8 +111,8 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
     & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
-    & $SafeCommands['Where-Object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
-    & $SafeCommands['Foreach-Object'] { $_.Delete() }
+        & $SafeCommands['Where-Object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
+        & $SafeCommands['Foreach-Object'] { $_.Delete() }
 }
 
 function Remove-TestDrive ($TestDrivePath) {

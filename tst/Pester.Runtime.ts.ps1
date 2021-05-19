@@ -151,10 +151,10 @@ i -PassThru:$PassThru {
     b "Basic" {
         t "Given a scriptblock with 1 test in it, it finds 1 test" {
             $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "block1" {
-                    New-Test "test1" { }
-                }
-                })).Blocks.Tests
+                        New-Block "block1" {
+                            New-Test "test1" { }
+                        }
+                    })).Blocks.Tests
 
             @($actual).Length | Verify-Equal 1
             $actual.Name | Verify-Equal "test1"
@@ -162,11 +162,11 @@ i -PassThru:$PassThru {
 
         t "Given scriptblock with 2 tests in it it finds 2 tests" {
             $actual = (Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "block1" {
-                    New-Test "test1" { }
-                    New-Test "test2" { }
-                }
-                })).Blocks.Tests
+                        New-Block "block1" {
+                            New-Test "test1" { }
+                            New-Test "test2" { }
+                        }
+                    })).Blocks.Tests
 
             @($actual).Length | Verify-Equal 2
             $actual.Name[0] | Verify-Equal "test1"
@@ -183,9 +183,9 @@ i -PassThru:$PassThru {
 
         t "Given 1 tests it returns block containing 1 tests" {
             $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-                New-Block "block1" {
-                    New-Test "test1" { }
-                }
+                    New-Block "block1" {
+                        New-Test "test1" { }
+                    }
                 })
 
             $actual.Blocks[0].Tests.Count | Verify-Equal 1
@@ -196,8 +196,8 @@ i -PassThru:$PassThru {
         t "Given block that has test setup for each test it finds it" {
             $actual = Find-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
-                    New-EachTestSetup { setup }
-                    New-Test "test1" { }
+                        New-EachTestSetup { setup }
+                        New-Test "test1" { }
                     }
                 })
 
@@ -842,8 +842,8 @@ i -PassThru:$PassThru {
         t "tests can be not run based on tags" {
             $result = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
                     New-Block "block1" {
-                    New-Test "test1" -Tag run { }
-                    New-Test "test2" { }
+                        New-Test "test1" -Tag run { }
+                        New-Test "test2" { }
                     }
                 }) -Filter (New-FilterObject -Tag 'Run')
 

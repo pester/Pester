@@ -58,7 +58,7 @@ i -PassThru:$PassThru {
                 $temp = [IO.Path]::GetTempPath().TrimEnd('\\').TrimEnd("/")
 
                 $file1 = @{
-                    Path = "$temp/file1.Tests.ps1"
+                    Path    = "$temp/file1.Tests.ps1"
                     Content = {
                         Describe "d1" {
                             Context "c1" {
@@ -88,7 +88,7 @@ i -PassThru:$PassThru {
                 }
 
                 $file2 = @{
-                    Path = "$temp/file2.Tests.ps1"
+                    Path    = "$temp/file2.Tests.ps1"
                     Content = {
                         Describe "d1" {
                             It "pass" {

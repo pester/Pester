@@ -2,7 +2,9 @@ function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,
-        [ScriptBlock] $Logger
+        [ScriptBlock] $Logger,
+        [bool] $UseSingleHitBreakpoints = $true,
+        [bool] $UseBreakpoints = $true
     )
 
     if ($null -ne $logger) {
@@ -11,8 +13,8 @@ function Enter-CoverageAnalysis {
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $coverageInfo = foreach ($object in $CodeCoverage) {
-            Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
-        }
+        Get-CoverageInfoFromUserInput -InputObject $object -Logger $Logger
+    }
 
     if ($null -eq $coverageInfo) {
         if ($null -ne $logger) {
@@ -22,39 +24,48 @@ function Enter-CoverageAnalysis {
         return @()
     }
 
-
+    # breakpoints collection actually contains locations in script that are interesting,
+    # not actual breakpoints
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
     if ($null -ne $logger) {
-        & $logger "Figuring out $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds) ms."
     }
-    $action = if ($PesterPreference.CodeCoverage.SingleHitBreakpoints.Value) {
+
+    if ($UseBreakpoints) {
         if ($null -ne $logger) {
-            & $logger "Using single hit breakpoints."
+            & $logger "Using breakpoints for code coverage. Setting $($breakpoints.Count) breakpoints."
         }
 
-        # remove itself on hit
-        { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        $action = if ($UseSingleHitBreakpoints) {
+            # remove itself on hit
+            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+        }
+        else {
+            if ($null -ne $logger) {
+                & $logger "Using normal breakpoints."
+            }
+
+            # empty ScriptBlock
+            {}
+        }
+
+        foreach ($breakpoint in $breakpoints) {
+            $params = $breakpoint.Breakpointlocation
+            $params.Action = $action
+
+            $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
+        }
+
+        $sw.Stop()
+
+        if ($null -ne $logger) {
+            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        }
     }
     else {
         if ($null -ne $logger) {
-            & $logger "Using normal breakpoints."
+            & $logger "Using Profiler based tracer for code coverage, not setting any breakpoints."
         }
-
-        # empty ScriptBlock
-        {}
-    }
-
-    foreach ($breakpoint in $breakpoints) {
-        $params = $breakpoint.Breakpointlocation
-        $params.Action = $action
-
-        $breakpoint.Breakpoint = & $SafeCommands['Set-PSBreakpoint'] @params
-    }
-
-    $sw.Stop()
-
-    if ($null -ne $logger) {
-        & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
     }
 
     return $breakpoints
@@ -213,7 +224,8 @@ function Get-CodeCoverageFilePaths {
                 }
                 elseif (-not $i.PSIsContainer) {
                     $i.PSPath
-                }}
+                }
+            }
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
         elseif (-not $item.PsIsContainer) {
@@ -353,7 +365,7 @@ function New-CoverageBreakpoint {
         return
     }
 
-    $params =  @{
+    $params = @{
         Script = $Command.Extent.File
         Line   = $Command.Extent.StartLineNumber
         Column = $Command.Extent.StartColumnNumber
@@ -363,17 +375,17 @@ function New-CoverageBreakpoint {
     }
 
     [pscustomobject] @{
-        File                = $Command.Extent.File
-        Class               = Get-ParentClassName -Ast $Command
-        Function            = Get-ParentFunctionName -Ast $Command
-        StartLine           = $Command.Extent.StartLineNumber
-        EndLine             = $Command.Extent.EndLineNumber
-        StartColumn         = $Command.Extent.StartColumnNumber
-        EndColumn           = $Command.Extent.EndColumnNumber
-        Command             = Get-CoverageCommandText -Ast $Command
+        File               = $Command.Extent.File
+        Class              = Get-ParentClassName -Ast $Command
+        Function           = Get-ParentFunctionName -Ast $Command
+        StartLine          = $Command.Extent.StartLineNumber
+        EndLine            = $Command.Extent.EndLineNumber
+        StartColumn        = $Command.Extent.StartColumnNumber
+        EndColumn          = $Command.Extent.EndColumnNumber
+        Command            = Get-CoverageCommandText -Ast $Command
         # keep property for breakpoint but we will set it later
-        Breakpoint          = $null
-        BreakpointLocation  = $params
+        Breakpoint         = $null
+        BreakpointLocation = $params
     }
 }
 
@@ -638,7 +650,40 @@ function Merge-CommandCoverage {
 function Get-CoverageReport {
     # make sure this is an array, otherwise the counts start failing
     # on powershell 3
-    param ([object[]] $CommandCoverage)
+    param ([object[]] $CommandCoverage, $Measure)
+
+    # Measure is null when we used Breakpoints to do code coverage, otherwise it is populated with the measure
+    if ($null -ne $Measure) {
+
+        # re-key the measures to use columns that are corrected for BP placement
+        $bpm = @{}
+        foreach ($path in $Measure.Keys) {
+            $lines = @{}
+
+            foreach ($line in $Measure[$path].Values) {
+                $lines.Add("$($line.Line):$($line.BpColumn)", $line)
+            }
+
+            $bpm.Add($path, $lines)
+        }
+
+        # adapting the data to the breakpoint like api we use for breakpoint based CC
+        # so the rest of our code just works
+        foreach ($i in $CommandCoverage) {
+            # Write-Host "CC: $($i.File), $($i.StartLine), $($i.StartColumn)"
+            $bp = @{ HitCount = 0 }
+            if ($bpm.ContainsKey($i.File)) {
+                $f = $bpm[$i.File]
+                $key = "$($i.StartLine):$($i.StartColumn)"
+                if ($f.ContainsKey($key)) {
+                    $h = $f[$key]
+                    $bp.HitCount = [int] $h.Hit
+                }
+            }
+
+            $i.Breakpoint = $bp
+        }
+    }
 
     $properties = @(
         'File'
@@ -675,7 +720,8 @@ function Get-CommonParentPath {
 
     if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
         # for coverage gutters the root path is relative to the coverage.xml
-        return (& $SafeCommands['Split-Path'] -Path $PesterPreference.CodeCoverage.OutputPath.Value | Normalize-Path )
+        $fullPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+        return (& $SafeCommands['Split-Path'] -Path $fullPath | Normalize-Path )
     }
 
     $pathsToTest = @(
@@ -896,11 +942,11 @@ function Get-JaCoCoReportXml {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $classElementName = if ($isGutters) {
-                    $classElementRelativePath
-                }
-                else {
-                    "$commonParentLeaf/$classElementRelativePath"
-                }
+                $classElementRelativePath
+            }
+            else {
+                "$commonParentLeaf/$classElementRelativePath"
+            }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
                     name           = $classElementName
@@ -1006,4 +1052,43 @@ function Add-JaCoCoCounter {
             missed  = $Data.$Type.Missed
             covered = $Data.$Type.Covered
         })
+}
+
+function Start-TraceScript ($Breakpoints) {
+
+    $points = [Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]@()
+    foreach ($breakpoint in $breakpoints) {
+        $location = $breakpoint.BreakpointLocation
+
+        $hitColumn = $location.Column
+
+        # breakpoints for some actions bind to different column than the hits, we need to adjust
+        # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
+        # but we are getting the whole assignment from profiler, so we need to offset it
+        $firstLine, $null = $breakpoint.Command -split "`n", 2
+        if ($firstLine -like "*=*") {
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput($breakpoint.Command, [ref]$null, [ref]$null)
+
+            $assignment = $ast.Find( { param ($item) $item -is [System.Management.Automation.Language.AssignmentStatementAst] }, $false)
+            if ($assignment) {
+                if ($assignment.Right) {
+                    $hitColumn = $location.Column - $assignment.Right.Extent.StartColumnNumber + 1
+                }
+            }
+        }
+
+
+        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $location.Line, $hitColumn, $location.Column, $breakpoint.Command));
+    }
+
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
+    [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+    Set-PSDebug -Trace 1
+
+    $tracer
+}
+
+function Stop-TraceScript {
+    Set-PSDebug -Trace 0
+    [Pester.Tracing.Tracer]::Unpatch()
 }

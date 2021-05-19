@@ -88,7 +88,7 @@ elseif (($wmi = & $Get_Command -Name Get-WmiObject -Module Microsoft.PowerShell.
 }
 elseif (($unames = & $Get_Command -Name uname -CommandType Application -ErrorAction Ignore)) {
     $script:SafeCommands['uname'] = if ($null -ne $unames -and 0 -lt @($unames).Count) { $unames[0] }
-    if  (($ids = & $Get_Command -Name id -CommandType Application -ErrorAction Ignore)) {
+    if (($ids = & $Get_Command -Name id -CommandType Application -ErrorAction Ignore)) {
         $script:SafeCommands['id'] = if ($null -ne $ids -and 0 -lt @($ids).Count) { $ids[0] }
     }
 }

@@ -1,3 +1,4 @@
+# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/Pester.Utility.ps1"
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
@@ -11,7 +12,8 @@ else {
     if ($null -eq $PesterPreference) {
         $PesterPreference = [PesterConfiguration]::Default
     }
-} # endif
+}
+# end PESTER_BUILD
 
 # interesting commands
 # # the core stuff I am mostly sure about
@@ -79,9 +81,9 @@ function New-PesterState {
         PluginData          = $null
         Configuration       = $null
 
-        TotalStopWatch = [Diagnostics.Stopwatch]::StartNew()
-        UserCodeStopWatch = [Diagnostics.Stopwatch]::StartNew()
-        FrameworkStopWatch = [Diagnostics.Stopwatch]::StartNew()
+        TotalStopWatch      = [Diagnostics.Stopwatch]::StartNew()
+        UserCodeStopWatch   = [Diagnostics.Stopwatch]::StartNew()
+        FrameworkStopWatch  = [Diagnostics.Stopwatch]::StartNew()
 
         Stack               = [Collections.Stack]@()
     }
@@ -264,7 +266,7 @@ function New-Block {
             }
 
             $parameters = @{
-                Context = $context
+                Context     = $context
                 ScriptBlock = $ScriptBlock
             }
 
@@ -364,7 +366,7 @@ function Invoke-Block ($previousBlock) {
                             Invoke_Block = ${function:Invoke-Block}
                             Block        = $block
                         }
-                        ____Pester = $State
+                        ____Pester                           = $State
                     }
 
                     if ($null -ne $block.Data) {
@@ -377,14 +379,14 @@ function Invoke-Block ($previousBlock) {
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup @(
-                            $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
+                        $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                                 @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
                             })
-                            $(if (-not $Block.IsRoot) {
+                        $(if (-not $Block.IsRoot) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
                                 # avoid using variables so we don't run into conflicts
                                 $sb = {
-                                    $____Pester.CurrentBlock.ExpandedName = & ([ScriptBlock]::Create(('"'+ ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
+                                    $____Pester.CurrentBlock.ExpandedName = & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
                                         # to avoid including Root name in the path
                                         $____Pester.CurrentBlock.ExpandedName
@@ -399,7 +401,7 @@ function Invoke-Block ($previousBlock) {
 
                                 $sb
                             })
-                        ) `
+                    ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
                             @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
                         } ) `
@@ -638,7 +640,7 @@ function Invoke-TestItem {
                         # $ExecutionContext.SessionState.InvokeCommand.ExpandString() has some weird bug in PowerShell 4 and 3, that makes hashtable resolve to null
                         # instead I create a expandable string in a scriptblock and evaluate
                         $sb = {
-                            $____Pester.CurrentTest.ExpandedName = & ([ScriptBlock]::Create(('"'+ ($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
+                            $____Pester.CurrentTest.ExpandedName = & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
                             $____Pester.CurrentTest.ExpandedPath = "$($____Pester.CurrentTest.Block.ExpandedPath -join '.').$($____Pester.CurrentTest.ExpandedName)"
                         }
 
@@ -668,7 +670,8 @@ function Invoke-TestItem {
                     }
                     $Test.Passed = $true
                     $Test.Skipped = $true
-                } else {
+                }
+                else {
                     $Test.Passed = $result.Success
                 }
 
@@ -897,7 +900,7 @@ function Discover-Test {
         # OneTime* and Each* setups, and capture multiple blocks in a
         # container
         $root = [Pester.Block]::Create()
-        $root.ExpandedName  = $root.Name = "Root"
+        $root.ExpandedName = $root.Name = "Root"
 
         $root.IsRoot = $true
         $root.ExpandedPath = $root.Path = "Path"
@@ -1024,11 +1027,11 @@ function Run-Test {
     $steps = $state.Plugin.RunStart
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
-            Blocks        = $Block
-            Configuration = $state.PluginConfiguration
-            Data          = $state.PluginData
-            WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages) { $script:SafeCommands['Write-PesterDebugMessage'] }
+            Blocks                   = $Block
+            Configuration            = $state.PluginConfiguration
+            Data                     = $state.PluginData
+            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
         } -ThrowOnFailure
     }
     foreach ($rootBlock in $Block) {
@@ -1085,7 +1088,7 @@ function Run-Test {
                     return
                 }
 
-                foreach($private:____d in $____parameters.Data.GetEnumerator()) {
+                foreach ($private:____d in $____parameters.Data.GetEnumerator()) {
                     & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
                 }
             }
@@ -1097,7 +1100,7 @@ function Run-Test {
                 $action = $setVariables
                 $setup = $rootBlock.OneTimeTestSetup
                 $parameters = @{
-                    Data = $rootBlock.BlockContainer.Data
+                    Data         = $rootBlock.BlockContainer.Data
                     Set_Variable = $SafeCommands["Set-Variable"]
                 }
 
@@ -1861,9 +1864,11 @@ function Invoke-Test {
     # TODO: revisit this because this will probably act weird as we jump between session states
     $PesterPreference = $Configuration
 
-    if ($null -eq $PesterPreference) { # PESTER_BUILD
+    # PESTER_BUILD
+    if ($null -eq $PesterPreference) {
         $Configuration = $PesterPreference = [PesterConfiguration]::Default
-    } # end if
+    }
+    # end PESTER_BUILD
 
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
@@ -1890,8 +1895,6 @@ function Invoke-Test {
         foreach ($f in $found) {
             ConvertTo-DiscoveredBlockContainer -Block $f
         }
-
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
 
         return
     }
@@ -2416,14 +2419,14 @@ function New-DiscoveredBlockContainerObject {
     )
 
     [PSCustomObject] @{
-        Type    = $BlockContainer.Type
-        Item = $BlockContainer.Item
+        Type   = $BlockContainer.Type
+        Item   = $BlockContainer.Item
         # I create a Root block to keep the discovery unaware of containers,
         # but I don't want to publish that root block because it contains properties
         # that do not make sense on container level like Name and Parent,
         # so here we don't want to take the root block but the blocks inside of it
         # and copy the rest of the meaningful properties
-        Blocks  = $Block.Blocks
+        Blocks = $Block.Blocks
     }
 }
 

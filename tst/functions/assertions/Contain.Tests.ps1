@@ -8,7 +8,7 @@ InPesterModuleScope {
         }
 
         It "fails collection does not contain the value" {
-            { @(1, 'a', 3) | Should -Contain 'g'  } | Verify-AssertionFailed
+            { @(1, 'a', 3) | Should -Contain 'g' } | Verify-AssertionFailed
         }
 
         It "returns the correct assertion message" {
