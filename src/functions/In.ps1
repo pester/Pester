@@ -1,4 +1,4 @@
-function In {
+﻿function In {
     <#
     .SYNOPSIS
     A convenience function that executes a script from a specified path.

@@ -1,4 +1,4 @@
-function It {
+﻿function It {
     <#
 .SYNOPSIS
 Validates the results of a test inside of a Describe block.

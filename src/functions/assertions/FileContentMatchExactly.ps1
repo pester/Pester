@@ -1,4 +1,4 @@
-function Should-FileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
+﻿function Should-FileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     <#
 .SYNOPSIS
 Checks to see if a file contains the specified text.

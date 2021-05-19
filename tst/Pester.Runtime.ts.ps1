@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
 

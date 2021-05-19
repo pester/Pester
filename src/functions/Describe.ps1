@@ -1,4 +1,4 @@
-function Describe {
+﻿function Describe {
     <#
 .SYNOPSIS
 Creates a logical group of tests.

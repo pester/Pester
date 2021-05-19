@@ -1,4 +1,4 @@
-function Set-ItResult {
+﻿function Set-ItResult {
     <#
     .SYNOPSIS
     Set-ItResult is used inside the It block to explicitly set the test result

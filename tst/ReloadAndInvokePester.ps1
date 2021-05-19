@@ -1,4 +1,4 @@
-get-module pester | remove-module
+﻿get-module pester | remove-module
 
 $v5 = $true
 if ($v5) {

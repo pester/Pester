@@ -1,4 +1,4 @@
-function Should-BeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that a collection of values contain a specific value.

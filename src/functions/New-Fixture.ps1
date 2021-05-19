@@ -1,4 +1,4 @@
-function New-Fixture {
+﻿function New-Fixture {
     <#
     .SYNOPSIS
     This function generates two scripts, one that defines a function

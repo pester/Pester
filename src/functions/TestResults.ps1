@@ -1,4 +1,4 @@
-function Get-HumanTime {
+﻿function Get-HumanTime {
     param( [TimeSpan] $TimeSpan)
     if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
         $time = [int]($TimeSpan.TotalMilliseconds)

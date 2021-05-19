@@ -1,4 +1,4 @@
-function Should-HaveParameter (
+﻿function Should-HaveParameter (
     $ActualValue,
     [String] $ParameterName,
     $Type,

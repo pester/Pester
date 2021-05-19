@@ -1,4 +1,4 @@
-
+﻿
 function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
     <#
 .SYNOPSIS

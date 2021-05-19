@@ -1,4 +1,4 @@
-$script:failed = 0
+﻿$script:failed = 0
 $script:total = 0
 
 

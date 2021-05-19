@@ -1,4 +1,4 @@
-using namespace System.Management.Automation;
+﻿using namespace System.Management.Automation;
 
 Describe 'Use class with custom attribute' {
     BeforeAll {
