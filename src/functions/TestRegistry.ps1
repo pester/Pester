@@ -51,19 +51,13 @@
         }
     }
 
-    if ( $PassThru ) {
-        & $SafeCommands['Get-PSDrive'] -Name $DriveName
-    }
-}
-
-function Get-TestRegistryPath () {
-    "Microsoft.PowerShell.Core\Registry::" + (& $SafeCommands['Get-PSDrive'] -Name TestRegistry -ErrorAction Stop).Root
+    $directory.PSPath
 }
 
 function Clear-TestRegistry {
     param(
-        [String[]]
-        $Exclude
+        [String[]]$Exclude,
+        [string]$TestRegistryPath
     )
 
     # if the setup fails before we mark test registry added
@@ -73,7 +67,7 @@ function Clear-TestRegistry {
         return
     }
 
-    $path = Get-TestRegistryPath
+    $path = $TestRegistryPath
 
     if ($null -ne $path -and (& $SafeCommands['Test-Path'] -Path $Path)) {
         #Get-ChildItem -Exclude did not seem to work with full paths
@@ -84,9 +78,9 @@ function Clear-TestRegistry {
     }
 }
 
-function Get-TestRegistryChildItem {
-    $path = Get-TestRegistryPath
-    & $SafeCommands['Get-ChildItem'] -Recurse -Path $path
+function Get-TestRegistryChildItem ([string]$TestRegistryPath) {
+    & $SafeCommands['Get-ChildItem'] -Recurse -Path $TestRegistryPath |
+        & $SafeCommands['Select-Object'] -ExpandProperty PSPath
 }
 
 function New-RandomTempRegistry {
@@ -106,7 +100,7 @@ function New-RandomTempRegistry {
     }
 }
 
-function Remove-TestRegistry {
+function Remove-TestRegistry ($TestRegistryPath) {
     $DriveName = "TestRegistry"
     $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     if ($null -eq $Drive) {
@@ -116,7 +110,7 @@ function Remove-TestRegistry {
         return
     }
 
-    $path = Get-TestRegistryPath
+    $path = $TestRegistryPath
 
     if ($pwd -like "$DriveName*" ) {
         #will staying in the test drive cause issues?
@@ -148,34 +142,39 @@ function Get-TestRegistryPlugin {
     }
     New-PluginObject -Name "TestRegistry" -EachBlockSetupStart {
         param($Context)
-        if (-not ($Context.Block.PluginData.ContainsKey('TestRegistry'))) {
+
+        if ($Context.Block.IsRoot) {
+            return
+        }
+
+        if ($Context.Block.Parent.IsRoot) {
+            # this is top-level block setup test drive
+            $path = New-TestRegistry
             $Context.Block.PluginData.Add('TestRegistry', @{
-                    TestRegistryAdded   = $false
+                    TestRegistryAdded   = $true
                     TestRegistryContent = $null
+                    TestRegistryPath    = $path
                 })
         }
-
-        # TODO: Add option, but probably in a more generic way
-        # if (-not $NoTestRegistry)
-        # {
-        if (-not (& $script:SafeCommands['Test-Path'] TestRegistry:\)) {
-            New-TestRegistry
-            $Context.Block.PluginData.TestRegistry.TestRegistryAdded = $true
-        }
         else {
-            $Context.Block.PluginData.TestRegistry.TestRegistryContent = Get-TestRegistryChildItem
+            $testRegistryPath = $Context.Block.Parent.PluginData.TestRegistry.TestRegistryPath
+            $Context.Block.PluginData.Add('TestRegistry', @{
+                    TestRegistryAdded   = $false
+                    TestRegistryContent = Get-TestRegistryChildItem -TestRegistryPath $testRegistryPath
+                    TestRegistryPath    = $testRegistryPath
+                })
         }
-        # }
-
     } -EachBlockTearDownEnd {
-        # if (-not $NoTestRegistry)
-        # {
-        if ($Context.Block.PluginData.TestRegistry.TestRegistryAdded) {
-            Remove-TestRegistry
+        if ($Context.Block.IsRoot) {
+            return
+        }
+
+        if ($Context.Block.Parent -and $Context.Block.Parent.IsRoot) {
+            # this is top-level block remove test drive
+            Remove-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath
         }
         else {
-            Clear-TestRegistry -Exclude ( $Context.Block.PluginData.TestRegistry.TestRegistryContent | & $SafeCommands['Select-Object'] -ExpandProperty PSPath)
+            Clear-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath -Exclude ( $Context.Block.PluginData.TestRegistry.TestRegistryContent )
         }
-        # }
     }
 }
