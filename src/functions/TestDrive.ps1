@@ -10,10 +10,6 @@
         param($Context)
 
         if ($Context.Block.IsRoot) {
-            return
-        }
-
-        if ($Context.Block.Parent.IsRoot) {
             # this is top-level block setup test drive
             $path = New-TestDrive
             $Context.Block.PluginData.Add('TestDrive', @{
@@ -34,10 +30,6 @@
         param($Context)
 
         if ($Context.Block.IsRoot) {
-            return
-        }
-
-        if ($Context.Block.Parent -and $Context.Block.Parent.IsRoot) {
             # this is top-level block remove test drive
             Remove-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath
         }

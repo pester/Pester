@@ -144,10 +144,6 @@ function Get-TestRegistryPlugin {
         param($Context)
 
         if ($Context.Block.IsRoot) {
-            return
-        }
-
-        if ($Context.Block.Parent.IsRoot) {
             # this is top-level block setup test drive
             $path = New-TestRegistry
             $Context.Block.PluginData.Add('TestRegistry', @{
@@ -165,11 +161,8 @@ function Get-TestRegistryPlugin {
                 })
         }
     } -EachBlockTearDownEnd {
-        if ($Context.Block.IsRoot) {
-            return
-        }
 
-        if ($Context.Block.Parent -and $Context.Block.Parent.IsRoot) {
+        if ($Context.Block.IsRoot) {
             # this is top-level block remove test drive
             Remove-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath
         }
