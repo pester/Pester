@@ -74,7 +74,7 @@ function New-RandomTempDirectory {
         $Path = [IO.Path]::Combine($tempPath, ([Guid]::NewGuid()));
     } until (-not [IO.Directory]::Exists($Path))
 
-    [IO.Directory]::CreateDirectory($Path)
+    [IO.Directory]::CreateDirectory($Path).FullName
 }
 
 function Get-TestDriveChildItem ($TestDrivePath) {

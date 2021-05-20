@@ -96,7 +96,7 @@ InPesterModuleScope {
             $first | Remove-Item -Force
             $second | Remove-Item -Force
 
-            $first.name | Should -Not -Be $second.name
+            $first | Should -Not -Be $second
 
         }
     }
