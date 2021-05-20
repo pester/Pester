@@ -122,7 +122,7 @@ New-Module -Name TestHelpers -ScriptBlock {
 $configuration = [PesterConfiguration]::Default
 
 $configuration.Output.Verbosity = "Normal"
-$configuration.Debug.WriteDebugMessages = $true
+$configuration.Debug.WriteDebugMessages = $false
 $configuration.Debug.WriteDebugMessagesFrom = 'CodeCoverage'
 
 $configuration.Debug.ShowFullErrors = $false
