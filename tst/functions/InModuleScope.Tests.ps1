@@ -163,8 +163,8 @@ Describe 'InModuleScope parameter binding' {
 Describe "Using variables within module scope" {
     # do not put this into BeforeAll this needs to be imported before calling InModuleScope
     # that is below, because it requires the module to be loaded
-    Get-Module TestModule | Remove-Module
-    New-Module -Name TestModule { } | Import-Module -Force
+    Get-Module TestModule2 | Remove-Module
+    New-Module -Name TestModule2 { } | Import-Module -Force
 
     It 'Only script-scoped variables should persist across InModuleScope calls' {
         $setup = {
