@@ -84,11 +84,11 @@ Describe "Get-ScriptModule behavior" {
 }
 
 Describe 'InModuleScope parameter binding' {
-    # do not put this into BeforeAll this needs to be imported before calling InModuleScope
-    # that is below, because it requires the module to be loaded
 
-    Get-Module TestModule2 | Remove-Module
-    New-Module -Name TestModule2 { } | Import-Module -Force
+    BeforeAll {
+        Get-Module TestModule2 | Remove-Module
+        New-Module -Name TestModule2 { } | Import-Module -Force
+    }
 
     It 'Works with parameters while using advanced function/script' {
         # https://github.com/pester/Pester/issues/1809
@@ -154,17 +154,15 @@ Describe 'InModuleScope parameter binding' {
     }
 
     AfterAll {
-        # keep this in AfterAll so we remove the module after tests are invoked
-        # and not while the tests are discovered
         Remove-Module TestModule2 -Force
     }
 }
 
 Describe "Using variables within module scope" {
-    # do not put this into BeforeAll this needs to be imported before calling InModuleScope
-    # that is below, because it requires the module to be loaded
-    Get-Module TestModule2 | Remove-Module
-    New-Module -Name TestModule2 { } | Import-Module -Force
+    BeforeAll {
+        Get-Module TestModule2 | Remove-Module
+        New-Module -Name TestModule2 { } | Import-Module -Force
+    }
 
     It 'Only script-scoped variables should persist across InModuleScope calls' {
         $setup = {
@@ -178,8 +176,6 @@ Describe "Using variables within module scope" {
     }
 
     AfterAll {
-        # keep this in AfterAll so we remove the module after tests are invoked
-        # and not while the tests are discovered
         Remove-Module TestModule2 -Force
     }
 }
