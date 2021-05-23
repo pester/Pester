@@ -75,26 +75,52 @@
     )
 
     $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+    $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
 
-    # TODO: could this simply be $PSCmdlet.SessionState? Because the original scope we are moving from
-    # is the scope in which this command is running, right?
-    # $originalState = $Pester.SessionState
-    # $originalScriptBlockScope = Get-ScriptBlockScope -ScriptBlock $ScriptBlock
+    $wrapper = {
+        param (
+            [Parameter(Mandatory = $true)]
+            [scriptblock]
+            ${Script Block},
 
-    # try {
-    # $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
-    # $Pester.SessionState = $sessionState
-    # Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
+            [hashtable]
+            $___Parameters___ = @{ },
 
-    # do {
-    # Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
-    & $module $ScriptBlock @Parameters @ArgumentList
-    # } until ($true)
-    # }
-    # finally {
-    # $Pester.SessionState = $originalState
-    # Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionStateInternal $originalScriptBlockScope
-    # }
+            [object[]]
+            $___ArgumentList___ = @(),
+
+            [System.Management.Automation.SessionState]
+            ${Session State},
+
+            ${Set Dynamic Parameter Variable}
+        )
+
+        # This script block exists to hold variables without polluting the test script's current scope.
+        # Dynamic parameters in functions, for some reason, only exist in $PSBoundParameters instead
+        # of being assigned a local variable the way static parameters do.  By calling Set-DynamicParameterVariable,
+        # we create these variables for the caller's use in a Parameter Filter or within the mock itself, and
+        # by doing it inside this temporary script block, those variables don't stick around longer than they
+        # should.
+
+        & ${Set Dynamic Parameter Variable} -SessionState ${Session State} -Parameters $___Parameters___
+
+        # define this in the current scope to be used instead of $PSBoundParameter if needed
+        # $PesterBoundParameters = if ($null -ne $___Parameters___) { $___Parameters___ } else { @{} }
+        & ${Script Block} @___Parameters___ @___ArgumentList___
+    }
+
+    Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
+    Set-ScriptBlockScope -ScriptBlock $wrapper -SessionState $sessionState
+    $splat = @{
+        'Script Block'                   = $ScriptBlock
+        '___ArgumentList___'             = $ArgumentList
+        '___Parameters___'               = $Parameters
+        'Session State'                  = $sessionState
+        'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
+    }
+
+    Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
+    & $wrapper @splat
 }
 
 function Get-ScriptModule {

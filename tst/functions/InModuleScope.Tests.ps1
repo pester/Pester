@@ -134,6 +134,25 @@ Describe 'InModuleScope parameter binding' {
         InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should -Be @($inModuleScopeParameters.SomeParam, $myArgs.Count)
     }
 
+    It 'Automatically imports parameters as variables in module scope' {
+        # https://github.com/pester/Pester/issues/1603
+        $inModuleScopeParameters = @{
+            SomeParam2 = 'MyValue'
+        }
+
+        $sb = {
+            "$SomeParam2"
+        }
+
+        $sb2 = {
+            # Should return nothing. Making sure dynamic variable isn't persisted in module state.
+            "$SomeParam2"
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters $inModuleScopeParameters | Should -Be $inModuleScopeParameters.SomeParam2
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should -BeNullOrEmpty
+    }
+
     AfterAll {
         # keep this in AfterAll so we remove the module after tests are invoked
         # and not while the tests are discovered
