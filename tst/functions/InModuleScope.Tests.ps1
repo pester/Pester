@@ -159,3 +159,27 @@ Describe 'InModuleScope parameter binding' {
         Remove-Module TestModule2 -Force
     }
 }
+
+Describe "Using variables within module scope" {
+    # do not put this into BeforeAll this needs to be imported before calling InModuleScope
+    # that is below, because it requires the module to be loaded
+    Get-Module TestModule | Remove-Module
+    New-Module -Name TestModule { } | Import-Module -Force
+
+    It 'Only script-scoped variables should persist across InModuleScope calls' {
+        $setup = {
+            $script:myVar = 'bar'
+            $myVar2 = 'bar'
+        }
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $setup
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should -Be 'bar'
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should -BeNullOrEmpty
+    }
+
+    AfterAll {
+        # keep this in AfterAll so we remove the module after tests are invoked
+        # and not while the tests are discovered
+        Remove-Module TestModule2 -Force
+    }
+}
