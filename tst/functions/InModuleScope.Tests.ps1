@@ -83,7 +83,7 @@ Describe "Get-ScriptModule behavior" {
 
 }
 
-Describe 'InModuleScope parameter binding' {
+Describe 'InModuleScope arguments and parameter binding' {
 
     BeforeAll {
         Get-Module TestModule2 | Remove-Module
@@ -134,7 +134,44 @@ Describe 'InModuleScope parameter binding' {
         InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should -Be @($inModuleScopeParameters.SomeParam, $myArgs.Count)
     }
 
-    It 'Automatically imports parameters as variables in module scope' {
+    It 'Arguments are available in scriptblock' {
+        # https://github.com/pester/Pester/pull/1957#discussion_r637772167
+        $arguments = 12345
+
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments.Count, $arguments
+    }
+
+    It 'Support $null as argument' {
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $null -ScriptBlock $sb | Should -Be 1, $null
+    }
+
+    It '$args is empty when no arguments are provided' {
+        $sb = {
+            $args.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -Be 0
+    }
+
+    It 'internal variables used in InModuleScope wrapper does not leak into scriptblock' {
+        $sb = {
+            $null -eq $SessionState
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -BeTrue
+    }
+
+    It 'Automatically imports parameters as variables in module scoped scriptblock' {
         # https://github.com/pester/Pester/issues/1603
         $inModuleScopeParameters = @{
             SomeParam2 = 'MyValue'

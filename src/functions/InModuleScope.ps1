@@ -69,7 +69,7 @@
         $ScriptBlock,
 
         [HashTable]
-        $Parameters,
+        $Parameters = @{},
 
         $ArgumentList = @()
     )
@@ -78,45 +78,47 @@
     $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
 
     $wrapper = {
-        param (
-            [Parameter(Mandatory = $true)]
-            [scriptblock]
-            ${Script Block},
-
-            [hashtable]
-            $___Parameters___ = @{ },
-
-            [object[]]
-            $___ArgumentList___ = @(),
-
-            [System.Management.Automation.SessionState]
-            ${Session State},
-
-            ${Set Dynamic Parameter Variable}
-        )
+        param ($private:______inmodule_parameters)
 
         # This script block is used to create variables for provided parameters that
         # the real scriptblock can inherit. Makes defining a param-block optional.
 
-        & ${Set Dynamic Parameter Variable} -SessionState ${Session State} -Parameters $___Parameters___
+        foreach ($private:______current in $private:______inmodule_parameters.Parameters.GetEnumerator()) {
+            $private:______inmodule_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
+        }
 
-        # define this in the current scope to be used instead of $PSBoundParameter if needed
-        # $PesterBoundParameters = if ($null -ne $___Parameters___) { $___Parameters___ } else { @{} }
-        & ${Script Block} @___Parameters___ @___ArgumentList___
+        # Splatting expressions isn't allowed. Assigning to new private variable
+        $private:______arguments = $private:______inmodule_parameters.ArgumentList
+        $private:______parameters = $private:______inmodule_parameters.Parameters
+
+        if ($private:______parameters.Count -gt 0) {
+            & $private:______inmodule_parameters.ScriptBlock @private:______parameters @private:______arguments
+        }
+        else {
+            # Not splatting parameters to avoid polluting args
+            & $private:______inmodule_parameters.ScriptBlock @private:______arguments
+        }
+    }
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $hasParams = 0 -lt $Parameters.Count
+        $hasArgs = 0 -lt $ArgumentList.Count
+        $arguments = $($(if ($hasArgs) { foreach ($a in $ArgumentList) { "'$($a)'" } }) -join ", ")
+        $params = $(if ($hasParams) { foreach ($p in $Parameters.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        Write-PesterDebugMessage -Scope Runtime -Message "Running scriptblock { $scriptBlock } in module $($ModuleName)$(if ($hasParams) { " with parameters: $params" })$(if ($hasArgs) { "$(if ($hasParams) { ' and' }) with arguments: $arguments" })."
     }
 
     Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState
     Set-ScriptBlockScope -ScriptBlock $wrapper -SessionState $sessionState
     $splat = @{
-        'Script Block'                   = $ScriptBlock
-        '___ArgumentList___'             = $ArgumentList
-        '___Parameters___'               = $Parameters
-        'Session State'                  = $sessionState
-        'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
+        ScriptBlock    = $ScriptBlock
+        Parameters     = $Parameters
+        ArgumentList   = $ArgumentList
+        SessionState   = $sessionState
     }
 
     Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
-    & $wrapper @splat
+    & $wrapper $splat
 }
 
 function Get-ScriptModule {
