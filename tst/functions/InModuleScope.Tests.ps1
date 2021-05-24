@@ -197,6 +197,17 @@ Describe 'InModuleScope arguments and parameter binding' {
         InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -Be 0
     }
 
+    It 'Arguments bind to remaining parameters in param-block' {
+        $sb = {
+            param($param1, $param2)
+            $param1
+            $param2
+            $args.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters @{ param1 = 'foo' } -ArgumentList 123 | Should -Be 'foo', 123, 0
+    }
+
     It 'internal variables used in InModuleScope wrapper does not leak into scriptblock' {
         $sb = {
             $null -eq $SessionState
