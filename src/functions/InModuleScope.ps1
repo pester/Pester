@@ -71,6 +71,7 @@
         [HashTable]
         $Parameters = @{},
 
+        [object[]]
         $ArgumentList = @()
     )
 
@@ -92,7 +93,7 @@
         $private:______parameters = $private:______inmodule_parameters.Parameters
 
         if ($private:______parameters.Count -gt 0) {
-            & $private:______inmodule_parameters.ScriptBlock @private:______parameters @private:______arguments
+            & $private:______inmodule_parameters.ScriptBlock @private:______arguments @private:______parameters
         }
         else {
             # Not splatting parameters to avoid polluting args
@@ -103,9 +104,9 @@
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasParams = 0 -lt $Parameters.Count
         $hasArgs = 0 -lt $ArgumentList.Count
-        $arguments = $($(if ($hasArgs) { foreach ($a in $ArgumentList) { "'$($a)'" } }) -join ", ")
-        $params = $(if ($hasParams) { foreach ($p in $Parameters.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
-        Write-PesterDebugMessage -Scope Runtime -Message "Running scriptblock { $scriptBlock } in module $($ModuleName)$(if ($hasParams) { " with parameters: $params" })$(if ($hasArgs) { "$(if ($hasParams) { ' and' }) with arguments: $arguments" })."
+        $inmoduleArguments = $($(if ($hasArgs) { foreach ($a in $ArgumentList) { "'$($a)'" } }) -join ", ")
+        $inmoduleParameters = $(if ($hasParams) { foreach ($p in $Parameters.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        Write-PesterDebugMessage -Scope Runtime -Message "Running scriptblock { $scriptBlock } in module $($ModuleName)$(if ($hasParams) { " with parameters: $inmoduleParameters" })$(if ($hasArgs) { "$(if ($hasParams) { ' and' }) with arguments: $inmoduleArguments" })."
     }
 
     Set-ScriptBlockScope -ScriptBlock $ScriptBlock -SessionState $sessionState

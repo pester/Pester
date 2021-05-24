@@ -135,8 +135,7 @@ Describe 'InModuleScope arguments and parameter binding' {
     }
 
     It 'Arguments are available in scriptblock' {
-        # https://github.com/pester/Pester/pull/1957#discussion_r637772167
-        $arguments = 12345
+        $arguments = @(12345)
 
         $sb = {
             $args.Count
@@ -144,6 +143,26 @@ Describe 'InModuleScope arguments and parameter binding' {
         }
 
         InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments.Count, $arguments
+    }
+
+    It 'single argument works' {
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList 'hello' -ScriptBlock $sb | Should -Be 1, 'hello'
+    }
+
+    It 'array argument works' {
+        $arguments = [int[]](1, 2, 3), 'hello'
+        $sb = {
+            $args.Count
+            $args[0].Count
+            $args[1]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be 2, 3, 'hello'
     }
 
     It 'Support $null as argument' {
@@ -155,7 +174,22 @@ Describe 'InModuleScope arguments and parameter binding' {
         InModuleScope -ModuleName TestModule2 -ArgumentList $null -ScriptBlock $sb | Should -Be 1, $null
     }
 
+    It 'Arguments are first in args when parameters are also used and no param-block exists' {
+        # https://github.com/pester/Pester/pull/1957#discussion_r637891515
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+        $arguments = 12345
+
+        $sb = {
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments
+    }
+
     It '$args is empty when no arguments are provided' {
+        # https://github.com/pester/Pester/pull/1957#discussion_r637772167
         $sb = {
             $args.Count
         }
