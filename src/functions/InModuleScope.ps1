@@ -19,6 +19,7 @@
    The code to be executed within the script module.
 .PARAMETER Parameters
    A optional hashtable of parameters to be passed to the scriptblock.
+   Parameters are automatically made available as variables in the scriptblock.
 .PARAMETER ArgumentList
    A optional list of arguments to be passed to the scriptblock.
 .EXAMPLE
@@ -53,6 +54,52 @@
     the PowerShell session, because the module only exported
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
+
+.EXAMPLE
+    ```powershell
+    # The script module:
+    function PublicFunction
+    {
+        # Does something
+    }
+
+    function PrivateFunction ($MyParam)
+    {
+        return $MyParam
+    }
+
+    Export-ModuleMember -Function PublicFunction
+
+    # The test script:
+
+    Describe 'Testing MyModule' {
+        BeforeAll {
+            Import-Module MyModule
+        }
+
+        It 'passing in parameter' {
+            $SomeVar = 123
+            InModuleScope 'MyModule' -Parameters @{ MyVar = $SomeVar } {
+                $MyVar | Should -Be 123
+            }
+        }
+
+        It 'accessing whole testcase in module socpe' -TestCases @(
+            @{ Name = 'Foo'; Bool = $true }
+        ) {
+            # Passes the whole testcase-dictionary available in $_ to InModuleScope
+            InModuleScope 'MyModule' -Parameters $_ {
+                $Name | Should -Be 'Foo'
+                PrivateFunction -MyParam $Bool | Should -BeTrue
+            }
+        }
+    }
+    ```
+
+    This example shows two ways of using `-Parameters` to pass variables created in a
+    testfile into the module scope where the scriptblock provided to InModuleScope is executed.
+    No variables from the outside are available inside the scriptblock without explicitly passing
+    them in using `-Parameters` or `-ArgumentList`.
 
 .LINK
     https://pester.dev/docs/commands/InModuleScope
