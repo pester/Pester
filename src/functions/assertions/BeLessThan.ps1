@@ -1,4 +1,4 @@
-function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that a number (or other comparable value) is lower than an expected value.

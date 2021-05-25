@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -45,19 +45,19 @@ function Verify-Property {
 }
 
 # template
-    # b "<" {
-    #     t ">" {
-    #         $result = Invoke-Pester -ScriptBlock {
-    #             Describe "d1" {
-    #                 It "i1" { $true }
-    #             }
-    #         }
+# b "<" {
+#     t ">" {
+#         $result = Invoke-Pester -ScriptBlock {
+#             Describe "d1" {
+#                 It "i1" { $true }
+#             }
+#         }
 
-    #         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
-    #         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-    #     }
-    # }
+#         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+#         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+#         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+#     }
+# }
 
 i -PassThru:$PassThru {
     # b General {
@@ -75,7 +75,7 @@ i -PassThru:$PassThru {
                 $temp = [IO.Path]::GetTempPath().TrimEnd('\\').TrimEnd("/")
 
                 $file1 = @{
-                    Path = "$temp/file1.Tests.ps1"
+                    Path    = "$temp/file1.Tests.ps1"
                     Content = {
                         Describe "file1" {
                             It "fail" {
@@ -103,10 +103,10 @@ i -PassThru:$PassThru {
                     }
                 }
                 $result = Invoke-Pester -Configuration @{
-                    Run = @{
+                    Run    = @{
                         ScriptBlock = $sb
-                        Path = $file1.Path
-                        PassThru = $true
+                        Path        = $file1.Path
+                        PassThru    = $true
                     }
                     Filter = @{ ExcludeTag = "Slow" }
                     Output = @{ Verbosity = "None" }
@@ -172,9 +172,9 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Output = @{ Verbosity = "None" }
             }
@@ -245,9 +245,9 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Filter = @{
                     ExcludeTag = "a"
@@ -327,9 +327,9 @@ i -PassThru:$PassThru {
             )
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Output = @{ Verbosity = "Normal" }
             }
@@ -369,12 +369,12 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Output = @{ Verbosity = "Normal" }
-                Debug = @{ ReturnRawResultObject  = $false }
+                Debug  = @{ ReturnRawResultObject = $false }
             }
 
             $result | Verify-NotNull

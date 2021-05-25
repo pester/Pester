@@ -1,9 +1,10 @@
-get-module pester | remove-module
+﻿get-module pester | remove-module
 
 $v5 = $true
 if ($v5) {
     Import-Module ./Pester.psd1
-} else {
+}
+else {
     Import-Module -Name Pester -RequiredVersion 4.7.3
 }
 
@@ -12,12 +13,12 @@ $global:PesterPreference = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "*"
-        ShowNavigationMarkers = $true
+        ShowNavigationMarkers  = $true
     }
 }
 
 $excludePath = "*/demo/*", "*/Examples/*"
- #$excludePath = ""
+#$excludePath = ""
 $excludeTags = "Help", "VersionChecks", "Formatting", "StyleRules"
 
 $path = "/Projects/pester_main"
@@ -32,14 +33,14 @@ Set-StrictMode -Version Latest
 
 $script:r = $null
 [Math]::Round((Measure-Command {
-    if ($v5) {
-        Write-Host -ForegroundColor Cyan Running in Version 5
-        $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal # -CI
-    }
-    else {
-        Write-Host -ForegroundColor Cyan Running in Version 4
-        $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
-    }
-}).TotalMilliseconds, 2)
+            if ($v5) {
+                Write-Host -ForegroundColor Cyan Running in Version 5
+                $script:r = Invoke-Pester -Path $path -ExcludePath $excludePath -ExcludeTag $excludeTags -Output Normal # -CI
+            }
+            else {
+                Write-Host -ForegroundColor Cyan Running in Version 4
+                $script:r = Invoke-Pester -Path $path -ExcludeTag $excludeTags -PassThru
+            }
+        }).TotalMilliseconds, 2)
 
 $global:r = $r

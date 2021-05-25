@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe "describe state tests" {
     It "passing" {
@@ -10,8 +10,8 @@ Describe "describe state tests" {
     }
 
     It "passing with testcases" -TestCases @(
-        @{Value = 1}
-        @{Value = 2}
+        @{ Value = 1 }
+        @{ Value = 2 }
     ) {
         1 | Should -Be 1
     }

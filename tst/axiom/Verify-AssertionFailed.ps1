@@ -1,4 +1,4 @@
-function Verify-AssertionFailed {
+﻿function Verify-AssertionFailed {
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [ScriptBlock]$ScriptBlock

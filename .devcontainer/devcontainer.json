@@ -9,18 +9,15 @@
 			"VARIANT": "3.1"
 		}
 	},
-
 	// Set *default* container specific settings.json values on container create.
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash"
 	},
-
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ms-vscode.powershell",
 		"ms-dotnettools.csharp"
 	],
-
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// Restoring the c# projects
 	"postCreateCommand": "dotnet restore src/csharp"

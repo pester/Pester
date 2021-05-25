@@ -1,13 +1,15 @@
-#! /usr/bin/pwsh
+﻿#! /usr/bin/pwsh
 
 <#
     .SYNOPSIS
         Used to build and import the Pester module during Pester development.
 
         The code that should be excluded from the build is wrapped in this if:
+        # PESTER_BUILD
         if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
             ...Your code here...
-        } # endif
+        }
+        # end PESTER_BUILD
 
         This will exclude the code from execution when dot-sourcing, but keep it when running the
         file directly. When inlining into single file, the regex below will omit the wrapped code.
@@ -15,9 +17,11 @@
 
         You can also include the code in build. Which will run the code only when dot-sources into Pester.psm1.
 
+        # PESTER_BUILD
         if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
             ...Your code here...
-        } # endif
+        }
+        # end PESTER_BUILD
 
         Or any other if that uses the variable.
 
@@ -159,10 +163,19 @@ foreach ($l in $f) {
         $null = $sbf.AppendLine("$l`n")
         $generated = $true
         $margin = $matches.margin
+        $null = $sbf.AppendLine("$margin``````")
 
-        foreach ($l in ($generatedConfig -split "`n")) {
+        $generatedLines = @($generatedConfig -split "`n")
+        for ($i=0; $i -lt $generatedLines.Count; $i++) {
+            $l = $generatedLines[$i]
             $m = if ($l) { $margin } else { $null }
-            $null = $sbf.AppendLine("$m$l")
+
+            if ($i -eq $generatedLines.Count-1) {
+                #last line should be blank - replace with codeblock end
+                $null = $sbf.AppendLine("$margin```````n")
+            } else {
+                $null = $sbf.AppendLine("$m$l")
+            }
         }
     }
     elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
@@ -231,10 +244,9 @@ foreach ($f in $files) {
         $null = $sb.AppendLine("# file $relativePath")
         $noBuild = $false
         foreach ($l in $lines) {
-            # when inlining the code skip everything wrapped in this if
-            # if (something with PESTER_BUILD) {
-            # } # endif
-            if ($l -match '^\s*if.*PESTER_BUILD') {
+            # when inlining the code skip everything wrapped in # PESTER_BUILD, # end PESTER_BUILD
+            #
+            if ($l -match '^.*#\s*PESTER_BUILD') {
                 # start skipping lines
                 $noBuild = $true
             }
@@ -244,7 +256,7 @@ foreach ($f in $files) {
                 $null = $sb.AppendLine($l)
             }
 
-            if ($l -match "\s*}\s*#\s*end\s*if\s*$") {
+            if ($l -match '^.*#\s*end\s*PESTER_BUILD') {
                 # stop skipping lines
                 $noBuild = $false
             }

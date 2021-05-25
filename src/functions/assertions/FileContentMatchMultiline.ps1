@@ -1,4 +1,4 @@
-function Should-FileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
+﻿function Should-FileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     <#
 .SYNOPSIS
 As opposed to FileContentMatch and FileContentMatchExactly operators,

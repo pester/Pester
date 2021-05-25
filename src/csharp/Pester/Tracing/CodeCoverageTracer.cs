@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 
@@ -6,6 +7,9 @@ namespace Pester.Tracing
 {
     public class CodeCoverageTracer : ITracer
     {
+        bool _debug;
+        string _debugFile;
+
         public static CodeCoverageTracer Create(List<CodeCoveragePoint> points)
         {
             return new CodeCoverageTracer(points);
@@ -13,6 +17,8 @@ namespace Pester.Tracing
 
         public CodeCoverageTracer(List<CodeCoveragePoint> points)
         {
+            _debug = Environment.GetEnvironmentVariable("PESTER_CC_DEBUG") == "1";
+            _debugFile = Environment.GetEnvironmentVariable("PESTER_CC_DEBUG_FILE") ?? "CoverageTestFile";
             foreach (var point in points)
             {
                 var key = $"{point.Line}:{point.Column}";
@@ -44,9 +50,9 @@ namespace Pester.Tracing
 
         public void Trace(IScriptExtent extent, ScriptBlock _, int __)
         {
-            if (extent?.File?.Contains("CoverageTestFile") ?? false)
+            if (_debug && (extent?.File?.Contains(_debugFile) ?? false))
             {
-                System.Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
+                Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
             }
 
             // ignore unbound scriptblocks

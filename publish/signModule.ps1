@@ -1,8 +1,8 @@
-param($Thumbprint, $Path)
+﻿param($Thumbprint, $Path)
 $ErrorActionPreference = 'Stop'
 
 $cert = Get-ChildItem Cert:\CurrentUser\My |
-Where-Object Thumbprint -eq $Thumbprint
+    Where-Object Thumbprint -eq $Thumbprint
 
 if ($null -eq $cert) {
     throw "No certificate was found."
@@ -29,11 +29,11 @@ if (-not @($filesToSign)) {
 }
 
 $results = $filesToSign |
-ForEach-Object {
-    $r = Set-AuthenticodeSignature $_ -Certificate $cert -TimestampServer 'http://timestamp.digicert.com' -ErrorAction Stop
-    $r | Out-String | Write-Host
-    $r
-}
+    ForEach-Object {
+        $r = Set-AuthenticodeSignature $_ -Certificate $cert -TimestampServer 'http://timestamp.digicert.com' -ErrorAction Stop
+        $r | Out-String | Write-Host
+        $r
+    }
 
 $failed = $results | Where-Object { $_.Status -ne "Valid" }
 

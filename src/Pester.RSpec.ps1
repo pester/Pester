@@ -1,72 +1,70 @@
 function Find-File {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [String[]] $Path,
         [String[]] $ExcludePath,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $Extension
     )
 
 
     $files =
-        foreach ($p in $Path) {
-            if ([String]::IsNullOrWhiteSpace($p))
-            {
-                continue
-            }
+    foreach ($p in $Path) {
+        if ([String]::IsNullOrWhiteSpace($p)) {
+            continue
+        }
 
-            if ((& $script:SafeCommands['Test-Path'] $p)) {
-                # This can expand to more than one path when wildcard is used, those paths can be folders or files.
-                # We want to avoid expanding to paths that are not matching our filters, but also want to ensure that if
-                # user passes in MyTestFile.ps1 without the .Tests.ps1 it will still run.
+        if ((& $script:SafeCommands['Test-Path'] $p)) {
+            # This can expand to more than one path when wildcard is used, those paths can be folders or files.
+            # We want to avoid expanding to paths that are not matching our filters, but also want to ensure that if
+            # user passes in MyTestFile.ps1 without the .Tests.ps1 it will still run.
 
-                # So at this step we look if we expanded the path to more than 1 item and use stricter rules with filtering.
-                # Or if the file was just a single file, we won't use stricter filtering for files.
+            # So at this step we look if we expanded the path to more than 1 item and use stricter rules with filtering.
+            # Or if the file was just a single file, we won't use stricter filtering for files.
 
-                # This allows us to use wildcards to get all .Tests.ps1 in the folder and all child folders, which is very useful.
-                # But prevents a rare scenario where you provide C:\files\*\MyTest.ps1, because in that case only .Tests.ps1 would be included.
+            # This allows us to use wildcards to get all .Tests.ps1 in the folder and all child folders, which is very useful.
+            # But prevents a rare scenario where you provide C:\files\*\MyTest.ps1, because in that case only .Tests.ps1 would be included.
 
-                $items = & $SafeCommands['Get-Item'] $p
-                $resolvedToMultipleFiles = $null -ne $items -and 1 -lt @($items).Length
+            $items = & $SafeCommands['Get-Item'] $p
+            $resolvedToMultipleFiles = $null -ne $items -and 1 -lt @($items).Length
 
-                foreach ($item in $items) {
-                    if ($item.PSIsContainer) {
-                        # this is an existing directory search it for tests file
-                        & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File
-                    }
-                    elseif ("FileSystem" -ne $item.PSProvider.Name) {
-                        # item is not a directory and exists but is not a file so we are not interested
-                    }
-                    elseif ($resolvedToMultipleFiles) {
-                        # item was resolved from a wildcarded path only use it if it has test extension
-                        if ($item.FullName -like "*$Extension")
-                        {
-                            # add unresolved path to have a note of the original path used to resolve this
-                            & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
-                            $item
-                        }
-                    }
-                    else {
-                        # this is some file, that was either provided directly, or resolved from wildcarded path as a single item,
-                        # we don't care what type of file it is, or if it has test extension (.Tests.ps1) we should try to run it
-                        # to allow any file that is provided directly to run
-                        if (".ps1" -ne $item.Extension) {
-                            & $SafeCommands['Write-Error'] "Script path '$item' is not a ps1 file." -ErrorAction Stop
-                        }
-
+            foreach ($item in $items) {
+                if ($item.PSIsContainer) {
+                    # this is an existing directory search it for tests file
+                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File
+                }
+                elseif ("FileSystem" -ne $item.PSProvider.Name) {
+                    # item is not a directory and exists but is not a file so we are not interested
+                }
+                elseif ($resolvedToMultipleFiles) {
+                    # item was resolved from a wildcarded path only use it if it has test extension
+                    if ($item.FullName -like "*$Extension") {
                         # add unresolved path to have a note of the original path used to resolve this
                         & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
                         $item
                     }
                 }
-            }
-            else {
-                # this is a path that does not exist so let's hope it is
-                # a wildcarded path that will resolve to some files
-                & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+                else {
+                    # this is some file, that was either provided directly, or resolved from wildcarded path as a single item,
+                    # we don't care what type of file it is, or if it has test extension (.Tests.ps1) we should try to run it
+                    # to allow any file that is provided directly to run
+                    if (".ps1" -ne $item.Extension) {
+                        & $SafeCommands['Write-Error'] "Script path '$item' is not a ps1 file." -ErrorAction Stop
+                    }
+
+                    # add unresolved path to have a note of the original path used to resolve this
+                    & $SafeCommands['Add-Member'] -Name UnresolvedPath -Type NoteProperty -Value $p -InputObject $item
+                    $item
+                }
             }
         }
+        else {
+            # this is a path that does not exist so let's hope it is
+            # a wildcarded path that will resolve to some files
+            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+        }
+    }
 
     Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
 }
@@ -79,10 +77,10 @@ function Filter-Excluded ($Files, $ExcludePath) {
 
     foreach ($file in @($Files)) {
         # normalize backslashes for cross-platform ease of use
-        $p = $file.FullName -replace "/","\"
+        $p = $file.FullName -replace "/", "\"
         $excluded = $false
 
-        foreach ($exclusion in (@($ExcludePath) -replace "/","\")) {
+        foreach ($exclusion in (@($ExcludePath) -replace "/", "\")) {
             if ($excluded) {
                 continue
             }
@@ -162,7 +160,7 @@ function PostProcess-RspecTestRun ($TestRun) {
             "Skipped" {
                 $null = $TestRun.Skipped.Add($t)
             }
-            default { throw "Result $($t.Result) is not supported."}
+            default { throw "Result $($t.Result) is not supported." }
         }
 
     } -OnBlock {
@@ -271,20 +269,21 @@ function Get-RSpecObjectDecoratorPlugin () {
 function New-PesterConfiguration {
     <#
     .SYNOPSIS
-    Creates a new [PesterConfiguration] object for advanced configuration of Invoke-Pester.
+    Creates a new PesterConfiguration object for advanced configuration of Invoke-Pester.
 
     .DESCRIPTION
-    The New-PesterConfiguration function creates a new [PesterConfiguration] object
+    The New-PesterConfiguration function creates a new PesterConfiguration-object
     to enable advanced configurations for runnings tests using Invoke-Pester.
 
     Without parameters, the function generates a configuration-object with default
-    options. The returned [PesterConfiguration] object can be modified to suit your
+    options. The returned PesterConfiguration-object can be modified to suit your
     requirements.
 
     Calling New-PesterConfiguration is equivalent to calling [PesterConfiguration]::Default which was used in early versions of Pester 5.
 
     Sections and options:
 
+    ```
     Run:
       Path: Directories to be searched for tests, paths directly to test files, or combination of both.
       Default value: @('.')
@@ -396,10 +395,11 @@ function New-PesterConfiguration {
     Output:
       Verbosity: The verbosity of output, options are None, Normal, Detailed and Diagnostic.
       Default value: 'Normal'
+    ```
 
     .PARAMETER Hashtable
     Override the default values for the options defined in the provided dictionary/hashtable.
-    Inspect a default [PesterConfiguration] object to learn about the schema and
+    See Description in this help or inspect a PesterConfiguration-object to learn about the schema and
     available options.
 
     .EXAMPLE
@@ -407,21 +407,21 @@ function New-PesterConfiguration {
     $config = New-PesterConfiguration
     $config.Run.PassThru = $true
 
-    Invoke-Pester -Configuration $c
+    Invoke-Pester -Configuration $config
     ```
 
-    Creates a default [PesterConfiguration] object and changes the Run.PassThru option
+    Creates a default PesterConfiguration-object and changes the Run.PassThru option
     to return the result object after the test run. The configuration object is
     provided to Invoke-Pester to alter the default behaviour.
 
     .EXAMPLE
     ```powershell
     $MyOptions = @{
-        Run = @{ # <- Run configuration.
-            PassThru = $true # <- Return result object after finishing the test run.
+        Run = @{ # Run configuration.
+            PassThru = $true # Return result object after finishing the test run.
         }
-        Filter = @{ # <- Filter configuration
-            Tag = "Core","Integration" # <- Run only Describe/Context/It-blocks with 'Core' or 'Integration' tags
+        Filter = @{ # Filter configuration
+            Tag = "Core","Integration" # Run only Describe/Context/It-blocks with 'Core' or 'Integration' tags
         }
     }
 
@@ -453,12 +453,13 @@ function New-PesterConfiguration {
 
     if ($PSBoundParameters.ContainsKey('Hashtable')) {
         [PesterConfiguration]$Hashtable
-    } else {
+    }
+    else {
         [PesterConfiguration]::Default
     }
 }
 
-function Remove-RSpecNonPublicProperties ($run){
+function Remove-RSpecNonPublicProperties ($run) {
     # $runProperties = @(
     #     'Configuration'
     #     'Containers'
@@ -647,7 +648,7 @@ function New-PesterContainer {
     .LINK
     https://pester.dev/docs/usage/data-driven-tests
     #>
-    [CmdletBinding(DefaultParameterSetName="Path")]
+    [CmdletBinding(DefaultParameterSetName = "Path")]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [String[]] $Path,

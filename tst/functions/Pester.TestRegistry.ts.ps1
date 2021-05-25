@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
@@ -25,7 +25,7 @@ $global:PesterPreference = @{
 i -PassThru:$PassThru {
     b "Test registry clean up" {
         t "TestRegistry is removed after execution" {
-            $c = @{ DrivePath = $null}
+            $c = @{ DrivePath = $null }
             $sb = {
                 Describe "a" {
                     It "i" {
@@ -59,7 +59,7 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe "a" {
                     It "i" {
-                        $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $innerSb; PassThru = $true }})
+                        $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $innerSb; PassThru = $true } })
                         $r.Result | Should -Be "Passed"
                     }
                 }

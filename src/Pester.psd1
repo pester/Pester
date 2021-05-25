@@ -1,4 +1,4 @@
-@{
+﻿@{
 
     # Script module or binary module file associated with this manifest.
     RootModule        = 'Pester.psm1'
@@ -95,7 +95,7 @@
         # It's for rebuilding PowerShellGet (and PoshCode) NuGet-style packages
         # We had to do this because it's the only place we're allowed to extend the manifest
         # https://connect.microsoft.com/PowerShell/feedback/details/421837
-        PSData = @{
+        PSData                  = @{
             # The primary categorization of this module (from the TechNet Gallery tech tree).
             Category     = "Scripting Techniques"
 

@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -282,7 +282,7 @@ InPesterModuleScope {
             }
 
             It "throws ArgumentException if null ScriptBlock is provided" {
-                $err = { $null | Should -Not -Throw  } | Verify-Throw
+                $err = { $null | Should -Not -Throw } | Verify-Throw
                 $err.Exception | Verify-Type ([System.ArgumentException])
             }
 

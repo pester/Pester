@@ -64,12 +64,12 @@ Describe "Tests running in clean runspace" {
 
                 It "Skip without ScriptBlock" -skip
                 It "Skip with empty ScriptBlock" -skip {}
-                It "Skip with not empty ScriptBlock" -Skip {"something"}
+                It "Skip with not empty ScriptBlock" -Skip { "something" }
 
                 It "Implicit pending" {}
                 It "Pending without ScriptBlock" -Pending
                 It "Pending with empty ScriptBlock" -Pending {}
-                It "Pending with not empty ScriptBlock" -Pending {"something"}
+                It "Pending with not empty ScriptBlock" -Pending { "something" }
             }
         }
 

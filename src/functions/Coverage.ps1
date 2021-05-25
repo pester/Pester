@@ -1,4 +1,4 @@
-function Enter-CoverageAnalysis {
+﻿function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,
@@ -730,8 +730,8 @@ function Get-CommonParentPath {
 
     $pathsToTest = @(
         $Path |
-        Normalize-Path |
-        & $SafeCommands['Select-Object'] -Unique
+            Normalize-Path |
+            & $SafeCommands['Select-Object'] -Unique
     )
 
     if ($pathsToTest.Count -gt 0) {
@@ -1087,17 +1087,34 @@ function Start-TraceScript ($Breakpoints) {
             $hitColumn = $parent.Extent.StartColumnNumber + 7 # offset by the length of 'return '
         }
 
-        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script,$hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
+        $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
     }
 
     $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
-    [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
-    Set-PSDebug -Trace 1
+
+    # detect if profiler is imported and running and in that case just add us as a second tracer
+    # to not disturb the profiling session
+    $profilerType = "Profiler.Tracer" -as [Type]
+    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
+        $profilerType::Register($tracer)
+    }
+    else {
+        [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+        Set-PSDebug -Trace 1
+    }
 
     $tracer
 }
 
 function Stop-TraceScript {
-    Set-PSDebug -Trace 0
-    [Pester.Tracing.Tracer]::Unpatch()
+    # detect if profiler is imported and running and in that case just remove us as a second tracer
+    # to not disturb the profiling session
+    $profilerType = "Profiler.Tracer" -as [Type]
+    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
+        $profilerType::Unregister()
+    }
+    else {
+        Set-PSDebug -Trace 0
+        [Pester.Tracing.Tracer]::Unpatch()
+    }
 }

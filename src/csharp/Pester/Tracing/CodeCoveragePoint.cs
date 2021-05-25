@@ -19,7 +19,7 @@
             // those are not for users to set,
             // we use them to make CC output easier to debug
             // because this will show in list of hits what we think
-            // should or should not hit, for performance just bool 
+            // should or should not hit, for performance just bool
             // would be enough
             Text = default;
             Hit = false;
@@ -35,7 +35,7 @@
         // those are not for users to set,
         // we use them to make CC output easier to debug
         // because this will show in list of hits what we think
-        // should or should not hit, for performance just bool 
+        // should or should not hit, for performance just bool
         // would be enough
         public string Text;
         public bool Hit;

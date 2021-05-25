@@ -1,4 +1,4 @@
-function Verify-True {
+﻿function Verify-True {
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual

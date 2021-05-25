@@ -1,4 +1,4 @@
-function Get-CoveragePlugin {
+﻿function Get-CoveragePlugin {
     New-PluginObject -Name "Coverage" -RunStart {
         param($Context)
 
@@ -33,10 +33,10 @@ function Get-CoveragePlugin {
         }
 
         $Context.Data.Add('Coverage', @{
-            CommandCoverage = $breakpoints
-            Tracer = $tracer
-            CoverageReport = $null
-        })
+                CommandCoverage = $breakpoints
+                Tracer          = $tracer
+                CoverageReport  = $null
+            })
 
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."

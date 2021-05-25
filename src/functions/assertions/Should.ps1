@@ -119,11 +119,11 @@ function Should {
         }
 
         # A bit of Regex lets us know if the line used the old form
-        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)')
-        {
+        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)') {
             $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
             throw $shouldErrorMsg
-        } else {
+        }
+        else {
             Get-AssertionDynamicParams
         }
     }
@@ -177,7 +177,8 @@ function Should {
                 if ($null -eq $shouldThrow) {
                     if ($null -ne $PSCmdlet.SessionState.PSVariable.GetValue('______isInMockParameterFilter')) {
                         $shouldThrow = $true
-                    } else {
+                    }
+                    else {
                         # ErrorAction was not specified explictily, figure out what to do from the configuration
                         $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
                     }

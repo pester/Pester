@@ -1,4 +1,4 @@
-function GetPesterPsVersion {
+﻿function GetPesterPsVersion {
     # accessing the value indirectly so it can be mocked
     (& $SafeCommands['Get-Variable'] 'PSVersionTable' -ValueOnly).PSVersion.Major
 }
