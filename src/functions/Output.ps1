@@ -58,7 +58,6 @@ $script:ReportTheme = DATA {
         Foreground       = 'White'
         Information      = 'DarkGray'
         Coverage         = 'White'
-        CoverageWarn     = 'DarkRed'
         Discovery        = 'Magenta'
         Container        = 'Magenta'
         BlockFail        = 'Red'
