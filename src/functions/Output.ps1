@@ -261,12 +261,11 @@ function Write-PesterReport {
     #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
     # }
     # if ($ReportStrings.TestsPassed) {
-    	
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
-        & $SafeCommands['Write-Host'] ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
+    & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
+    & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
+    & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+    & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
+    & $SafeCommands['Write-Host'] ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
         & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
@@ -429,15 +428,13 @@ function ConvertTo-FailureLines {
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
-            # PESTER_BUILD
-            if ($true) {
+            if ($true) { # PESTER_BUILD
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
                 [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
-            }
-            # end PESTER_BUILD
+            } # endif
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
@@ -493,14 +490,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
             if($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
                 }
             }
         }
@@ -509,7 +506,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.ContainerDiscoveryStart = {
             param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovering in $($Context.BlockContainer.Item)."
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
         }
     }
 
@@ -527,12 +524,12 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 throw "Container type '$($container.Type)' is not supported."
             }
 
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.FailDetail "[-] Discovery in $($path) failed with:"
+            & $SafeCommands["Write-Host"] -ForegroundColor Red "[-] Discovery in $($path) failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
         elseif ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             # todo: this is very very slow because of View-flat
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
+            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
     }
 
@@ -541,11 +538,15 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         # if ($Context.AnyFocusedTests) {
         #     $focusedTests = $Context.FocusedTests
-        #     & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
+        #     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
         # }
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
         & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+
+        if ($PesterPreference.Run.SkipRun.Value) {
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "`nTest run was skipped."
+        }
     }
 
 
