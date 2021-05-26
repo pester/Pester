@@ -1,15 +1,18 @@
 Given "this feature and scenario" { }
-When "(it|the scenario) is executed" { }
+When "(?n)(it|the scenario) is executed" { }
 Then "the feature name is displayed in the test report" { }
 
-Given "this is a '(?<Outcome>(Passed|Failed(?:Early|Later)))' scenario" {
+Given "this is a '(?<Outcome>(Passed|Pending|Failed(?:Early|Later)))' scenario" {
     param($Outcome)
-    if ($Outcome -eq 'FailedEarly') {
+    if ($Outcome -match 'FailedEarly') {
         throw "We fail for test by intention in the Given code block"
+    }
+    elseif ($Outcome -eq 'Pending') {
+        Set-StepPending
     }
 }
 
-Then "the scenario name is displayed in the '(?<Status>(Passed|Failed(?:Early|Later))Scenarios)' array of the PesterResults object" {
+Then "(?n)the scenario name is displayed in the '(?<Status>(Passed|Pending|Failed(Early|Later))Scenarios)' array of the PesterResults object" {
     param($Status)
 
     # Forcing a failure on FailedScenarios to ensure that the FailedScenarios array

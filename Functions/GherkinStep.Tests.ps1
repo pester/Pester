@@ -31,6 +31,6 @@ Describe 'Testing Gherkin Step' -Tag Gherkin {
     }
     It 'Populates the GherkinSteps module variable' {
         When "I Click" { }
-        & ( Get-Module Pester ) { $GherkinSteps.Keys -eq "I Click" } | Should -Be "I Click"
+        & ( Get-Module Pester ) { $GherkinStepDefinitions.Keys -eq "I Click" } | Should -Be "I Click"
     }
 }

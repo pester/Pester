@@ -1,0 +1,171 @@
+// Available variables which can be used inside of strings.
+// ${workspaceRoot}: the root folder of the team
+// ${file}: the current opened file
+// ${relativeFile}: the current opened file relative to workspaceRoot
+// ${fileBasename}: the current opened file's basename
+// ${fileDirname}: the current opened file's dirname
+// ${fileExtname}: the current opened file's extension
+// ${cwd}: the current working directory of the spawned process
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+
+  // Start PowerShell
+  "windows": {
+    "options": {
+      "shell": {
+        "executable": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command"
+        ]
+      }
+    }
+  },
+  "linux": {
+    "options": {
+      "shell": {
+        "executable": "/usr/bin/pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command"
+        ]
+      }
+    }
+  },
+  "osx": {
+    "options": {
+      "shell": {
+        "executable": "/usr/local/bin/pwsh",
+        "args": [
+          "-NoProfile",
+          "-Command"
+        ]
+      }
+    }
+  },
+
+  // Associate with test task runner
+  "tasks": [
+    {
+      "label": "Run All Tests (PowerShell Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "$ErrorActionPreference = 'Stop'; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run All Tests (PowerShell v2 Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "& C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe -Version 2.0 -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run All Tests (PowerShell Core)",
+      "group": "test",
+      "type": "shell",
+      "command": "& '${env:ProgramFiles}\\PowerShell\\6\\pwsh.exe' -NoProfile -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run RSpec Pester Tests (PowerShell Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "$ErrorActionPreference = 'Stop'; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help, Gherkin",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run RSpec Pester Tests (PowerShell v2 Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "& C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe -Version 2.0 -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help, Gherkin'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run RSpec Pester Tests (PowerShell Core)",
+      "group": "test",
+      "type": "shell",
+      "command": "& '${env:ProgramFiles}\\PowerShell\\6\\pwsh.exe' -NoProfile -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help, Gherkin'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run Gherkin Pester Tests (PowerShell Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "$ErrorActionPreference = 'Stop'; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -Tag Gherkin",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run Gherkin Pester Tests (PowerShell v2 Desktop)",
+      "group": "test",
+      "type": "shell",
+      "command": "& C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\PowerShell.exe -Version 2.0 -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true ; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -Tag Gherkin'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    },
+    {
+      "label": "Run Gherkin Pester Tests (PowerShell Core)",
+      "group": "test",
+      "type": "shell",
+      "command": "& '${env:ProgramFiles}\\PowerShell\\6\\pwsh.exe' -NoProfile -Command '$ErrorActionPreference = ''Stop''; $global:PesterDebugPreference_ShowFullErrors = $true; $PSVersionTable; Set-StrictMode -Version Latest; Import-Module .\\Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -Tag Gherkin'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [
+        "$pester"
+      ]
+    }
+  ]
+}

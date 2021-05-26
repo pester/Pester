@@ -87,7 +87,7 @@ https://sites.google.com/site/unclebobconsultingllc/the-truth-about-bdd
     $RelativePath = & $SafeCommands["Resolve-Path"] $Definition.ScriptName -relative
     $Source = "{0}: line {1}" -f $RelativePath, $Definition.ScriptLineNumber
 
-    $Script:GherkinSteps.${Name} = $Test | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Source -Value $Source -PassThru
+    $Script:GherkinStepDefinitions.${Name} = $Test | & $SafeCommands["Add-Member"] -MemberType NoteProperty -Name Source -Value $Source -PassThru
 }
 
 Set-Alias Given GherkinStep

@@ -1,9 +1,26 @@
 {
   "powershell.codeFormatting.preset": "Stroustrup",
 
+  "files.associations": {
+    "*.ps1xml": "xml"
+  },
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
 
   "editor.tabSize": 4,
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "[feature]": {
+    "editor.quickSuggestions": {
+      "comments": false,
+      "strings": true,
+      "other": true
+    },
+    "editor.renderWhitespace": "all",
+    "editor.rulers": [110],
+    "editor.tabSize": 2
+  },
+  "[powershell]": {
+    "editor.rulers": [110],
+    "files.encoding": "utf8bom"
+  }
 }

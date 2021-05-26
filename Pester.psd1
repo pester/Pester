@@ -61,6 +61,7 @@
         'Invoke-Gherkin'
         'Find-GherkinStep'
         'GherkinStep'
+        'Set-StepPending'
         'BeforeEachFeature'
         'AfterEachFeature'
         'BeforeEachScenario'

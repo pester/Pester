@@ -1,30 +1,74 @@
 @{
-    HeaderMessage     = 'Pester v{0}'
-    StartMessage      = "Testing all features in '{0}'"
-    FilterMessage     = " for scenarios matching '{0}'"
-    TagMessage        = " with tags: '{0}'"
-    MessageOfs        = "', '"
+    ReportStrings = @{
+        HeaderMessage     = 'Pester v{0}'
+        StartMessage      = 'Executing all feature scenarios in ''{0}'''
+        FilterMessage     = ' for scenarios matching ''{0}'''
+        TagMessage        = ' with Tags ''{0}'''
+        MessageOfs        = ''', '''
 
-    CoverageTitle     = "Code coverage report:"
-    CoverageMessage   = "Covered {2:P2} of {3:N0} analyzed {0} in {4:N0} {1}."
-    MissedSingular    = 'Missed command:'
-    MissedPlural      = 'Missed commands:'
-    CommandSingular   = 'Command'
-    CommandPlural     = 'Commands'
-    FileSingular      = 'File'
-    FilePlural        = 'Files'
+        CoverageTitle     = 'Code coverage report:'
+        CoverageMessage   = 'Covered { 2:P2 } of { 3:N0 } analyzed { 0 } in { 4:N0 } { 1 }.'
+        MissedSingular    = 'Missed command:'
+        MissedPlural      = 'Missed commands:'
+        CommandSingular   = 'Command'
+        CommandPlural     = 'Commands'
+        FileSingular      = 'File'
+        FilePlural        = 'Files'
 
-    Describe          = "Feature: {0}"
-    Context           = "Scenario: {0}"
-    Margin            = "  "
-    Timing            = "Testing completed in {0}"
+        Feature           = '{0}: {1}'
+        Background        = '{0}: {1}'
+        ScenarioOutline   = '{0}: {1}'
+        Examples          = '{0}: {1}'
+        Scenario          = '{0}: {1}'
+        Step              = '{0} {1}'
+        Margin            = '  '
+        Timing            = '{0:m\ms\.fff\s}'
 
-    # If this is set to an empty string, the count won't be printed
-    ContextsPassed    = "Scenarios Passed: {0} "
-    ContextsFailed    = "Failed: {0}"
-    TestsPassed       = "Steps Passed: {0} "
-    TestsFailed       = "Failed: {0} "
-    TestsSkipped      = 'Skipped: {0} '
-    TestsPending      = 'Pending: {0} '
-    TestsInconclusive = 'Inconclusive: {0} '
+        ScenarioSummary    = '{0} scenarios ('
+        ScenariosFailed    = '{0} failed'
+        ScenariosUndefined = '{0} undefined'
+        ScenariosPending   = '{0} pending'
+        ScenariosPassed    = '{0} passed'
+        StepsSummary       = '{0} steps ('
+        StepsFailed        = '{0} failed'
+        StepsUndefined     = '{0} undefined'
+        StepsSkipped       = '{0} skipped'
+        StepsPending       = '{0} pending'
+        StepsPassed        = '{0} passed'
+    }
+
+    ReportTheme   = @{
+        Feature                        = 'Gray'
+        FeatureDescription             = 'Gray'
+        Background                     = 'Gray'
+        BackgroundDescription          = 'Gray'
+        ScenarioOutline                = 'Gray'
+        ScenarioOutlineDescription     = 'Gray'
+        ScenarioOutlineStep            = 'DarkCyan'
+        ScenarioOutlineTableHeaderCell = 'Cyan'
+        Examples                       = 'Gray'
+        ExamplesDescription            = 'Gray'
+        Scenario                       = 'Gray'
+        ScenarioDescription            = 'Gray'
+        TableCellDivider               = 'Gray'
+        TableCellValue                 = 'DarkCyan'
+        Pass                           = 'DarkGreen'
+        PassArgument                   = 'Green'
+        PassTime                       = 'DarkGray'
+        Fail                           = 'DarkRed'
+        FailArgument                   = 'Red'
+        FailTime                       = 'DarkGray'
+        Skipped                        = 'DarkCyan'
+        SkippedArgument                = 'Cyan'
+        SkippedTime                    = 'DarkGray'
+        Pending                        = 'DarkYellow'
+        PendingArgument                = 'Yellow'
+        PendingTime                    = 'DarkGray'
+        Undefined                      = 'DarkYellow'
+        UndefinedTime                  = 'DarkGray'
+        Foreground                     = 'Gray'
+        Information                    = 'DarkGray'
+        Coverage                       = 'Gray'
+        CoverageWarn                   = 'DarkRed'
+    }
 }

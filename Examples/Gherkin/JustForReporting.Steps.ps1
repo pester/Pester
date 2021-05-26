@@ -67,6 +67,13 @@ When "step_402" {
 Then "step_403" {
 }
 
+Given 'step_501' {
+    throw 'An example error in the given clause'
+}
+
+When 'step_502' {
+}
+
 Given "step_701" {
     throw "An example error in the given clause"
 }
