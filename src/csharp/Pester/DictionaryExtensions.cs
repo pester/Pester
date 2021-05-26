@@ -85,7 +85,7 @@ namespace Pester
                             if (typeof(T) == typeof(string))
                             {
                                 arr[i] = (T)Convert.ChangeType(j.ToString(), typeof(string));
-                            }                            
+                            }
                         }
                         i++;
                     }

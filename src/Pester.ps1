@@ -1,4 +1,4 @@
-param ($ScriptBlock)
+﻿param ($ScriptBlock)
 
 . $ScriptBlock
 

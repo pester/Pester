@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
-    Debug = @{
+    Debug  = @{
         ShowFullErrors         = $false
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "*Filter"
@@ -29,7 +29,7 @@ i -PassThru:$PassThru {
 
                 $code = "function fff { 'hello' }"
 
-                $test ="
+                $test = "
                     BeforeAll {
                         . $codeFile
                     }
@@ -45,7 +45,7 @@ i -PassThru:$PassThru {
                 $cc = Join-Path $tmp "simple.Coverage.xml"
 
                 $r = Invoke-Pester -Script $testFile -PassThru -Verbose -OutputFile $tr -OutputFormat NUnitXml `
-        -CodeCoverage "$tmp/*-*.ps1" -CodeCoverageOutputFile $cc -Show All
+                    -CodeCoverage "$tmp/*-*.ps1" -CodeCoverageOutputFile $cc -Show All
 
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 Test-Path $tr | Verify-True

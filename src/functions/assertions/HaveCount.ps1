@@ -1,4 +1,4 @@
-function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that a collection has the expected amount of items.

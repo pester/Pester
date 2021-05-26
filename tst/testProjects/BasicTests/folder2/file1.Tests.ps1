@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe "describe filterable tests" {
     It "untagged it" {

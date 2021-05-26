@@ -28,6 +28,7 @@ namespace Pester
         private StringArrayOption _path;
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
+        private BoolOption _useBps;
         private BoolOption _singleHitBreakpoints;
         private DecimalOption _coveragePercentTarget;
 
@@ -47,6 +48,7 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
+            UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", true);
             CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
             SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit.", true);
         }
@@ -65,6 +67,7 @@ namespace Pester
                 CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
 
                 SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
+                UseBreakpoints = configuration.GetValueOrNull<bool>("UseBreakpoints") ?? UseBreakpoints;
             }
         }
 
@@ -193,6 +196,23 @@ namespace Pester
                 else
                 {
                     _coveragePercentTarget = new DecimalOption(_coveragePercentTarget, value.Value);
+                }
+            }
+        }
+
+
+        public BoolOption UseBreakpoints
+        {
+            get { return _useBps; }
+            set
+            {
+                if (_useBps == null)
+                {
+                    _useBps = value;
+                }
+                else
+                {
+                    _useBps = new BoolOption(_useBps, value.Value);
                 }
             }
         }

@@ -1,4 +1,4 @@
-function Should-HaveParameter (
+﻿function Should-HaveParameter (
     $ActualValue,
     [String] $ParameterName,
     $Type,
@@ -64,7 +64,7 @@ function Should-HaveParameter (
                     $j--
                 }
                 if (-not $token.PSObject.Properties.Item('Depth')) {
-                    $token | & $SafeCommands['Add-Member'] Depth -MemberType NoteProperty -Value $j
+                    $token.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Depth", $j))
                 }
                 $token
 

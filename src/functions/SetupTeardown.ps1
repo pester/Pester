@@ -1,4 +1,4 @@
-function BeforeEach {
+﻿function BeforeEach {
     <#
     .SYNOPSIS
         Defines a series of steps to perform at the beginning of every It block within
@@ -46,9 +46,6 @@ function BeforeEach {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -115,9 +112,6 @@ function AfterEach {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -194,9 +188,6 @@ function BeforeAll {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
     #>
     [CmdletBinding()]
     param
@@ -263,9 +254,6 @@ function AfterAll {
 
     .LINK
         https://pester.dev/docs/usage/setup-and-teardown
-
-    .LINK
-        about_BeforeEach_AfterEach
 #>
     [CmdletBinding()]
     param

@@ -58,7 +58,6 @@ $script:ReportTheme = DATA {
         Foreground       = 'White'
         Information      = 'DarkGray'
         Coverage         = 'White'
-        CoverageWarn     = 'DarkRed'
         Discovery        = 'Magenta'
         Container        = 'Magenta'
         BlockFail        = 'Red'
@@ -262,6 +261,7 @@ function Write-PesterReport {
     #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
     # }
     # if ($ReportStrings.TestsPassed) {
+    	
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
         & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
@@ -270,7 +270,7 @@ function Write-PesterReport {
 
     if (0 -lt $RunResult.FailedBlocksCount) {
         & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.FailDetail
+        & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
 
     if (0 -lt $RunResult.FailedContainersCount) {
@@ -288,7 +288,7 @@ function Write-PesterReport {
             "  - $path"
         }
         & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.FailDetail
+        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
         # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
@@ -429,13 +429,15 @@ function ConvertTo-FailureLines {
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
-            if ($true) { # PESTER_BUILD
+            # PESTER_BUILD
+            if ($true) {
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
                 [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
-            } # endif
+            }
+            # end PESTER_BUILD
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
@@ -658,7 +660,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^',$error_margin)
                     }
 
-                } else {
+                }
+                else {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 

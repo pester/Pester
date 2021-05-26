@@ -74,7 +74,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
 
     It "has valid pre-release suffix in manifest (empty for stable version)" {
         # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
-        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where {$_}
+        $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where { $_ }
         $prereleaseFromManifest | Should -Be $script:tagPrerelease
     }
 }
@@ -331,20 +331,20 @@ InPesterModuleScope {
         #         $result[0].Arguments |  Should -BeNullOrEmpty
         #     }
 
-            # It 'Throws an error if no Path is specified' {
-            #     { Find-RSpecTestFile @{} } | Should -Throw
-            # }
+        # It 'Throws an error if no Path is specified' {
+        #     { Find-RSpecTestFile @{} } | Should -Throw
+        # }
 
-            # It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
-            #     { Find-RSpecTestFile @{ P = 'P'; Params = 'A string' } } | Should -Throw
-            # }
+        # It 'Throws an error if a Parameters key is used, but does not contain an IDictionary object' {
+        #     { Find-RSpecTestFile @{ P = 'P'; Params = 'A string' } } | Should -Throw
+        # }
         #}
     }
 }
 Describe 'Assertion operators' {
 
     BeforeAll {
-        $operators = &(Get-Module Pester){ $script:AssertionOperators }
+        $operators = &(Get-Module Pester) { $script:AssertionOperators }
         # enumerate to avoid the collection from being modified
         $builtInOperators = $operators.Keys | Foreach-Object { $_ }
     }
@@ -355,9 +355,7 @@ Describe 'Assertion operators' {
         }
         Add-ShouldOperator -Name SameNameAndScript -Test $function:SameNameAndScript
 
-        { Add-ShouldOperator -Name SameNameAndScript -Test {
-            $true
-        } } | Should -Not -Throw
+        { Add-ShouldOperator -Name SameNameAndScript -Test $function:SameNameAndScript } | Should -Not -Throw
     }
 
     It 'Allows an operator with an identical name, test, and alias to be re-registered' {
@@ -366,9 +364,7 @@ Describe 'Assertion operators' {
         }
         Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
 
-        { Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test {
-            $true
-        } -Alias SameAlias } | Should -Not -Throw
+        { Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias } | Should -Not -Throw
     }
     It 'Allows an operator to be registered with multiple aliases' {
         function MultipleAlias {
@@ -376,7 +372,7 @@ Describe 'Assertion operators' {
         }
         Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
 
-        {Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple} | Should -Not -Throw
+        { Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple } | Should -Not -Throw
     }
     It 'Does not allow an operator with a different test to be registered using an existing name' {
         function DifferentScriptBlockA {
@@ -403,7 +399,7 @@ Describe 'Assertion operators' {
     }
 
     AfterAll {
-        $operators = &(Get-Module Pester){ $script:AssertionOperators }
+        $operators = &(Get-Module Pester) { $script:AssertionOperators }
         # enumerate to avoid modifying the collection
         # list all operators that we added in the tests above
         # otherwise we leak them to other tests

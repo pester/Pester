@@ -1,17 +1,15 @@
-using namespace System.Management.Automation;
+﻿using namespace System.Management.Automation;
 
 Describe 'Use class with custom attribute' {
     BeforeAll {
-        class ValidateClassAttribute : ValidateArgumentsAttribute
-        {
-            [void] Validate([object]$arguments, [EngineIntrinsics]$engineIntrinsics)
-            {
+        class ValidateClassAttribute : ValidateArgumentsAttribute {
+            [void] Validate([object]$arguments, [EngineIntrinsics]$engineIntrinsics) {
 
             }
         }
         function Test-Foo {
             param([ValidateClass()]
-            $Test)
+                $Test)
 
             $Test
         }

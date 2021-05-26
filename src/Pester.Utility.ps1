@@ -1,4 +1,4 @@
-function or {
+﻿function or {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -77,8 +77,8 @@ function combineNonNull ($Array) {
 filter selectNonNull {
     param($Collection)
     @(foreach ($i in $Collection) {
-        if ($i) { $i }
-    })
+            if ($i) { $i }
+        })
 }
 
 function any ($InputObject) {
@@ -294,26 +294,26 @@ function Write-PesterDebugMessage {
     }
 
     $color = if ($null -ne $ErrorRecord) {
-            "Red"
+        "Red"
+    }
+    else {
+        switch ($Scope) {
+            "Filter" { "Cyan" }
+            "Skip" { "Cyan" }
+            "Runtime" { "DarkGray" }
+            "RuntimeCore" { "Cyan" }
+            "Mock" { "DarkYellow" }
+            "Discovery" { "DarkMagenta" }
+            "DiscoveryCore" { "DarkMagenta" }
+            "SessionState" { "Gray" }
+            "Timing" { "Gray" }
+            "TimingCore" { "Gray" }
+            "PluginCore" { "Blue" }
+            "Plugin" { "Blue" }
+            "CodeCoverage" { "Yellow" }
+            default { "Cyan" }
         }
-        else {
-            switch ($Scope) {
-                "Filter" { "Cyan" }
-                "Skip" { "Cyan" }
-                "Runtime" { "DarkGray" }
-                "RuntimeCore" { "Cyan" }
-                "Mock" { "DarkYellow" }
-                "Discovery" { "DarkMagenta" }
-                "DiscoveryCore" { "DarkMagenta" }
-                "SessionState" { "Gray" }
-                "Timing" { "Gray" }
-                "TimingCore" { "Gray" }
-                "PluginCore" { "Blue" }
-                "Plugin" { "Blue" }
-                "CodeCoverage" { "Yellow" }
-                default { "Cyan" }
-            }
-        }
+    }
 
     # this evaluates a message that is expensive to produce so we only evaluate it
     # when we know that we will write it. All messages could be provided as scriptblocks

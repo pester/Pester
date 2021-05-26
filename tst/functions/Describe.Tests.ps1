@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe 'Testing Describe' {
     It 'Has a non-mandatory fixture parameter which throws the proper error message if missing' {

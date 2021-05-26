@@ -316,7 +316,7 @@ function Should-InvokeVerifiableInternal {
             if ($b.ModuleName) {
                 $message += "in module $($b.ModuleName) "
             }
-            $message += "to be called with $($b.Filter)"
+            $message += "to be called with $(if ($null -ne $b.Filter) { $b.Filter.ToString().Trim() })"
         }
 
         return [PSCustomObject] @{
@@ -370,7 +370,7 @@ function Should-InvokeInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $ModuleName =  $ContextInfo.TargetModule
+    $ModuleName = $ContextInfo.TargetModule
     $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
@@ -394,7 +394,10 @@ function Should-InvokeInternal {
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
-            SessionState    = $ContextInfo.Hook.CallerSessionState
+            # do not use the callser session state from the hook, the parameter filter
+            # on Should -Invoke can come from a different session state if inModuleScope is used to 
+            # wrap it. Use the caller session state to which the scriptblock is bound
+            SessionState    = $SessionState
         }
 
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
@@ -564,12 +567,25 @@ function Resolve-Command {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
-        $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
+
+        if ($null -ne $callerSessionState.Module -and $callerSessionState.Module.Name -eq $ModuleName) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "We are already running in $ModuleName. Using that."
+            }
+
+            $module = $callerSessionState.Module
+            $SessionState = $callerSessionState
         }
-        # this is the target session state in which we will insert the mock
-        $SessionState = $module.SessionState
+        else {
+            $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
+            }
+
+            # this is the target session state in which we will insert the mock
+            $SessionState = $module.SessionState
+        }
+
         $command, $commandMetadata, $commandMetadata2 = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($command.Module -eq $module) {

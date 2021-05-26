@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -74,13 +74,13 @@ InPesterModuleScope {
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
-            {abc} | Should -Be "aBc"
-            {abc} | Should -EQ "aBc"
+            { abc } | Should -Be " aBc "
+            { abc } | Should -EQ " aBc "
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value (case sensitive)" {
-            {abc} | Should -BeExactly "abc"
-            {abc} | Should -CEQ "abc"
+            { abc } | Should -BeExactly " abc "
+            { abc } | Should -CEQ " abc "
         }
 
         It 'Does not overflow on IEnumerable' {
@@ -217,7 +217,7 @@ InPesterModuleScope {
             @{ DifferenceIndex = 7 }
             @{ DifferenceIndex = 8 }
             @{ DifferenceIndex = 9 }
-         ) {
+        ) {
             $actual = Format-AsExcerpt -InputObject "0123456789" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
             #                                        ^^^^^^^^^^
             $actual.Line | Verify-Equal "0123456789"
@@ -230,7 +230,7 @@ InPesterModuleScope {
             @{ DifferenceIndex = 1 }
             @{ DifferenceIndex = 2 }
             @{ DifferenceIndex = 3 } # context
-         ) {
+        ) {
             $actual = Format-AsExcerpt -InputObject "0123456789cut" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
             #                                        ^^^^
             $actual.Line | Verify-Equal "0123456..."
@@ -239,8 +239,8 @@ InPesterModuleScope {
         }
 
         It "When difference is at the end and the string does not fit on the screen it cuts the start" -TestCases @(
-            @{ DifferenceIndex = 9  }
-         ) {
+            @{ DifferenceIndex = 9 }
+        ) {
             $actual = Format-AsExcerpt -InputObject "cut01234567890" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
             $actual.Line | Verify-Equal "...4567890"
             $actual.Line.Length | Verify-Equal 10
@@ -248,11 +248,11 @@ InPesterModuleScope {
         }
 
         It "When difference is in the middle it cuts start and end" -TestCases @(
-            @{ DifferenceIndex = 9; InputObject  = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...cc01..." }
+            @{ DifferenceIndex = 9; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...cc01..." }
             @{ DifferenceIndex = 10; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...c012..." }
             @{ DifferenceIndex = 11; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...0123..." }
             @{ DifferenceIndex = 12; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...123a..." }
-         ) {
+        ) {
             # because there will be cut markers from both sides our actual output shrinks to just 4 chars
             $actual = Format-AsExcerpt -InputObject $InputObject -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
             $actual.Line | Verify-Equal $Output
@@ -262,8 +262,8 @@ InPesterModuleScope {
         }
 
         It "When difference is in the middle close to the start it does not cut the start" -TestCases @(
-            @{ DifferenceIndex = 5; InputObject  = "ccccc0cccccccccccccccc"; NewIndex = 5; Output = "ccccc0c..." }
-         ) {
+            @{ DifferenceIndex = 5; InputObject = "ccccc0cccccccccccccccc"; NewIndex = 5; Output = "ccccc0c..." }
+        ) {
             # because there will be cut markers from both sides our actual output shrinks to just 4 chars
             $actual = Format-AsExcerpt -InputObject $InputObject -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
             $actual.Line | Verify-Equal $Output
@@ -276,8 +276,8 @@ InPesterModuleScope {
     Describe "Get-CompareStringMessage" {
         It "The arrow points to the correct position when start of the string is cut" {
             $actual = Get-CompareStringMessage `
-            -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
-            -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+                -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
 
             $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 65.`nStrings differ at index 64.`nExpected: '...aaaaaaaaa'`nBut was:  '...aaaaaaaab'`n           -----------^"
         }

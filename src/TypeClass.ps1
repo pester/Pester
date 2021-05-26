@@ -1,4 +1,4 @@
-function Is-Value ($Value) {
+﻿function Is-Value ($Value) {
     $Value = $($Value)
     $Value -is [ValueType] -or $Value -is [string] -or $value -is [scriptblock]
 }

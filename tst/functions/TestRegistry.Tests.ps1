@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 $os = InModuleScope -ModuleName Pester { GetPesterOs }
 if ("Windows" -ne $os) {

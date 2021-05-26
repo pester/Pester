@@ -1,4 +1,4 @@
-function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that collection contains a specific value.
