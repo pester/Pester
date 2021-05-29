@@ -1,3 +1,9 @@
+## 4.10.2-beta1 (May 29, 2021)
+
+- Added parameter for Alias in HaveParameter (#1463)
+- Fixes #1028 - Code Coverage for proxy functions/steppablePipelines (#1494)
+- Many gherkin runner fixes and improvements (#1276)
+
 ## 4.10.1 (February 7, 2020)
 
 - Fix link in nuspec
