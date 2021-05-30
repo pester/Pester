@@ -13,7 +13,14 @@ function Format-Collection ($Value, [switch]$Pretty) {
     }
     $count = $Value.Count
     $trimmed = $count -gt $Limit
-    '@(' + (($Value | & $SafeCommands['Select-Object'] -First $Limit | & $SafeCommands['ForEach-Object'] { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) { ', ...' }) + ')'
+
+    $formattedCollection = @()
+    for ($i = 0; $i -lt [System.Math]::Min($count, $Limit); $i++) {
+        $formattedValue = Format-Nicely -Value $Value[$i] -Pretty:$Pretty
+        $formattedCollection += $formattedValue
+    }
+
+    '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {

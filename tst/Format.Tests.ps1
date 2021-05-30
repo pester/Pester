@@ -24,8 +24,15 @@ Describe "Format-Collection" {
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 
-    It "Formats collection that is longer than 10 with elipsis" -TestCases @(
-        @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...)" }
+    It "Formats collection that is longer than 10 with elipsis and output remaining value count" -TestCases @(
+        @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...10 more)" }
+    ) {
+        param ($Value, $Expected)
+        Format-Collection -Value $Value | Verify-Equal $Expected
+    }
+
+    It "Formats collection '<value>' with `$null values to '<expected>'" -TestCases @(
+        @{ Value = @('a', 'b', 'c', $null); Expected = "@('a', 'b', 'c', `$null)" }
     ) {
         param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
