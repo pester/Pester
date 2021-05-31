@@ -52,9 +52,9 @@ namespace Pester.Tracing
         {
             if (_debug && (extent?.File?.Contains(_debugFile) ?? false))
             {
+                var f = Console.ForegroundColor;
                 try
                 {
-                    var f = Console.ForegroundColor;
                     var dbgm = message?.Trim();
                     if (dbgm != null && (int.Parse(message.Split('+')[0]) != extent.StartLineNumber))
                     {
