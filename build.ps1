@@ -188,6 +188,23 @@ foreach ($l in $f) {
 }
 Set-Content -Encoding utf8 -Value $sbf.ToString().TrimEnd() -Path $p
 
+# generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
+$configSections = $configuration.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
+# Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
+$formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
+# Generate listcontrol views for all configuration sections
+$typeDefs = foreach ($section in $configSections) {
+    $builder = [System.Management.Automation.ListControl]::Create().StartEntry()
+    $section.GetProperties() | Where-Object { $_.PropertyType.IsSubclassOf([Pester.Option]) } | ForEach-Object {
+        $builder.AddItemProperty($_.Name) > $null
+    }
+    $listControl = $builder.EndEntry().EndList()
+
+    $ViewDef = $formatViewCtor.Invoke(($section.FullName, $listControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
+    New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
+}
+Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
+
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in
     # multiple places and passing the $inline everywhere is

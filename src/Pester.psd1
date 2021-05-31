@@ -24,7 +24,11 @@
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '3.0'
 
-    TypesToProcess    = @()
+    # Type files (.ps1xml) to be loaded when importing this module
+    TypesToProcess = @()
+
+    # Format files (.ps1xml) to be loaded when importing this module
+    FormatsToProcess = @('PesterConfiguration.Format.ps1xml')
 
     # Functions to export from this module
     FunctionsToExport = @(
@@ -95,7 +99,7 @@
         # It's for rebuilding PowerShellGet (and PoshCode) NuGet-style packages
         # We had to do this because it's the only place we're allowed to extend the manifest
         # https://connect.microsoft.com/PowerShell/feedback/details/421837
-        PSData                  = @{
+        PSData = @{
             # The primary categorization of this module (from the TechNet Gallery tech tree).
             Category     = "Scripting Techniques"
 
