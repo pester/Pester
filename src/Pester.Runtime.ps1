@@ -153,8 +153,6 @@ function ConvertTo-ExecutedBlockContainer {
         $Block
     )
 
-    Write-Host "blocks: '$($block -join ",")'"
-
     foreach ($b in $Block) {
         [Pester.Container]::CreateFromBlock($b)
     }
@@ -1147,10 +1145,6 @@ function Run-Test {
             Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
         }
         catch {
-            Write-Host ERRRRRRRRRRRRRRRRRRRRRRR: $_
-            Write-Host ERRRRRRRRRRRRRRRRRRRRRRR: $_.ScriptStackTrace
-            Write-Host ERRRRRRRRRRRRRRRRRRRRRRR: $_.Exception.StackTrace
-
             $rootBlock.ErrorRecord.Add($_)
         }
 

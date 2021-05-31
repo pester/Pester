@@ -55,7 +55,7 @@ i -PassThru:$PassThru {
             # $c.CodeCoverage.OutputFormat = "CoverageGutters"
 
             try {
-                $env:PESTER_CC_DEBUG = 0
+                $env:PESTER_CC_DEBUG = 1
                 $env:PESTER_CC_DEBUG_FILE = "CoverageTestFile"
                 # use tracer CC
                 $c.CodeCoverage.UseBreakpoints = $false
