@@ -1067,24 +1067,20 @@ function Start-TraceScript ($Breakpoints) {
         $hitColumn = $location.Column
         $hitLine = $location.Line
 
-        # breakpoints for some actions bind to different column than the hits, we need to adjust
-        # when code contains assignment we need to translate it, because we are reporting the place where BP would bind as interesting
-        # but we are getting the whole assignment from profiler, so we need to offset it
-        $parent = $breakpoint.Ast.Parent
-        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.AssignmentStatementAst] -and $parent -isnot [System.Management.Automation.Language.ReturnStatementAst]) {
-            if ($parent -is [System.Management.Automation.Language.IfStatementAst]) {
-                break
-            }
-            $parent = $parent.Parent
-        }
+        # breakpoints for some actions bind to different column than the hits, we need to adjust them
+        # for example when code contains hashtable we need to translate it,
+        # because we are reporting the place where BP would bind, but from the tracer we are getting the whole hashtable
+        # this often changes not only the column but also the line where we record the hit, so there can be many
+        # points pointed at the same location
+        $parent = Get-TracerHitLocation $breakpoint.Ast
 
-        if ($parent -is [System.Management.Automation.Language.AssignmentStatementAst]) {
-            $hitLine = $parent.Extent.StartLineNumber
-            $hitColumn = $parent.Extent.StartColumnNumber
-        }
-        elseif ($parent -is [System.Management.Automation.Language.ReturnStatementAst]) {
+        if ($parent -is [System.Management.Automation.Language.ReturnStatementAst]) {
             $hitLine = $parent.Extent.StartLineNumber
             $hitColumn = $parent.Extent.StartColumnNumber + 7 # offset by the length of 'return '
+        }
+        else {
+            $hitLine = $parent.Extent.StartLineNumber
+            $hitColumn = $parent.Extent.StartColumnNumber
         }
 
         $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
@@ -1117,4 +1113,75 @@ function Stop-TraceScript {
         Set-PSDebug -Trace 0
         [Pester.Tracing.Tracer]::Unpatch()
     }
+}
+
+function Get-TracerHitLocation ($command) {
+
+    if (-not $env:PESTER_CC_DEBUG) {
+        function Write-Host { }
+    }
+    # function Write-Host { }
+    function Show-ParentList ($command) {
+        $c = $command
+        "`n`nCommand: $c" | Write-Host
+        $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
+                $ast | select @{n = "type"; e = { $_.GetType().Name } } , @{n = "extent"; e = { $_.extent } }
+            } ) | ft type, extent | out-string | Write-Host
+    }
+
+    if ($env:PESTER_CC_DEBUG -eq 1) {
+        Write-Host "Processing '$command' at $($command.Extent.StartLineNumber):$($command.Extent.StartColumnNumber) which is $($command.GetType().Name)."
+    }
+
+    #    Show-ParentList $command
+    $parent = $command
+    $last = $parent
+    while ($true) {
+
+        # take
+        if ($parent -is [System.Management.Automation.Language.CommandAst]) {
+            # using pipeline ast for command correctly identifies it's pipeline location so we get foreach-object and similar commands
+            # correctly in actual pipeline. We keep this as the $last. This will "incorrectly" hoist commands to their containing arrays
+            # or hashtable even though we see them as separate in the tracer. This is okay, because the command would be invoked anyway
+            # and we don't have to work hard to figure out if command is just standalone (e.g Get-Command in a pipeline), or part of pipeline
+            # e.g. @(10) | ForEach-Object { "b" } where ForEach-Object will bind to the whole pipeline expression.
+            $last = $parent.Parent
+        }
+        elseif ($parent -isnot [System.Management.Automation.Language.CommandExpressionAst] -or $parent.Expression -isnot [System.Management.Automation.Language.ConstantExpressionAst]) {
+            # the current item is not a constant expression make it the new $last
+            $last = $parent
+
+        }
+
+        if ($null -eq $parent) {
+            # parent is null, we reached the end, use the last identified item as the hit location
+            break
+        }
+
+        # we now know that we have a parent move one level up to look at it to see if we should search further, or we are child of a termination point (like if, or scriptblock)
+        $parent = $parent.Parent
+
+        # skip to avoid using the pipeline ast as the $last to not break if block statements, because we would get the whole { } instead of just the actual command
+        # e.g. in if ($true) { "yes" } else { "no" } we would incorrectly get { "yes" } instead of just "yes"
+        while ($parent -is [System.Management.Automation.Language.PipelineAst] -or $parent -is [System.Management.Automation.Language.NamedBlockAst] -or $parent -is [System.Management.Automation.Language.StatementBlockAst]) {
+            $parent = $parent.Parent
+        }
+
+        # terminate when we find and if of scriptblock, those will always show up in the tracer if they are executed so they are are good termination point.
+        # when a hitpoint is found, the $last is marked as hit point.
+        # we also must avoid selecting a parent that is too high, otherwise we might mark code that was not covered as covered.
+        if ($parent -is [System.Management.Automation.Language.IfStatementAst] -or
+            $parent -is [System.Management.Automation.Language.ScriptBlockAst] -or
+            $parent -is [System.Management.Automation.Language.ForStatementAst] -or
+            $parent -is [System.Management.Automation.Language.ForEachStatementAst] -or
+            $parent -is [System.Management.Automation.Language.SwitchStatementAst] -or
+            $parent -is [System.Management.Automation.Language.TryStatementAst] -or
+            $parent -is [System.Management.Automation.Language.CatchClauseAst]) {
+            break
+        }
+    }
+    if ($env:PESTER_CC_DEBUG -eq 1) {
+        Write-Host "It became: '$last' at $($last.Extent.StartLineNumber):$($last.Extent.StartColumnNumber) which is $($last.GetType().Name)."
+    }
+    return $last
 }

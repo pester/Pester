@@ -48,11 +48,30 @@ namespace Pester.Tracing
         // keyed as path -> line:column -> CodeCoveragePoint
         public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>();
 
-        public void Trace(IScriptExtent extent, ScriptBlock _, int __)
+        public void Trace(string message, IScriptExtent extent, ScriptBlock _, int __)
         {
             if (_debug && (extent?.File?.Contains(_debugFile) ?? false))
             {
-                Console.WriteLine($"ex: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
+                try
+                {
+                    var f = Console.ForegroundColor;
+                    var dbgm = message?.Trim();
+                    if (dbgm != null && (int.Parse(message.Split('+')[0]) != extent.StartLineNumber))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                    }
+                    Console.WriteLine($"DBG: {message?.Trim()}");
+                    Console.WriteLine($"EXP: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
+
+                }
+                finally
+                {
+                    Console.ForegroundColor = f;
+                }
             }
 
             // ignore unbound scriptblocks
@@ -67,12 +86,12 @@ namespace Pester.Tracing
 
 
             var points = lineColumn[key2];
-            if (points.TrueForAll(a=>a.Hit))
+            if (points.TrueForAll(a => a.Hit))
             {
                 return;
             }
 
-            for(var i =0; i < points.Count; i++)
+            for (var i = 0; i < points.Count; i++)
             {
                 var point = points[i];
                 point.Hit = true;

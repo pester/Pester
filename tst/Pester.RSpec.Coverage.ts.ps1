@@ -25,7 +25,6 @@ $PSDefaultParameterValues = @{}
 
 i -PassThru:$PassThru {
     b "Coverage with Breakpoints and with Tracer" {
-
         t "Coverage is the same when breakpoints are used as when they are not used" {
             $sb = {
                 Describe 'VSCode Output Test' {
@@ -71,20 +70,181 @@ i -PassThru:$PassThru {
             $bb = Invoke-Pester -Configuration $c
 
 
-            "is different?: " + ($bb.CodeCoverage.CommandsMissed.Count -ne $pp.CodeCoverage.CommandsMissed.Count)
-            "is less?: " + ($bb.CodeCoverage.CommandsMissed.Count -lt $pp.CodeCoverage.CommandsMissed.Count)
+            Write-Host "is different?: $($bb.CodeCoverage.CommandsMissed.Count -ne $pp.CodeCoverage.CommandsMissed.Count)"
+            Write-Host "is less?: $($bb.CodeCoverage.CommandsMissed.Count -lt $pp.CodeCoverage.CommandsMissed.Count)"
 
             $bm = $bb.CodeCoverage.CommandsMissed
             $pm = $pp.CodeCoverage.CommandsMissed
 
-            $m = $bm | foreach { $h = @{} } { $h["$($_.File)-$($_.Line)-$($_.StartColumn)"] = $_ } { $h }
+            $m = $bm | ForEach-Object { $h = @{} } { $h["$($_.File)-$($_.Line)-$($_.StartColumn)"] = $_ } { $h }
 
-            $diff = $pm | where { -not $m.ContainsKey("$($_.File)-$($_.Line)-$($_.StartColumn)") }
+            $diff = $pm | Where-Object { -not $m.ContainsKey("$($_.File)-$($_.Line)-$($_.StartColumn)") }
 
-            "difference count?: " + $diff.Count
+            Write-Host "difference count: $($diff.Count)"
 
-            $diff | Format-Table
+            Write-Host "Diff:"
+            $diff | Format-Table | Out-String | Write-Host
             $diff | Verify-Null
+            # above we look for commands that we missed, but ensure the count is the same to also know
+            # if we did not mark some uncovered lines as covered
+            $pm.Count | Verify-Equal $bm.Count
+        }
+    }
+
+    b "Get-TracerHitLocation" {
+        function Verify-Location {
+            param (
+                [Parameter(ValueFromPipeline = $true)]
+                $Actual,
+                [Parameter(Mandatory = $true, Position = 0)]
+                $Expected
+            )
+
+            if ($Actual.Extent.StartLineNumber -ne $Expected.Extent.StartLineNumber -or $Actual.Extent.StartColumnNumber -ne $Expected.Extent.StartColumnNumber) {
+                throw [Exception]"Expected '$($Expected.Extent)' at location $($Expected.Extent.StartLineNumber):$($Expected.Extent.StartColumnNumber), but got '$($Actual.Extent)' at location $($Actual.Extent.StartLineNumber):$($Actual.Extent.StartColumnNumber)"
+            }
+
+            $Actual
+        }
+
+        ${function:Get-TracerHitLocation} = & (Get-Module Pester) { Get-Command Get-TracerHitLocation }
+        # hashtable
+        t "Hashtable is parent when it contains simple assignment" {
+            $sb = {
+                @{
+                    a = 10
+                }
+            }
+
+            if ($env:PESTER_CC_DEBUG -eq "1") {
+                try {
+                    Set-PSDebug -Trace 1
+                    & $sb
+                }
+                finally {
+                    Set-PSDebug -Off
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $hashtable = $sb.Ast.Find( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $ten = $commands[-1]
+            $actual = Get-TracerHitLocation $ten
+
+            $actual | Verify-Location $hashtable
+        }
+
+        t "Hashtable is parent when it contains simple assignment in array" {
+            $sb = {
+                @{
+                    a = @(10)
+                }
+            }
+
+            if ($env:PESTER_CC_DEBUG -eq "1") {
+                try {
+                    Set-PSDebug -Trace 1
+                    & $sb
+                }
+                finally {
+                    Set-PSDebug -Off
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $hashtable = $sb.Ast.Find( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $ten = $commands[-1]
+            $actual = Get-TracerHitLocation $ten
+
+            $actual | Verify-Location $hashtable
+        }
+
+        t "Hashtable is parent when hashtable contains a command" {
+            # command is hit by itself in the debug view, but returning it directly
+            # makes it more difficult to distinguish commands that are part of | pipeline
+            # like the example below with foreach
+            $sb = {
+                @{
+                    a = Get-Command
+                }
+            }
+
+            if ($env:PESTER_CC_DEBUG -eq "1") {
+                try {
+                    Set-PSDebug -Trace 1
+                    & $sb
+                }
+                finally {
+                    Set-PSDebug -Off
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $getcommand = $commands[1]
+            $hashtable = $commands[0]
+
+            Get-TracerHitLocation $getcommand | Verify-Location $hashtable
+        }
+
+        t "Condition, positive and negative side is parent when hashtable contains an if" {
+            $sb = {
+                @{
+                    a = if ($true) { "yes" } else { "no" }
+                }
+            }
+
+            if ($env:PESTER_CC_DEBUG -eq "1") {
+                try {
+                    Set-PSDebug -Trace 1
+                    & $sb
+                }
+                finally {
+                    Set-PSDebug -Off
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+
+            $condition = $commands[1]
+            $yes = $commands[2]
+            $no = $commands[3]
+
+            Get-TracerHitLocation $condition | Verify-Location $condition
+            Get-TracerHitLocation $yes | Verify-Location $yes
+            Get-TracerHitLocation $no | Verify-Location $no
+        }
+
+        # pipelines
+
+        t "Array is parent of aaa, whole line is parent of foreach, and b is it's own parent" {
+            $sb = {
+                @("aaa") | ForEach-Object -Process {
+                    "b"
+                }
+            }
+
+            if ($env:PESTER_CC_DEBUG -eq "1") {
+                try {
+                    Set-PSDebug -Trace 1
+                    & $sb
+                }
+                finally {
+                    Set-PSDebug -Off
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+
+            $aaa = $commands[1]
+            $array = $commands[0]
+
+            $foreach_object = $commands[2]
+
+            $b = $commands[3]
+
+            Get-TracerHitLocation $aaa | Verify-Location $array
+            Get-TracerHitLocation $foreach_object | Verify-Location $array
+            Get-TracerHitLocation $b | Verify-Location $b
         }
     }
 }
