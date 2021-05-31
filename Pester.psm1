@@ -619,14 +619,14 @@ function Get-AssertionDynamicParams {
 
 $Script:PesterRoot = & $SafeCommands['Split-Path'] -Path $MyInvocation.MyCommand.Path
 "$PesterRoot\Functions\*.ps1", "$PesterRoot\Functions\Assertions\*.ps1" |
-    & $script:SafeCommands['Resolve-Path'] |
-    & $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
-    & $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
+& $script:SafeCommands['Resolve-Path'] |
+& $script:SafeCommands['Where-Object'] { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+& $script:SafeCommands['ForEach-Object'] { . $_.ProviderPath }
 
 if (& $script:SafeCommands['Test-Path'] "$PesterRoot\Dependencies") {
     # sub-modules
     & $script:SafeCommands['Get-ChildItem'] "$PesterRoot\Dependencies\*\*.psm1" |
-        & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
+    & $script:SafeCommands['ForEach-Object'] { & $script:SafeCommands['Import-Module'] $_.FullName -Force -DisableNameChecking }
 }
 
 Add-Type -TypeDefinition @"
@@ -1091,7 +1091,7 @@ function Invoke-Pester {
         $script:mockTable = @{ }
         Remove-MockFunctionsAndAliases
         $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
-        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester
+        $pester = New-PesterState -TestNameFilter $TestName -TagFilter $Tag -ExcludeTagFilter $ExcludeTag -SessionState $SessionState -Strict:$Strict -Show:$Show -PesterOption $PesterOption -RunningViaInvokePester -Version "4.10.2"
 
         try {
             Enter-CoverageAnalysis -CodeCoverage $CodeCoverage -PesterState $pester
@@ -1180,7 +1180,7 @@ function Invoke-Pester {
         if ($PassThru) {
             # Remove all runtime properties like current* and Scope
             $properties = @(
-                "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
+                "version", "TagFilter", "ExcludeTagFilter", "TestNameFilter", "ScriptBlockFilter", "TotalCount", "PassedCount", "FailedCount", "SkippedCount", "PendingCount", 'InconclusiveCount', "Time", "TestResult"
 
                 if ($CodeCoverage) {
                     @{ Name = 'CodeCoverage'; Expression = { $coverageReport } }
@@ -1324,19 +1324,19 @@ function ResolveTestScripts {
                     # World's longest pipeline?
 
                     & $script:SafeCommands['Resolve-Path'] -Path $unresolvedPath |
-                        & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
-                        & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
-                        & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
-                        & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
-                        & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
-                        & $script:SafeCommands['ForEach-Object'] {
-                            & $script:SafeCommands['New-Object'] psobject -Property @{
-                                Path       = $_
-                                Script     = $null
-                                Arguments  = $arguments
-                                Parameters = $parameters
-                            }
+                    & $script:SafeCommands['Where-Object'] { $_.Provider.Name -eq 'FileSystem' } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty ProviderPath |
+                    & $script:SafeCommands['Get-ChildItem'] -Include *.Tests.ps1 -Recurse |
+                    & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
+                    & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
+                    & $script:SafeCommands['ForEach-Object'] {
+                        & $script:SafeCommands['New-Object'] psobject -Property @{
+                            Path       = $_
+                            Script     = $null
+                            Arguments  = $arguments
+                            Parameters = $parameters
                         }
+                    }
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
