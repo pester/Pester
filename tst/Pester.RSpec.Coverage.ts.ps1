@@ -22,7 +22,7 @@ $global:PesterPreference = @{
 $PSDefaultParameterValues = @{}
 
 if ($PSVersionTable.PSVersion.Major -eq 3) {
-    return
+    return (i -PassThru:$PassThru { })
 }
 
 i -PassThru:$PassThru {
