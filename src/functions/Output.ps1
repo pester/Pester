@@ -1,5 +1,6 @@
 ﻿$script:ReportStrings = DATA {
     @{
+        VersionMessage    = "Pester v{0}"
         StartMessage      = "Executing all tests in '{0}'"
         FilterMessage     = ' matching test name {0}'
         TagMessage        = ' with Tags {0}'
@@ -108,7 +109,15 @@ function Write-PesterStart {
             }
         }
 
-        $message = $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
+        $moduleInfo = $MyInvocation.MyCommand.ScriptBlock.Module
+        $moduleVersion = $moduleInfo.Version.ToString()
+        if ($moduleInfo.PrivateData.PSData.Prerelease) {
+            $moduleVersion += "-$($moduleInfo.PrivateData.PSData.Prerelease)"
+        }
+        $message = $ReportStrings.VersionMessage -f $moduleVersion
+        $message += [Environment]::NewLine
+
+        $message += $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
 
         $message = "$message$(if (0 -lt $hash.ScriptBlocks) { ", and in $($hash.ScriptBlocks) scriptblocks." })"
         # todo write out filters that are applied
@@ -123,7 +132,7 @@ function Write-PesterStart {
         #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         # }
 
-        & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
+        & $SafeCommands['Write-Host'] -ForegroundColor Magenta $message
     }
 }
 
@@ -477,11 +486,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
         Name = 'WriteScreen'
     }
 
-    if ("Detailed" -eq $Verbosity) {
+    if ($Verbosity -in 'Detailed', 'Diagnostic') {
         $p.Start = {
             param ($Context)
 
-            # Write-PesterStart $Context
+            Write-PesterStart $Context
         }
     }
 
