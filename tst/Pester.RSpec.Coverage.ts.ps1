@@ -86,5 +86,25 @@ i -PassThru:$PassThru {
             $diff | Format-Table
             $diff | Verify-Null
         }
+
+        t "Get-TracerParent hashtable is parent when it contains simple assignment" {
+            function Get-TracerParent ($command) {
+                if ($command.Parent.Parent -is [System.Management.Automation.Language.HashtableAst]) {
+                    return $command.Parent.Parent
+                }
+            }
+            $sb = {
+                @{
+                    a = 10
+                }
+            }
+
+            $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $hashtable = $sb.Ast.Find( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
+            $ten = $commands[1]
+            $actual = Get-TracerParent $ten
+
+            $actual | Verify-Same $hashtable
+        }
     }
 }
