@@ -53,7 +53,7 @@ i -PassThru:$PassThru {
             # $c.CodeCoverage.OutputFormat = "CoverageGutters"
 
             try {
-                $env:PESTER_CC_DEBUG = 1
+                $env:PESTER_CC_DEBUG = 0
                 $env:PESTER_CC_DEBUG_FILE = "CoverageTestFile"
                 # use tracer CC
                 $c.CodeCoverage.UseBreakpoints = $false
@@ -91,7 +91,7 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Get-TracerHitLocation" {
+    b "Get-HitLocation" {
         function Verify-Location {
             param (
                 [Parameter(ValueFromPipeline = $true)]
@@ -107,7 +107,7 @@ i -PassThru:$PassThru {
             $Actual
         }
 
-        ${function:Get-TracerHitLocation} = & (Get-Module Pester) { Get-Command Get-TracerHitLocation }
+        ${function:Get-HitLocation} = & (Get-Module Pester) { Get-Command Get-TracerHitLocation }
         # hashtable
         t "Hashtable is parent when it contains simple assignment" {
             $sb = {
@@ -129,7 +129,7 @@ i -PassThru:$PassThru {
             $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
             $hashtable = $sb.Ast.Find( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
             $ten = $commands[-1]
-            $actual = Get-TracerHitLocation $ten
+            $actual = Get-HitLocation $ten
 
             $actual | Verify-Location $hashtable
         }
@@ -154,7 +154,7 @@ i -PassThru:$PassThru {
             $commands = $sb.Ast.FindAll( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
             $hashtable = $sb.Ast.Find( { param ($i) $i -is [System.Management.Automation.Language.CommandBaseAst] }, $true)
             $ten = $commands[-1]
-            $actual = Get-TracerHitLocation $ten
+            $actual = Get-HitLocation $ten
 
             $actual | Verify-Location $hashtable
         }
@@ -183,7 +183,7 @@ i -PassThru:$PassThru {
             $getcommand = $commands[1]
             $hashtable = $commands[0]
 
-            Get-TracerHitLocation $getcommand | Verify-Location $hashtable
+            Get-HitLocation $getcommand | Verify-Location $hashtable
         }
 
         t "Condition, positive and negative side is parent when hashtable contains an if" {
@@ -209,9 +209,9 @@ i -PassThru:$PassThru {
             $yes = $commands[2]
             $no = $commands[3]
 
-            Get-TracerHitLocation $condition | Verify-Location $condition
-            Get-TracerHitLocation $yes | Verify-Location $yes
-            Get-TracerHitLocation $no | Verify-Location $no
+            Get-HitLocation $condition | Verify-Location $condition
+            Get-HitLocation $yes | Verify-Location $yes
+            Get-HitLocation $no | Verify-Location $no
         }
 
         # pipelines
@@ -242,9 +242,9 @@ i -PassThru:$PassThru {
 
             $b = $commands[3]
 
-            Get-TracerHitLocation $aaa | Verify-Location $array
-            Get-TracerHitLocation $foreach_object | Verify-Location $array
-            Get-TracerHitLocation $b | Verify-Location $b
+            Get-HitLocation $aaa | Verify-Location $array
+            Get-HitLocation $foreach_object | Verify-Location $array
+            Get-HitLocation $b | Verify-Location $b
         }
     }
 }
