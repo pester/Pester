@@ -154,6 +154,7 @@ function ConvertTo-ExecutedBlockContainer {
     )
 
     foreach ($b in $Block) {
+        Write-Host "processing block: '$($b)'"
         [Pester.Container]::CreateFromBlock($b)
     }
 
