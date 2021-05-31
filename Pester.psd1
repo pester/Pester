@@ -119,7 +119,7 @@
             Tags         = @('powershell', 'unit_testing', 'bdd', 'tdd', 'mocking', 'PSEdition_Core', 'PSEdition_Desktop', 'Windows', 'Linux', 'MacOS')
 
             # The web address of an icon which can be used in galleries to represent this module
-            IconUri      = 'https://raw.githubusercontent.com/pester/Pester/master/images/pester.PNG'
+            IconUri      = 'https://raw.githubusercontent.com/pester/Pester/rel/4.x.x/images/pester.PNG'
 
             # The web address of this module's project or support homepage.
             ProjectUri   = "https://github.com/Pester/Pester"
