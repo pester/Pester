@@ -80,7 +80,7 @@ i -PassThru:$PassThru {
 
             $diff = $pm | Where-Object { -not $m.ContainsKey("$($_.File)-$($_.Line)-$($_.StartColumn)") }
 
-            Write-Host "difference count: $($diff.Count)"
+            Write-Host "difference count: $(if ($null -ne $diff -and 0 -lt @($diff).Count) { @($diff).Count } else { 0 })"
 
             Write-Host "Diff:"
             $diff | Format-Table | Out-String | Write-Host
