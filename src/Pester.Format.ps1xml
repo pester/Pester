@@ -181,7 +181,7 @@
               </ExpressionBinding>
               <Text>-</Text>
               <ExpressionBinding>
-                <PropertyName>name</PropertyName>
+                <ScriptBlock>$_.Name -replace '^Negate$','Not'</ScriptBlock>
               </ExpressionBinding>
               <ExpressionBinding>
                 <ScriptBlock>" &lt;$($_.parameterValue)&gt;"</ScriptBlock>
