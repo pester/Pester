@@ -1,8 +1,8 @@
 trigger:
-  - v5.0
+  - main
   - rel/*
 pr:
-  - v5.0
+  - main
   - rel/*
 
 variables:
