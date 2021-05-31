@@ -21,7 +21,9 @@ $global:PesterPreference = @{
 }
 $PSDefaultParameterValues = @{}
 
-
+if ($PSVersionTable.PSVersion.Major -eq 3) {
+    return
+}
 
 i -PassThru:$PassThru {
     b "Coverage with Breakpoints and with Tracer" {
