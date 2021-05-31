@@ -1,7 +1,7 @@
 trigger:
-  - master
+  - rel/4.x.x
 pr:
-  - master
+  - rel/4.x.x
 
 resources:
   - repo: self
