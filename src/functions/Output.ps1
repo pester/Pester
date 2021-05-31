@@ -132,7 +132,7 @@ function Write-PesterStart {
         #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         # }
 
-        & $SafeCommands['Write-Host'] $message -Foreground $ReportTheme.Foreground
+        & $SafeCommands['Write-Host'] -ForegroundColor Magenta $message
     }
 }
 
