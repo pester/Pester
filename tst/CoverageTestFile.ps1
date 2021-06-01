@@ -69,6 +69,7 @@ function g {
         # we report this correctly as covered, but the old CC reports it as uncovered
         # $a = ("a"),
         $b = "b",
+        # ps4 reports this incorrectly
         $Options = ((& {
                     f
                 })) # ,
