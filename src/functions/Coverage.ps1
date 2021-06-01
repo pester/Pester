@@ -1177,6 +1177,15 @@ function Get-TracerHitLocation ($command) {
             $parent -is [System.Management.Automation.Language.SwitchStatementAst] -or
             $parent -is [System.Management.Automation.Language.TryStatementAst] -or
             $parent -is [System.Management.Automation.Language.CatchClauseAst]) {
+
+            if ($last -is [System.Management.Automation.Language.ParamBlockAst]) {
+                # param block will not indicate that any of the default values in it executed,
+                # and the block itself is not reported by the tracer. So we will land here with the parame block as the $last
+                # and we need to take the containing scriptblock (be it actual scriptblock, or a function definition), which is the parent
+                # of this param block.
+                $last = $parent
+            }
+
             break
         }
     }
