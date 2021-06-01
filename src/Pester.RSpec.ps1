@@ -1,4 +1,4 @@
-﻿function Find-File {
+function Find-File {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]

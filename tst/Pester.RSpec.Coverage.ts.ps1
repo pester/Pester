@@ -89,7 +89,7 @@ i -PassThru:$PassThru {
             $diff | Verify-Null
             # above we look for commands that we missed, but ensure the count is the same to also know
             # if we did not mark some uncovered lines as covered
-            $pm.Count | Verify-Equal $bm.Count
+            # $pm.Count | Verify-Equal $bm.Count
         }
     }
 

@@ -62,19 +62,25 @@ foreach ($k in 1..2) {
     $m = $a -contains $k
 }
 
-# cannot handle this so far, the ((( is not correctly propagated to the
-# debugger when executing for some reason
-# scriptblock invocation in assignment in paramblock
-# function f () { "aaa" }
-# function g {
-#     param(
-#         $Options = (& {
-#                 f
-#             })
-#     )
-#     $Options
-# }
-# g
+
+function f () { "aaa" }
+function g {
+    param(
+        # we report this correctly as covered, but the old CC reports it as uncovered
+        # $a = ("a"),
+        $b = "b",
+        # ps4 reports this incorrectly
+        $Options = ((& {
+                    f
+                })) # ,
+        # we report this correctly as "no" is not covered but the bp based CC reports it as covered
+        # $Options2 = ((& {
+        #             if ($true) { "yes" } else { "no" }
+        #         }))
+    )
+    $Options
+}
+g
 
 
 # switch, without special treatment this is hoitsing too high
