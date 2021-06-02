@@ -2,6 +2,7 @@ function New-PesterState {
     param (
         [String[]]$TagFilter,
         [String[]]$ExcludeTagFilter,
+        [scriptblock]$AdvancedTagFilter,
         [String[]]$TestNameFilter,
         [System.Management.Automation.SessionState]$SessionState,
         [Switch]$Strict,
@@ -27,10 +28,11 @@ function New-PesterState {
         }
     }
 
-    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
+    & $SafeCommands['New-Module'] -Name PesterState -AsCustomObject -ArgumentList $TagFilter, $ExcludeTagFilter, $AdvancedTagFilter, $TestNameFilter, $SessionState, $Strict, $Show, $PesterOption, $RunningViaInvokePester -ScriptBlock {
         param (
             [String[]]$_tagFilter,
             [String[]]$_excludeTagFilter,
+            [scriptblock]$_advancedTagFilter,
             [String[]]$_testNameFilter,
             [System.Management.Automation.SessionState]$_sessionState,
             [Switch]$Strict,
@@ -42,6 +44,7 @@ function New-PesterState {
         #public read-only
         $TagFilter = $_tagFilter
         $ExcludeTagFilter = $_excludeTagFilter
+        $AdvancedTagFilter = $_advancedTagFilter
         $TestNameFilter = $_testNameFilter
 
 
@@ -329,6 +332,7 @@ function New-PesterState {
 
         $ExportedVariables = "TagFilter",
         "ExcludeTagFilter",
+        "AdvancedTagFilter",
         "TestNameFilter",
         "ScriptBlockFilter",
         "TestResult",

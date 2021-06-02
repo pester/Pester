@@ -5,53 +5,60 @@ InModuleScope Pester {
         Context "TestNameFilter parameter is set" {
             $p = new-pesterstate -TestNameFilter "filter"
 
-            it "sets the TestNameFilter property" {
-                $p.TestNameFilter | should -be "filter"
+            It "sets the TestNameFilter property" {
+                $p.TestNameFilter | Should -be "filter"
             }
 
         }
         Context "TagFilter parameter is set" {
             $p = new-pesterstate -TagFilter "tag", "tag2"
 
-            it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag", "tag2")
+            It "sets the TestNameFilter property" {
+                $p.TagFilter | Should -be ("tag", "tag2")
             }
         }
 
         Context "ExcludeTagFilter parameter is set" {
             $p = new-pesterstate -ExcludeTagFilter "tag3", "tag"
 
-            it "sets the ExcludeTagFilter property" {
-                $p.ExcludeTagFilter | should -be ("tag3", "tag")
+            It "sets the ExcludeTagFilter property" {
+                $p.ExcludeTagFilter | Should -be ("tag3", "tag")
             }
         }
 
         Context "TagFilter and ExcludeTagFilter parameter are set" {
             $p = new-pesterstate -TagFilter "tag", "tag2" -ExcludeTagFilter "tag3"
 
-            it "sets the TestNameFilter property" {
-                $p.TagFilter | should -be ("tag", "tag2")
+            It "sets the TestNameFilter property" {
+                $p.TagFilter | Should -be ("tag", "tag2")
             }
 
-            it "sets the ExcludeTagFilter property" {
-                $p.ExcludeTagFilter | should -be ("tag3")
+            It "sets the ExcludeTagFilter property" {
+                $p.ExcludeTagFilter | Should -be ("tag3")
             }
         }
         Context "TestNameFilter and TagFilter parameter is set" {
             $p = new-pesterstate -TagFilter "tag", "tag2" -testnamefilter "filter"
 
-            it "sets the TagFilter property" {
-                $p.TagFilter | should -be ("tag", "tag2")
+            It "sets the TagFilter property" {
+                $p.TagFilter | Should -be ("tag", "tag2")
             }
 
-            it "sets the TestNameFilter property" {
-                $p.TestNameFilter | should -be "Filter"
+            It "sets the TestNameFilter property" {
+                $p.TestNameFilter | Should -be "Filter"
+            }
+        }
+        Context "AdvancedTagFilter parameter is set" {
+            $p = new-pesterstate -AdvancedTagFilter { $true }
+
+            It "sets the AdvancedTagFilter property" {
+                $p.AdvancedTagFilter | Should -BeOfType [scriptblock]
             }
         }
 
         Context "ScritpBlockFilter is set" {
-            it "sets the ScriptBlockFilter property" {
-                $o = New-PesterOption -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293})
+            It "sets the ScriptBlockFilter property" {
+                $o = New-PesterOption -ScriptBlockFilter @(@{Path = "C:\Tests"; Line = 293 })
                 $p = New-PesterState -PesterOption $o
                 $p.ScriptBlockFilter | Should -Not -BeNullOrEmpty
                 $p.ScriptBlockFilter[0].Path | Should -Be "C:\Tests"
@@ -78,7 +85,7 @@ InModuleScope Pester {
             }
         }
 
-        context "adding test result" {
+        Context "adding test result" {
             $p.EnterTestGroup('Describe', 'Describe')
 
             #region TIMING TESTS ###########
@@ -89,7 +96,7 @@ InModuleScope Pester {
             #   3. TestSuite - Time between the start and finish of all test groups
             #
             #################################
-            it "times test accurately within 10 milliseconds" {
+            It "times test accurately within 10 milliseconds" {
 
                 # Simulating the start of a test
                 $p.EnterTest()
@@ -160,11 +167,11 @@ InModuleScope Pester {
 
             #     # The time recorded as taken during the test should be within + or - 15 milliseconds of the time we
             #     #   recorded using Measure-Command
-            #     $result.time.TotalMilliseconds | Should -BeGreaterOrEqual ($Time.Milliseconds - 15)
-            #     $result.time.TotalMilliseconds | Should -BeLessOrEqual ($Time.Milliseconds + 15)
+            #     $result.time.TotalMilliseconds | should -BeGreaterOrEqual ($Time.Milliseconds - 15)
+            #     $result.time.TotalMilliseconds | should -BeLessOrEqual ($Time.Milliseconds + 15)
             # }
 
-            it "accurately increments total testsuite time within 10 milliseconds" {
+            It "accurately increments total testsuite time within 10 milliseconds" {
                 # Initial time for the current testsuite
                 $TotalTimeStart = $p.time;
 
@@ -219,50 +226,50 @@ InModuleScope Pester {
 
             #endregion TIMING TESTS
 
-            it "adds passed test" {
+            It "adds passed test" {
                 $p.AddTestResult("result", "Passed", 100)
                 $result = $p.TestResult[-1]
-                $result.Name | should -be "result"
-                $result.passed | should -be $true
+                $result.Name | Should -be "result"
+                $result.passed | Should -be $true
                 $result.Result | Should -be "Passed"
-                $result.time.ticks | should -be 100
+                $result.time.ticks | Should -be 100
             }
-            it "adds failed test" {
+            It "adds failed test" {
                 try {
                     throw 'message'
                 }
                 catch {
                     $e = $_
                 }
-                $p.AddTestResult("result", "Failed", 100, "fail", "stack", "suite name", @{param = 'eters'}, $e)
+                $p.AddTestResult("result", "Failed", 100, "fail", "stack", "suite name", @{param = 'eters' }, $e)
                 $result = $p.TestResult[-1]
-                $result.Name | should -be "result"
-                $result.passed | should -be $false
+                $result.Name | Should -be "result"
+                $result.passed | Should -be $false
                 $result.Result | Should -be "Failed"
-                $result.time.ticks | should -be 100
-                $result.FailureMessage | should -be "fail"
-                $result.StackTrace | should -be "stack"
-                $result.ParameterizedSuiteName | should -be "suite name"
-                $result.Parameters['param'] | should -be 'eters'
-                $result.ErrorRecord.Exception.Message | should -be 'message'
+                $result.time.ticks | Should -be 100
+                $result.FailureMessage | Should -be "fail"
+                $result.StackTrace | Should -be "stack"
+                $result.ParameterizedSuiteName | Should -be "suite name"
+                $result.Parameters['param'] | Should -be 'eters'
+                $result.ErrorRecord.Exception.Message | Should -be 'message'
             }
 
-            it "adds skipped test" {
+            It "adds skipped test" {
                 $p.AddTestResult("result", "Skipped", 100)
                 $result = $p.TestResult[-1]
-                $result.Name | should -be "result"
-                $result.passed | should -be $true
+                $result.Name | Should -be "result"
+                $result.passed | Should -be $true
                 $result.Result | Should -be "Skipped"
-                $result.time.ticks | should -be 100
+                $result.time.ticks | Should -be 100
             }
 
-            it "adds Pending test" {
+            It "adds Pending test" {
                 $p.AddTestResult("result", "Pending", 100)
                 $result = $p.TestResult[-1]
-                $result.Name | should -be "result"
-                $result.passed | should -be $true
+                $result.Name | Should -be "result"
+                $result.passed | Should -be $true
                 $result.Result | Should -be "Pending"
-                $result.time.ticks | should -be 100
+                $result.time.ticks | Should -be 100
             }
 
             $p.LeaveTestGroup('Describe', 'Describe')
@@ -275,7 +282,7 @@ InModuleScope Pester {
                 $strict.AddTestResult("test", "Passed")
                 $result = $strict.TestResult[-1]
 
-                $result.passed | should -be $true
+                $result.passed | Should -be $true
                 $result.Result | Should -be "Passed"
             }
 
@@ -283,7 +290,7 @@ InModuleScope Pester {
                 $strict.AddTestResult("test", "Failed")
                 $result = $strict.TestResult[-1]
 
-                $result.passed | should -be $false
+                $result.passed | Should -be $false
                 $result.Result | Should -be "Failed"
             }
 
@@ -291,7 +298,7 @@ InModuleScope Pester {
                 $strict.AddTestResult("test", "Pending")
                 $result = $strict.TestResult[-1]
 
-                $result.passed | should -be $false
+                $result.passed | Should -be $false
                 $result.Result | Should -be "Failed"
             }
 
@@ -299,7 +306,7 @@ InModuleScope Pester {
                 $strict.AddTestResult("test", "Skipped")
                 $result = $strict.TestResult[-1]
 
-                $result.passed | should -be $false
+                $result.passed | Should -be $false
                 $result.Result | Should -be "Failed"
             }
 
@@ -307,7 +314,7 @@ InModuleScope Pester {
                 $strict.AddTestResult("test", "Inconclusive")
                 $result = $strict.TestResult[-1]
 
-                $result.passed | should -be $false
+                $result.passed | Should -be $false
                 $result.Result | Should -be "Failed"
             }
         }
