@@ -115,7 +115,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.3.0'
 
             # Prerelease string of this module
-            Prerelease   = 'alpha3'
+            Prerelease   = 'alpha4'
         }
 
         # Minimum assembly version required
