@@ -655,7 +655,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
 
                     # Loop to generate problem for every failed assertion per test (when $PesterPreference.Should.ErrorAction.Value = "Continue")
-                    foreach($e in $_test.ErrorRecord) {
+                    foreach ($e in $_test.ErrorRecord) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
