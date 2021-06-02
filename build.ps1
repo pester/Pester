@@ -53,6 +53,11 @@ param (
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
+
+if ($Clean -and $PSVersionTable.PSVersion -lt [version]'5.1') {
+    throw "Clean build of Pester requires PowerShell 5.1 or greater. If you have already compiled the assemblies and only modified powershell-files, try calling ./build.ps1 without -Clean."
+}
+
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
 }
@@ -98,115 +103,117 @@ if ($Clean) {
 
 Copy-Content -Content $content
 
-
-# update help for New-PesterConfiguration
-if ($PSVersionTable.PSVersion.Major -gt 5) {
-    $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll")
-}
-else {
-    $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net452/Pester.dll")
-}
-
-function Format-NicelyMini ($value) {
-    if ($value -is [bool]) {
-        if ($value) {
-            '$true'
-        }
-        else {
-            '$false'
-        }
+if ($Clean) {
+    # update help for New-PesterConfiguration
+    if ($PSVersionTable.PSVersion.Major -gt 5) {
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll")
+    }
+    else {
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net452/Pester.dll")
     }
 
-    if ($value -is [int] -or $value -is [decimal]) {
-        return $value
-    }
-
-    if ($value -is [string]) {
-        if ([String]::IsNullOrEmpty($value)) {
-            return '$null'
-        }
-        else {
-            return "'$value'"
-        }
-    }
-
-    # does not work with [object[]] when building for some reason
-    if ($value -is [System.Collections.IEnumerable]) {
-        if (0 -eq $value.Count) {
-            return '@()'
-        }
-        $v = foreach ($i in $value) {
-            Format-NicelyMini $i
-        }
-        return "@($($v -join ', '))"
-    }
-}
-
-# generate help for config object and insert it
-$configuration = [PesterConfiguration]::Default
-$generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
-    $section = $configuration.($p)
-    "${p}:"
-    foreach ($r in $section.PSObject.Properties.Name) {
-        $option = $section.$r
-        $default = Format-NicelyMini $option.Default
-        "  ${r}: $($option.Description)`n  Default value: ${default}`n"
-    }
-}
-
-$p = "$PSScriptRoot/src/Pester.RSpec.ps1"
-# in older versions utf8 means with BOM
-$e = if ($PSVersionTable.PSVersion.Major -ge 7) { "utf8BOM" } else { "utf8" }
-$f = Get-Content $p -Encoding $e
-$sbf = [System.Text.StringBuilder]""
-$generated = $false
-foreach ($l in $f) {
-    if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
-        $null = $sbf.AppendLine("$l`n")
-        $generated = $true
-        $margin = $matches.margin
-        $null = $sbf.AppendLine("$margin``````")
-
-        $generatedLines = @($generatedConfig -split "`n")
-        for ($i=0; $i -lt $generatedLines.Count; $i++) {
-            $l = $generatedLines[$i]
-            $m = if ($l) { $margin } else { $null }
-
-            if ($i -eq $generatedLines.Count-1) {
-                #last line should be blank - replace with codeblock end
-                $null = $sbf.AppendLine("$margin```````n")
-            } else {
-                $null = $sbf.AppendLine("$m$l")
+    function Format-NicelyMini ($value) {
+        if ($value -is [bool]) {
+            if ($value) {
+                '$true'
+            }
+            else {
+                '$false'
             }
         }
-    }
-    elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
-        $generated = $false
+
+        if ($value -is [int] -or $value -is [decimal]) {
+            return $value
+        }
+
+        if ($value -is [string]) {
+            if ([String]::IsNullOrEmpty($value)) {
+                return '$null'
+            }
+            else {
+                return "'$value'"
+            }
+        }
+
+        # does not work with [object[]] when building for some reason
+        if ($value -is [System.Collections.IEnumerable]) {
+            if (0 -eq $value.Count) {
+                return '@()'
+            }
+            $v = foreach ($i in $value) {
+                Format-NicelyMini $i
+            }
+            return "@($($v -join ', '))"
+        }
     }
 
-    if (-not $generated) {
-        $null = $sbf.AppendLine($l)
+    # generate help for config object and insert it
+    $configuration = [PesterConfiguration]::Default
+    $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
+        $section = $configuration.($p)
+        "${p}:"
+        foreach ($r in $section.PSObject.Properties.Name) {
+            $option = $section.$r
+            $default = Format-NicelyMini $option.Default
+            "  ${r}: $($option.Description)`n  Default value: ${default}`n"
+        }
     }
+
+    $p = "$PSScriptRoot/src/Pester.RSpec.ps1"
+    # in older versions utf8 means with BOM
+    $e = if ($PSVersionTable.PSVersion.Major -ge 7) { "utf8BOM" } else { "utf8" }
+    $f = Get-Content $p -Encoding $e
+    $sbf = [System.Text.StringBuilder]""
+    $generated = $false
+    foreach ($l in $f) {
+        if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
+            $null = $sbf.AppendLine("$l`n")
+            $generated = $true
+            $margin = $matches.margin
+            $null = $sbf.AppendLine("$margin``````")
+
+            $generatedLines = @($generatedConfig -split "`n")
+            for ($i=0; $i -lt $generatedLines.Count; $i++) {
+                $l = $generatedLines[$i]
+                $m = if ($l) { $margin } else { $null }
+
+                if ($i -eq $generatedLines.Count-1) {
+                    #last line should be blank - replace with codeblock end
+                    $null = $sbf.AppendLine("$margin```````n")
+                } else {
+                    $null = $sbf.AppendLine("$m$l")
+                }
+            }
+        }
+        elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
+            $generated = $false
+        }
+
+        if (-not $generated) {
+            $null = $sbf.AppendLine($l)
+        }
+    }
+
+    Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
+
+    # generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
+    $configSections = $configuration.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
+    # Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
+    $formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
+    # Generate listcontrol views for all configuration sections
+    $typeDefs = foreach ($section in $configSections) {
+        $builder = [System.Management.Automation.ListControl]::Create().StartEntry()
+        $section.GetProperties() | Where-Object { $_.PropertyType.IsSubclassOf([Pester.Option]) } | ForEach-Object {
+            $builder.AddItemProperty($_.Name) > $null
+        }
+        $listControl = $builder.EndEntry().EndList()
+
+        $ViewDef = $formatViewCtor.Invoke(($section.FullName, $listControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
+        New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
+    }
+    Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
+
 }
-
-Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
-
-# generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
-$configSections = $configuration.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
-# Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
-$formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
-# Generate listcontrol views for all configuration sections
-$typeDefs = foreach ($section in $configSections) {
-    $builder = [System.Management.Automation.ListControl]::Create().StartEntry()
-    $section.GetProperties() | Where-Object { $_.PropertyType.IsSubclassOf([Pester.Option]) } | ForEach-Object {
-        $builder.AddItemProperty($_.Name) > $null
-    }
-    $listControl = $builder.EndEntry().EndList()
-
-    $ViewDef = $formatViewCtor.Invoke(($section.FullName, $listControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
-    New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
-}
-Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in
