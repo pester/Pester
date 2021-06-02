@@ -155,7 +155,9 @@ $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
 }
 
 $p = "$PSScriptRoot/src/Pester.RSpec.ps1"
-$f = Get-Content $p -Encoding utf8
+# in older versions utf8 means with BOM
+$e = if ($PSVersionTable.PSVersion.Major -ge 7) { "utf8BOM" } else { "utf8" }
+$f = Get-Content $p -Encoding $e
 $sbf = [System.Text.StringBuilder]""
 $generated = $false
 foreach ($l in $f) {
@@ -186,7 +188,8 @@ foreach ($l in $f) {
         $null = $sbf.AppendLine($l)
     }
 }
-Set-Content -Encoding utf8 -Value $sbf.ToString().TrimEnd() -Path $p
+
+Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
     # Force inlining by env variable, build.ps1 is used in
