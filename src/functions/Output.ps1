@@ -1,7 +1,6 @@
 ﻿$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
-        StartMessage      = "Executing all tests in '{0}'"
         FilterMessage     = ' matching test name {0}'
         TagMessage        = ' with Tags {0}'
         MessageOfs        = "', '"
@@ -115,11 +114,7 @@ function Write-PesterStart {
             $moduleVersion += "-$($moduleInfo.PrivateData.PSData.Prerelease)"
         }
         $message = $ReportStrings.VersionMessage -f $moduleVersion
-        $message += [Environment]::NewLine
 
-        $message += $ReportStrings.StartMessage -f (Format-PesterPath $hash.Files -Delimiter $OFS)
-
-        $message = "$message$(if (0 -lt $hash.ScriptBlocks) { ", and in $($hash.ScriptBlocks) scriptblocks." })"
         # todo write out filters that are applied
         # if ($PesterState.TestNameFilter) {
         #     $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
