@@ -428,7 +428,7 @@ function ConvertTo-FailureLines {
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
-            if ($true) { # PESTER_BUILD
+            if ($true) {
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
@@ -494,7 +494,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
-            if($null -ne $activeFilters) {
+            if ($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
@@ -650,7 +650,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Failed {
                 # If VSCode and not Integrated Terminal (usually a test-task), output Pester 4-format to match 'pester'-problemMatcher in VSCode.
-                if($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
+                if ($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
 
                     # Loop to generate problem for every failed assertion per test (when $PesterPreference.Should.ErrorAction.Value = "Continue")
                     foreach($e in $_test.ErrorRecord) {
