@@ -1,4 +1,4 @@
-function Assert-ValidAssertionName {
+﻿function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -911,8 +911,14 @@ function Invoke-Pester {
             }
 
             if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+                # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
                 $PesterPreference.Debug.WriteDebugMessages = $true
-                $PesterPreference.Debug.WriteDebugMessagesFrom = "Discovery", "Skip", "Mock", "CodeCoverage"
+                $missingCategories = foreach ($category in @("Discovery", "Skip", "Mock", "CodeCoverage")) {
+                    if ($PesterPreference.Debug.WriteDebugMessagesFrom.Value -notcontains $category) {
+                        $category
+                    }
+                }
+                $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
             }
 
             $plugins +=
