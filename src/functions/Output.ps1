@@ -493,16 +493,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
-
-        if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-            $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
-            if ($null -ne $activeFilters) {
-                foreach ($aFilter in $activeFilters) {
-                    # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
-                }
-            }
-        }
     }
 
     $p.ContainerDiscoveryEnd = {
@@ -533,7 +523,26 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # }
 
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery finished in $(ConvertTo-HumanTime $Context.Duration)."
+
+        $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
+
+        if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+            $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
+            if ($null -ne $activeFilters) {
+                foreach ($aFilter in $activeFilters) {
+                    # Assuming only StringArrayOption filter-types. Might break in the future.
+                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                }
+
+                $testsToRun = 0
+                foreach ($test in $discoveredTests) {
+                    if ($test.ShouldRun) { $testsToRun++ }
+                }
+
+                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filters selected $testsToRun tests to run."
+            }
+        }
 
         if ($PesterPreference.Run.SkipRun.Value) {
             & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
@@ -542,13 +551,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
 
     $p.RunStart = {
-        param ($Context)
-
-        $testsToRun = 0
-        foreach ($test in @(View-Flat -Block $Context.Blocks)) {
-            if ($test.ShouldRun) { $testsToRun++ }
-        }
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running $testsToRun tests."
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {

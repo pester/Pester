@@ -893,7 +893,6 @@ function Discover-Test {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
             BlockContainers = $BlockContainer
             Configuration   = $state.PluginConfiguration
-            Filter          = $Filter
         } -ThrowOnFailure
     }
 
@@ -1016,6 +1015,7 @@ function Discover-Test {
             FocusedTests    = $focusedTests
             Duration        = $totalDiscoveryDuration.Elapsed
             Configuration   = $state.PluginConfiguration
+            Filter          = $Filter
         } -ThrowOnFailure
     }
 
