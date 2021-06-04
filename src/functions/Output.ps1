@@ -1,4 +1,4 @@
-﻿$script:ReportStrings = DATA {
+$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -505,13 +505,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.ContainerDiscoveryStart = {
-            param ($Context)
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovering in $($Context.BlockContainer.Item)."
-        }
-    }
-
     $p.ContainerDiscoveryEnd = {
         param ($Context)
 
@@ -528,10 +521,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             & $SafeCommands["Write-Host"] -ForegroundColor Red "[-] Discovery in $($path) failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
-        }
-        elseif ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-            # todo: this is very very slow because of View-flat
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Found $(@(View-Flat -Block $Context.Block).Count) tests. $(ConvertTo-HumanTime $Context.Duration)"
         }
     }
 
