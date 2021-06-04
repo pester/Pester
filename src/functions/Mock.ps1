@@ -38,6 +38,7 @@ function New-MockBehavior {
         IsDefault   = $null -eq $ParameterFilter
         IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
+        Executed    = $false
         ScriptBlock = $MockWith
         Hook        = $Hook
         PSTypeName  = 'MockBehavior'
@@ -300,34 +301,76 @@ function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        $Behaviors
+        $Behaviors,
+        [switch]$Negate
     )
 
-    $unverified = [System.Collections.Generic.List[Object]]@()
-    foreach ($b in $Behaviors) {
-        if ($b.Verifiable) {
-            $unverified.Add($b)
+    # TODO: Keep this for Negate-only? This might break existing tests with unnecessary calls. Breaking change, even thought it's the good kind.
+    if ($Behaviors.Count -eq 0) {
+        return [PSCustomObject] @{
+            Succeeded      = $false
+            FailureMessage = "No verifiable mocks exists. Nothing to assert."
         }
     }
 
-    if ($unVerified.Count -gt 0) {
-        foreach ($b in $unVerified) {
-            $message = "$([System.Environment]::NewLine) Expected $($b.CommandName) "
-            if ($b.ModuleName) {
-                $message += "in module $($b.ModuleName) "
+    if ($Negate) {
+        # Negative checks
+        $verified = [System.Collections.Generic.List[Object]]@()
+        foreach ($b in $Behaviors) {
+            if ($b.Executed) {
+                $verified.Add($b)
             }
-            $message += "to be called with $(if ($null -ne $b.Filter) { $b.Filter.ToString().Trim() })"
+        }
+
+        if ($verified.Count -gt 0) {
+            $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:"
+            foreach ($b in $verified) {
+                $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
+                if ($b.ModuleName) {
+                    $message += "from inside module $($b.ModuleName) "
+                }
+                if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }." }
+            }
+
+            return [PSCustomObject] @{
+                Succeeded      = $false
+                FailureMessage = $message
+            }
         }
 
         return [PSCustomObject] @{
-            Succeeded      = $false
-            FailureMessage = $message
+            Succeeded      = $true
+            FailureMessage = $null
         }
     }
+    else {
+        $unverified = [System.Collections.Generic.List[Object]]@()
+        foreach ($b in $Behaviors) {
+            if (-not $b.Executed) {
+                $unverified.Add($b)
+            }
+        }
 
-    return [PSCustomObject] @{
-        Succeeded      = $true
-        FailureMessage = $null
+        if ($unVerified.Count -gt 0) {
+            $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:"
+            foreach ($b in $unVerified) {
+                $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
+                if ($b.ModuleName) {
+                    $message += "from inside module $($b.ModuleName) "
+                }
+                if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }." }
+            }
+
+            return [PSCustomObject] @{
+                Succeeded      = $false
+                FailureMessage = $message
+            }
+        }
+
+        return [PSCustomObject] @{
+            Succeeded      = $true
+            FailureMessage = $null
+        }
     }
 }
 
@@ -395,7 +438,7 @@ function Should-InvokeInternal {
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
             # do not use the callser session state from the hook, the parameter filter
-            # on Should -Invoke can come from a different session state if inModuleScope is used to 
+            # on Should -Invoke can come from a different session state if inModuleScope is used to
             # wrap it. Use the caller session state to which the scriptblock is bound
             SessionState    = $SessionState
         }
@@ -971,7 +1014,7 @@ function ExecuteBehavior {
         Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" }) $CommandName."
     }
 
-    $Behavior.Verifiable = $false
+    $Behavior.Executed = $true
 
     $scriptBlock = {
         param (

@@ -633,7 +633,7 @@ https://pester.dev/docs/commands/Assert-VerifiableMock
     Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
     & $sb
 }
-function Should-InvokeVerifiable {
+function Should-InvokeVerifiable ([switch]$Negate) {
     <#
 .SYNOPSIS
 Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -666,7 +666,7 @@ This will not throw an exception because the mock was invoked.
 
 #>
     $behaviors = @(Get-VerifiableBehaviors)
-    Should-InvokeVerifiableInternal -Behaviors $behaviors
+    Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `
