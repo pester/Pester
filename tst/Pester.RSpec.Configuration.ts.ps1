@@ -458,6 +458,29 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "configuration modified at runtime" {
+        t "changes at runtime doesn't leak to advanced configuration object" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = 'Diagnostic'
+                }
+                Debug  = @{
+                    WriteDebugMessagesFrom = 'Something'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            # Diagnostic modifies Debug.WriteDebugMessagesFrom at runtime
+            $r.Configuration.Debug.WriteDebugMessagesFrom.Value.Count -gt 1 | Verify-True
+            'Something' -eq $c.Debug.WriteDebugMessagesFrom.Value | Verify-True
+        }
+    }
+
     b "New-PesterConfiguration" {
         t "Creates default configuration when no parameters are specified" {
             $config = New-PesterConfiguration
