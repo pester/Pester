@@ -686,6 +686,75 @@ Describe "When Creating a Verifiable Mock that is called" {
     }
 }
 
+Describe "When calling Should -Not -InvokeVerifiable" {
+    Context 'All Verifiable Mocks is called' {
+        BeforeAll {
+            Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
+            FunctionUnderTest "one"
+
+            try {
+                Should -Not -InvokeVerifiable
+            }
+            Catch {
+                $result = $_
+            }
+        }
+
+        It "Should throw" {
+            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            1 | Should -Be 2
+        }
+    }
+
+    Context 'Some Verifiable Mocks is called' {
+        BeforeAll {
+            Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
+            Mock FunctionUnderTest -Verifiable
+            FunctionUnderTest "one"
+
+            try {
+                Should -Not -InvokeVerifiable
+            }
+            Catch {
+                $result = $_
+            }
+        }
+
+        It "Should throw" {
+            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            1 | Should -Be 2
+        }
+    }
+
+    Context 'No Verifiable Mocks exists' {
+        BeforeAll {
+            Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
+
+            try {
+                Should -Not -InvokeVerifiable
+            }
+            Catch {
+                $result = $_
+            }
+        }
+
+        It "Should throw" {
+            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            1 | Should -Be 2
+        }
+    }
+
+    Context 'None of the Verifiable Mocks is called' {
+        BeforeAll {
+            Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
+        }
+
+        It "Should not throw" {
+            { Should -Not -InvokeVerifiable } | Should -Not -Throw
+        }
+    }
+}
+
 Describe "When Calling Should -Invoke 0 without exactly" {
     BeforeAll {
         Mock FunctionUnderTest {}
