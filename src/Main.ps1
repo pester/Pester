@@ -1,4 +1,4 @@
-﻿function Assert-ValidAssertionName {
+function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -887,7 +887,12 @@ function Invoke-Pester {
             # preference is inherited in all subsequent calls in this session state
             # but we still pass it explicitly where practical
             if (-not $hasCallerPreference) {
-                [PesterConfiguration] $PesterPreference = $Configuration
+                if ($PSBoundParameters.ContainsKey('Configuration')) {
+                    # Advanced configuration used, merging to get new reference
+                    [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
+                } else {
+                    [PesterConfiguration] $PesterPreference = $Configuration
+                }
             }
             elseif ($hasCallerPreference) {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
