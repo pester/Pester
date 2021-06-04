@@ -1705,9 +1705,6 @@ function Test-ShouldRun {
     # item is excluded when any of the exclude tags match
     $tagFilter = $Filter.ExcludeTag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' exclude tag filter."
-        }
         foreach ($f in $tagFilter) {
             foreach ($t in $Item.Tag) {
                 if ($t -like $f) {
@@ -1768,9 +1765,6 @@ function Test-ShouldRun {
     # test is included when it has tags and the any of the tags match
     $tagFilter = $Filter.Tag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Filter "($fullDottedPath) There is '$($tagFilter -join ", ")' include tag filter."
-        }
         $anyIncludeFilters = $true
         if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
