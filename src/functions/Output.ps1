@@ -1,4 +1,4 @@
-$script:ReportStrings = DATA {
+﻿$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -542,7 +542,13 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
 
     $p.RunStart = {
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests."
+        param ($Context)
+
+        $testsToRun = 0
+        foreach ($test in @(View-Flat -Block $Context.Blocks)) {
+            if ($test.ShouldRun) { $testsToRun++ }
+        }
+        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running $testsToRun tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
