@@ -10,9 +10,9 @@ namespace Pester.Tracing
     internal class TracerHostUI : PSHostUserInterface
     {
         private PSHostUserInterface _ui;
-        private Action _trace;
+        private Action<string> _trace;
 
-        public TracerHostUI(PSHostUserInterface ui, Action trace)
+        public TracerHostUI(PSHostUserInterface ui, Action<string> trace)
         {
             _ui = ui;
             _trace = trace;
@@ -65,7 +65,7 @@ namespace Pester.Tracing
             if (_trace == null)
                 _ui.WriteDebugLine(message);
 
-            _trace();
+            _trace(message);
         }
 
         public override void WriteErrorLine(string value)

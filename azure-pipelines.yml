@@ -1,8 +1,8 @@
 trigger:
-  - v5.0
+  - main
   - rel/*
 pr:
-  - v5.0
+  - main
   - rel/*
 
 variables:
@@ -16,10 +16,7 @@ stages:
         workspace:
           clean: all
         pool:
-          name: Default
-          demands:
-            - net452
-            - netcoreapp3.1
+          vmImage: windows-2019
         timeoutInMinutes: 3
         steps:
           - checkout: self

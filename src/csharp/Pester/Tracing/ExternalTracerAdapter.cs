@@ -17,7 +17,7 @@ namespace Pester.Tracing
             _traceMethod = traceMethod ?? throw new InvalidOperationException("The provided tracer does not have Trace method with this signature: Trace(IScriptExtent extent, ScriptBlock scriptBlock, int level)");
         }
 
-        public void Trace(IScriptExtent extent, ScriptBlock scriptBlock, int level)
+        public void Trace(string message, IScriptExtent extent, ScriptBlock scriptBlock, int level)
         {
             _traceMethod.Invoke(_tracer, new object[] { extent, scriptBlock, level });
         }

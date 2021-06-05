@@ -887,7 +887,12 @@ function Invoke-Pester {
             # preference is inherited in all subsequent calls in this session state
             # but we still pass it explicitly where practical
             if (-not $hasCallerPreference) {
-                [PesterConfiguration] $PesterPreference = $Configuration
+                if ($PSBoundParameters.ContainsKey('Configuration')) {
+                    # Advanced configuration used, merging to get new reference
+                    [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
+                } else {
+                    [PesterConfiguration] $PesterPreference = $Configuration
+                }
             }
             elseif ($hasCallerPreference) {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
@@ -906,8 +911,14 @@ function Invoke-Pester {
             }
 
             if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+                # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
                 $PesterPreference.Debug.WriteDebugMessages = $true
-                $PesterPreference.Debug.WriteDebugMessagesFrom = "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+                $missingCategories = foreach ($category in @("Discovery", "Skip", "Mock", "CodeCoverage")) {
+                    if ($PesterPreference.Debug.WriteDebugMessagesFrom.Value -notcontains $category) {
+                        $category
+                    }
+                }
+                $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
             }
 
             $plugins +=
