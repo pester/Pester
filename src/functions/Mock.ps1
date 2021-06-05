@@ -387,6 +387,16 @@ function Should-InvokeInternal {
     $matchingCalls = [System.Collections.Generic.List[object]]@()
     $nonMatchingCalls = [System.Collections.Generic.List[object]]@()
 
+    # Check for variables in ParameterFilter that already exists in session. Risk of conflict
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $preExistingFilterVariables = @{}
+        foreach ($v in $filter.Ast.FindAll( { $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
+            if ($existingVar = $SessionState.PSVariable.Get($v.VariablePath.UserPath)) {
+                $preExistingFilterVariables.Add($v.VariablePath.UserPath, $existingVar.Value)
+            }
+        }
+    }
+
     foreach ($historyEntry in $callHistory) {
 
         $params = @{
@@ -403,6 +413,16 @@ function Should-InvokeInternal {
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
         #     $params.ScriptBlock = New-BlockWithoutParameterAliasesNew-BlockWithoutParameterAliases -Metadata $ContextInfo.Hook.Metadata -Block $params.ScriptBlock
         # }
+
+        # Check for variables in ParameterFilter conflicting with context
+        if ($PesterPreference.Debug.WriteDebugMessages.Value -and $preExistingFilterVariables.Count -gt 0) {
+            $possibleConflicts = Get-ContextToDefine -BoundParameters $params.BoundParameters -Metadata $params.Metadata
+            foreach ($filterVar in $preExistingFilterVariables.GetEnumerator()) {
+                if ($possibleConflicts.ContainsKey($filterVar.Key)) {
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($filterVar.Key) used in ParameterFilter exists in test-script with value '$($filterVar.Value)', but will be overwritten by parameter/alias in $CommandName with value '$($possibleConflicts[$filterVar.Key])'."
+                }
+            }
+        }
 
         if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
