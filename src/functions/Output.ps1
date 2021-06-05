@@ -781,36 +781,29 @@ function Write-ErrorToScreen {
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
-                $isFormattedError = $null -ne $e.DisplayErrorMessage
-                $isDisplayStackTrace = $null -ne $e.DisplayStackTrace -and $ShowStackTrace
-
-                if ($isFormattedError) {
+                if ($null -ne $e.DisplayErrorMessage) {
                     $errorMessage = "[$(($c++))] $($e.DisplayErrorMessage)"
                 }
                 else {
                     $errorMessage = "[$(($c++))] $($e.Exception)"
                 }
 
-                if ($isDisplayStackTrace) {
+                if ($null -ne $e.DisplayStackTrace -and $ShowStackTrace) {
                     $errorMessage += [Environment]::NewLine + $e.DisplayStackTrace
                 }
                 $errorMessage
             }) -join [Environment]::NewLine
     }
     else {
-        $isFormattedError = $null -ne $Err.DisplayErrorMessage
-        $isDisplayStackTrace = $null -ne $Err.DisplayStackTrace -and $ShowStackTrace
-        $isDisplayScriptStackTrace = $null -ne $Err.ScriptStackTrace -and $ShowStackTrace
-
-        if ($isFormattedError) {
+        if ($null -ne $Err.DisplayErrorMessage) {
             $errorMessage = $Err.DisplayErrorMessage
-            if ($isDisplayStackTrace) {
+            if ($null -ne $Err.DisplayStackTrace -and $ShowStackTrace) {
                 $errorMessage += [Environment]::NewLine + $Err.DisplayStackTrace
             }
         }
         else {
             $errorMessage = $Err.Exception
-            if ($isDisplayScriptStackTrace) {
+            if ($null -ne $Err.ScriptStackTrace) {
                 $errorMessage += [Environment]::NewLine + $Err.ScriptStackTrace
             }
         }
