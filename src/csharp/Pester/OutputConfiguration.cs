@@ -23,6 +23,7 @@ namespace Pester
     public class OutputConfiguration : ConfigurationSection
     {
         private StringOption _verbosity;
+        private BoolOption _showStackTrace;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -35,12 +36,14 @@ namespace Pester
             if (configuration != null)
             {
                 Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
+                ShowStackTrace = configuration.GetValueOrNull<bool>(nameof(ShowStackTrace)) ?? ShowStackTrace;
             }
         }
 
         public OutputConfiguration() : base("Output configuration")
         {
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
+            ShowStackTrace = new BoolOption("Controls if Output shows full stack trace.", true);
         }
 
         public StringOption Verbosity
@@ -55,6 +58,22 @@ namespace Pester
                 else
                 {
                     _verbosity = new StringOption(_verbosity, FixMinimal(value?.Value));
+                }
+            }
+        }
+
+        public BoolOption ShowStackTrace
+        {
+            get { return _showStackTrace; }
+            set
+            {
+                if (_showStackTrace == null)
+                {
+                    _showStackTrace = value;
+                }
+                else
+                {
+                    _showStackTrace = new BoolOption(_showStackTrace, value.Value);
                 }
             }
         }

@@ -395,6 +395,9 @@ function New-PesterConfiguration {
     Output:
       Verbosity: The verbosity of output, options are None, Normal, Detailed and Diagnostic.
       Default value: 'Normal'
+
+      ShowStackTrace: Controls if Output shows full stack trace.
+      Default value: $true
     ```
 
     .PARAMETER Hashtable
