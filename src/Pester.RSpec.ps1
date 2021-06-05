@@ -384,7 +384,7 @@ function New-PesterConfiguration {
       Default value: $false
 
       WriteDebugMessagesFrom: Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
-      Default value: @('Discovery', 'Skip', 'Filter', 'Mock', 'CodeCoverage')
+      Default value: @('Discovery', 'Skip', 'Mock', 'CodeCoverage')
 
       ShowNavigationMarkers: Write paths after every block and test, for easy navigation in VSCode.
       Default value: $false
