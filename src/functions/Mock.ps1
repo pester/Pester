@@ -395,6 +395,24 @@ function Should-InvokeInternal {
                 $preExistingFilterVariables.Add($v.VariablePath.UserPath, $existingVar.Value)
             }
         }
+
+        # Check against parameters and aliases in mocked command as it may cause false positives
+        if ($preExistingFilterVariables.Count -gt 0) {
+            foreach ($p in $ContextInfo.Hook.Metadata.Parameters.GetEnumerator()) {
+                if ($preExistingFilterVariables.ContainsKey($p.Key)) {
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) with value '$($preExistingFilterVariables[$p.Key])' exists in test and may conflict with a parameter in ParameterFilter for $CommandName resulting in false matches. Consider renaming the existing variable."
+                }
+
+                $aliases = $p.Value.Aliases
+                if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+                    foreach ($a in $aliases) {
+                        if ($preExistingFilterVariables.ContainsKey($a)) {
+                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) with value '$($preExistingFilterVariables[$a])' exists in test and may conflict with an alias in ParameterFilter for $CommandName resulting in false matches. Consider renaming the existing variable."
+                        }
+                    }
+                }
+            }
+        }
     }
 
     foreach ($historyEntry in $callHistory) {
@@ -405,7 +423,7 @@ function Should-InvokeInternal {
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
             # do not use the callser session state from the hook, the parameter filter
-            # on Should -Invoke can come from a different session state if inModuleScope is used to 
+            # on Should -Invoke can come from a different session state if inModuleScope is used to
             # wrap it. Use the caller session state to which the scriptblock is bound
             SessionState    = $SessionState
         }
@@ -413,16 +431,6 @@ function Should-InvokeInternal {
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
         #     $params.ScriptBlock = New-BlockWithoutParameterAliasesNew-BlockWithoutParameterAliases -Metadata $ContextInfo.Hook.Metadata -Block $params.ScriptBlock
         # }
-
-        # Check for variables in ParameterFilter conflicting with context
-        if ($PesterPreference.Debug.WriteDebugMessages.Value -and $preExistingFilterVariables.Count -gt 0) {
-            $possibleConflicts = Get-ContextToDefine -BoundParameters $params.BoundParameters -Metadata $params.Metadata
-            foreach ($filterVar in $preExistingFilterVariables.GetEnumerator()) {
-                if ($possibleConflicts.ContainsKey($filterVar.Key)) {
-                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($filterVar.Key) used in ParameterFilter exists in test-script with value '$($filterVar.Value)', but will be overwritten by parameter/alias in $CommandName with value '$($possibleConflicts[$filterVar.Key])'."
-                }
-            }
-        }
 
         if (Test-ParameterFilter @params) {
             $null = $matchingCalls.Add($historyEntry)
