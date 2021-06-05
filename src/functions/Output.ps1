@@ -771,7 +771,8 @@ function Write-ErrorToScreen {
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [switch] $Throw
+        [switch] $Throw,
+        [switch] $ShowStackTrace
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -781,12 +782,39 @@ function Write-ErrorToScreen {
         $c = 0
         $(foreach ($e in $Err) {
                 $isFormattedError = $null -ne $e.DisplayErrorMessage
-                "[$(($c++))] $(if ($isFormattedError){ $e.DisplayErrorMessage } else { $e.Exception })$(if ($null -ne $e.DisplayStackTrace) {"$([Environment]::NewLine)$($e.DisplayStackTrace)"})"
+                $isDisplayStackTrace = $null -ne $e.DisplayStackTrace -and $ShowStackTrace
+
+                if ($isFormattedError) {
+                    $errorMessage = "[$(($c++))] $($e.DisplayErrorMessage)"
+                }
+                else {
+                    $errorMessage = "[$(($c++))] $($e.Exception)"
+                }
+
+                if ($isDisplayStackTrace) {
+                    $errorMessage += [Environment]::NewLine + $e.DisplayStackTrace
+                }
+                $errorMessage
             }) -join [Environment]::NewLine
     }
     else {
         $isFormattedError = $null -ne $Err.DisplayErrorMessage
-        "$(if ($isFormattedError){ $Err.DisplayErrorMessage } else { $Err.Exception })$(if ($isFormattedError) { if ($null -ne $Err.DisplayStackTrace) {"$([Environment]::NewLine)$($Err.DisplayStackTrace)"}} else { if  ($null -ne $Err.ScriptStackTrace) {"$([Environment]::NewLine)$($Err.ScriptStackTrace)"}})"
+        $isDisplayStackTrace = $null -ne $Err.DisplayStackTrace -and $ShowStackTrace
+        $isDisplayScriptStackTrace = $null -ne $Err.ScriptStackTrace -and $ShowStackTrace
+
+        if ($isFormattedError) {
+            $errorMessage = $Err.DisplayErrorMessage
+            if ($isDisplayStackTrace) {
+                $errorMessage += [Environment]::NewLine + $Err.DisplayStackTrace
+            }
+        }
+        else {
+            $errorMessage = $Err.Exception
+            if ($isDisplayScriptStackTrace) {
+                $errorMessage += [Environment]::NewLine + $Err.ScriptStackTrace
+            }
+        }
+        $errorMessage
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
