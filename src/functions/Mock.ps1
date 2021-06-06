@@ -305,72 +305,34 @@ function Should-InvokeVerifiableInternal {
         [switch]$Negate
     )
 
-    # TODO: Keep this for Negate-only? This might break existing tests with unnecessary calls. Breaking change, even thought it's the good kind.
-    if ($Behaviors.Count -eq 0) {
+    $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
+    foreach ($b in $Behaviors) {
+        if ($b.Executed -eq $Negate) {
+            $filteredBehaviors.Add($b)
+        }
+    }
+
+    if ($filteredBehaviors.Count -gt 0) {
+        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
+        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
+
+        foreach ($b in $filteredBehaviors) {
+            $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
+            if ($b.ModuleName) {
+                $message += "from inside module $($b.ModuleName) "
+            }
+            if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }" }
+        }
+
         return [PSCustomObject] @{
             Succeeded      = $false
-            FailureMessage = "No verifiable mocks exists. Nothing to assert."
+            FailureMessage = $message
         }
     }
 
-    if ($Negate) {
-        # Negative checks
-        $verified = [System.Collections.Generic.List[Object]]@()
-        foreach ($b in $Behaviors) {
-            if ($b.Executed) {
-                $verified.Add($b)
-            }
-        }
-
-        if ($verified.Count -gt 0) {
-            $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:"
-            foreach ($b in $verified) {
-                $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
-                if ($b.ModuleName) {
-                    $message += "from inside module $($b.ModuleName) "
-                }
-                if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }." }
-            }
-
-            return [PSCustomObject] @{
-                Succeeded      = $false
-                FailureMessage = $message
-            }
-        }
-
-        return [PSCustomObject] @{
-            Succeeded      = $true
-            FailureMessage = $null
-        }
-    }
-    else {
-        $unverified = [System.Collections.Generic.List[Object]]@()
-        foreach ($b in $Behaviors) {
-            if (-not $b.Executed) {
-                $unverified.Add($b)
-            }
-        }
-
-        if ($unVerified.Count -gt 0) {
-            $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:"
-            foreach ($b in $unVerified) {
-                $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
-                if ($b.ModuleName) {
-                    $message += "from inside module $($b.ModuleName) "
-                }
-                if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }." }
-            }
-
-            return [PSCustomObject] @{
-                Succeeded      = $false
-                FailureMessage = $message
-            }
-        }
-
-        return [PSCustomObject] @{
-            Succeeded      = $true
-            FailureMessage = $null
-        }
+    return [PSCustomObject] @{
+        Succeeded      = $true
+        FailureMessage = $null
     }
 }
 
