@@ -321,7 +321,7 @@ function Should-InvokeVerifiableInternal {
             if ($b.ModuleName) {
                 $message += "from inside module $($b.ModuleName) "
             }
-            if ($null -ne $b.Filter) { $message += "with ParameterFilter { $($b.Filter.ToString().Trim()) }" }
+            if ($null -ne $b.Filter) { $message += "with { $($b.Filter.ToString().Trim()) }" }
         }
 
         return [PSCustomObject] @{

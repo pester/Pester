@@ -629,7 +629,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     }
 }
 
-Describe "When Creating a Verifiable Mock that is not called" {
+Describe "When Creating Verifiable Mock that is not called" {
     Context "In the test script's scope" {
         It "Should throw" {
             Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
@@ -642,7 +642,7 @@ Describe "When Creating a Verifiable Mock that is not called" {
                 $result = $_
             }
 
-            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected FunctionUnderTest to be called with `$param1 -eq `"one`""
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -666,12 +666,30 @@ Describe "When Creating a Verifiable Mock that is not called" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command ModuleFunctionUnderTest from inside module TestModule with { `$param1 -eq `"one`" }"
         }
 
         AfterAll {
             Remove-Module TestModule -Force
         }
+    }
+}
+
+Describe "When Creating multiple Verifiable Mocks that are not called" {
+    It "Should throw and list all commands" {
+        Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "one" }
+        Mock FunctionUnderTest { return "I am another verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "two" }
+        Mock FunctionUnderTest { return "I am probably called" } -Verifiable -ParameterFilter { $param1 -eq "three" }
+        FunctionUnderTest "three" | Out-Null
+        $result = $null
+        try {
+            Should -InvokeVerifiable
+        }
+        catch {
+            $result = $_
+        }
+
+        $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
 }
 
@@ -687,7 +705,7 @@ Describe "When Creating a Verifiable Mock that is called" {
 }
 
 Describe "When calling Should -Not -InvokeVerifiable" {
-    Context 'All Verifiable Mocks is called' {
+    Context 'All Verifiable Mocks are called' {
         BeforeAll {
             Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
             FunctionUnderTest "one"
@@ -701,12 +719,11 @@ Describe "When calling Should -Not -InvokeVerifiable" {
         }
 
         It "Should throw" {
-            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
-            1 | Should -Be 2
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
-    Context 'Some Verifiable Mocks is called' {
+    Context 'Some Verifiable Mocks are called' {
         BeforeAll {
             Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
             Mock FunctionUnderTest -Verifiable
@@ -721,26 +738,17 @@ Describe "When calling Should -Not -InvokeVerifiable" {
         }
 
         It "Should throw" {
-            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
-            1 | Should -Be 2
+            $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
     Context 'No Verifiable Mocks exists' {
         BeforeAll {
             Mock FunctionUnderTest -Verifiable -parameterFilter { $param1 -eq "one" }
-
-            try {
-                Should -Not -InvokeVerifiable
-            }
-            Catch {
-                $result = $_
-            }
         }
 
-        It "Should throw" {
-            #$result.Exception.Message | Should -Be "$([System.Environment]::NewLine) Expected ModuleFunctionUnderTest in module TestModule to be called with `$param1 -eq `"one`""
-            1 | Should -Be 2
+        It "Should not throw" {
+            { Should -Not -InvokeVerifiable } | Should -Not -Throw
         }
     }
 
