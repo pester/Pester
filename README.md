@@ -116,7 +116,7 @@ Describe 'Remove-Cache' {
 
         Remove-Cache
 
-        Assert-MockCalled -CommandName Remove-Item -Times 1 -Exactly
+        Should -Invoke -CommandName Remove-Item -Times 1 -Exactly
     }
 }
 ```
