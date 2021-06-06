@@ -781,33 +781,41 @@ function Write-ErrorToScreen {
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
+                $errorMessageSb = [System.Text.StringBuilder]::new()
+
                 if ($null -ne $e.DisplayErrorMessage) {
-                    $errorMessage = "[$(($c++))] $($e.DisplayErrorMessage)"
+                    [void]$errorMessageSb.Append("[$(($c++))] $($e.DisplayErrorMessage)")
                 }
                 else {
-                    $errorMessage = "[$(($c++))] $($e.Exception)"
+                    [void]$errorMessageSb.Append("[$(($c++))] $($e.Exception)")
                 }
 
                 if ($null -ne $e.DisplayStackTrace -and $ShowStackTrace) {
-                    $errorMessage += [Environment]::NewLine + $e.DisplayStackTrace
+                    [void]$errorMessageSb.Append([Environment]::NewLine + $e.DisplayStackTrace)
                 }
-                $errorMessage
+
+                $errorMessageSb.ToString()
             }) -join [Environment]::NewLine
     }
     else {
+        $errorMessageSb = [System.Text.StringBuilder]::new()
+
         if ($null -ne $Err.DisplayErrorMessage) {
-            $errorMessage = $Err.DisplayErrorMessage
+            [void]$errorMessageSb.Append($Err.DisplayErrorMessage)
+
             if ($null -ne $Err.DisplayStackTrace -and $ShowStackTrace) {
-                $errorMessage += [Environment]::NewLine + $Err.DisplayStackTrace
+                [void]$errorMessageSb.Append([Environment]::NewLine + $Err.DisplayStackTrace)
             }
         }
         else {
-            $errorMessage = $Err.Exception
+            [void]$errorMessageSb.Append($Err.Exception.ToString())
+
             if ($null -ne $Err.ScriptStackTrace) {
-                $errorMessage += [Environment]::NewLine + $Err.ScriptStackTrace
+                [void]$errorMessageSb.Append([Environment]::NewLine + $Err.ScriptStackTrace)
             }
         }
-        $errorMessage
+
+        $errorMessageSb.ToString()
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
