@@ -781,7 +781,7 @@ function Write-ErrorToScreen {
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
-                $errorMessageSb = [System.Text.StringBuilder]::new()
+                $errorMessageSb = [System.Text.StringBuilder]""
 
                 if ($null -ne $e.DisplayErrorMessage) {
                     [void]$errorMessageSb.Append("[$(($c++))] $($e.DisplayErrorMessage)")
@@ -798,7 +798,7 @@ function Write-ErrorToScreen {
             }) -join [Environment]::NewLine
     }
     else {
-        $errorMessageSb = [System.Text.StringBuilder]::new()
+        $errorMessageSb = [System.Text.StringBuilder]""
 
         if ($null -ne $Err.DisplayErrorMessage) {
             [void]$errorMessageSb.Append($Err.DisplayErrorMessage)
