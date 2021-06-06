@@ -43,6 +43,7 @@ $script:ReportTheme = DATA {
         PassTime         = 'DarkGray'
         Fail             = 'Red'
         FailTime         = 'DarkGray'
+        FailDetail       = 'Red'
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         Pending          = 'Gray'
@@ -57,6 +58,9 @@ $script:ReportTheme = DATA {
         Foreground       = 'White'
         Information      = 'DarkGray'
         Coverage         = 'White'
+        Discovery        = 'Magenta'
+        Container        = 'Magenta'
+        BlockFail        = 'Red'
     }
 }
 
@@ -127,7 +131,7 @@ function Write-PesterStart {
         #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         # }
 
-        & $SafeCommands['Write-Host'] -ForegroundColor Magenta $message
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Discovery $message
     }
 }
 
@@ -289,8 +293,8 @@ function Write-PesterReport {
         & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
         & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
-    # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
-    # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
+        # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
+        # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }
 }
 
@@ -492,7 +496,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
     }
 
     $p.ContainerDiscoveryEnd = {
@@ -509,7 +513,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 throw "Container type '$($container.Type)' is not supported."
             }
 
-            & $SafeCommands["Write-Host"] -ForegroundColor Red "[-] Discovery in $($path) failed with:"
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] Discovery in $($path) failed with:"
             Write-ErrorToScreen $Context.Block.ErrorRecord
         }
     }
@@ -525,14 +529,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
 
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
             if ($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
                 }
 
                 $testsToRun = 0
@@ -540,18 +544,18 @@ function Get-WriteScreenPlugin ($Verbosity) {
                     if ($test.ShouldRun) { $testsToRun++ }
                 }
 
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Filters selected $testsToRun tests to run."
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filters selected $testsToRun tests to run."
             }
         }
 
         if ($PesterPreference.Run.SkipRun.Value) {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nTest run was skipped."
+            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nTest run was skipped."
         }
     }
 
 
     $p.RunStart = {
-        & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Running tests."
+        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Running tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
@@ -560,7 +564,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor Magenta "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
@@ -657,8 +661,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($e.DisplayStackTrace -replace '(?m)^', $error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail $($e.DisplayErrorMessage -replace '(?m)^', $error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^',$error_margin)
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^',$error_margin)
                     }
 
                 }
@@ -752,7 +756,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-        & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
         Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
     }
 
@@ -780,9 +784,9 @@ function Write-ErrorToScreen {
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
-                $isFormattedError = $null -ne $e.DisplayErrorMessage
-                "[$(($c++))] $(if ($isFormattedError){ $e.DisplayErrorMessage } else { $e.Exception })$(if ($null -ne $e.DisplayStackTrace) {"$([Environment]::NewLine)$($e.DisplayStackTrace)"})"
-            }) -join [Environment]::NewLine
+            $isFormattedError = $null -ne $e.DisplayErrorMessage
+            "[$(($c++))] $(if ($isFormattedError){ $e.DisplayErrorMessage } else { $e.Exception })$(if ($null -ne $e.DisplayStackTrace) {"$([Environment]::NewLine)$($e.DisplayStackTrace)"})"
+        }) -join [Environment]::NewLine
     }
     else {
         $isFormattedError = $null -ne $Err.DisplayErrorMessage
