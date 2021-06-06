@@ -510,7 +510,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             & $SafeCommands["Write-Host"] -ForegroundColor Red "[-] Discovery in $($path) failed with:"
-            Write-ErrorToScreen $Context.Block.ErrorRecord
+            Write-ErrorToScreen $Context.Block.ErrorRecord -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
         }
     }
 
@@ -570,7 +570,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($Context.Result.ErrorRecord.Count -gt 0) {
             & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] $($Context.Result.Item) failed with:"
-            Write-ErrorToScreen $Context.Result.ErrorRecord
+            Write-ErrorToScreen $Context.Result.ErrorRecord -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -666,7 +666,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin
+                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
                 }
                 break
             }
@@ -753,7 +753,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
         & $SafeCommands['Write-Host'] -ForegroundColor Red "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
-        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin
+        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
     }
 
     $p.End = {

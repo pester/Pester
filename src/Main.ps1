@@ -890,7 +890,8 @@ function Invoke-Pester {
                 if ($PSBoundParameters.ContainsKey('Configuration')) {
                     # Advanced configuration used, merging to get new reference
                     [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
-                } else {
+                }
+                else {
                     [PesterConfiguration] $PesterPreference = $Configuration
                 }
             }
@@ -1153,7 +1154,7 @@ function Invoke-Pester {
 
         }
         catch {
-            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value
+            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
