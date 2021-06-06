@@ -307,7 +307,7 @@ function Should-InvokeVerifiableInternal {
 
     $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $Behaviors) {
-        if ($b.Executed -eq $Negate) {
+        if ($b.Executed -eq $Negate.IsPresent) {
             $filteredBehaviors.Add($b)
         }
     }
