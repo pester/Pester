@@ -46,11 +46,11 @@ i -PassThru:$PassThru {
     b "Default configuration" {
 
         # General configuration
-        t "Exit is `$false" {
+        t "Run.Exit is `$false" {
             [PesterConfiguration]::Default.Run.Exit.Value | Verify-False
         }
 
-        t "Path is string array, with '.'" {
+        t "Run.Path is string array, with '.'" {
             $value = [PesterConfiguration]::Default.Run.Path.Value
 
             # do not do $value | Verify-NotNull
@@ -61,7 +61,7 @@ i -PassThru:$PassThru {
             $value[0] | Verify-Equal '.'
         }
 
-        t "ScriptBlock is empty ScriptBlock array" {
+        t "Run.ScriptBlock is empty ScriptBlock array" {
             $value = [PesterConfiguration]::Default.Run.ScriptBlock.Value
 
             # do not do $value | Verify-NotNull
@@ -71,20 +71,24 @@ i -PassThru:$PassThru {
             $value.Count | Verify-Equal 0
         }
 
-        t "TestExtension is *.Tests.ps1" {
+        t "Run.TestExtension is *.Tests.ps1" {
             [PesterConfiguration]::Default.Run.TestExtension.Value | Verify-Equal ".Tests.ps1"
         }
 
 
         # Output configuration
-        t "Verbosity is Normal" {
+        t "Output.Verbosity is Normal" {
             [PesterConfiguration]::Default.Output.Verbosity.Value | Verify-Equal "Normal"
         }
 
-        t "Verbosity Minimal is translated to Normal (backwards compat for currently unsupported option)" {
+        t "Output.Verbosity Minimal is translated to Normal (backwards compat for currently unsupported option)" {
             $p = [PesterConfiguration]::Default
             $p.Output.Verbosity = "Minimal"
             $p.Output.Verbosity.Value | Verify-Equal "Normal"
+        }
+
+        t "Output.ShowStackTrace is `$true" {
+            [PesterConfiguration]::Default.Output.ShowStackTrace.Value | Verify-True
         }
 
         # CodeCoverage configuration
@@ -238,12 +242,17 @@ i -PassThru:$PassThru {
         t "Configuration can be shallow cloned to avoid modifying user values" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.ShowStackTrace = $true
 
             $cloned = [PesterConfiguration]::ShallowClone($user)
             $cloned.Output.Verbosity = "None"
+            $cloned.Output.ShowStackTrace = $false
 
             $user.Output.Verbosity.Value | Verify-Equal "Normal"
+            $user.Output.ShowStackTrace | Verify-True
+
             $cloned.Output.Verbosity.Value | Verify-Equal "None"
+            $cloned.Output.ShowStackTrace.Value | Verify-False
         }
     }
 
@@ -251,15 +260,18 @@ i -PassThru:$PassThru {
         t "configurations can be merged" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.ShowStackTrace = $true
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
+            $override.Output.ShowStackTrace = $false
             $override.Run.Path = "C:\test.ps1"
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             $result.Output.Verbosity.Value | Verify-Equal "None"
+            $result.Output.ShowStackTrace.Value | Verify-False
             $result.Run.Path.Value | Verify-Equal "C:\test.ps1"
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
@@ -267,9 +279,11 @@ i -PassThru:$PassThru {
         t "merged object is a new instance" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.ShowStackTrace = $true
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
+            $override.Output.ShowStackTrace = $false
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
@@ -280,15 +294,18 @@ i -PassThru:$PassThru {
         t "values are overwritten even if they are set to the same value as default" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Diagnostic"
+            $user.Output.ShowStackTrace = $false
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = [PesterConfiguration]::Default.Output.Verbosity
+            $override.Output.ShowStackTrace = [PesterConfiguration]::Default.Output.ShowStackTrace
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             # has the same value as default but was written so it will override
             $result.Output.Verbosity.Value | Verify-Equal "Normal"
+            $result.Output.ShowStackTrace.Value | Verify-True
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
