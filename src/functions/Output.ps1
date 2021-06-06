@@ -765,13 +765,12 @@ function Get-WriteScreenPlugin ($Verbosity) {
     New-PluginObject @p
 }
 
-function Write-ErrorToScreen {
+function Format-ErrorMessage {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [switch] $Throw,
         [switch] $ShowStackTrace
     )
 
@@ -819,11 +818,27 @@ function Write-ErrorToScreen {
     }
 
     $withMargin = ($out -split [Environment]::NewLine) -replace '(?m)^', $ErrorMargin -join [Environment]::NewLine
+
+    return $withMargin
+}
+
+function Write-ErrorToScreen {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        $Err,
+        [string] $ErrorMargin,
+        [switch] $Throw,
+        [switch] $ShowStackTrace
+    )
+
+    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -ShowStackTrace:$ShowStackTrace
+
     if ($Throw) {
-        throw $withMargin
+        throw $errorMessage
     }
     else {
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$withMargin"
+        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$errorMessage"
     }
 }
 
