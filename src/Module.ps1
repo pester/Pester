@@ -5,10 +5,14 @@ $script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionStat
 $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
-
 & $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
 & $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
+if ($PSVersionTable.PSVersion.Major -ge 5) {
+    if (-not ('PesterConfigurationDeserializer' -as [Type])) {
+        . "$PSScriptRoot\PesterConfiguration.Deserializer.ps1"
+    }
+}
 
 & $script:SafeCommands['Export-ModuleMember'] @(
     'Invoke-Pester'

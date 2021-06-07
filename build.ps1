@@ -90,6 +90,7 @@ $content = @(
     , ("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/PesterConfiguration.Deserializer.ps1", "$PSScriptRoot/bin/")
 )
 
 if ($Clean) {
@@ -173,14 +174,15 @@ if ($Clean) {
             $null = $sbf.AppendLine("$margin``````")
 
             $generatedLines = @($generatedConfig -split "`n")
-            for ($i=0; $i -lt $generatedLines.Count; $i++) {
+            for ($i = 0; $i -lt $generatedLines.Count; $i++) {
                 $l = $generatedLines[$i]
                 $m = if ($l) { $margin } else { $null }
 
-                if ($i -eq $generatedLines.Count-1) {
+                if ($i -eq $generatedLines.Count - 1) {
                     #last line should be blank - replace with codeblock end
                     $null = $sbf.AppendLine("$margin```````n")
-                } else {
+                }
+                else {
                     $null = $sbf.AppendLine("$m$l")
                 }
             }
@@ -300,7 +302,7 @@ foreach ($f in $files) {
 
 $sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
 
-$powershell = Get-Process -id $PID | Select-Object -ExpandProperty Path
+$powershell = Get-Process -Id $PID | Select-Object -ExpandProperty Path
 
 if ($Load) {
     & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
