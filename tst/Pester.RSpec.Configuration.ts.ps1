@@ -507,12 +507,12 @@ i -PassThru:$PassThru {
 
         t "Merges configuration when hashtable keys are boxed in PSObject" {
             $MyOptions = @{
-                Run    = [PSObject]::new(
+                Run    = New-Object PSObject -ArgumentList (
                     @{
                         PassThru = $true
                     }
                 )
-                Filter = [PSObject]::new(
+                Filter = New-Object PSObject -ArgumentList (
                     @{
                         Tag = "Core"
                     }
