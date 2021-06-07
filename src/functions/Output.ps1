@@ -394,7 +394,7 @@ function ConvertTo-FailureLines {
         [array]::Reverse($exceptionLines)
         $lines.Message += $exceptionLines
         if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
-            $lines.Message += "at $($ErrorRecord.TargetObject.LineText.Trim()), $($ErrorRecord.TargetObject.File):$($ErrorRecord.TargetObject.Line)".Split([string[]]($([System.Environment]::NewLine), "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
+            $lines.Trace += "at $($ErrorRecord.TargetObject.LineText.Trim()), $($ErrorRecord.TargetObject.File):$($ErrorRecord.TargetObject.Line)".Split([string[]]($([System.Environment]::NewLine), "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
         if ( -not ($ErrorRecord | & $SafeCommands['Get-Member'] -Name ScriptStackTrace) ) {
