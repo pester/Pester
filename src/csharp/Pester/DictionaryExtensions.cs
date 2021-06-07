@@ -36,7 +36,7 @@ namespace Pester
 
             if (typeof(T) == typeof(string))
                 if (dictionary[key] is PSObject o)
-                    return (T)Convert.ChangeType(o.ToString(), typeof(string));
+                    return (T) Convert.ChangeType(o.ToString(), typeof(string));
 
             return dictionary[key] as T;
         }
@@ -87,7 +87,7 @@ namespace Pester
                     {
                         if (j is T)
                         {
-                            arr[i] = (T)j;
+                            arr[i] = (T) j;
                         }
 
                         if (j is PSObject || j is PathInfo)
