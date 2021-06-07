@@ -439,4 +439,99 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
         }
     }
+
+    Describe Format-ErrorMessage {
+        Context "Formats error messages for one error" {
+            BeforeAll {
+                try {
+                    1 / 0
+                }
+                catch [System.DivideByZeroException] {
+                    $errorRecord = $_
+                }
+                $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
+                $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+            }
+
+            It "When ShowStackTrace is set to `$true`, it has more than one message in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -ShowStackTrace
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages.Count | Should -BeGreaterThan 1
+            }
+
+            It "When ShowStackTrace is set to `$false`, it has one message in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages | Should -HaveCount 1
+            }
+
+            It "When DisplayErrorMessage is `$null, it has exception and script stack trace in output" {
+                $errorRecord.DisplayErrorMessage = $null
+                $errorMessage = Format-ErrorMessage -Err $errorRecord
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages.Count | Should -BeGreaterThan 1
+            }
+
+        }
+
+        Context "Formats error messages for multiple errors" {
+            BeforeAll {
+                $errorRecords = @()
+                for ($i = 1; $i -lt 3; $i++) {
+                    try {
+                        $i / 0
+                    }
+                    catch [System.DivideByZeroException] {
+                        $errorRecord = $_
+                    }
+                    $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide $i/0"
+                    $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+                    $errorRecords += $errorRecord
+                }
+            }
+
+            It "When ShowStackTrace is set to `$true`, it has more than two message in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -ShowStackTrace
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
+                $messages.Count | Should -BeGreaterThan 2
+            }
+
+            It "When ShowStackTrace is set to `$false`, it has two messages in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "[1] Failed to divide 2/0"
+                $messages | Should -HaveCount 2
+            }
+
+            It "When DisplayErrorMessage is `$null, it has exception and script stack trace in output" {
+                $errorRecords[0].DisplayErrorMessage = $null
+                $errorRecords[1].DisplayErrorMessage = $null
+                $errorMessage = Format-ErrorMessage -Err $errorRecords
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "[0] System.DivideByZeroException: Attempted to divide by zero."
+                $messages.Count | Should -BeGreaterThan 1
+            }
+        }
+    }
+
+    Describe Write-ErrorToScreen {
+        BeforeAll {
+            try {
+                1 / 0
+            }
+            catch [System.DivideByZeroException] {
+                $errorRecord = $_
+            }
+            $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
+            $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+        }
+        It "Throw error message" {
+            { Write-ErrorToScreen -Err $errorRecord -Throw } | Should -Throw "Failed to divide 1/0"
+        }
+    }
 }
