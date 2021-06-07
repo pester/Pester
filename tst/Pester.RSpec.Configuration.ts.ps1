@@ -504,5 +504,25 @@ i -PassThru:$PassThru {
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
+
+        t "Merges configuration when hashtable keys are boxed in PSObject" {
+            $MyOptions = @{
+                Run    = [PSObject]::new(
+                    @{
+                        PassThru = $true
+                    }
+                )
+                Filter = [PSObject]::new(
+                    @{
+                        Tag = "Core"
+                    }
+                )
+            }
+
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
     }
 }

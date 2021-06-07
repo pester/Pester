@@ -36,14 +36,24 @@ namespace Pester
 
             if (typeof(T) == typeof(string))
                 if (dictionary[key] is PSObject o)
-                    return (T) Convert.ChangeType(o.ToString(), typeof(string));
+                    return (T)Convert.ChangeType(o.ToString(), typeof(string));
 
             return dictionary[key] as T;
         }
 
         public static IDictionary GetIDictionaryOrNull(this IDictionary dictionary, string key)
         {
-            return dictionary.Contains(key) ? dictionary[key] as IDictionary : null;
+            if (!dictionary.Contains(key))
+                return null;
+
+            if (dictionary[key] is PSObject)
+            {
+                return ((PSObject)dictionary[key]).BaseObject as IDictionary;
+            }
+            else
+            {
+                return dictionary[key] as IDictionary;
+            }
         }
 
         public static T[] GetArrayOrNull<T>(this IDictionary dictionary, string key) where T : class
@@ -77,7 +87,7 @@ namespace Pester
                     {
                         if (j is T)
                         {
-                            arr[i] = (T) j;
+                            arr[i] = (T)j;
                         }
 
                         if (j is PSObject || j is PathInfo)
