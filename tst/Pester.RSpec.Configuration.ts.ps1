@@ -524,5 +524,66 @@ i -PassThru:$PassThru {
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
+
+        t "Merges configuration when a hashtable has been serialized" {
+            $BeforeSerialization = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = New-PesterConfiguration -Hashtable $AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized" {
+            if ($PSVersionTable.PSVersion.Major -lt 5) {
+                return
+            }
+
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ScriptBlock" {
+            if ($PSVersionTable.PSVersion.Major -lt 5) {
+                return
+            }
+
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    ScriptBlock = {
+                        'Hello world'
+                    }
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.ScriptBlock.Value.GetType() | Verify-Equal ([ScriptBlock[]])
+        }
     }
 }
