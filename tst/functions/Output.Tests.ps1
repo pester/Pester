@@ -453,14 +453,14 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
             }
 
-            It "When ShowStackTrace is set to `$true`, it has more than one message in output" {
+            It "When ShowStackTrace is set to `$true, it has more than one message in output" {
                 $errorMessage = Format-ErrorMessage -Err $errorRecord -ShowStackTrace
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "Failed to divide 1/0"
                 $messages.Count | Should -BeGreaterThan 1
             }
 
-            It "When ShowStackTrace is set to `$false`, it has one message in output" {
+            It "When ShowStackTrace is set to `$false, it has one message in output" {
                 $errorMessage = Format-ErrorMessage -Err $errorRecord
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "Failed to divide 1/0"
@@ -493,14 +493,14 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 }
             }
 
-            It "When ShowStackTrace is set to `$true`, it has more than two message in output" {
+            It "When ShowStackTrace is set to `$true, it has more than two messages in output" {
                 $errorMessage = Format-ErrorMessage -Err $errorRecords -ShowStackTrace
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
                 $messages.Count | Should -BeGreaterThan 2
             }
 
-            It "When ShowStackTrace is set to `$false`, it has two messages in output" {
+            It "When ShowStackTrace is set to `$false, it has two messages in output" {
                 $errorMessage = Format-ErrorMessage -Err $errorRecords
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
