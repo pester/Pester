@@ -23,7 +23,7 @@ namespace Pester
     public class OutputConfiguration : ConfigurationSection
     {
         private StringOption _verbosity;
-        private BoolOption _showStackTrace;
+        private StringOption _stackTraceVerbosity;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -36,14 +36,14 @@ namespace Pester
             if (configuration != null)
             {
                 Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
-                ShowStackTrace = configuration.GetValueOrNull<bool>(nameof(ShowStackTrace)) ?? ShowStackTrace;
+                StackTraceVerbosity = configuration.GetObjectOrNull<string>("StackTraceVerbosity") ?? StackTraceVerbosity;
             }
         }
 
         public OutputConfiguration() : base("Output configuration")
         {
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
-            ShowStackTrace = new BoolOption("Controls if Output shows full stack trace.", true);
+            StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
         }
 
         public StringOption Verbosity
@@ -62,18 +62,18 @@ namespace Pester
             }
         }
 
-        public BoolOption ShowStackTrace
+        public StringOption StackTraceVerbosity
         {
-            get { return _showStackTrace; }
+            get { return _stackTraceVerbosity; }
             set
             {
-                if (_showStackTrace == null)
+                if (_stackTraceVerbosity == null)
                 {
-                    _showStackTrace = value;
+                    _stackTraceVerbosity = value;
                 }
                 else
                 {
-                    _showStackTrace = new BoolOption(_showStackTrace, value.Value);
+                    _stackTraceVerbosity = new StringOption(_stackTraceVerbosity, value?.Value);
                 }
             }
         }
