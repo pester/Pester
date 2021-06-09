@@ -87,8 +87,8 @@ i -PassThru:$PassThru {
             $p.Output.Verbosity.Value | Verify-Equal "Normal"
         }
 
-        t "Output.ShowStackTrace is `$true" {
-            [PesterConfiguration]::Default.Output.ShowStackTrace.Value | Verify-True
+        t "Output.StackTraceVerbosity is Filtered" {
+            [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value | Verify-Equal Filtered
         }
 
         # CodeCoverage configuration
@@ -242,17 +242,17 @@ i -PassThru:$PassThru {
         t "Configuration can be shallow cloned to avoid modifying user values" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
-            $user.Output.ShowStackTrace = $true
+            $user.Output.StackTraceVerbosity = "Filtered"
 
             $cloned = [PesterConfiguration]::ShallowClone($user)
             $cloned.Output.Verbosity = "None"
-            $cloned.Output.ShowStackTrace = $false
+            $cloned.Output.StackTraceVerbosity = "None"
 
             $user.Output.Verbosity.Value | Verify-Equal "Normal"
-            $user.Output.ShowStackTrace | Verify-True
+            $user.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
 
             $cloned.Output.Verbosity.Value | Verify-Equal "None"
-            $cloned.Output.ShowStackTrace.Value | Verify-False
+            $cloned.Output.StackTraceVerbosity.Value | Verify-Equal "None"
         }
     }
 
@@ -260,18 +260,18 @@ i -PassThru:$PassThru {
         t "configurations can be merged" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
-            $user.Output.ShowStackTrace = $true
+            $user.Output.StackTraceVerbosity = "Filtered"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
-            $override.Output.ShowStackTrace = $false
+            $override.Output.StackTraceVerbosity = "None"
             $override.Run.Path = "C:\test.ps1"
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             $result.Output.Verbosity.Value | Verify-Equal "None"
-            $result.Output.ShowStackTrace.Value | Verify-False
+            $result.Output.StackTraceVerbosity.Value | Verify-Equal "None"
             $result.Run.Path.Value | Verify-Equal "C:\test.ps1"
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
@@ -279,11 +279,11 @@ i -PassThru:$PassThru {
         t "merged object is a new instance" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
-            $user.Output.ShowStackTrace = $true
+            $user.Output.StackTraceVerbosity = "Filtered"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
-            $override.Output.ShowStackTrace = $false
+            $override.Output.StackTraceVerbosity = "None"
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
@@ -294,18 +294,18 @@ i -PassThru:$PassThru {
         t "values are overwritten even if they are set to the same value as default" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Diagnostic"
-            $user.Output.ShowStackTrace = $false
+            $user.Output.StackTraceVerbosity = "Full"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = [PesterConfiguration]::Default.Output.Verbosity
-            $override.Output.ShowStackTrace = [PesterConfiguration]::Default.Output.ShowStackTrace
+            $override.Output.StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             # has the same value as default but was written so it will override
             $result.Output.Verbosity.Value | Verify-Equal "Normal"
-            $result.Output.ShowStackTrace.Value | Verify-True
+            $result.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
