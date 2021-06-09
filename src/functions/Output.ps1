@@ -779,7 +779,7 @@ function Format-ErrorMessage {
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [string] $StackTraceVerbosity
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -851,8 +851,7 @@ function Write-ErrorToScreen {
         $Err,
         [string] $ErrorMargin,
         [switch] $Throw,
-        [Parameter(Mandatory)]
-        [string] $StackTraceVerbosity
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
     )
 
     $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity
