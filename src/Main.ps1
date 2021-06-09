@@ -1154,7 +1154,7 @@ function Invoke-Pester {
 
         }
         catch {
-            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
+            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }

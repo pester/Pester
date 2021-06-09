@@ -417,7 +417,7 @@ function ConvertTo-FailureLines {
             $traceLines = $ErrorRecord.ScriptStackTrace.Split([Environment]::NewLine, [System.StringSplitOptions]::RemoveEmptyEntries)
         }
 
-        if ($ForceFullError -or $PesterPreference.Debug.ShowFullErrors.Value) {
+        if ($ForceFullError -or $PesterPreference.Debug.ShowFullErrors.Value -or $PesterPreference.Output.StackTraceVerbosity.Value -eq 'Full') {
             $lines.Trace += $traceLines
         }
         else {
@@ -514,7 +514,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] Discovery in $($path) failed with:"
-            Write-ErrorToScreen $Context.Block.ErrorRecord -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
+            Write-ErrorToScreen $Context.Block.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
         }
     }
 
@@ -574,7 +574,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($Context.Result.ErrorRecord.Count -gt 0) {
             & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] $($Context.Result.Item) failed with:"
-            Write-ErrorToScreen $Context.Result.ErrorRecord -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
+            Write-ErrorToScreen $Context.Result.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -636,6 +636,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
+        if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'None', 'FirstLine', 'Filtered', 'Full') {
+            throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
@@ -670,7 +674,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
 
-                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
+                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
                 }
                 break
             }
@@ -757,7 +761,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
         & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
-        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin -ShowStackTrace:$PesterPreference.Output.ShowStackTrace.Value
+        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
     }
 
     $p.End = {
@@ -775,7 +779,7 @@ function Format-ErrorMessage {
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [switch] $ShowStackTrace
+        [string] $StackTraceVerbosity
     )
 
     $multipleErrors = 1 -lt $Err.Count
@@ -793,8 +797,15 @@ function Format-ErrorMessage {
                     [void]$errorMessageSb.Append("[$(($c++))] $($e.Exception)")
                 }
 
-                if ($null -ne $e.DisplayStackTrace -and $ShowStackTrace) {
-                    [void]$errorMessageSb.Append([Environment]::NewLine + $e.DisplayStackTrace)
+                if ($null -ne $e.DisplayStackTrace -and $StackTraceVerbosity -ne 'None') {
+                    $stackTraceLines = $e.DisplayStackTrace -split [Environment]::NewLine
+
+                    if ($StackTraceVerbosity -eq 'FirstLine') {
+                        [void]$errorMessageSb.Append([Environment]::NewLine + $stackTraceLines[0])
+                    }
+                    else {
+                        [void]$errorMessageSb.Append([Environment]::NewLine + $e.DisplayStackTrace)
+                    }
                 }
 
                 $errorMessageSb.ToString()
@@ -806,8 +817,15 @@ function Format-ErrorMessage {
         if ($null -ne $Err.DisplayErrorMessage) {
             [void]$errorMessageSb.Append($Err.DisplayErrorMessage)
 
-            if ($null -ne $Err.DisplayStackTrace -and $ShowStackTrace) {
-                [void]$errorMessageSb.Append([Environment]::NewLine + $Err.DisplayStackTrace)
+            if ($null -ne $Err.DisplayStackTrace -and $StackTraceVerbosity -ne 'None') {
+                $stackTraceLines = $Err.DisplayStackTrace -split [Environment]::NewLine
+
+                if ($StackTraceVerbosity -eq 'FirstLine') {
+                    [void]$errorMessageSb.Append([Environment]::NewLine + $stackTraceLines[0])
+                }
+                else {
+                    [void]$errorMessageSb.Append([Environment]::NewLine + $Err.DisplayStackTrace)
+                }
             }
         }
         else {
@@ -833,10 +851,11 @@ function Write-ErrorToScreen {
         $Err,
         [string] $ErrorMargin,
         [switch] $Throw,
-        [switch] $ShowStackTrace
+        [Parameter(Mandatory)]
+        [string] $StackTraceVerbosity
     )
 
-    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -ShowStackTrace:$ShowStackTrace
+    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity
 
     if ($Throw) {
         throw $errorMessage
