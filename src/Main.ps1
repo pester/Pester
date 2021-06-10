@@ -922,6 +922,11 @@ function Invoke-Pester {
                 $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
             }
 
+            if ($PesterPreference.Debug.ShowFullErrors.Value) {
+                & $SafeCommands['Write-Warning'] "Debug.ShowFullErrors is deprecated. This will be overriden with Output.StackTraceVerbosity = 'Full'."
+                $PesterPreference.Output.StackTraceVerbosity = "Full"
+            }
+
             $plugins +=
             @(
                 # decorator plugin needs to be added after output
