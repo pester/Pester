@@ -450,31 +450,65 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     $errorRecord = $_
                 }
                 $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
-                $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+
+                $stackTraceText = $errorRecord.Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
+                $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $stackTraceText
             }
 
-            It "When ShowStackTrace is set to `$true, it has more than one message in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -ShowStackTrace
-                $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages.Count | Should -BeGreaterThan 1
-            }
-
-            It "When ShowStackTrace is set to `$false, it has one message in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord
+            It "When StackTraceVerbosity is None, it has only one error message in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "None"
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "Failed to divide 1/0"
                 $messages | Should -HaveCount 1
             }
 
-            It "When DisplayErrorMessage is `$null, it has exception and script stack trace in output" {
+            It "When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "FirstLine"
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages | Should -HaveCount 2
+            }
+
+            It "When StackTraceVerbosity is Filtered, it has error message and two lines of stacktrace output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "Filtered"
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages.Count | Should -BeGreaterThan 2
+            }
+
+            It "When StackTraceVerbosity is Full, it has error message and two lines of stacktrace output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "Full"
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages.Count | Should -BeGreaterThan 2
+            }
+
+            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
                 $errorRecord.DisplayErrorMessage = $null
-                $errorMessage = Format-ErrorMessage -Err $errorRecord
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 447"
                 $messages.Count | Should -BeGreaterThan 1
             }
 
+            It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+                $errorRecord.DisplayStackTrace = $null
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "Failed to divide 1/0"
+                $messages | Should -HaveCount 1
+            }
+
+            AfterEach {
+                $errorRecord.DisplayErrorMessage = "Failed to divide 1/0"
+                $errorRecord.DisplayStackTrace = $stackTraceText
+            }
         }
 
         Context "Formats error messages for multiple errors" {
@@ -488,33 +522,79 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $errorRecord = $_
                     }
                     $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide $i/0"
-                    $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+                    $stackTraceText = $errorRecord.Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
+                    $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $stackTraceText
                     $errorRecords += $errorRecord
                 }
             }
 
-            It "When ShowStackTrace is set to `$true, it has more than two messages in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords -ShowStackTrace
-                $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
-                $messages.Count | Should -BeGreaterThan 2
-            }
-
-            It "When ShowStackTrace is set to `$false, it has two messages in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords
+            It "When StackTraceVerbosity is None, it has only one error message in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "None"
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
                 $messages[1] | Should -BeExactly "[1] Failed to divide 2/0"
                 $messages | Should -HaveCount 2
             }
 
-            It "When DisplayErrorMessage is `$null, it has exception and script stack trace in output" {
-                $errorRecords[0].DisplayErrorMessage = $null
-                $errorRecords[1].DisplayErrorMessage = $null
-                $errorMessage = Format-ErrorMessage -Err $errorRecords
+            It "When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "FirstLine"
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] System.DivideByZeroException: Attempted to divide by zero."
-                $messages.Count | Should -BeGreaterThan 1
+                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[2] | Should -BeExactly "[1] Failed to divide 2/0"
+                $messages[3] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages | Should -HaveCount 4
+            }
+
+            It "When StackTraceVerbosity is Filtered, it has two error messages and four lines stacktrace output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "Filtered"
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages[3] | Should -BeExactly "[1] Failed to divide 2/0"
+                $messages[4] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[5] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages.Count | Should -BeGreaterThan 4
+            }
+
+            It "When StackTraceVerbosity is Full, it has two error messages and four lines stacktrace output" {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "Full"
+                $messages = $errorMessage -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
+                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages[3] | Should -BeExactly "[1] Failed to divide 2/0"
+                $messages[4] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                $messages[5] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
+                $messages.Count | Should -BeGreaterThan 4
+            }
+
+            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+                foreach ($errorRecord in $errorRecords) {
+                    $errorRecord.DisplayErrorMessage = $null
+                    $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
+                    $messages = $errorMessage -split [Environment]::NewLine
+                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                    $messages | Should -BeGreaterThan 1
+                }
+            }
+
+            It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+                for ($i = 0; $i -lt $errorRecords.Count; $i++) {
+                    $errorRecords[$i].DisplayStackTrace = $null
+                    $errorMessage = Format-ErrorMessage -Err $errorRecords[$i] -StackTraceVerbosity $_
+                    $messages = $errorMessage -split [Environment]::NewLine
+                    $messages[0] | Should -BeExactly "Failed to divide $($i + 1)/0"
+                    $messages | Should -HaveCount 1
+                }
+            }
+
+            AfterEach {
+                for ($i = 0; $i -lt $errorRecords.Count; $i++) {
+                    $errorRecords[$i].DisplayErrorMessage = "Failed to divide $($i + 1)/0"
+                    $errorRecords[$i].DisplayStackTrace = $errorRecords[$i].Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
+                }
             }
         }
     }
@@ -531,7 +611,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
         }
         It "Throw error message" {
-            { Write-ErrorToScreen -Err $errorRecord -Throw } | Should -Throw "Failed to divide 1/0"
+            { Write-ErrorToScreen -Err $errorRecord -Throw } | Should -Throw
         }
     }
 }
