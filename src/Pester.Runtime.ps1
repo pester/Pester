@@ -2664,7 +2664,7 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
             # advanced function - need to filter parameters by parameterset
             foreach ($param in $command.Ast.ParamBlock.FindAll({ $args[0] -is [System.Management.Automation.Language.ParameterAst] -and $args[0].DefaultValue -and $command.Parameters -contains $args[0].Name.VariablePath.UserPath },$false)) {
                 $paramSetAttrs = $param.FindAll({ $args[0] -is [System.Management.Automation.Language.NamedAttributeArgumentAst] -and $args[0].ArgumentName -eq 'ParameterSetName'},$false)
-                if ($paramSetAttrs.Count -eq 0 -or (@($command.ParameterSetName,'__AllParameterSets') -contains $paramSetAttrs.Argument.Value)) {
+                if ($paramSetAttrs.Count -eq 0 -or $paramSetAttrs.Argument.Value -contains $command.ParameterSetName -or $paramSetAttrs.Argument.Value -contains '__AllParameterSets') {
                     $param.Name.VariablePath.UserPath
                 }
             }
@@ -2675,7 +2675,7 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
         }
     }
 
-    foreach ($param in @($parametersToCheck)) {
+    foreach ($param in $parametersToCheck) {
         $v = $PSCmdlet.SessionState.PSVariable.Get($param)
         if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
