@@ -2625,25 +2625,59 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     . $wrapper $Path $Data
 }
 
-function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $SessionState) {
-    $scriptParameters = @(switch ($Container.Type) {
-            "ScriptBlock" {
-                if ($null -ne $container.Item.Ast.ParamBlock -and $container.Item.Ast.ParamBlock.Parameters.Count -gt 0) {
-                    foreach ($v in $container.Item.Ast.ParamBlock.Parameters.Name.VariablePath.UserPath) { $v }
-                }
-            }
-            "File" {
-                if ($originCommand = & $SafeCommands['Get-Command'] $Container.Item.PSPath) {
-                    foreach ($k in $originCommand.Parameters.Keys) { $k }
-                }
-            }
-            default { throw [System.ArgumentOutOfRangeException]"" }
-        })
+function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFunction) {
+    $command = [PSCustomObject]@{
+        Ast = $null
+        ParameterSetName = $null
+        Parameters = $null
+    }
 
-    foreach ($param in $scriptParameters) {
-        $v = $SessionState.PSVariable.Get($param)
-        # ignoring $null-valued variables to avoid polluting Data because unsure how to detect no default value $null vs explicit $null default value
-        if ((-not $RootBlock.Data.ContainsKey($param)) -and $v -and $null -ne $v.Value) {
+    switch ($Container.Type) {
+        "ScriptBlock" {
+            $command.Ast = $container.Item.Ast
+
+            if ($callerCmd = $CallingFunction.SessionState.PSVariable.GetValue("PSCmdLet")) {
+                if ($callerCmd.MyInvocation.MyCommand.CommandType -eq 'Function' -and $callerCmd.MyInvocation.MyCommand.ScriptBlock.Id -eq $container.Item.Id) {
+                    # Correct scriptblock. Container is advanced, output ParameterSet and related parameter names
+                    $command.ParameterSetName = $callerCmd.ParameterSetName
+                    $command.Parameters = $callerCmd.MyInvocation.MyCommand.ParameterSets | & $SafeCommands['Where-Object'] { $_.Name -eq $callerCmd.ParameterSetName } | & $SafeCommands['Foreach-Object'] { $_.Parameters.Name }
+                }
+            }
+        }
+        "File" {
+            $originCommand = $PSCmdlet.SessionState.InvokeCommand.GetCommand($Container.Item.PSPath, [System.Management.Automation.CommandTypes]::ExternalScript)
+            $command.Ast = $originCommand.ScriptBlock.Ast
+
+            if ($callerCmd = $CallingFunction.SessionState.PSVariable.GetValue("PSCmdLet")) {
+                if ($callerCmd.MyInvocation.MyCommand.CommandType -eq 'ExternalScript' -and $callerCmd.MyInvocation.MyCommand.Path -eq $originCommand.Path) {
+                    # Correct file. Container is advanced, output ParameterSetName and related parameter names
+                    $command.ParameterSetName = $callerCmd.ParameterSetName
+                    $command.Parameters = $originCommand.ParameterSets | & $SafeCommands['Where-Object'] { $_.Name -eq $callerCmd.ParameterSetName } | & $SafeCommands['Foreach-Object'] { $_.Parameters.Name }
+                }
+            }
+        }
+        default { throw [System.ArgumentOutOfRangeException]"" }
+    }
+
+    if ($null -ne $command.Ast -and $null -ne $command.Ast.ParamBlock -and $command.Ast.ParamBlock.Parameters.Count -gt 0) {
+        $parametersToCheck = if ($null -ne $command.Parameters) {
+            # advanced function - need to filter parameters by parameterset
+            foreach ($param in $command.Ast.ParamBlock.FindAll({ $args[0] -is [System.Management.Automation.Language.ParameterAst] -and $args[0].DefaultValue -and $command.Parameters -contains $args[0].Name.VariablePath.UserPath },$false)) {
+                $paramSetAttrs = $param.FindAll({ $args[0] -is [System.Management.Automation.Language.NamedAttributeArgumentAst] -and $args[0].ArgumentName -eq 'ParameterSetName'},$false)
+                if ($paramSetAttrs.Count -eq 0 -or (@($command.ParameterSetName,'__AllParameterSets') -contains $paramSetAttrs.Argument.Value)) {
+                    $param.Name.VariablePath.UserPath
+                }
+            }
+        } else {
+            foreach ($param in $command.Ast.ParamBlock.Parameters) {
+                if ($param.DefaultValue) { $param.Name.VariablePath.UserPath }
+            }
+        }
+    }
+
+    foreach ($param in @($parametersToCheck)) {
+        $v = $PSCmdlet.SessionState.PSVariable.Get($param)
+        if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, but has default value '$($v.Value)'. Adding it to Data in Root-block for container."
             }
