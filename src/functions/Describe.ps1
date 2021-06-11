@@ -101,6 +101,11 @@ https://pester.dev/docs/usage/testdrive
 
 
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        if ($state.CurrentBlock.IsRoot) {
+            # For undefined parameters in container, add parameter's default value to Data
+            Add-ContainerParameterDefaultValues -RootBlock $state.CurrentBlock -Container $container -SessionState $PSCmdlet.SessionState
+        }
+
         if ($PSBoundParameters.ContainsKey('ForEach')) {
             if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
                 New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach

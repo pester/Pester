@@ -2395,7 +2395,7 @@ function New-BlockContainerObject {
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
         [System.IO.FileInfo] $File,
-        $Data
+        $Data = @{}
     )
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
@@ -2623,4 +2623,31 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapper, $SessionStateInternal, $null)
 
     . $wrapper $Path $Data
+}
+
+function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $SessionState) {
+    $scriptParameters = @(switch ($Container.Type) {
+            "ScriptBlock" {
+                if ($null -ne $container.Item.Ast.ParamBlock -and $container.Item.Ast.ParamBlock.Parameters.Count -gt 0) {
+                    foreach ($v in $container.Item.Ast.ParamBlock.Parameters.Name.VariablePath.UserPath) { $v }
+                }
+            }
+            "File" {
+                if ($originCommand = & $SafeCommands['Get-Command'] $Container.Item.PSPath) {
+                    foreach ($k in $originCommand.Parameters.Keys) { $k }
+                }
+            }
+            default { throw [System.ArgumentOutOfRangeException]"" }
+        })
+
+    foreach ($param in $scriptParameters) {
+        $v = $SessionState.PSVariable.Get($param)
+        # ignoring $null-valued variables to avoid polluting Data because unsure how to detect no default value $null vs explicit $null default value
+        if ((-not $RootBlock.Data.ContainsKey($param)) -and $v -and $null -ne $v.Value) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, but has default value '$($v.Value)'. Adding it to Data in Root-block for container."
+            }
+            $RootBlock.Data.Add($param, $v.Value)
+        }
+    }
 }
