@@ -2628,7 +2628,6 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
 function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFunction) {
     $command = [PSCustomObject]@{
         Ast = $null
-        ParameterSetName = $null
         Parameters = $null
     }
 
@@ -2638,8 +2637,7 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
 
             if ($callerCmd = $CallingFunction.SessionState.PSVariable.GetValue("PSCmdLet")) {
                 if ($callerCmd.MyInvocation.MyCommand.CommandType -eq 'Function' -and $callerCmd.MyInvocation.MyCommand.ScriptBlock.Id -eq $container.Item.Id) {
-                    # Correct scriptblock. Container is advanced, output ParameterSet and related parameter names
-                    $command.ParameterSetName = $callerCmd.ParameterSetName
+                    # Correct scriptblock. Container is advanced, get related parameter names
                     $command.Parameters = $callerCmd.MyInvocation.MyCommand.ParameterSets | & $SafeCommands['Where-Object'] { $_.Name -eq $callerCmd.ParameterSetName } | & $SafeCommands['Foreach-Object'] { $_.Parameters.Name }
                 }
             }
@@ -2650,8 +2648,7 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
 
             if ($callerCmd = $CallingFunction.SessionState.PSVariable.GetValue("PSCmdLet")) {
                 if ($callerCmd.MyInvocation.MyCommand.CommandType -eq 'ExternalScript' -and $callerCmd.MyInvocation.MyCommand.Path -eq $originCommand.Path) {
-                    # Correct file. Container is advanced, output ParameterSetName and related parameter names
-                    $command.ParameterSetName = $callerCmd.ParameterSetName
+                    # Correct file. Container is advanced, get related parameter names
                     $command.Parameters = $originCommand.ParameterSets | & $SafeCommands['Where-Object'] { $_.Name -eq $callerCmd.ParameterSetName } | & $SafeCommands['Foreach-Object'] { $_.Parameters.Name }
                 }
             }
@@ -2660,28 +2657,26 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
     }
 
     if ($null -ne $command.Ast -and $null -ne $command.Ast.ParamBlock -and $command.Ast.ParamBlock.Parameters.Count -gt 0) {
+        # use AST to check if parameter has default value defined
         $parametersToCheck = if ($null -ne $command.Parameters) {
-            # advanced function - need to filter parameters by parameterset
+            # advanced function - check only relevant parameters for default value
             foreach ($param in $command.Ast.ParamBlock.FindAll({ $args[0] -is [System.Management.Automation.Language.ParameterAst] -and $args[0].DefaultValue -and $command.Parameters -contains $args[0].Name.VariablePath.UserPath },$false)) {
-                $paramSetAttrs = $param.FindAll({ $args[0] -is [System.Management.Automation.Language.NamedAttributeArgumentAst] -and $args[0].ArgumentName -eq 'ParameterSetName'},$false)
-                if ($paramSetAttrs.Count -eq 0 -or $paramSetAttrs.Argument.Value -contains $command.ParameterSetName -or $paramSetAttrs.Argument.Value -contains '__AllParameterSets') {
-                    $param.Name.VariablePath.UserPath
-                }
+                $param.Name.VariablePath.UserPath
             }
         } else {
             foreach ($param in $command.Ast.ParamBlock.Parameters) {
                 if ($param.DefaultValue) { $param.Name.VariablePath.UserPath }
             }
         }
-    }
 
-    foreach ($param in $parametersToCheck) {
-        $v = $PSCmdlet.SessionState.PSVariable.Get($param)
-        if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, but has default value '$($v.Value)'. Adding it to Data in Root-block for container."
+        foreach ($param in $parametersToCheck) {
+            $v = $PSCmdlet.SessionState.PSVariable.Get($param)
+            if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, but has default value '$($v.Value)'. Adding it to Data in Root-block for container."
+                }
+                $RootBlock.Data.Add($param, $v.Value)
             }
-            $RootBlock.Data.Add($param, $v.Value)
         }
     }
 }
