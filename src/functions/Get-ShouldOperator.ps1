@@ -86,7 +86,7 @@
                 }
 
                 [PSCustomObject]@{
-                    PSTypeName = 'PesterAssertionHelp'
+                    PSTypeName = 'PesterAssertionOperatorHelp'
                     Name = $operator.Name
                     Aliases = @($operator.Alias)
                     Help = $help

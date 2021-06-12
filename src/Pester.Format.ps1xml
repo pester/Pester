@@ -2,15 +2,15 @@
 <Configuration>
   <ViewDefinitions>
     <View>
-      <Name>PesterAssertionHelp</Name>
+      <Name>PesterAssertionOperatorHelp</Name>
       <ViewSelectedBy>
-        <TypeName>PesterAssertionHelp</TypeName>
+        <TypeName>PesterAssertionOperatorHelp</TypeName>
       </ViewSelectedBy>
       <CustomControl>
         <CustomEntries>
           <CustomEntry>
             <CustomItem>
-              <Text>ASSERTION NAME</Text>
+              <Text>NAME</Text>
               <NewLine />
               <Frame>
                 <LeftIndent>4</LeftIndent>

@@ -35,11 +35,11 @@ InPesterModuleScope {
                 $BGT = Get-ShouldOperator -Name BeGreaterThan
             }
 
-            It 'Should return a PesterAssertionHelp-object' {
+            It 'Should return a PesterAssertionOperatorHelp-object' {
                 $BGT.Name | Should -BeExactly 'BeGreaterThan'
                 $BGT.Aliases | Should -BeExactly @('GT')
                 # BeOfType doesn't currently work with PSCustomObject typenames
-                $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionHelp'
+                $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionOperatorHelp'
                 $BGT.Help.PSTypeNames[0] | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
                 $BGT.Help.syntax.syntaxItem[0].name | Should -Be 'Should -BeGreaterThan'
                 $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeOfType [string]
