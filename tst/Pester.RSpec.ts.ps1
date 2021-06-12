@@ -1066,8 +1066,92 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
+    }
 
-        t "Undefined parameters with default values are automatically added to container Data" {
+    b "Default values in parametric scripts" {
+        t "Default values are automatically added to container Data when available and parameter is undefined" {
+            try {
+                # Making sure both Context and Describe blocks triggers the logic
+                $sbDescribe = {
+                    param (
+                        [int] $Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $sbContext = {
+                    param (
+                        [int] $Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                    }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sbDescribe | Set-Content -Path $file
+
+                # Testing both file and scriptblock containers
+                $containers = @(
+                    (New-PesterContainer -Path $file),
+                    (New-PesterContainer -ScriptBlock $sbContext)
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[1].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                # Also works without pre-creating a container
+                $r2 = Invoke-Pester -Path $file -PassThru
+                $r2.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r2.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                # Interactive execution uses New-PesterContainer -Data covered by a test below
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Adds the evaluted value for expression defaults and only adds explicit null-defaults" {
             try {
                 $sb = {
                     param (
@@ -1098,6 +1182,14 @@ i -PassThru:$PassThru {
                             }
                         }
                     }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                        }
+                    }
                 }
 
                 $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
@@ -1105,12 +1197,9 @@ i -PassThru:$PassThru {
                 $file = "$tmp/file1.Tests.ps1"
                 $sb | Set-Content -Path $file
 
-                $containers = @(
-                    (New-PesterContainer -Path $file),
-                    (New-PesterContainer -ScriptBlock $sb)
-                )
-                $r = Invoke-Pester -Container $containers -PassThru
+                $r = Invoke-Pester -Path $file -PassThru
 
+                $r.Containers[0].Data.Count | Verify-Equal 3
                 $r.Containers[0].Data.ContainsKey('Value') | Verify-True
                 # Should not include parameters without default value
                 $r.Containers[0].Data.ContainsKey('OtherParam') | Verify-False
@@ -1121,11 +1210,7 @@ i -PassThru:$PassThru {
                 $r.Containers[0].Data['ExpressionParam'] | Verify-Equal 1
 
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
-                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
-
-                # Works without pre-creating a container
-                $r2 = Invoke-Pester -Path $file -PassThru
-                $r2.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
             }
             finally {
                 if ($null -ne $file -and (Test-Path $file)) {
@@ -1134,7 +1219,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        t "Parameter default values won't override explicitly provided values in container Data" {
+        t "Parameter default values won't override user-provided parameter values" {
             try {
                 $sb = {
                     param (
@@ -1181,6 +1266,12 @@ i -PassThru:$PassThru {
                     (New-PesterContainer -ScriptBlock $sb -Data @{ MyString = "Yay!" })
                 )
                 $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+                $r.Containers[0].Data.ContainsKey('MyString') | Verify-True
+                $r.Containers[0].Data['MyString'] | Verify-Equal "Yay!"
+
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             }

@@ -88,7 +88,7 @@ i -PassThru:$PassThru {
             $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
 
             try {
-                $c = 'param([Parameter(Mandatory)]$File) Describe "d - <File>" { It "i" { 1 | Should -Be 1 } }'
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Describe "d - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
                 $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
@@ -110,7 +110,7 @@ i -PassThru:$PassThru {
             $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
 
             try {
-                $c = 'param([Parameter(Mandatory)]$File) Context "c - <File>" { It "i" { 1 | Should -Be 1 } }'
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Context "c - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
                 $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
