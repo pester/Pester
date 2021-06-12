@@ -983,6 +983,90 @@ i -PassThru:$PassThru {
             }
         }
 
+        t "Data provided to container are accessible in ForEach on each level" {
+            $scenarios = @(
+                @{
+                    Scenario = @{
+                        Name     = "A"
+                        Contexts = @(
+                            @{
+                                Name     = "AA"
+                                Examples = @(
+                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
+                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
+                                )
+                            }
+                            @{
+                                Name     = "AB"
+                                Examples = @(
+                                    @{ User = @{ Name = "Peter"; Age = 30 } }
+                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
+                                )
+                            }
+                        )
+                    }
+                }
+                @{
+                    Scenario = @{
+                        Name     = "B"
+                        Contexts = @{
+                            Name     = "BB"
+                            Examples = @(
+                                @{ User = @{ Name = "Jane"; Age = 25 } }
+                            )
+                        }
+                    }
+                }
+            )
+
+            $sb = {
+                param ($Scenario)
+
+                Describe "Scenario - <name>" -ForEach $Scenario {
+
+                    Context "Context - <name>" -ForEach $Contexts {
+                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
+                            $User.Age | Should -BeLessOrEqual 35
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
+
+            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
+            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
+        }
+
+        t "Data provided to container are accessible during Discovery and Run" {
+            # issue: https://github.com/pester/Pester/issues/1770
+            $sb = {
+                param (
+                    # the issue uses mandatory, I tried it with and without it and it works
+                    # I am avoiding mandatory, because it will make the test ask for value when
+                    # the parameter passing breaks
+                    # [parameter(mandatory = $true)]
+                    [string] $EnvironmentName
+                )
+
+                Describe "Application" {
+                    It "Environment is <environmentName>" {
+                        $EnvironmentName | Should -Be "Production"
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ EnvironmentName = "Production" }
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
         t "Undefined parameters with default values are automatically added to container Data" {
             try {
                 $sb = {
@@ -1361,90 +1445,6 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
-        }
-
-        t "Data provided to container are accessible in ForEach on each level" {
-            $scenarios = @(
-                @{
-                    Scenario = @{
-                        Name     = "A"
-                        Contexts = @(
-                            @{
-                                Name     = "AA"
-                                Examples = @(
-                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
-                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
-                                )
-                            }
-                            @{
-                                Name     = "AB"
-                                Examples = @(
-                                    @{ User = @{ Name = "Peter"; Age = 30 } }
-                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
-                                )
-                            }
-                        )
-                    }
-                }
-                @{
-                    Scenario = @{
-                        Name     = "B"
-                        Contexts = @{
-                            Name     = "BB"
-                            Examples = @(
-                                @{ User = @{ Name = "Jane"; Age = 25 } }
-                            )
-                        }
-                    }
-                }
-            )
-
-            $sb = {
-                param ($Scenario)
-
-                Describe "Scenario - <name>" -ForEach $Scenario {
-
-                    Context "Context - <name>" -ForEach $Contexts {
-                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
-                            $User.Age | Should -BeLessOrEqual 35
-                        }
-                    }
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
-
-            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
-            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
-            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
-
-            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
-            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
-        }
-
-        t "Data provided to container are accessible during Discovery and Run" {
-            # issue: https://github.com/pester/Pester/issues/1770
-            $sb = {
-                param (
-                    # the issue uses mandatory, I tried it with and without it and it works
-                    # I am avoiding mandatory, because it will make the test ask for value when
-                    # the parameter passing breaks
-                    # [parameter(mandatory = $true)]
-                    [string] $EnvironmentName
-                )
-
-                Describe "Application" {
-                    It "Environment is <environmentName>" {
-                        $EnvironmentName | Should -Be "Production"
-                    }
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb -Data @{ EnvironmentName = "Production" }
-
-            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
-            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
 
         t "<_> expands to `$_ in Describe and It" {
