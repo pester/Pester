@@ -923,7 +923,6 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.Debug.ShowFullErrors.Value) {
-                & $SafeCommands['Write-Warning'] "Debug.ShowFullErrors is deprecated. This will be overriden with Output.StackTraceVerbosity = 'Full'."
                 $PesterPreference.Output.StackTraceVerbosity = "Full"
             }
 

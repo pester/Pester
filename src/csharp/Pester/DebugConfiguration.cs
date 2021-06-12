@@ -30,7 +30,7 @@ namespace Pester
 
         public DebugConfiguration() : base("Debug configuration for Pester. ⚠ Use at your own risk!")
         {
-            ShowFullErrors = new BoolOption("Show full errors including Pester internal stack.", false);
+            ShowFullErrors = new BoolOption("Show full errors including Pester internal stack. This property is deprecated, and if set to true it will override Output.StackTraceVerbosity to 'Full'.", false);
             WriteDebugMessages = new BoolOption("Write Debug messages to screen.", false);
             WriteDebugMessagesFrom = new StringArrayOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", new string[] { "Discovery", "Skip", "Mock", "CodeCoverage" });
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
