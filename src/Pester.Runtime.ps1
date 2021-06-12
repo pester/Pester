@@ -2649,7 +2649,7 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
             }
         }
         "File" {
-            $originCommand = $PSCmdlet.SessionState.InvokeCommand.GetCommand($Container.Item.PSPath, [System.Management.Automation.CommandTypes]::ExternalScript)
+            $originCommand = $CallingFunction.SessionState.InvokeCommand.GetCommand($Container.Item.PSPath, [System.Management.Automation.CommandTypes]::ExternalScript)
             $command.Ast = $originCommand.ScriptBlock.Ast
 
             if ($callerCmd = $CallingFunction.SessionState.PSVariable.GetValue("PSCmdLet")) {
@@ -2676,10 +2676,10 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
         }
 
         foreach ($param in $parametersToCheck) {
-            $v = $PSCmdlet.SessionState.PSVariable.Get($param)
+            $v = $CallingFunction.SessionState.PSVariable.Get($param)
             if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, but has default value '$($v.Value)'. Adding it to Data in Root-block for container."
+                    Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, adding to container Data with default value $(Format-Nicely $v.Value)."
                 }
                 $RootBlock.Data.Add($param, $v.Value)
             }
