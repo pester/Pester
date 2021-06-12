@@ -1,13 +1,15 @@
 {
   "powershell.codeFormatting.preset": "Stroustrup",
-
   "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
-
   "editor.tabSize": 4,
-  "editor.formatOnSave": false,
+  "editor.formatOnSave": true,
   "powershell.codeFormatting.addWhitespaceAroundPipe": true,
-
+  "powershell.codeFormatting.pipelineIndentationStyle": "IncreaseIndentationForFirstPipeline",
+  "yaml.format.singleQuote": true,
+  "[powershell]": {
+    "files.encoding": "utf8bom"
+  },
   "files.associations": {
     "*.ps1xml": "xml"
   },

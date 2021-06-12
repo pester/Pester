@@ -1,4 +1,4 @@
-function Should-BeTrue($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeTrue($ActualValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that the value is true, or truthy.

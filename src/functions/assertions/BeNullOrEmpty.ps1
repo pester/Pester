@@ -1,4 +1,4 @@
-
+﻿
 function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS

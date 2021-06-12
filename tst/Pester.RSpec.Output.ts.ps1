@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -9,7 +9,7 @@ Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
-    Debug = @{
+    Debug  = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
         WriteDebugMessagesFrom = "Mock"
@@ -145,7 +145,7 @@ i -PassThru:$PassThru {
             }
             $output = Invoke-PesterInProcess $sb -Setup $setup
             # only print the relevant part of output
-            $null, $run = $output -join "`n" -split "Discovery finished.*"
+            $null, $run = $output -join "`n" -split "Running tests."
             $run | Write-Host
 
             $describe1 = $output | Select-String -Pattern 'Describing d1\s*$'
@@ -183,7 +183,7 @@ i -PassThru:$PassThru {
             }
             $output = Invoke-PesterInProcess $sb -Setup $setup
             # only print the relevant part of output
-            $null, $run = $output -join "`n" -split "Discovery finished.*"
+            $null, $run = $output -join "`n" -split "Running tests."
             $run | Write-Host
 
             $describe1 = $output | Select-String -Pattern 'Describing d1 abc\s*$'

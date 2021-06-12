@@ -1,4 +1,4 @@
-function Assert-ValidAssertionName {
+﻿function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -109,7 +109,7 @@ function Add-ShouldOperator {
 
     $script:AssertionOperators[$Name] = $entry
 
-    foreach ($string in $Alias | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $Alias | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_)) }) {
         Assert-ValidAssertionAlias -Alias $string
         $script:AssertionAliases[$string] = $Name
     }
@@ -136,7 +136,7 @@ function Assert-AssertionOperatorNameIsUnique {
         [string[]] $Name
     )
 
-    foreach ($string in $name | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_))}) {
+    foreach ($string in $name | & $SafeCommands['Where-Object'] { -not ([string]::IsNullOrWhiteSpace($_)) }) {
         Assert-ValidAssertionName -Name $string
 
         if ($script:AssertionOperators.ContainsKey($string)) {
@@ -680,7 +680,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
-                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
+                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
                         $Configuration.Filter.FullName = $FullNameFilter
                     }
 
@@ -738,7 +738,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
-                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count){
+                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
                         $Configuration.Filter.FullName = $FullNameFilter
                     }
 
@@ -824,7 +824,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('OutputFile')) {
-                    if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count){
+                    if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count) {
                         $Configuration.TestResult.Enabled = $true
                         $Configuration.TestResult.OutputPath = $OutputFile
                     }
@@ -887,7 +887,12 @@ function Invoke-Pester {
             # preference is inherited in all subsequent calls in this session state
             # but we still pass it explicitly where practical
             if (-not $hasCallerPreference) {
-                [PesterConfiguration] $PesterPreference = $Configuration
+                if ($PSBoundParameters.ContainsKey('Configuration')) {
+                    # Advanced configuration used, merging to get new reference
+                    [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
+                } else {
+                    [PesterConfiguration] $PesterPreference = $Configuration
+                }
             }
             elseif ($hasCallerPreference) {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
@@ -906,8 +911,14 @@ function Invoke-Pester {
             }
 
             if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+                # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
                 $PesterPreference.Debug.WriteDebugMessages = $true
-                $PesterPreference.Debug.WriteDebugMessagesFrom = "Discovery", "Skip", "Filter", "Mock", "CodeCoverage"
+                $missingCategories = foreach ($category in @("Discovery", "Skip", "Mock", "CodeCoverage")) {
+                    if ($PesterPreference.Debug.WriteDebugMessagesFrom.Value -notcontains $category) {
+                        $category
+                    }
+                }
+                $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
             }
 
             $plugins +=
@@ -924,7 +935,7 @@ function Invoke-Pester {
                 $plugins += @(Get-TestRegistryPlugin)
             }
 
-            $plugins +=  @(Get-MockPlugin)
+            $plugins += @(Get-MockPlugin)
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
@@ -935,39 +946,39 @@ function Invoke-Pester {
                         # tests by using the whole directory in which the test or the
                         # provided directory. We might need another option to disable this convention.
                         @(foreach ($p in $PesterPreference.Run.Path.Value) {
-                            # this is a bit ugly, but the logic here is
-                            # that we check if the path exists,
-                            # and if it does and is a file then we return the
-                            # parent directory, otherwise we got a directory
-                            # and return just it
-                            $i = & $SafeCommands['Get-Item'] $p
-                            if ($i.PSIsContainer) {
-                                & $SafeCommands['Join-Path'] $i.FullName "*"
-                            }
-                            else {
-                                & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
-                            }
-                        })
+                                # this is a bit ugly, but the logic here is
+                                # that we check if the path exists,
+                                # and if it does and is a file then we return the
+                                # parent directory, otherwise we got a directory
+                                # and return just it
+                                $i = & $SafeCommands['Get-Item'] $p
+                                if ($i.PSIsContainer) {
+                                    & $SafeCommands['Join-Path'] $i.FullName "*"
+                                }
+                                else {
+                                    & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
+                                }
+                            })
                     })
 
                 $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
-                        $PesterPreference.CodeCoverage.OutputPath.Value
-                    }
-                    else {
-                        & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
-                    }
+                    $PesterPreference.CodeCoverage.OutputPath.Value
+                }
+                else {
+                    & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
+                }
 
                 $CodeCoverage = @{
-                    Enabled = $PesterPreference.CodeCoverage.Enabled.Value
-                    OutputFormat = $PesterPreference.CodeCoverage.OutputFormat.Value
-                    OutputPath = $outputPath
-                    OutputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
-                    ExcludeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value
-                    Path = @($paths)
-                    RecursePaths = $PesterPreference.CodeCoverage.RecursePaths.Value
-                    TestExtension = $PesterPreference.Run.TestExtension.Value
+                    Enabled                 = $PesterPreference.CodeCoverage.Enabled.Value
+                    OutputFormat            = $PesterPreference.CodeCoverage.OutputFormat.Value
+                    OutputPath              = $outputPath
+                    OutputEncoding          = $PesterPreference.CodeCoverage.OutputEncoding.Value
+                    ExcludeTests            = $PesterPreference.CodeCoverage.ExcludeTests.Value
+                    Path                    = @($paths)
+                    RecursePaths            = $PesterPreference.CodeCoverage.RecursePaths.Value
+                    TestExtension           = $PesterPreference.Run.TestExtension.Value
                     UseSingleHitBreakpoints = $PesterPreference.CodeCoverage.SingleHitBreakpoints.Value
-                    UseBreakpoints = $PesterPreference.CodeCoverage.UseBreakpoints.Value
+                    UseBreakpoints          = $PesterPreference.CodeCoverage.UseBreakpoints.Value
                 }
 
                 $plugins += (Get-CoveragePlugin)
@@ -994,7 +1005,7 @@ function Invoke-Pester {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] {$_.Item.FullName }))
+                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] { $_.Item.FullName }))
                     $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -File $_ })
                 }
             }
@@ -1002,10 +1013,10 @@ function Invoke-Pester {
             $steps = $Plugins.Start
             if ($null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
-                    Containers = $containers
-                    Configuration = $pluginConfiguration
-                    GlobalPluginData = $state.PluginData
-                    WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+                    Containers               = $containers
+                    Configuration            = $pluginConfiguration
+                    GlobalPluginData         = $state.PluginData
+                    WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
                     Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
                 } -ThrowOnFailure
             }
@@ -1031,8 +1042,7 @@ function Invoke-Pester {
             $run.PluginData = $pluginData
             $run.Configuration = $PesterPreference
             $m = $ExecutionContext.SessionState.Module
-            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
-            {
+            $run.Version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease) {
                 "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
             }
             else {
@@ -1049,7 +1059,7 @@ function Invoke-Pester {
             $steps = $Plugins.End
             if ($null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
-                    TestRun = $run
+                    TestRun       = $run
                     Configuration = $pluginConfiguration
                 } -ThrowOnFailure
             }
@@ -1071,7 +1081,7 @@ function Invoke-Pester {
                 $configuration = $run.PluginConfiguration.Coverage
 
                 if ("JaCoCo" -eq $configuration.OutputFormat -or "CoverageGutters" -eq $configuration.OutputFormat) {
-                [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                    [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
                 }
                 else {
                     throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($configuration.OutputFormat), please review your configuration."
@@ -1245,7 +1255,7 @@ function New-PesterOption {
     }
 
     return & $script:SafeCommands['New-Object'] psobject -Property @{
-        ReadMe = "New-PesterOption is deprecated and kept only for backwards compatibility when executing Pester v5 using the " +
+        ReadMe              = "New-PesterOption is deprecated and kept only for backwards compatibility when executing Pester v5 using the " +
         "legacy parameter set. When the object is used with Invoke-Pester -PesterOption it will be ignored."
         IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
         TestSuiteName       = $TestSuiteName
@@ -1312,13 +1322,13 @@ function ResolveTestScripts {
                         & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
                         & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
                         & $script:SafeCommands['ForEach-Object'] {
-                        & $script:SafeCommands['New-Object'] psobject -Property @{
-                            Path       = $_
-                            Script     = $null
-                            Arguments  = $arguments
-                            Parameters = $parameters
+                            & $script:SafeCommands['New-Object'] psobject -Property @{
+                                Path       = $_
+                                Script     = $null
+                                Arguments  = $arguments
+                                Parameters = $parameters
+                            }
                         }
-                    }
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
@@ -1439,19 +1449,19 @@ function ConvertTo-Pester4Result {
     )
     process {
         $legacyResult = [PSCustomObject] @{
-            Version = "4.99.0"
-            TagFilter = $null
-            ExcludeTagFilter = $null
-            TestNameFilter = $null
+            Version           = "4.99.0"
+            TagFilter         = $null
+            ExcludeTagFilter  = $null
+            TestNameFilter    = $null
             ScriptBlockFilter = $null
-            TotalCount = 0
-            PassedCount = 0
-            FailedCount = 0
-            SkippedCount = 0
-            PendingCount = 0
+            TotalCount        = 0
+            PassedCount       = 0
+            FailedCount       = 0
+            SkippedCount      = 0
+            PendingCount      = 0
             InconclusiveCount = 0
-            Time = [TimeSpan]::Zero
-            TestResult = [System.Collections.Generic.List[object]]@()
+            Time              = [TimeSpan]::Zero
+            TestResult        = [System.Collections.Generic.List[object]]@()
         }
         $filter = $PesterResult.Configuration.Filter
         $legacyResult.TagFilter = if (0 -ne $filter.Tag.Value.Count) { $filter.Tag.Value }
@@ -1467,23 +1477,23 @@ function ConvertTo-Pester4Result {
             }
 
             $result = [PSCustomObject] @{
-                Passed = "Passed" -eq $test.Result
-                Result = $test.Result
-                Time = $test.Duration
-                Name = $test.Name
+                Passed                 = "Passed" -eq $test.Result
+                Result                 = $test.Result
+                Time                   = $test.Duration
+                Name                   = $test.Name
 
                 # in the legacy result the top block is considered to be a Describe and any blocks inside of it are
                 # considered to be Context and joined by '\'
-                Describe = $test.Path[0]
-                Context = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count-2)] -join '\'})
+                Describe               = $test.Path[0]
+                Context                = $(if ($test.Path.Count -gt 2) { $test.Path[1..($test.Path.Count - 2)] -join '\' })
 
-                Show = $PesterResult.Configuration.Output.Verbosity.Value
-                Parameters = $test.Data
+                Show                   = $PesterResult.Configuration.Output.Verbosity.Value
+                Parameters             = $test.Data
                 ParameterizedSuiteName = $test.DisplayName
 
-                FailureMessage = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
-                ErrorRecord = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
-                StackTrace = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
+                FailureMessage         = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+                ErrorRecord            = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
+                StackTrace             = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
             }
 
             $null = $legacyResult.TestResult.Add($result)

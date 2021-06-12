@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 # BeforeDiscovery
 function New-Dictionary ([hashtable]$Hashtable) {
@@ -19,11 +19,11 @@ Describe "Is-Value" {
         @{ Value = 2 },
         @{ Value = 1.2 },
         @{ Value = 1.3 },
-        @{ Value = "abc"},
-        @{ Value = [System.DayOfWeek]::Monday},
-        @{ Value = @("abc")},
-        @{ Value = @(1)},
-        @{ Value = {abc}}
+        @{ Value = "abc" },
+        @{ Value = [System.DayOfWeek]::Monday },
+        @{ Value = @("abc") },
+        @{ Value = @(1) },
+        @{ Value = { abc } }
     ) {
         param($Value)
         Is-Value -Value $Value | Verify-True
@@ -67,7 +67,7 @@ Describe "Is-DecimalNumber" {
 Describe "Is-ScriptBlock" {
     It "Given a scriptblock '{<value>}' it returns `$true" -TestCases @(
         @{ Value = {} },
-        @{ Value = {abc} },
+        @{ Value = { abc } },
         @{ Value = { Get-Process } }
     ) {
         param ($Value)
@@ -89,7 +89,7 @@ Describe "Is-ScriptBlock" {
 Describe "Is-Hashtable" {
     It "Given hashtable '<value>' it returns `$true" -TestCases @(
         @{Value = @{} }
-        @{Value = @{Name = "Jakub"} }
+        @{Value = @{Name = "Jakub" } }
     ) {
         param($Value)
 
@@ -109,7 +109,7 @@ Describe "Is-Hashtable" {
 Describe "Is-Dictionary" {
     It "Given dictionary '<value>' it returns `$true" -TestCases @(
         @{ Value = New-Object "Collections.Generic.Dictionary[string,object]" }
-        @{ Value = New-Dictionary @{Name = "Jakub"} }
+        @{ Value = New-Dictionary @{Name = "Jakub" } }
     ) {
         param($Value)
 

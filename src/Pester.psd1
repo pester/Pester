@@ -1,4 +1,4 @@
-@{
+﻿@{
 
     # Script module or binary module file associated with this manifest.
     RootModule        = 'Pester.psm1'
@@ -28,7 +28,7 @@
     TypesToProcess = @()
 
     # Format files (.ps1xml) to be loaded when importing this module
-    FormatsToProcess = @('Pester.Format.ps1xml')
+    FormatsToProcess = @('Pester.Format.ps1xml', 'PesterConfiguration.Format.ps1xml')
 
     # Functions to export from this module
     FunctionsToExport = @(
@@ -116,10 +116,10 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.2.1'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.3.0'
 
             # Prerelease string of this module
-            Prerelease   = 'alpha1'
+            Prerelease   = 'alpha4'
         }
 
         # Minimum assembly version required

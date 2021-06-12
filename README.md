@@ -154,7 +154,7 @@ If you do not need to test your scripts against PowerShell Core, just simply rem
 
 Pester itself is built on AzureDevOps, and distributed mainly via PowerShell gallery.
 
-[![Build Status](https://nohwnd.visualstudio.com/Pester/_apis/build/status/Pester%20PR?branchName=v5.0)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6&branchName=v5.0) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![Build Status](https://nohwnd.visualstudio.com/Pester/_apis/build/status/Pester%20PR?branchName=main)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6&branchName=main) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 

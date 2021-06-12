@@ -1,7 +1,9 @@
+﻿# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
     . "$PSScriptRoot/TypeClass.ps1"
-} # endif
+}
+# end PESTER_BUILD
 
 function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
@@ -10,8 +12,15 @@ function Format-Collection ($Value, [switch]$Pretty) {
         $separator = ",`n"
     }
     $count = $Value.Count
-    $trimmed = $count  -gt $Limit
-    '@(' + (($Value | & $SafeCommands['Select-Object'] -First $Limit | & $SafeCommands['ForEach-Object'] { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
+    $trimmed = $count -gt $Limit
+
+    $formattedCollection = @()
+    for ($i = 0; $i -lt [System.Math]::Min($count, $Limit); $i++) {
+        $formattedValue = Format-Nicely -Value $Value[$i] -Pretty:$Pretty
+        $formattedCollection += $formattedValue
+    }
+
+    '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
@@ -140,7 +149,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
 
     $properties = @($InputObject.PSObject.Properties |
-            & $SafeCommands['Where-Object'] { $_.Name -notlike "_*"} |
+            & $SafeCommands['Where-Object'] { $_.Name -notlike "_*" } |
             & $SafeCommands['Select-Object'] -expand Name |
             & $SafeCommands['Sort-Object'])
     $significant = @()

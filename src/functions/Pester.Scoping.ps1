@@ -1,4 +1,4 @@
-function Set-ScriptBlockScope {
+﻿function Set-ScriptBlockScope {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]

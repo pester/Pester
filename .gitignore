@@ -3,7 +3,9 @@ Test.xml
 vendor/packages/
 .DS_Store
 .vscode/
+# But don't exclude settings.json
 !.vscode/settings.json
+
 coverage.xml
 testResults.xml
 
@@ -360,3 +362,4 @@ MigrationBackup/
 .ionide/
 
 tmp/
+

@@ -244,47 +244,47 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message[6] | Should -match "'One' | Should -be 'Two'"
             $r.Message.Count | Should -be 7
         }
-# TODO: should fails with a very weird error, probably has something to do with dynamic params...
-#         Context 'Should fails in file' {
-#             BeforeAll {
-#                 $testPath = Join-Path $TestDrive test.ps1
+        # TODO: should fails with a very weird error, probably has something to do with dynamic params...
+        #         Context 'Should fails in file' {
+        #             BeforeAll {
+        #                 $testPath = Join-Path $TestDrive test.ps1
 
-#                 Set-Content -Path $testPath -Value @'
-#                 $script:IgnoreErrorPreference = 'SilentlyContinue'
-#                 'One' | Should -Be 'Two'
-# '@
+        #                 Set-Content -Path $testPath -Value @'
+        #                 $script:IgnoreErrorPreference = 'SilentlyContinue'
+        #                 'One' | Should -Be 'Two'
+        # '@
 
-#                 try { & $testPath } catch { $e = $_ }
-#                 $r = $e | ConvertTo-FailureLines
-#                 $hasStackTrace = $e | Get-Member -Name ScriptStackTrace
-#                 $escapedTestPath = [regex]::Escape((Get-Item $testPath).FullName)
-#             }
+        #                 try { & $testPath } catch { $e = $_ }
+        #                 $r = $e | ConvertTo-FailureLines
+        #                 $hasStackTrace = $e | Get-Member -Name ScriptStackTrace
+        #                 $escapedTestPath = [regex]::Escape((Get-Item $testPath).FullName)
+        #             }
 
-#             It 'produces correct message lines.' {
-#                 $r.Message[0] | Should -be 'String lengths are both 3. Strings differ at index 0.'
-#                 $r.Message[1] | Should -be 'Expected: {Two}'
-#                 $r.Message[2] | Should -be 'But was:  {One}'
-#                 $r.Message[3] | Should -be '-----------^'
-#                 $r.Message[4] | Should -be "2:                 'One' | Should -be 'Two'"
-#                 $r.Message.Count | Should -be 5
-#             }
+        #             It 'produces correct message lines.' {
+        #                 $r.Message[0] | Should -be 'String lengths are both 3. Strings differ at index 0.'
+        #                 $r.Message[1] | Should -be 'Expected: {Two}'
+        #                 $r.Message[2] | Should -be 'But was:  {One}'
+        #                 $r.Message[3] | Should -be '-----------^'
+        #                 $r.Message[4] | Should -be "2:                 'One' | Should -be 'Two'"
+        #                 $r.Message.Count | Should -be 5
+        #             }
 
-#             It 'produces correct trace lines.' {
-#                 if ($hasStackTrace) {
-#                     $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 2"
-#                     $r.Trace[1] -match 'at <ScriptBlock>, .*\\functions\\Output.Tests.ps1: line [0-9]*$' |
-#                         Should -be $true
-#                     $r.Trace.Count | Should -be 3
-#                 }
-#             }
+        #             It 'produces correct trace lines.' {
+        #                 if ($hasStackTrace) {
+        #                     $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`: line 2"
+        #                     $r.Trace[1] -match 'at <ScriptBlock>, .*\\functions\\Output.Tests.ps1: line [0-9]*$' |
+        #                         Should -be $true
+        #                     $r.Trace.Count | Should -be 3
+        #                 }
+        #             }
 
-#             It 'produces correct trace lines.' {
-#                 if (-not $hasStackTrace) {
-#                     $r.Trace[0] | Should -be "at line: 2 in $testPath"
-#                     $r.Trace.Count | Should -be 1
-#                 }
-#             }
-#         }
+        #             It 'produces correct trace lines.' {
+        #                 if (-not $hasStackTrace) {
+        #                     $r.Trace[0] | Should -be "at line: 2 in $testPath"
+        #                     $r.Trace.Count | Should -be 1
+        #                 }
+        #             }
+        #         }
 
         Context 'exception thrown in nested functions in file' {
             BeforeAll {

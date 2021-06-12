@@ -1,4 +1,4 @@
-function Should-Throw {
+﻿function Should-Throw {
     <#
 .SYNOPSIS
 Checks if an exception was thrown. Enclose input in a script block.

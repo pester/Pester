@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
     $tempPath = $env:TEMP
@@ -96,7 +96,7 @@ InPesterModuleScope {
             $first | Remove-Item -Force
             $second | Remove-Item -Force
 
-            $first.name | Should -Not -Be $second.name
+            $first | Should -Not -Be $second
 
         }
     }

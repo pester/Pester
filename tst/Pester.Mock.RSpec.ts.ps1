@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -1129,7 +1129,79 @@ i -PassThru:$PassThru {
                     Run = @{ ScriptBlock = $sb; PassThru = $true }
                 })
 
-            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t = $r.Containers[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Should invoke parameter filter works when exexuted in a different module than the mock" {
+        t "Should invoke can be invoked in module scope and it still uses the correct session state" {
+            # https://github.com/pester/Pester/issues/1813
+
+            $sb = {
+                BeforeAll {
+                    $script:moduleName = 'MyModule'
+
+                    Remove-Module -Name 'MyModule' -Force -ErrorAction 'SilentlyContinue'
+
+                    New-Module -Name 'MyModule' -ScriptBlock {
+                        function Get-MyAlert {
+                            write-warning "real function called!"
+                        }
+
+                        function New-MyAlert {
+                            Get-MyAlert
+
+                            $null = New-Object -TypeName Microsoft.SqlServer.Management.Smo.Agent.Alert
+                        }
+                    } | Import-Module
+
+                    $PSDefaultParameterValues = @{
+                        'InModuleScope:ModuleName' = $script:moduleName
+                    }
+                }
+
+                Describe 'InModuleScope' {
+                    BeforeAll {
+                        Mock -CommandName Get-MyAlert -ModuleName $script:moduleName
+                        Mock -CommandName New-Object -ModuleName $script:moduleName -MockWith {
+                            return 'anything'
+                        } -ParameterFilter {
+                            $TypeName -eq 'Microsoft.SqlServer.Management.Smo.Agent.Alert'
+                        }
+                    }
+
+                    It 'Should call the mock' {
+                        InModuleScope -ScriptBlock {
+                            { New-MyAlert } | Should -Not -Throw
+                        }
+
+                        Should -Invoke -CommandName Get-MyAlert -ModuleName $script:moduleName -Exactly -Times 1 -Scope It
+
+                        Should -Invoke -CommandName New-Object -ModuleName $script:moduleName -ParameterFilter {
+                            $TypeName -eq 'Microsoft.SqlServer.Management.Smo.Agent.Alert'
+                        } -Exactly -Times 1 -Scope It
+                    }
+
+                    It 'Should call the mock' {
+                        InModuleScope -ScriptBlock {
+                            { New-MyAlert } | Should -Not -Throw
+
+                            Should -Invoke -CommandName Get-MyAlert -Exactly -Times 1 -Scope It
+
+                            Should -Invoke -CommandName New-Object -ParameterFilter {
+                                $TypeName -eq 'Microsoft.SqlServer.Management.Smo.Agent.Alert'
+                            } -Exactly -Times 1 -Scope It
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $t = $r.Containers[0]
             $t.Result | Verify-Equal "Passed"
         }
     }

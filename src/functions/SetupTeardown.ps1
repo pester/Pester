@@ -1,4 +1,4 @@
-function BeforeEach {
+﻿function BeforeEach {
     <#
     .SYNOPSIS
         Defines a series of steps to perform at the beginning of every It block within

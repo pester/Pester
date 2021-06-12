@@ -1,4 +1,4 @@
-#Be
+﻿#Be
 function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
@@ -226,7 +226,7 @@ function Get-CompareStringMessage {
 
         "Expected: '{0}'" -f $expectedExcerpt.Line
         "But was:  '{0}'" -f $actualExcerpt.Line
-        " " * ($sorroundLength - 1)  + '-' * $actualExcerpt.DifferenceIndex + '^'
+        " " * ($sorroundLength - 1) + '-' * $actualExcerpt.DifferenceIndex + '^'
     }
 }
 
@@ -248,14 +248,14 @@ function Format-AsExcerpt {
     $markerLength = $ExcerptMarker.Length
     $inputLength = $InputObject.Length
     # e.g. <marker><precontext><diffchar><postcontext><marker> ...precontextXpostcontext...
-    $minimumLineLength = $ContextLength + $markerLength + 1 +  $markerLength + $ContextLength
+    $minimumLineLength = $ContextLength + $markerLength + 1 + $markerLength + $ContextLength
     if ($LineLength -lt $minimumLineLength -or $inputLength -le $LineLength ) {
         # the available line length is so short that we can't reasonable work with it. Ignore formatting and just print it as is.
         # User will see output with a lot of line breaks, but they probably expect that with having super narrow window.
         # or when input is shorter than available line length,
         # there won't be any cutting
         return @{
-            Line = $InputObject
+            Line            = $InputObject
             DifferenceIndex = $DifferenceIndex
         }
     }
@@ -275,7 +275,7 @@ function Format-AsExcerpt {
 
     if ($shiftedToLeft.Length -lt $inputLength) {
         # we shortened it show cut marker
-        $shiftedToLeft = $ExcerptMarker + $shiftedToLeft.Substring($markerLength,$shiftedToLeft.Length - $markerLength)
+        $shiftedToLeft = $ExcerptMarker + $shiftedToLeft.Substring($markerLength, $shiftedToLeft.Length - $markerLength)
     }
 
     if ($shiftedToLeft.Length -gt $LineLength) {
@@ -284,7 +284,7 @@ function Format-AsExcerpt {
     }
 
     return @{
-        Line = $shiftedToLeft
+        Line            = $shiftedToLeft
         DifferenceIndex = $DifferenceIndex - $shiftToLeft
     }
 }

@@ -1,4 +1,4 @@
-function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider.

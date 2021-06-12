@@ -1,4 +1,4 @@
-function Should-BeLikeExactly($ActualValue, $ExpectedValue, [switch] $Negate, [String] $Because) {
+﻿function Should-BeLikeExactly($ActualValue, $ExpectedValue, [switch] $Negate, [String] $Because) {
     <#
 .SYNOPSIS
 Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator.

@@ -1,4 +1,4 @@
-function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Uses a regular expression to compare two objects.

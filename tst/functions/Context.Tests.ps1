@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe 'Testing Context' {
     It "Context throws a missing name error" {
@@ -7,7 +7,7 @@ Describe 'Testing Context' {
 
                 }
             }
-        }| should -Throw  'Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)'
+        } | should -Throw  'Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)'
     }
 
     It "Has a name that looks like a script block" {
@@ -17,6 +17,6 @@ Describe 'Testing Context' {
 
                 }
             }
-        }| should -Throw  'No test fixture is provided. (Have you put the open curly brace on the next line?)'
+        } | should -Throw  'No test fixture is provided. (Have you put the open curly brace on the next line?)'
     }
 }

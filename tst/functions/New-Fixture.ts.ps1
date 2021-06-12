@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors         = $false
+        ShowFullErrors = $false
     }
 }
 

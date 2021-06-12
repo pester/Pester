@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
     Describe 'Get-ShouldOperator' {
@@ -9,7 +9,7 @@ InPesterModuleScope {
                 $OpCount = $AssertionOperators.Count
 
                 $get1 = Get-ShouldOperator
-                Add-ShouldOperator -Name 'test' -Test {'test'}
+                Add-ShouldOperator -Name 'test' -Test { 'test' }
                 $get2 = Get-ShouldOperator
             }
 

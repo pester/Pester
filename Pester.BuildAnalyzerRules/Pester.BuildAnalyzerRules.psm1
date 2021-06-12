@@ -1,4 +1,4 @@
-# Get list of SafeCommands
+﻿# Get list of SafeCommands
 $SafeCommands = & { . "$PSScriptRoot/../src/functions/Pester.SafeCommands.ps1"; $Script:SafeCommands }
 # Workaround as RuleSuppressionID-based suppression is bugged. returns error.
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester
@@ -41,7 +41,7 @@ function Measure-SafeCommands {
             if ($null -ne $commandName -and $commandName -in $SafeCommands.Keys -and $commandName -notin $IgnoreUnsafeCommands) {
                 foreach ($cmd in $CommandAst.CommandElements) {
                     # Find extent for command name only
-                    if(($cmd -is [System.Management.Automation.Language.StringConstantExpressionAst]) -and $cmd.Value -eq $commandName) {
+                    if (($cmd -is [System.Management.Automation.Language.StringConstantExpressionAst]) -and $cmd.Value -eq $commandName) {
 
                         #Define fix-action
                         [int]$startLineNumber = $cmd.Extent.StartLineNumber

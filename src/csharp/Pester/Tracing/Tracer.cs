@@ -27,7 +27,7 @@ namespace Pester.Tracing
                 throw new InvalidOperationException("Tracer2 is already present.");
 
             _tracer2 = new ExternalTracerAdapter(tracer) ?? throw new ArgumentNullException(nameof(tracer));
-            TraceLine(justTracer2: true);
+            TraceLine(null, justTracer2: true);
         }
 
         public static void Unregister()
@@ -38,8 +38,8 @@ namespace Pester.Tracing
             if (!HasTracer2)
                 throw new InvalidOperationException("Tracer2 is not present.");
 
-            TraceLine(justTracer2: true);
-            TraceLine(justTracer2: true);
+            TraceLine(null, justTracer2: true);
+            TraceLine(null, justTracer2: true);
             _tracer2 = null;
         }
 
@@ -56,7 +56,7 @@ namespace Pester.Tracing
             var externalUI = (PSHostUserInterface)externalUIField.GetValue(ui);
 
             // replace it with out patched up UI that writes to profiler on debug
-            externalUIField.SetValue(ui, new TracerHostUI(externalUI, () => TraceLine(false)));
+            externalUIField.SetValue(ui, new TracerHostUI(externalUI, (message) => TraceLine(message, false)));
 
             ResetUI = () =>
             {
@@ -77,7 +77,7 @@ namespace Pester.Tracing
             var countBindingFlags = BindingFlags.Instance | BindingFlags.NonPublic;
             if (version == 3)
             {
-                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList 
+                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList
                 // Count is public property
                 countBindingFlags = BindingFlags.Instance | BindingFlags.Public;
             }
@@ -89,9 +89,9 @@ namespace Pester.Tracing
 
             if (version == 3)
             {
-                // we do the same operation as in the TraceLineAction below, but here 
-                // we resolve the static things like types and properties, and then in the 
-                // action we just use them to get the live data without the overhead of looking 
+                // we do the same operation as in the TraceLineAction below, but here
+                // we resolve the static things like types and properties, and then in the
+                // action we just use them to get the live data without the overhead of looking
                 // up properties all the time. This might be internally done in the reflection code
                 // did not measure the impact, and it is probably done for us in the reflection api itself
                 // in modern verisons of runtime
@@ -153,7 +153,7 @@ namespace Pester.Tracing
             // Add another event to the top apart from the scriptblock invocation
             // in Trace-ScriptInternal, this makes it more consistently work on first
             // run. Without this, the triggering line sometimes does not show up as 99.9%
-            TraceLine();
+            TraceLine(null);
         }
 
         public static void Unpatch()
@@ -161,24 +161,24 @@ namespace Pester.Tracing
             IsEnabled = false;
             // Add Set-PSDebug -Trace 0 event and also another one for the internal disable
             // this make first run more consistent for some reason
-            TraceLine();
-            TraceLine();
+            TraceLine(null);
+            TraceLine(null);
             ResetUI();
             _tracer = null;
             _tracer2 = null;
         }
 
-        // keeping this public so I can write easier repros when something goes wrong, 
-        // in that case we just need to patch, trace and unpatch and if that works then 
+        // keeping this public so I can write easier repros when something goes wrong,
+        // in that case we just need to patch, trace and unpatch and if that works then
         // maybe the UI host does not work
-        public static void TraceLine(bool justTracer2 = false)
+        public static void TraceLine(string message, bool justTracer2 = false)
         {
             var traceLineInfo = GetTraceLineInfo();
             if (!justTracer2)
             {
-                _tracer.Trace(traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
+                _tracer.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
             }
-            _tracer2?.Trace(traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
+            _tracer2?.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
         }
 
         private struct TraceLineInfo

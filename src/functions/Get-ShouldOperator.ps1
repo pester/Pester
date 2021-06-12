@@ -1,4 +1,4 @@
-function Get-ShouldOperator {
+﻿function Get-ShouldOperator {
     <#
     .SYNOPSIS
     Display the assertion operators available for use with Should.
@@ -52,8 +52,8 @@ function Get-ShouldOperator {
         $AttributeCollection.Add($ParameterAttribute)
 
         $arrSet = $AssertionOperators.Values |
-        & $SafeCommands['Select-Object'] -Property Name, Alias |
-        & $SafeCommands['ForEach-Object'] { $_.Name; $_.Alias }
+            & $SafeCommands['Select-Object'] -Property Name, Alias |
+            & $SafeCommands['ForEach-Object'] { $_.Name; $_.Alias }
 
         $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($arrSet)
 

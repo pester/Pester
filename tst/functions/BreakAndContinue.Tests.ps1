@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 # TODO: rewrite this using P, where we can output before and after the break, and check which points in the code we've reached
 Describe 'Clean handling of break and continue' {

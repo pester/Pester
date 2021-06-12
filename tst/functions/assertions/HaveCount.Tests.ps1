@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -12,11 +12,11 @@ InPesterModuleScope {
         }
 
         It "fails if collection has less values" {
-            { @('a', 3) | Should -HaveCount 3  } | Verify-AssertionFailed
+            { @('a', 3) | Should -HaveCount 3 } | Verify-AssertionFailed
         }
 
         It "fails if collection has more values" {
-            { @(1, 'a', 3, 4) | Should -HaveCount 3  } | Verify-AssertionFailed
+            { @(1, 'a', 3, 4) | Should -HaveCount 3 } | Verify-AssertionFailed
         }
 
         It "fails if given scalar value" {
@@ -29,7 +29,7 @@ InPesterModuleScope {
         }
 
         It "returns the correct assertion message when collection is not empty" {
-            $err = { @()| Should -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
+            $err = { @() | Should -HaveCount 3 -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal 'Expected a collection with size 3, because reason, but got an empty collection.'
         }
 
@@ -39,7 +39,7 @@ InPesterModuleScope {
         }
 
         It "validates the expected size to be bigger than 0" {
-            $err = { @(1) | Should -HaveCount (-1)} | Verify-Throw
+            $err = { @(1) | Should -HaveCount (-1) } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
         }
     }
