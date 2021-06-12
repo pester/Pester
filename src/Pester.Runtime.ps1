@@ -2395,8 +2395,10 @@ function New-BlockContainerObject {
         [String] $Path,
         [Parameter(Mandatory, ParameterSetName = "File")]
         [System.IO.FileInfo] $File,
-        $Data = @{}
+        $Data
     )
+
+    if ($null -eq $Data) { $Data = @{} }
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
@@ -2630,6 +2632,10 @@ function Add-ContainerParameterDefaultValues ($RootBlock, $Container, $CallingFu
         Ast = $null
         Parameters = $null
     }
+
+    # $CallingFunction is $PSCmdlet passed from our caller. $CallingFunction.MyInvocation.MyCommand will return Describe/Context as it's the latest advanced functions to be called at that point.
+    # $CallingFunction.SessionState however is the state used to call Context/Describe, usually the script-state, so by geting "PSCmdLet"-variable from it, we can get the last
+    # advanced function in script-state which may be the container if it was advanced (we need to verify)
 
     switch ($Container.Type) {
         "ScriptBlock" {

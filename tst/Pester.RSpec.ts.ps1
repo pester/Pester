@@ -982,6 +982,133 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        t "Undefined parameters with default values are automatically added to container Data" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123,
+                        $OtherParam,
+                        $MyNullParam = $null,
+                        $ExpressionParam = $(5 % 2)
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                    }
+
+                    if ($ExpressionParam -ne 1) {
+                        throw "Expected `$ExpressionParam to be 1, but it is, '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $containers = @(
+                    (New-PesterContainer -Path $file),
+                    (New-PesterContainer -ScriptBlock $sb)
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                # Should not include parameters without default value
+                $r.Containers[0].Data.ContainsKey('OtherParam') | Verify-False
+                # Should include parameters with default value of $null
+                $r.Containers[0].Data.ContainsKey('MyNullParam') | Verify-True
+                # Includes the evalutated default value, not the expression
+                $r.Containers[0].Data.ContainsKey('ExpressionParam') | Verify-True
+                $r.Containers[0].Data['ExpressionParam'] | Verify-Equal 1
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                # Works without pre-creating a container
+                $r2 = Invoke-Pester -Path $file -PassThru
+                $r2.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+
+                # Revert changes made to
+                $global:PesterPreference = $originalPP
+            }
+        }
+
+        t "Parameter default values won't override explicitly provided values in container Data" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123,
+                        [string] $MyString = 'Oh no!'
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                    }
+
+                    if ($MyString -ne 'Yay!') {
+                        throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                        if ($MyString -ne 'Yay!') {
+                            throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                            if ($MyString -ne 'Yay!') {
+                                throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $containers = @(
+                    (New-PesterContainer -Path $file -Data @{ MyString = "Yay!" }),
+                    (New-PesterContainer -ScriptBlock $sb -Data @{ MyString = "Yay!" })
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
     }
 
     b "New-PesterContainer" {
