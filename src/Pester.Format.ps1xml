@@ -147,12 +147,7 @@
                     <CustomEntry>
                       <CustomItem>
                         <ExpressionBinding>
-                          <PropertyName>Name</PropertyName>
-                        </ExpressionBinding>
-                        <ExpressionBinding>
-                          <PropertyName>parameter</PropertyName>
-                          <EnumerateCollection />
-                          <CustomControlName>MamlParameterControl</CustomControlName>
+                          <ScriptBlock>"$($_.name) $($_.DisplayParameterSet)"</ScriptBlock>
                         </ExpressionBinding>
                         <NewLine />
                         <NewLine />
@@ -160,40 +155,6 @@
                     </CustomEntry>
                   </CustomEntries>
                 </CustomControl>
-              </ExpressionBinding>
-            </CustomItem>
-          </CustomEntry>
-        </CustomEntries>
-      </CustomControl>
-    </Control>
-    <Control>
-      <Name>MamlParameterControl</Name>
-      <CustomControl>
-        <CustomEntries>
-          <CustomEntry>
-            <CustomItem>
-              <Text> </Text>
-              <ExpressionBinding>
-                <ScriptBlock>"["</ScriptBlock>
-                <ItemSelectionCondition>
-                  <ScriptBlock>$_.required -ne 'true'</ScriptBlock>
-                </ItemSelectionCondition>
-              </ExpressionBinding>
-              <Text>-</Text>
-              <ExpressionBinding>
-                <ScriptBlock>$_.Name -replace '^Negate$','Not'</ScriptBlock>
-              </ExpressionBinding>
-              <ExpressionBinding>
-                <ScriptBlock>" &lt;$($_.parameterValue)&gt;"</ScriptBlock>
-                <ItemSelectionCondition>
-                  <ScriptBlock>$null -ne $_.psobject.members['parameterValue']</ScriptBlock>
-                </ItemSelectionCondition>
-              </ExpressionBinding>
-              <ExpressionBinding>
-                <ScriptBlock>"]"</ScriptBlock>
-                <ItemSelectionCondition>
-                  <ScriptBlock>$_.required -ne 'true'</ScriptBlock>
-                </ItemSelectionCondition>
               </ExpressionBinding>
             </CustomItem>
           </CustomEntry>
