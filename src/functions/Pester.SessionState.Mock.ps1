@@ -770,38 +770,38 @@ Context, the command will identify all calls to the mocked command in the
 current Describe / Context block, as well as all child scopes of that block.
 
 .EXAMPLE
-C:\PS>Mock Set-Content {}
+Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Should -Invoke Set-Content
+Should -Invoke Set-Content
 
 This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
 
 .EXAMPLE
-C:\PS>Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
+Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
 
 {... Some Code ...}
 
-C:\PS>Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
+Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
 
 This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
 .EXAMPLE
-C:\PS>Mock Set-Content {}
+Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Should -Invoke Set-Content 0
+Should -Invoke Set-Content 0
 
 This will throw an exception if some code calls Set-Content at all
 
 .EXAMPLE
-C:\PS>Mock Set-Content {}
+Mock Set-Content {}
 
 {... Some Code ...}
 
-C:\PS>Should -Invoke Set-Content -Exactly 2
+Should -Invoke Set-Content -Exactly 2
 
 This will throw an exception if some code does not call Set-Content Exactly two times.
 
