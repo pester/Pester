@@ -1047,9 +1047,6 @@ i -PassThru:$PassThru {
                 if ($null -ne $file -and (Test-Path $file)) {
                     Remove-Item $file -Force
                 }
-
-                # Revert changes made to
-                $global:PesterPreference = $originalPP
             }
         }
 
