@@ -530,6 +530,9 @@ i -PassThru:$PassThru {
                     ScriptBlock = { }
                     PassThru    = $true
                 }
+                Debug  = @{
+                    ShowFullErrors = $false
+                }
                 Output = @{
                     Verbosity = "None"
                 }
@@ -547,6 +550,9 @@ i -PassThru:$PassThru {
                 Run    = @{
                     ScriptBlock = { }
                     PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $false
                 }
                 Output = @{
                     Verbosity = "None"
@@ -586,6 +592,9 @@ i -PassThru:$PassThru {
                 Run    = @{
                     ScriptBlock = $sb
                     PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $false
                 }
                 Output = @{
                     StackTraceVerbosity = "Something"
