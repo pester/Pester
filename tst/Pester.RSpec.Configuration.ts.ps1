@@ -522,4 +522,78 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
     }
+
+    b "Output.StackTraceVerbosity" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            foreach ($option in "None", "FirstLine", "Filtered", "Full") {
+                $c.Output.StackTraceVerbosity = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal $option
+            }
+        }
+
+        t "Default is Filtered" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
+        }
+
+        t "Debug.ShowFullErrors overrides Output.StackTraceVerbosity to Full when set to `$true" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal "Full"
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    StackTraceVerbosity = "Something"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+        }
+    }
 }
