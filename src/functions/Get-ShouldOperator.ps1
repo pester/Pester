@@ -82,7 +82,8 @@
                 # Update syntax to use Should -Operator as command-name and pretty printed parameter set
                 for ($i = 0; $i -lt $commandInfo.ParameterSets.Count; $i++) {
                     $help.syntax.syntaxItem[$i].name = "Should -$($operator.Name)"
-                    $help.syntax.syntaxItem[$i].PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty('DisplayParameterSet',$commandInfo.ParameterSets[$i].ToString().Replace('-Negate','-Not')))
+                    $prettyParameterSet = $commandInfo.ParameterSets[$i].ToString() -replace '-Negate', '-Not' -replace '\[+-CallerSessionState\]? <.*?>\]?\s?'
+                    $help.syntax.syntaxItem[$i].PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty('DisplayParameterSet', $prettyParameterSet))
                 }
 
                 [PSCustomObject]@{
