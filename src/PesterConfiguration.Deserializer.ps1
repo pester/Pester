@@ -21,17 +21,21 @@ class PesterConfigurationDeserializer : PSTypeConverter {
 
         $configuration = [PesterConfiguration]::new()
         foreach ($configurationSection in $configuration.PSObject.Properties) {
+            $configurationToSet = $configuration.($configurationSection.Name)
+
             foreach ($value in $configurationSection.Value.PSObject.Properties) {
                 $configurationItem = $configuration.($configurationSection.Name).($value.Name)
 
                 if ($configurationItem -is [Pester.ScriptBlockArrayOption]) {
-                    $configurationItem.Value = foreach ($string in $sourceValue.($configurationSection.Name).($value.Name).Value) {
+                    $valueToSet = foreach ($string in $sourceValue.($configurationSection.Name).($value.Name).Value) {
                         [ScriptBlock]::Create($string)
                     }
                 }
                 else {
-                    $configurationItem.Value = $sourceValue.($configurationSection.Name).($value.Name).Value
+                    $valueToSet = $sourceValue.($configurationSection.Name).($value.Name).Value
                 }
+
+                $configurationToSet.($value.Name) = $valueToSet | Write-Output
             }
         }
 

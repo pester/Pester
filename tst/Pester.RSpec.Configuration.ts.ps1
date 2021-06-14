@@ -585,5 +585,26 @@ i -PassThru:$PassThru {
 
             $config.Run.ScriptBlock.Value.GetType() | Verify-Equal ([ScriptBlock[]])
         }
+
+        t "Merges configuration when a PesterConfiguration object includes an array of values" {
+            if ($PSVersionTable.PSVersion.Major -lt 5) {
+                return
+            }
+
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Path = @(
+                        'c:\path1'
+                        'c:\path2'
+                    )
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Path.Value -join ',' | Verify-Equal 'c:\path1,c:\path2'
+        }
     }
 }
