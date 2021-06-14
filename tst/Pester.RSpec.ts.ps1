@@ -1066,6 +1066,47 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
+
+        t "Parameter name is added to Data when alias is used" {
+            # In normal PowerShell when calling a function/script with parameter-alias, only the real parameter name
+            # should be defined as variable and PSBoundParameters. Since Pester uses user-provided Data raw **in Run-phase**,
+            # we actually only provide alias in Run. We should at least add the parameter name as variable
+
+            $sb = {
+                param (
+                    [Alias('MyAlias')]
+                    $Value
+                )
+
+                if ($Value -ne 1) {
+                    throw "Expected `$Value to be 1 but it is, '$Value'"
+                }
+
+                if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                    # Normal PowerShell parameter-binding. Alias shouldn't be present
+                    throw "Expected `$MyAlias not to be present as variable, but it was"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        if ($Value -ne 1) {
+                            # Added by parameter default-value function in Pester to behave like general PowerShell
+                            # and be equal to Discovery
+                            throw "Expected `$Value to be 1 but it is, '$Value'"
+                        }
+
+                        if ($MyAlias -ne 1) {
+                            # Pester-specific behavior since we consume user-provided -Data directly
+                            throw "Expected `$MyAlias to be 1 but it is, '$MyAlias'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ MyAlias = 1 }
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
     }
 
     b "Default values in parametric scripts" {
@@ -1078,19 +1119,19 @@ i -PassThru:$PassThru {
                     )
 
                     if ($Value -ne 123) {
-                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                        throw "Expected `$Value to be 123, but it is '$Value'"
                     }
 
                     BeforeAll {
                         if ($Value -ne 123) {
-                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                            throw "Expected `$Value to be 123, but it is '$Value'"
                         }
                     }
 
                     Describe "d1" {
                         It "t1" {
                             if ($Value -ne 123) {
-                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                                throw "Expected `$Value to be 123, but it is '$Value'"
                             }
                         }
                     }
@@ -1102,19 +1143,19 @@ i -PassThru:$PassThru {
                     )
 
                     if ($Value -ne 123) {
-                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                        throw "Expected `$Value to be 123, but it is '$Value'"
                     }
 
                     BeforeAll {
                         if ($Value -ne 123) {
-                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                            throw "Expected `$Value to be 123, but it is '$Value'"
                         }
                     }
 
                     Context "c1" {
                         It "t1" {
                             if ($Value -ne 123) {
-                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                                throw "Expected `$Value to be 123, but it is '$Value'"
                             }
                         }
                     }
@@ -1151,34 +1192,27 @@ i -PassThru:$PassThru {
             }
         }
 
-        t "Adds the evaluted value for expression defaults and only adds explicit null-defaults" {
+        t "Default values are available in all root-level blocks" {
             try {
                 $sb = {
                     param (
-                        [int] $Value = 123,
-                        $OtherParam,
-                        $MyNullParam = $null,
-                        $ExpressionParam = $(5 % 2)
+                        [int] $Value = 123
                     )
 
                     if ($Value -ne 123) {
-                        throw "Expected `$Value to be 123, but it is, '$Value'"
-                    }
-
-                    if ($ExpressionParam -ne 1) {
-                        throw "Expected `$ExpressionParam to be 1, but it is, '$Value'"
+                        throw "Expected `$Value to be 123, but it is '$Value'"
                     }
 
                     BeforeAll {
                         if ($Value -ne 123) {
-                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                            throw "Expected `$Value to be 123, but it is '$Value'"
                         }
                     }
 
                     Describe "d1" {
                         It "t1" {
                             if ($Value -ne 123) {
-                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                                throw "Expected `$Value to be 123, but it is '$Value'"
                             }
                         }
                     }
@@ -1186,7 +1220,7 @@ i -PassThru:$PassThru {
                     Context "c1" {
                         It "t1" {
                             if ($Value -ne 123) {
-                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                                throw "Expected `$Value to be 123, but it is '$Value'"
                             }
                         }
                     }
@@ -1199,18 +1233,185 @@ i -PassThru:$PassThru {
 
                 $r = Invoke-Pester -Path $file -PassThru
 
-                $r.Containers[0].Data.Count | Verify-Equal 3
+                $r.Containers[0].Data.Count | Verify-Equal 1
                 $r.Containers[0].Data.ContainsKey('Value') | Verify-True
-                # Should not include parameters without default value
-                $r.Containers[0].Data.ContainsKey('OtherParam') | Verify-False
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Uses evaluated default and includes null-defaults including non-defined" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123,
+                        $OtherParam,
+                        $MyNullParam = $null,
+                        $ExpressionParam = $(5 % 2)
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    if ($ExpressionParam -ne 1) {
+                        throw "Expected `$ExpressionParam to be 1, but it is '$ExpressionParam'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+
+                            $v = Get-Variable -Name 'OtherParam'
+                            $v | Should -Not -BeNullOrEmpty
+                            $v.Value | Should -BeNullOrEmpty
+                        }
+                    }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($ExpressionParam -ne 1) {
+                                throw "Expected `$ExpressionParam to be 1, but it is '$ExpressionParam'"
+                            }
+
+                            $v2 = Get-Variable -Name 'MyNullParam'
+                            $v2 | Should -Not -BeNullOrEmpty
+                            $v2.Value | Should -BeNullOrEmpty
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $r = Invoke-Pester -Path $file -PassThru
+
+                $r.Containers[0].Data.Count | Verify-Equal 4
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+                # Should include parameters without user-defined default value
+                $r.Containers[0].Data.ContainsKey('OtherParam') | Verify-True
+                $r.Containers[0].Data['OtherParam'] | Verify-Null
                 # Should include parameters with default value of $null
                 $r.Containers[0].Data.ContainsKey('MyNullParam') | Verify-True
+                $r.Containers[0].Data['MyNullParam'] | Verify-Null
                 # Includes the evalutated default value, not the expression
                 $r.Containers[0].Data.ContainsKey('ExpressionParam') | Verify-True
                 $r.Containers[0].Data['ExpressionParam'] | Verify-Equal 1
 
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Only adds parameter-names as variables" {
+            $sb = {
+                param (
+                    [Alias('MyAlias')]
+                    $Value = 123
+                )
+
+                if ($Value -ne 123) {
+                    throw "Expected `$Value to be 123, but it is '$Value'"
+                }
+
+                if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                    throw "Expected `$MyAlias not to be present as variable, but it was"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+
+                        if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                            throw "Expected `$MyAlias not to be present as variable, but it was"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+
+            $r.Containers[0].Data.Count | Verify-Equal 1
+            $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+            $r.Containers[0].Data['Value'] | Verify-Equal 123
+            # Should not include alias as variable
+            $r.Containers[0].Data.ContainsKey('MyAlias') | Verify-False
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Private scoped parameters are only available in root-level setup " {
+            try {
+                $sb = {
+                    param (
+                        [int] $private:Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        BeforeAll {
+                            { Get-Variable -Name 'Value' -ErrorAction Stop } | Should -Throw -ExceptionType ([System.Management.Automation.ItemNotFoundException])
+                        }
+
+                        It "t1" {
+                            { Get-Variable -Name 'Value' -ErrorAction Stop } | Should -Throw -ExceptionType ([System.Management.Automation.ItemNotFoundException])
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $containers = @(
+                    (New-PesterContainer -Path $file),
+                    (New-PesterContainer -ScriptBlock $sb)
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('private:Value') | Verify-True
+                $r.Containers[0].Data['private:Value'] | Verify-Equal 123
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                $r.Containers[1].Data.ContainsKey('private:Value') | Verify-True
+                $r.Containers[1].Data['private:Value'] | Verify-Equal 123
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             }
             finally {
                 if ($null -ne $file -and (Test-Path $file)) {
