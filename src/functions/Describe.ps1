@@ -102,7 +102,7 @@ https://pester.dev/docs/usage/testdrive
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
         if ($state.CurrentBlock.IsRoot -and $state.CurrentBlock.Blocks.Count -eq 0) {
             # For undefined parameters in container, add parameter's default value to Data
-            Add-ContainerParameterDefaultValues -RootBlock $state.CurrentBlock -Container $container -CallingFunction $PSCmdlet
+            Add-MissingContainerParameters -RootBlock $state.CurrentBlock -Container $container -CallingFunction $PSCmdlet
         }
 
         if ($PSBoundParameters.ContainsKey('ForEach')) {
