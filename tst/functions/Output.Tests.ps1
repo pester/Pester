@@ -442,7 +442,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
     Describe Format-ErrorMessage {
         Context "Formats error messages for one error" {
-            BeforeAll {
+            BeforeEach {
                 try {
                     1 / 0
                 }
@@ -504,15 +504,10 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $messages[0] | Should -BeExactly "Failed to divide 1/0"
                 $messages | Should -HaveCount 1
             }
-
-            AfterEach {
-                $errorRecord.DisplayErrorMessage = "Failed to divide 1/0"
-                $errorRecord.DisplayStackTrace = $stackTraceText
-            }
         }
 
         Context "Formats error messages for multiple errors" {
-            BeforeAll {
+            BeforeEach {
                 $errorRecords = @()
                 for ($i = 1; $i -lt 3; $i++) {
                     try {
@@ -587,13 +582,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     $messages = $errorMessage -split [Environment]::NewLine
                     $messages[0] | Should -BeExactly "Failed to divide $($i + 1)/0"
                     $messages | Should -HaveCount 1
-                }
-            }
-
-            AfterEach {
-                for ($i = 0; $i -lt $errorRecords.Count; $i++) {
-                    $errorRecords[$i].DisplayErrorMessage = "Failed to divide $($i + 1)/0"
-                    $errorRecords[$i].DisplayStackTrace = $errorRecords[$i].Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
                 }
             }
         }
