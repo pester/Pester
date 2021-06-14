@@ -88,15 +88,19 @@ i -PassThru:$PassThru {
             $xmlTestCase.result | Verify-Equal "Failure"
             $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $failureLine = $sb.StartPosition.StartLine + 3
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
-            $message[-4] | Verify-Equal "Expected: 'Test'"
-            $message[-3] | Verify-Equal "But was:  'Testing'"
-            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $message[1] | Verify-Equal "Expected length: 4"
+            $message[2] | Verify-Equal "Actual length:   7"
+            $message[3] | Verify-Equal "Strings differ at index 4."
+            $message[4] | Verify-Equal "Expected: 'Test'"
+            $message[5] | Verify-Equal "But was:  'Testing'"
+            $message[6] | Verify-Equal "           ----^"
 
-            $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
+            $failureLine = $sb.StartPosition.StartLine + 3
+            $stackTraceText = $xmlTestCase.failure.'stack-trace' -split "`n"
+            $stackTraceText[0] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
         t "should write a failed test result when there are multiple errors" {
@@ -121,12 +125,20 @@ i -PassThru:$PassThru {
 
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
-            $message[8] | Verify-Equal "[1] RuntimeException: teardown failed"
+            $message[1] | Verify-Equal "Expected length: 4"
+            $message[2] | Verify-Equal "Actual length:   7"
+            $message[3] | Verify-Equal "Strings differ at index 4."
+            $message[4] | Verify-Equal "Expected: 'Test'"
+            $message[5] | Verify-Equal "But was:  'Testing'"
+            $message[6] | Verify-Equal "           ----^"
+            $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
             $sbStartLine = $sb.StartPosition.StartLine
-            $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
-            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
+            $failureLine = $sb.StartPosition.StartLine + 3
+            $stackTraceText = $xmlTestCase.failure.'stack-trace' -split "`n"
+            $stackTraceText[0] | Verify-Equal "[0] at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
+            $stackTraceText[2] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
 
         }
 

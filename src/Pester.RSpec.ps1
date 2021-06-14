@@ -377,7 +377,7 @@ function New-PesterConfiguration {
       Default value: 'Stop'
 
     Debug:
-      ShowFullErrors: Show full errors including Pester internal stack.
+      ShowFullErrors: Show full errors including Pester internal stack. This property is deprecated, and if set to true it will override Output.StackTraceVerbosity to 'Full'.
       Default value: $false
 
       WriteDebugMessages: Write Debug messages to screen.
@@ -395,6 +395,9 @@ function New-PesterConfiguration {
     Output:
       Verbosity: The verbosity of output, options are None, Normal, Detailed and Diagnostic.
       Default value: 'Normal'
+
+      StackTraceVerbosity: The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.
+      Default value: 'Filtered'
     ```
 
     .PARAMETER Hashtable
