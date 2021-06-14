@@ -561,10 +561,6 @@ i -PassThru:$PassThru {
         }
 
         t "Merges configuration when a PesterConfiguration object has been serialized" {
-            if ($PSVersionTable.PSVersion.Major -lt 5) {
-                return
-            }
-
             $BeforeSerialization = New-PesterConfiguration -Hashtable @{
                 Run    = @{
                     PassThru = $true
@@ -583,11 +579,24 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
 
-        t "Merges configuration when a PesterConfiguration object has been serialized with a ScriptBlock" {
-            if ($PSVersionTable.PSVersion.Major -lt 5) {
-                return
+        t "Merges configuration when a PesterConfiguration object includes an array of values" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Path = @(
+                        'c:\path1'
+                        'c:\path2'
+                    )
+                }
             }
 
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Path.Value -join ',' | Verify-Equal 'c:\path1,c:\path2'
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ScriptBlock" {
             $BeforeSerialization = New-PesterConfiguration -Hashtable @{
                 Run = @{
                     ScriptBlock = {
@@ -603,16 +612,15 @@ i -PassThru:$PassThru {
             $config.Run.ScriptBlock.Value.GetType() | Verify-Equal ([ScriptBlock[]])
         }
 
-        t "Merges configuration when a PesterConfiguration object includes an array of values" {
-            if ($PSVersionTable.PSVersion.Major -lt 5) {
-                return
-            }
-
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ContainerInfo object" {
             $BeforeSerialization = New-PesterConfiguration -Hashtable @{
                 Run = @{
-                    Path = @(
-                        'c:\path1'
-                        'c:\path2'
+                    Container = @(
+                        $container = [Pester.ContainerInfo]::Create()
+                        $container.Type = 'File'
+                        $container.Item = 'Item'
+                        $container.Data = 'Data'
+                        $container
                     )
                 }
             }
@@ -621,7 +629,10 @@ i -PassThru:$PassThru {
             $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
             $config = [PesterConfiguration]$AfterSerialization
 
-            $config.Run.Path.Value -join ',' | Verify-Equal 'c:\path1,c:\path2'
+            $config.Run.Container.Value.GetType() | Verify-Equal ([Pester.ContainerInfo[]])
+            $config.Run.Container.Value[0].Type | Verify-Equal 'File'
+            $config.Run.Container.Value[0].Item | Verify-Equal 'Item'
+            $config.Run.Container.Value[0].Data | Verify-Equal 'Data'
         }
     }
 

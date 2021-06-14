@@ -8,11 +8,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
 & $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
-if ($PSVersionTable.PSVersion.Major -ge 5) {
-    if (-not ('PesterConfigurationDeserializer' -as [Type])) {
-        . "$PSScriptRoot\PesterConfiguration.Deserializer.ps1"
-    }
-}
+Update-TypeData -TypeName PesterConfiguration -TypeConverter 'PesterConfigurationDeserializer' -SerializationDepth 5 -Force
+Update-TypeData -TypeName 'Deserialized.PesterConfiguration' -TargetTypeForDeserialization PesterConfiguration -Force
 
 & $script:SafeCommands['Export-ModuleMember'] @(
     'Invoke-Pester'
