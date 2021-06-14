@@ -9,5 +9,18 @@
   "yaml.format.singleQuote": true,
   "[powershell]": {
     "files.encoding": "utf8bom"
-  }
+  },
+  "files.associations": {
+    "*.ps1xml": "xml"
+  },
+  "xml.fileAssociations": [
+    {
+      "systemId": "https://raw.githubusercontent.com/PowerShell/PowerShell/master/src/Schemas/Format.xsd",
+      "pattern": "**/*.Format.ps1xml"
+    },
+    {
+      "systemId": "https://raw.githubusercontent.com/PowerShell/PowerShell/master/src/Schemas/Types.xsd",
+      "pattern": "**/*.Types.ps1xml"
+    }
+  ]
 }

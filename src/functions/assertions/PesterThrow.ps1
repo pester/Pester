@@ -1,4 +1,34 @@
 ﻿function Should-Throw {
+    <#
+.SYNOPSIS
+Checks if an exception was thrown. Enclose input in a script block.
+
+Warning: The input object must be a ScriptBlock, otherwise it is processed outside of the assertion.
+
+.EXAMPLE
+{ foo } | Should -Throw
+
+Because "foo" isn't a known command, PowerShell throws an error.
+Throw confirms that an error occurred, and successfully passes the test.
+
+.EXAMPLE
+{ foo } | Should -Not -Throw
+
+By using -Not with -Throw, the opposite effect is achieved.
+"Should -Not -Throw" expects no error, but one occurs, and the test fails.
+
+.EXAMPLE
+{ $foo = 1 } | Should -Throw
+
+Assigning a variable does not throw an error.
+If asserting "Should -Throw" but no error occurs, the test fails.
+
+.EXAMPLE
+{ $foo = 1 } | Should -Not -Throw
+
+Assert that assigning a variable should not throw an error.
+It does not throw an error, so the test passes.
+#>
     param (
         [ScriptBlock] $ActualValue,
         [string] $ExpectedMessage,
@@ -9,32 +39,6 @@
         [switch] $PassThru
     )
 
-    <#
-.SYNOPSIS
-Checks if an exception was thrown. Enclose input in a script block.
-
-Warning: The input object must be a ScriptBlock, otherwise it is processed outside of the assertion.
-
-.EXAMPLE
-{ foo } | Should -Throw
-Because "foo" isn't a known command, PowerShell throws an error.
-Throw confirms that an error occurred, and successfully passes the test.
-
-.EXAMPLE
-{ foo } | Should -Not -Throw
-By using -Not with -Throw, the opposite effect is achieved.
-"Should -Not -Throw" expects no error, but one occurs, and the test fails.
-
-.EXAMPLE
-{ $foo = 1 } | Should -Throw
-Assigning a variable does not throw an error.
-If asserting "Should -Throw" but no error occurs, the test fails.
-
-.EXAMPLE
-{ $foo = 1 } | Should -Not -Throw
-Assert that assigning a variable should not throw an error.
-It does not throw an error, so the test passes.
-#>
     $actualExceptionMessage = ""
     $actualExceptionWasThrown = $false
     $actualError = $null

@@ -76,4 +76,67 @@ function Measure-SafeCommands {
     }
 }
 
+Function Measure-ObjectCmdlets {
+    <#
+    .SYNOPSIS
+    Should avoid usage of New/Where/Foreach/Select-Object.
+    .DESCRIPTION
+    The built-in *-Object-cmdlets are slow compared to alternatives in .NET. To fix a violation of this rule, consider using an alterantive like `foreach`-keyword etc.`.
+    .EXAMPLE
+    Measure-ObjectCmdlets -CommandAst $CommandAst
+    .INPUTS
+    [System.Management.Automation.Language.CommandAst]
+    .OUTPUTS
+    [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+    .NOTES
+    None
+    #>
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]])]
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [System.Management.Automation.Language.CommandAst]
+        $CommandAst
+    )
+
+    Process {
+        $results = @()
+
+        #StringConstantExpressionAst match (direct cmdlet usage)
+        $objectCommands = "(?:New|Where|Foreach|Select)-Object"
+
+        $result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            'Message'              = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
+            'Extent'               = $CommandAst.Extent
+            'RuleName'             = $PSCmdlet.MyInvocation.InvocationName
+            'Severity'             = 'Information'
+        }
+
+        try {
+            $commandName = $CommandAst.GetCommandName()
+
+            if ($null -ne $commandName -and $commandName -match $objectCommands) {
+                # Cmdlet used
+                $results += $result
+
+            } elseif ($CommandAst.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand) {
+                $invocatedCmd = $CommandAst.CommandElements[0]
+
+                if ($invocatedCmd -is [System.Management.Automation.Language.IndexExpressionAst] -and
+                    $invocatedCmd.Target -match 'SafeCommands'-and $invocatedCmd.Index -match $objectCommands) {
+                    # SafeCommands
+                    $results += $result
+                }
+            }
+
+            return $results
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+    }
+}
+
 Export-ModuleMember -Function 'Measure-*'

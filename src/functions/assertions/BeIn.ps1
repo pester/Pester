@@ -6,6 +6,7 @@ Uses PowerShell's -contains operator to confirm.
 
 .EXAMPLE
 1 | Should -BeIn @(1,2,3,'a','b','c')
+
 This test passes, as 1 exists in the provided collection.
 #>
     [bool] $succeeded = $ExpectedValue -contains $ActualValue

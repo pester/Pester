@@ -6,6 +6,7 @@ Uses PowerShell's -contains operator to confirm.
 
 .EXAMPLE
 1,2,3 | Should -Contain 1
+
 This test passes, as 1 exists in the provided collection.
 #>
     [bool] $succeeded = $ActualValue -contains $ExpectedValue

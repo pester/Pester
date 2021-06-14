@@ -91,6 +91,7 @@ $content = @(
     , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/PesterConfiguration.Deserializer.ps1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
 )
 
 if ($Clean) {

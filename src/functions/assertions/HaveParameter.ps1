@@ -14,6 +14,7 @@
 
     .EXAMPLE
         Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -Mandatory
+
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
     .NOTES
