@@ -26,6 +26,7 @@ $script:SafeCommands = @{
     'Get-ChildItem'        = & $Get_Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Content'          = & $Get_Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'             = & $Get_Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Help'             = & $Get_Command -Name Get-Help             -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-Item'             = & $Get_Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-ItemProperty'     = & $Get_Command -Name Get-ItemProperty     -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'         = & $Get_Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters

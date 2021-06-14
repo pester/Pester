@@ -5,14 +5,17 @@ Asserts that the value is true, or truthy.
 
 .EXAMPLE
 $true | Should -BeTrue
+
 This test passes. $true is true.
 
 .EXAMPLE
 1 | Should -BeTrue
+
 This test passes. 1 is true.
 
 .EXAMPLE
 1,2,3 | Should -BeTrue
+
 PowerShell does not enter a `If (-not @(1,2,3)) {}` block.
 This test passes as a "truthy" result.
 #>
@@ -40,14 +43,17 @@ Asserts that the value is false, or falsy.
 
 .EXAMPLE
 $false | Should -BeFalse
+
 This test passes. $false is false.
 
 .EXAMPLE
 0 | Should -BeFalse
+
 This test passes. 0 is false.
 
 .EXAMPLE
 $null | Should -BeFalse
+
 PowerShell does not enter a `If ($null) {}` block.
 This test passes as a "falsy" result.
 #>

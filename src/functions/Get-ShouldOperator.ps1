@@ -72,13 +72,26 @@
     END {
         if ($Name) {
             $operator = $AssertionOperators.Values | & $SafeCommands['Where-Object'] { $Name -eq $_.Name -or $_.Alias -contains $Name }
-            $help = Get-Help $operator.InternalName -Examples -ErrorAction SilentlyContinue
+            $commandInfo = & $SafeCommands['Get-Command'] -Name $operator.InternalName -ErrorAction SilentlyContinue
+            $help = & $SafeCommands['Get-Help'] -Name $operator.InternalName -Examples -ErrorAction SilentlyContinue
 
             if (($help | & $SafeCommands['Measure-Object']).Count -ne 1) {
                 & $SafeCommands['Write-Warning'] ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))
             }
             else {
-                $help
+                # Update syntax to use Should -Operator as command-name and pretty printed parameter set
+                for ($i = 0; $i -lt $commandInfo.ParameterSets.Count; $i++) {
+                    $help.syntax.syntaxItem[$i].name = "Should -$($operator.Name)"
+                    $prettyParameterSet = $commandInfo.ParameterSets[$i].ToString() -replace '-Negate', '-Not' -replace '\[+-CallerSessionState\]? <.*?>\]?\s?'
+                    $help.syntax.syntaxItem[$i].PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty('DisplayParameterSet', $prettyParameterSet))
+                }
+
+                [PSCustomObject]@{
+                    PSTypeName = 'PesterAssertionOperatorHelp'
+                    Name = $operator.Name
+                    Aliases = @($operator.Alias)
+                    Help = $help
+                }
             }
         }
         else {

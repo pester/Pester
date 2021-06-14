@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <ViewDefinitions>
+    <View>
+      <Name>PesterAssertionOperatorHelp</Name>
+      <ViewSelectedBy>
+        <TypeName>PesterAssertionOperatorHelp</TypeName>
+      </ViewSelectedBy>
+      <CustomControl>
+        <CustomEntries>
+          <CustomEntry>
+            <CustomItem>
+              <Text>NAME</Text>
+              <NewLine />
+              <Frame>
+                <LeftIndent>4</LeftIndent>
+                <CustomItem>
+                  <ExpressionBinding>
+                    <PropertyName>Name</PropertyName>
+                  </ExpressionBinding>
+                  <NewLine />
+                </CustomItem>
+              </Frame>
+              <NewLine />
+              <ExpressionBinding>
+                <ScriptBlock>$_</ScriptBlock>
+                <ItemSelectionCondition>
+                  <PropertyName>Aliases</PropertyName>
+                </ItemSelectionCondition>
+                <CustomControl>
+                  <CustomEntries>
+                    <CustomEntry>
+                      <CustomItem>
+                        <Text>ALIASES</Text>
+                        <NewLine />
+                        <Frame>
+                          <LeftIndent>4</LeftIndent>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <PropertyName>Aliases</PropertyName>
+                              <EnumerateCollection />
+                              <CustomControl>
+                                <CustomEntries>
+                                  <CustomEntry>
+                                    <CustomItem>
+                                      <ExpressionBinding>
+                                        <ScriptBlock>$_</ScriptBlock>
+                                      </ExpressionBinding>
+                                      <NewLine />
+                                    </CustomItem>
+                                  </CustomEntry>
+                                </CustomEntries>
+                              </CustomControl>
+                            </ExpressionBinding>
+                          </CustomItem>
+                        </Frame>
+                        <NewLine />
+                      </CustomItem>
+                    </CustomEntry>
+                  </CustomEntries>
+                </CustomControl>
+              </ExpressionBinding>
+              <ExpressionBinding>
+                <PropertyName>Help</PropertyName>
+                <CustomControl>
+                  <CustomEntries>
+                    <CustomEntry>
+                      <CustomItem>
+                        <Text>SYNTAX</Text>
+                        <NewLine />
+                        <Frame>
+                          <LeftIndent>4</LeftIndent>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <PropertyName>syntax</PropertyName>
+                              <CustomControl>
+                                <CustomEntries>
+                                  <CustomEntry>
+                                    <CustomItem>
+                                      <ExpressionBinding>
+                                        <PropertyName>syntaxitem</PropertyName>
+                                        <EnumerateCollection />
+                                        <CustomControl>
+                                          <CustomEntries>
+                                            <CustomEntry>
+                                              <CustomItem>
+                                                <ExpressionBinding>
+                                                  <ScriptBlock>"$($_.name) $($_.DisplayParameterSet)"</ScriptBlock>
+                                                </ExpressionBinding>
+                                                <NewLine />
+                                                <NewLine />
+                                              </CustomItem>
+                                            </CustomEntry>
+                                          </CustomEntries>
+                                        </CustomControl>
+                                      </ExpressionBinding>
+                                    </CustomItem>
+                                  </CustomEntry>
+                                </CustomEntries>
+                              </CustomControl>
+                            </ExpressionBinding>
+                          </CustomItem>
+                        </Frame>
+                        <Text>SYNOPSIS</Text>
+                        <NewLine />
+                        <Frame>
+                          <LeftIndent>4</LeftIndent>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <PropertyName>synopsis</PropertyName>
+                            </ExpressionBinding>
+                            <NewLine />
+                          </CustomItem>
+                        </Frame>
+                        <NewLine />
+                        <Text>EXAMPLES</Text>
+                        <NewLine />
+                        <Frame>
+                          <LeftIndent>4</LeftIndent>
+                          <CustomItem>
+                            <ExpressionBinding>
+                              <PropertyName>Examples</PropertyName>
+                              <CustomControl>
+                                <CustomEntries>
+                                  <CustomEntry>
+                                    <CustomItem>
+                                      <ExpressionBinding>
+                                        <PropertyName>Example</PropertyName>
+                                        <EnumerateCollection />
+                                        <CustomControl>
+                                          <CustomEntries>
+                                            <CustomEntry>
+                                              <CustomItem>
+                                                <ExpressionBinding>
+                                                  <PropertyName>title</PropertyName>
+                                                </ExpressionBinding>
+                                                <NewLine />
+                                                <NewLine />
+                                                <ExpressionBinding>
+                                                  <PropertyName>introduction</PropertyName>
+                                                  <CustomControl>
+                                                    <CustomEntries>
+                                                      <CustomEntry>
+                                                        <CustomItem>
+                                                          <ExpressionBinding>
+                                                            <PropertyName>Text</PropertyName>
+                                                          </ExpressionBinding>
+                                                        </CustomItem>
+                                                      </CustomEntry>
+                                                    </CustomEntries>
+                                                  </CustomControl>
+                                                </ExpressionBinding>
+                                                <ExpressionBinding>
+                                                  <PropertyName>code</PropertyName>
+                                                  <EnumerateCollection />
+                                                </ExpressionBinding>
+                                                <NewLine />
+                                                <NewLine />
+                                                <ExpressionBinding>
+                                                  <PropertyName>remarks</PropertyName>
+                                                  <EnumerateCollection />
+                                                  <CustomControl>
+                                                    <CustomEntries>
+                                                      <CustomEntry>
+                                                        <CustomItem>
+                                                          <ExpressionBinding>
+                                                            <PropertyName>Text</PropertyName>
+                                                          </ExpressionBinding>
+                                                        </CustomItem>
+                                                      </CustomEntry>
+                                                    </CustomEntries>
+                                                  </CustomControl>
+                                                </ExpressionBinding>
+                                                <NewLine />
+                                                <NewLine />
+                                              </CustomItem>
+                                            </CustomEntry>
+                                          </CustomEntries>
+                                        </CustomControl>
+                                      </ExpressionBinding>
+                                    </CustomItem>
+                                  </CustomEntry>
+                                </CustomEntries>
+                              </CustomControl>
+                            </ExpressionBinding>
+                            <NewLine />
+                          </CustomItem>
+                        </Frame>
+                      </CustomItem>
+                    </CustomEntry>
+                  </CustomEntries>
+                </CustomControl>
+              </ExpressionBinding>
+            </CustomItem>
+          </CustomEntry>
+        </CustomEntries>
+      </CustomControl>
+    </View>
+  </ViewDefinitions>
+</Configuration>

@@ -6,6 +6,7 @@ Uses PowerShell's -gt operator to compare the two values.
 
 .EXAMPLE
 2 | Should -BeGreaterThan 0
+
 This test passes, as PowerShell evaluates `2 -gt 0` as true.
 #>
     if ($Negate) {
@@ -33,10 +34,12 @@ Uses PowerShell's -le operator to compare the two values.
 
 .EXAMPLE
 1 | Should -BeLessOrEqual 10
+
 This test passes, as PowerShell evaluates `1 -le 10` as true.
 
 .EXAMPLE
 10 | Should -BeLessOrEqual 10
+
 This test also passes, as PowerShell evaluates `10 -le 10` as true.
 #>
     if ($Negate) {
