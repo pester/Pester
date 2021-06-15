@@ -400,14 +400,14 @@ function Should-InvokeInternal {
         if ($preExistingFilterVariables.Count -gt 0) {
             foreach ($p in $ContextInfo.Hook.Metadata.Parameters.GetEnumerator()) {
                 if ($preExistingFilterVariables.ContainsKey($p.Key)) {
-                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) with value '$($preExistingFilterVariables[$p.Key])' exists in test and may conflict with a parameter in ParameterFilter for $CommandName resulting in false matches. Consider renaming the existing variable."
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) with value '$($preExistingFilterVariables[$p.Key])' exists in current scope and matches a parameter in $CommandName which may cause false matches in ParameterFilter. Consider renaming the existing variable or use `$PesterBoundParameters.$($p.Key) in ParameterFilter."
                 }
 
                 $aliases = $p.Value.Aliases
                 if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
                     foreach ($a in $aliases) {
                         if ($preExistingFilterVariables.ContainsKey($a)) {
-                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) with value '$($preExistingFilterVariables[$a])' exists in test and may conflict with an alias in ParameterFilter for $CommandName resulting in false matches. Consider renaming the existing variable."
+                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) with value '$($preExistingFilterVariables[$a])' exists in current scope and matches a parameter in $CommandName which may cause false matches in ParameterFilter. Consider renaming the existing variable or use `$PesterBoundParameters.$($a) in ParameterFilter."
                         }
                     }
                 }
