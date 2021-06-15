@@ -29,7 +29,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
         throw new NotImplementedException();
     }
 
-    public PesterConfiguration ConvertToPesterConfiguration(object sourceValue)
+    private PesterConfiguration ConvertToPesterConfiguration(object sourceValue)
     {
         if (sourceValue is IDictionary)
             return new PesterConfiguration((IDictionary)sourceValue);
@@ -37,7 +37,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
         return new PesterConfiguration(ConvertToConfigurationHashtable((PSObject)sourceValue));
     }
 
-    public Hashtable ConvertToConfigurationHashtable(PSObject sourceConfiguration)
+    private Hashtable ConvertToConfigurationHashtable(PSObject sourceConfiguration)
     {
         Hashtable configuration = new Hashtable();
 
