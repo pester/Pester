@@ -2650,7 +2650,7 @@ function Add-MissingContainerParameters ($RootBlock, $Container, $CallingFunctio
             $v = $CallingFunction.SessionState.PSVariable.Get($param)
             if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Discovery "Container parameter '$param' is undefined, adding to container Data with default value $(Format-Nicely $v.Value)."
+                    Write-PesterDebugMessage -Scope Runtime "Container parameter '$param' is undefined, adding to container Data with default value $(Format-Nicely $v.Value)."
                 }
                 $RootBlock.Data.Add($param, $v.Value)
             }
