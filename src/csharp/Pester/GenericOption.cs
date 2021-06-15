@@ -34,7 +34,7 @@ namespace Pester
 
         public T Default { get; private set; }
         public string Description { get; private set; }
-        public T Value { get; set; }
+        public T Value { get; private set; }
 
         public override string ToString()
         {
