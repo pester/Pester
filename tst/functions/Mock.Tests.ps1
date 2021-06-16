@@ -2798,13 +2798,15 @@ Describe "When inherited variables conflicts with parameters" {
         { Should -InvokeVerifiable } | Should -Throw
     }
 
-    It "KNOWN ISSUE: Should Invoke ParameterFilter will count false positive" {
+    It "Should Invoke ParameterFilter will count false positive for the first FunctionUnderTest call" {
         # https://github.com/pester/Pester/issues/1873
+        # this will pass the parameter filter because we define a variable param1 with the same name and value as the expected parameter value
         FunctionUnderTest | Should -Be 'default'
         FunctionUnderTest -param1 'abc' | Should -Be 'filtered'
         $param1 = 'abc'
 
         # This should show warning about conflict when in Diagnostic output (Mock debug message)
+        # about already having a variable in the scope that is the same as parameter name
         Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 'abc' } -Times 2 -Exactly
     }
 
