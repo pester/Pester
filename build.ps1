@@ -150,13 +150,14 @@ if ($Clean) {
 
     # generate help for config object and insert it
     $configuration = [PesterConfiguration]::Default
+    $eol = [Environment]::NewLine
     $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
         $section = $configuration.($p)
         "${p}:"
         foreach ($r in $section.PSObject.Properties.Name) {
             $option = $section.$r
             $default = Format-NicelyMini $option.Default
-            "  ${r}: $($option.Description)`n  Default value: ${default}`n"
+            "  ${r}: $($option.Description)$eol  Default value: ${default}$eol"
         }
     }
 
@@ -168,19 +169,19 @@ if ($Clean) {
     $generated = $false
     foreach ($l in $f) {
         if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
-            $null = $sbf.AppendLine("$l`n")
+            $null = $sbf.AppendLine("$l$eol")
             $generated = $true
             $margin = $matches.margin
             $null = $sbf.AppendLine("$margin``````")
 
-            $generatedLines = @($generatedConfig -split "`n")
+            $generatedLines = @($generatedConfig -split $eol)
             for ($i=0; $i -lt $generatedLines.Count; $i++) {
                 $l = $generatedLines[$i]
                 $m = if ($l) { $margin } else { $null }
 
                 if ($i -eq $generatedLines.Count-1) {
                     #last line should be blank - replace with codeblock end
-                    $null = $sbf.AppendLine("$margin```````n")
+                    $null = $sbf.AppendLine("$margin``````$eol")
                 } else {
                     $null = $sbf.AppendLine("$m$l")
                 }
