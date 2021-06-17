@@ -799,7 +799,7 @@ function Get-JaCoCoReportXml {
     $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
-        return
+        return [string]::Empty
     }
 
     $now = & $SafeCommands['Get-Date']
