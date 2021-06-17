@@ -144,8 +144,8 @@ InPesterModuleScope {
                     & $sb
                 }
                 else {
-                    $tracer = Start-TraceScript $breakpoints
-                    try { & $sb } finally { Stop-TraceScript }
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $sb } finally { Stop-TraceScript -Patched $patched }
                     $measure = $tracer.Hits
                 }
 
@@ -495,8 +495,8 @@ InPesterModuleScope {
                     & $testScriptPath
                 }
                 else {
-                    $tracer = Start-TraceScript $breakpoints
-                    try { & $testScriptPath } finally { Stop-TraceScript }
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                     $measure = $tracer.Hits
                 }
 
@@ -544,8 +544,8 @@ InPesterModuleScope {
                     & $testScriptPath
                 }
                 else {
-                    $tracer = Start-TraceScript $breakpoints
-                    try { & $testScriptPath } finally { Stop-TraceScript }
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                     $measure = $tracer.Hits
                 }
 
@@ -593,8 +593,8 @@ InPesterModuleScope {
                     & $testScriptPath
                 }
                 else {
-                    $tracer = Start-TraceScript $breakpoints
-                    try { & $testScriptPath } finally { Stop-TraceScript }
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                     $measure = $tracer.Hits
                 }
 
@@ -641,8 +641,8 @@ InPesterModuleScope {
                     & $testScriptPath
                 }
                 else {
-                    $tracer = Start-TraceScript $breakpoints
-                    try { & $testScriptPath } finally { Stop-TraceScript }
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                     $measure = $tracer.Hits
                 }
 
@@ -701,8 +701,8 @@ InPesterModuleScope {
                         & $testScriptPath
                     }
                     else {
-                        $tracer = Start-TraceScript $breakpoints
-                        try { & $testScriptPath } finally { Stop-TraceScript }
+                        $patched, $tracer = Start-TraceScript $breakpoints
+                        try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                         $measure = $tracer.Hits
                     }
 
@@ -746,8 +746,8 @@ InPesterModuleScope {
                         & $testScriptPath
                     }
                     else {
-                        $tracer = Start-TraceScript $breakpoints
-                        try { & $testScriptPath } finally { Stop-TraceScript }
+                        $patched, $tracer = Start-TraceScript $breakpoints
+                        try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                         $measure = $tracer.Hits
                     }
 
@@ -829,8 +829,8 @@ InPesterModuleScope {
                         & $testScriptPath
                     }
                     else {
-                        $tracer = Start-TraceScript $breakpoints
-                        try { & $testScriptPath } finally { Stop-TraceScript }
+                        $patched, $tracer = Start-TraceScript $breakpoints
+                        try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
                         $measure = $tracer.Hits
                     }
 
