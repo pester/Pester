@@ -28,13 +28,19 @@
 
         $breakpoints = Enter-CoverageAnalysis -CodeCoverage $config -Logger $logger -UseBreakpoints $config.UseBreakpoints -UseSingleHitBreakpoints $config.UseSingleHitBreakpoints
 
+        $patched = $false
         if (-not $config.UseBreakpoints) {
-            $tracer = Start-TraceScript $breakpoints
+            $patched, $tracer = Start-TraceScript $breakpoints
         }
 
         $Context.Data.Add('Coverage', @{
                 CommandCoverage = $breakpoints
+                # the tracer that was used for profiler based CC
                 Tracer          = $tracer
+                # if the tracer was patching the session, or if we just plugged in to an existing
+                # profiler session, in case Profiler is profiling a Pester run that has Profiler based
+                # CodeCoverage enabled
+                Patched         = $patched
                 CoverageReport  = $null
             })
 
@@ -45,14 +51,17 @@
         param($Context)
 
         $config = $Context.Configuration['Coverage']
-        if (-not $config.UseBreakpoints) {
-            Stop-TraceScript
-        }
+
         if (-not $Context.TestRun.PluginData.ContainsKey("Coverage")) {
             return
         }
 
         $coverageData = $Context.TestRun.PluginData.Coverage
+
+        if (-not $config.UseBreakpoints) {
+            Stop-TraceScript -Patched $coverageData.Patched
+        }
+
         #TODO: rather check the config to see which mode of coverage we used
         if ($null -eq $coverageData.Tracer) {
             # we used breakpoints to measure CC, clean them up
