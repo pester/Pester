@@ -465,6 +465,13 @@ InPesterModuleScope {
                 ')
             }
 
+            It 'JaCoCo returns empty string when there are 0 analyzed commands' {
+                $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
+                $jaCoCoReportXml | Should -Not -Be $null
+                $jaCoCoReportXml | Should -Be ([String]::Empty)
+            }
+
             It 'Reports the right line numbers' {
                 $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].Line | Should -Be 1
                 $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].StartLine | Should -Be 1
