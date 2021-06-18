@@ -398,6 +398,9 @@ function New-PesterConfiguration {
 
       StackTraceVerbosity: The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.
       Default value: 'Filtered'
+
+      CIFormat: The CI format of output, options are None, Auto, AzureDevops and GithubActions.
+      Default value: 'Auto'
     ```
 
     .PARAMETER Hashtable

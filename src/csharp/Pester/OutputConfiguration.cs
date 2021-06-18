@@ -24,6 +24,7 @@ namespace Pester
     {
         private StringOption _verbosity;
         private StringOption _stackTraceVerbosity;
+        private StringOption _ciFormat;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -37,6 +38,7 @@ namespace Pester
             {
                 Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
                 StackTraceVerbosity = configuration.GetObjectOrNull<string>("StackTraceVerbosity") ?? StackTraceVerbosity;
+                CIFormat = configuration.GetObjectOrNull<string>("CIFormat") ?? CIFormat;
             }
         }
 
@@ -44,6 +46,7 @@ namespace Pester
         {
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
             StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
+            CIFormat = new StringOption("The CI format of output, options are None, Auto, AzureDevops and GithubActions.", "Auto");
         }
 
         public StringOption Verbosity
@@ -74,6 +77,22 @@ namespace Pester
                 else
                 {
                     _stackTraceVerbosity = new StringOption(_stackTraceVerbosity, value?.Value);
+                }
+            }
+        }
+
+        public StringOption CIFormat
+        {
+            get { return _ciFormat; }
+            set
+            {
+                if (_ciFormat == null)
+                {
+                    _ciFormat = value;
+                }
+                else
+                {
+                    _ciFormat = new StringOption(_ciFormat, value?.Value);
                 }
             }
         }
