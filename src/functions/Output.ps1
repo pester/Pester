@@ -773,6 +773,51 @@ function Get-WriteScreenPlugin ($Verbosity) {
     New-PluginObject @p
 }
 
+function Write-CIErrorMessage {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
+        [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [string] $Header,
+
+        [Parameter(Mandatory)]
+        [string[]] $Message
+    )
+
+    # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#formatting-commands
+    if ($CIFormat -eq 'AzureDevops') {
+
+        if (-not [string]::IsNullOrEmpty($Header)) {
+            # Log header as task issue error, so it gets reported to build log
+            & $SafeCommands['Write-Host'] "##vso[task.logissue type=error] $Header"
+        }
+
+        # Log subsequent messages as normal errors that don't get reported to build log
+        foreach ($line in $Message) {
+            & $SafeCommands['Write-Host'] "##[error] $line"
+        }
+    }
+
+    # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
+    elseif ($CIFormat -eq 'GithubActions') {
+
+        if (-not [string]::IsNullOrEmpty($Header)) {
+            # Log header as error so it gets reported to build log
+            & $SafeCommands['Write-Host'] "::error:: $Header"
+        }
+
+        # Log subsequent messages as non-error messages
+        # Github Actions doesn't support task issue errors vs normal errors like ADO above
+        # If we log every error message then they will all be reported in the build log, which will be very noisy
+        foreach ($line in $Message) {
+            & $SafeCommands['Write-Host'] $line
+        }
+    }
+}
+
 function Format-ErrorMessage {
     [CmdletBinding()]
     param (
