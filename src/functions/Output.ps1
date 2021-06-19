@@ -513,8 +513,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 throw "Container type '$($container.Type)' is not supported."
             }
 
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] Discovery in $($path) failed with:"
-            Write-ErrorToScreen $Context.Block.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $errorHeader = "[-] Discovery in $($path) failed with:"
+
+            $formatErrorParams = @{
+                Err                 = $Context.Block.ErrorRecord
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorMessage -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            }
+            else {
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-ErrorToScreen @formatErrorParams
+            }
         }
     }
 
@@ -573,8 +586,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         if ($Context.Result.ErrorRecord.Count -gt 0) {
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] $($Context.Result.Item) failed with:"
-            Write-ErrorToScreen $Context.Result.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $errorHeader = "[-] $($Context.Result.Item) failed with:"
+
+            $formatErrorParams = @{
+                Err                 = $Context.Result.ErrorRecord
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorMessage -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            }
+            else {
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-ErrorToScreen $formatErrorParams
+            }
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -671,10 +697,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                 }
                 else {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                    $formatErrorParams = @{
+                        Err                 = $_test.ErrorRecord
+                        ErrorMargin         = $error_margin
+                        StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+                    }
 
-                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+                    if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                        $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                        Write-CIErrorMessage -CIFormat $PesterPreference.Output.CIFormat.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                    }
+                    else {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                        Write-ErrorToScreen @formatErrorParams
+                    }
                 }
                 break
             }
@@ -760,8 +797,23 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
-        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+
+        $errorHeader = "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+
+        $formatErrorParams = @{
+            Err                 = $Context.Block.ErrorRecord
+            ErrorMargin         = $error_margin
+            StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+        }
+
+        if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+            $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+            Write-CIErrorMessage -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+        }
+        else {
+            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail $errorHeader
+            Write-ErrorToScreen @formatErrorParams
+        }
     }
 
     $p.End = {
