@@ -666,6 +666,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
         }
 
+        if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
+            throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {

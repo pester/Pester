@@ -899,18 +899,30 @@ function Invoke-Pester {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
             }
 
-            if ($PesterPreference.Output.CIFormat.IsOriginalValue() -or $PesterPreference.Output.CIFormat.Value -eq 'Auto') {
+            if ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
 
-                # Variable is set to 'True' if the script is being run by a build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+                # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
                 # Do not fix this to check for boolean value, the value is set to literal string 'True'
-                if ([System.Environment]::GetEnvironmentVariable('TF_BUILD') -eq 'True') {
+                if ($env:TF_BUILD -eq 'True') {
                     $PesterPreference.Output.CIFormat = 'AzureDevops'
                 }
                 # Variable is set to 'True' if the script is being run by a Github Actions workflow. https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
                 # Do not fix this to check for boolean value, the value is set to literal string 'True'
-                elseif ([System.Environment]::GetEnvironmentVariable('GITHUB_ACTIONS') -eq 'True') {
+                elseif ($env:GITHUB_ACTIONS -eq 'True') {
                     $PesterPreference.Output.CIFormat = 'GithubActions'
                 }
+
+                else {
+                    $PesterPreference.Output.CIFormat = 'None'
+                }
+            }
+
+            elseif ($PesterPreference.Output.CIFormat.Value -eq 'AzureDevops' -and $env:TF_BUILD -ne 'True') {
+                $PesterPreference.Output.CIFormat = 'None'
+            }
+
+            elseif ($PesterPreference.Output.CIFormat.Value -eq 'GithubActions' -and $env:GITHUB_ACTIONS -ne 'True') {
+                $PesterPreference.Output.CIFormat = 'None'
             }
 
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
