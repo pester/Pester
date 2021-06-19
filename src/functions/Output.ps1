@@ -867,6 +867,27 @@ function Format-CIErrorMessage {
     return $lines
 }
 
+function Write-CIErrorToScreen {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
+        [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [string] $Header,
+
+        [Parameter(Mandatory)]
+        [string[]] $Message
+    )
+
+    $errorMessage = Format-CIErrorMessage @PSBoundParameters
+
+    foreach ($line in $errorMessage) {
+        & $SafeCommands['Write-Host'] $line
+    }
+}
+
 function Format-ErrorMessage {
     [CmdletBinding()]
     param (
