@@ -933,10 +933,13 @@ function Invoke-Pester {
                 # and that way output can consume the fixed object that decorator
                 # decorated, not nice but works
                 Get-RSpecObjectDecoratorPlugin
-                Get-TestDrivePlugin
             )
 
-            if ("Windows" -eq (GetPesterOs)) {
+            if ($PesterPreference.TestDrive.Enabled.Value) {
+                $plugins += @(Get-TestDrivePlugin)
+            }
+
+            if ($PesterPreference.TestRegistry.Enabled.Value -and "Windows" -eq (GetPesterOs)) {
                 $plugins += @(Get-TestRegistryPlugin)
             }
 

@@ -33,6 +33,8 @@ public class PesterConfiguration
         cfg.Should = ShouldConfiguration.ShallowClone(configuration.Should);
         cfg.Debug = DebugConfiguration.ShallowClone(configuration.Debug);
         cfg.Output = OutputConfiguration.ShallowClone(configuration.Output);
+        cfg.TestDrive = TestDriveConfiguration.ShallowClone(configuration.TestDrive);
+        cfg.TestRegistry = TestRegistryConfiguration.ShallowClone(configuration.TestRegistry);
         return cfg;
     }
 
@@ -46,6 +48,8 @@ public class PesterConfiguration
         cfg.Should = Merger.Merge(configuration.Should, @override.Should);
         cfg.Debug = Merger.Merge(configuration.Debug, @override.Debug);
         cfg.Output = Merger.Merge(configuration.Output, @override.Output);
+        cfg.TestDrive = Merger.Merge(configuration.TestDrive, @override.TestDrive);
+        cfg.TestRegistry = Merger.Merge(configuration.TestRegistry, @override.TestRegistry);
         return cfg;
     }
 
@@ -53,13 +57,15 @@ public class PesterConfiguration
     {
         if (configuration != null)
         {
-            Run = new RunConfiguration(configuration.GetIDictionaryOrNull("Run"));
-            Filter = new FilterConfiguration(configuration.GetIDictionaryOrNull("Filter"));
-            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull("CodeCoverage"));
-            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull("TestResult"));
-            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull("Should"));
-            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull("Debug"));
-            Output = new OutputConfiguration(configuration.GetIDictionaryOrNull("Output"));
+            Run = new RunConfiguration(configuration.GetIDictionaryOrNull(nameof(Run)));
+            Filter = new FilterConfiguration(configuration.GetIDictionaryOrNull(nameof(Filter)));
+            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull(nameof(CodeCoverage)));
+            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull(nameof(TestResult)));
+            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull(nameof(Should)));
+            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull(nameof(Debug)));
+            Output = new OutputConfiguration(configuration.GetIDictionaryOrNull(nameof(Output)));
+            TestDrive = new TestDriveConfiguration(configuration.GetIDictionaryOrNull(nameof(TestDrive)));
+            TestRegistry = new TestRegistryConfiguration(configuration.GetIDictionaryOrNull(nameof(TestRegistry)));
         }
     }
 
@@ -72,6 +78,8 @@ public class PesterConfiguration
         Should = new ShouldConfiguration();
         Debug = new DebugConfiguration();
         Output = new OutputConfiguration();
+        TestDrive = new TestDriveConfiguration();
+        TestRegistry = new TestRegistryConfiguration();
     }
 
     public RunConfiguration Run { get; set; }
@@ -81,4 +89,6 @@ public class PesterConfiguration
     public ShouldConfiguration Should { get; set; }
     public DebugConfiguration Debug { get; set; }
     public OutputConfiguration Output { get; set; }
+    public TestDriveConfiguration TestDrive { get; set; }
+    public TestRegistryConfiguration TestRegistry { get; set; }
 }

@@ -398,6 +398,14 @@ function New-PesterConfiguration {
 
       StackTraceVerbosity: The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.
       Default value: 'Filtered'
+
+    TestDrive:
+      Enabled: Enable TestDrive.
+      Default value: $true
+
+    TestRegistry:
+      Enabled: Enable TestRegistry.
+      Default value: $true
     ```
 
     .PARAMETER Hashtable
