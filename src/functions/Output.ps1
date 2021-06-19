@@ -840,28 +840,28 @@ function Format-CIErrorMessage {
         [string[]] $Message
     )
 
-    $CIPrefixMapping = @{
+    $CIOutputMapping = @{
         'AzureDevops'   = @{
             # header task issue error, so it gets reported to build log. https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
-            Header  = '##vso[task.logissue type=error] '
+            Header        = "##vso[task.logissue type=error] $Header"
 
-            # message error, but doesn't get reported in build log.
-            Message = '##[error] '
+            # message error prefx, but doesn't get reported in build log. Only task issue errors get reported.
+            MessagePrefix = '##[error] '
         }
         'GithubActions' = @{
             # header error, so it gets reported to build log. https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
-            Header  = '::error::'
+            Header        = "::error::$($Header.TrimStart())"
 
             # Extra spaces to align message with Error: header.
             # Not including ::error:: here since we won't want too much noise in build log from every message
-            Message = '    '
+            MessagePrefix = '    '
         }
     }
 
-    $lines = [System.Collections.Generic.List[string]]@("$($CIPrefixMapping.$CIFormat.Header)$Header")
+    $lines = [System.Collections.Generic.List[string]]@($CIOutputMapping.$CIFormat.Header)
 
     foreach ($line in $Message) {
-        $lines.Add("$($CIPrefixMapping.$CIFormat.Message)$line")
+        $lines.Add("$($CIOutputMapping.$CIFormat.MessagePrefix)$line")
     }
 
     return $lines
