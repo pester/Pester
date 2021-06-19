@@ -602,4 +602,56 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             { Write-ErrorToScreen -Err $errorRecord -Throw } | Should -Throw
         }
     }
+
+    Describe Format-CIErrorMessage {
+        Context "Azure Devops Error Format" {
+            It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
+                @{
+                    Header   = 'header'
+                    Message  = 'message'
+                    Expected = @(
+                        '##vso[task.logissue type=error] header',
+                        '##[error] message'
+                    )
+                }
+                @{
+                    Header   = 'header'
+                    Message  = @('message1', 'message2')
+                    Expected = @(
+                        '##vso[task.logissue type=error] header',
+                        '##[error] message1',
+                        '##[error] message2'
+                    )
+                }
+            ) {
+                param($Header, $Message, $Expected)
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -Header $Header -Message $Message | Should -Be $Expected
+            }
+        }
+
+        Context 'Github Actions Error Format' {
+            It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
+                @{
+                    Header   = 'header'
+                    Message  = 'message'
+                    Expected = @(
+                        '::error::header',
+                        '    message'
+                    )
+                }
+                @{
+                    Header   = 'header'
+                    Message  = @('message1', 'message2')
+                    Expected = @(
+                        '::error::header',
+                        '    message1',
+                        '    message2'
+                    )
+                }
+            ) {
+                param($Header, $Message, $Expected)
+                Format-CIErrorMessage -CIFormat 'GithubActions' -Header $Header -Message $Message | Should -Be $Expected
+            }
+        }
+    }
 }

@@ -825,7 +825,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
     New-PluginObject @p
 }
 
-function Write-CIErrorToScreen {
+function Format-CIErrorMessage {
+    [OutputType([System.Collections.Generic.List[string]])]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
@@ -839,31 +840,31 @@ function Write-CIErrorToScreen {
         [string[]] $Message
     )
 
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#formatting-commands
-    if ($CIFormat -eq 'AzureDevops') {
+    $CIPrefixMapping = @{
+        'AzureDevops'   = @{
+            # header task issue error, so it gets reported to build log. https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
+            Header  = '##vso[task.logissue type=error] '
 
-        # Log header as task issue error, so it gets reported to build log
-        & $SafeCommands['Write-Host'] "##vso[task.logissue type=error] $Header"
+            # message error, but doesn't get reported in build log.
+            Message = '##[error] '
+        }
+        'GithubActions' = @{
+            # header error, so it gets reported to build log. https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+            Header  = '::error::'
 
-        # Log subsequent messages as normal errors that don't get reported to build log
-        foreach ($line in $Message) {
-            & $SafeCommands['Write-Host'] "##[error] $line"
+            # Extra spaces to align message with Error: header.
+            # Not including ::error:: here since we won't want too much noise in build log from every message
+            Message = '    '
         }
     }
 
-    # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions
-    elseif ($CIFormat -eq 'GithubActions') {
+    $lines = [System.Collections.Generic.List[string]]@("$($CIPrefixMapping.$CIFormat.Header)$Header")
 
-        # Log header as error so it gets reported to build log
-        & $SafeCommands['Write-Host'] "::error::$($Header.TrimStart())"
-
-        # Log subsequent messages as non-error messages
-        # Github Actions doesn't support task issue errors vs normal errors like ADO above
-        # If we log every error message then they will all be reported in the build log, which will be very noisy
-        foreach ($line in $Message) {
-            & $SafeCommands['Write-Host'] "    $line"
-        }
+    foreach ($line in $Message) {
+        $lines.Add("$($CIPrefixMapping.$CIFormat.Message)$line")
     }
+
+    return $lines
 }
 
 function Format-ErrorMessage {
