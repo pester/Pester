@@ -855,13 +855,13 @@ function Write-CIErrorToScreen {
     elseif ($CIFormat -eq 'GithubActions') {
 
         # Log header as error so it gets reported to build log
-        & $SafeCommands['Write-Host'] "::error:: $Header"
+        & $SafeCommands['Write-Host'] "::error::$($Header.TrimStart())"
 
         # Log subsequent messages as non-error messages
         # Github Actions doesn't support task issue errors vs normal errors like ADO above
         # If we log every error message then they will all be reported in the build log, which will be very noisy
         foreach ($line in $Message) {
-            & $SafeCommands['Write-Host'] $line
+            & $SafeCommands['Write-Host'] "    $line"
         }
     }
 }
