@@ -899,7 +899,7 @@ function Invoke-Pester {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
             }
 
-            if ($PesterPreference.Output.CIFormat.IsOriginalValue()) {
+            if ($PesterPreference.Output.CIFormat.IsOriginalValue() -or $PesterPreference.Output.CIFormat.Value -eq 'Auto') {
 
                 # Variable is set to 'True' if the script is being run by a build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
                 # Do not fix this to check for boolean value, the value is set to literal string 'True'
