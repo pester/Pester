@@ -401,6 +401,14 @@ function New-PesterConfiguration {
 
       CIFormat: The CI format of output in build logs, options are None, Auto, AzureDevops and GithubActions. Environment variable TF_BUILD(https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml#system-variables-devops-services) is automically set to true when Azure Devops is detected. Environment variable GITHUB_ACTIONS(https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables) is automatically set to true when Github Actions is detected.
       Default value: 'Auto'
+
+    TestDrive:
+      Enabled: Enable TestDrive.
+      Default value: $true
+
+    TestRegistry:
+      Enabled: Enable TestRegistry.
+      Default value: $true
     ```
 
     .PARAMETER Hashtable

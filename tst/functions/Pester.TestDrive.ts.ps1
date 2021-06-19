@@ -63,5 +63,27 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Result | Verify-Equal "Passed"
         }
+
+        t "TestDrive can be disabled" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                        'TestDrive:\' | Should -Not -Exist  -Because "TestDrive is disabled in configuration"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    TestDrive = @{
+                        Enabled = $false
+                    }
+                    Run       = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                })
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Result | Verify-Equal "Passed"
+        }
     }
 }
