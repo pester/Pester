@@ -917,14 +917,6 @@ function Invoke-Pester {
                 }
             }
 
-            elseif ($PesterPreference.Output.CIFormat.Value -eq 'AzureDevops' -and $env:TF_BUILD -ne 'True') {
-                $PesterPreference.Output.CIFormat = 'None'
-            }
-
-            elseif ($PesterPreference.Output.CIFormat.Value -eq 'GithubActions' -and $env:GITHUB_ACTIONS -ne 'True') {
-                $PesterPreference.Output.CIFormat = 'None'
-            }
-
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
