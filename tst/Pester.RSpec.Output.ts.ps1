@@ -142,6 +142,7 @@ i -PassThru:$PassThru {
             $setup = {
                 $PesterPreference = [PesterConfiguration]::Default
                 $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Output.CIFormat = 'None'
             }
             $output = Invoke-PesterInProcess $sb -Setup $setup
             # only print the relevant part of output

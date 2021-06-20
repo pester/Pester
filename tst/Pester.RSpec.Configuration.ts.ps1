@@ -627,6 +627,7 @@ i -PassThru:$PassThru {
                 }
                 Output = @{
                     StackTraceVerbosity = "Something"
+                    CIFormat            = 'None'
                 }
             }
 
