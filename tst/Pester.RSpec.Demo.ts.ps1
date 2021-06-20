@@ -244,6 +244,7 @@ i -PassThru:$PassThru {
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
             $configuration.Should.ErrorAction = 'Continue'
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $err = $r.Containers[0].Blocks[0].Tests[0].ErrorRecord
