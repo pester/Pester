@@ -16,6 +16,10 @@ function GetFullPath ([string]$Path) {
     $Folder = & $SafeCommands['Split-Path'] -Path $Path -Parent
     $File = & $SafeCommands['Split-Path'] -Path $Path -Leaf
 
+    if (-not (& $SafeCommands['Test-Path'] $Folder)) {
+        $null = & $SafeCommands['New-Item'] $Folder -ItemType Container -Force
+    }
+
     if ( -not ([String]::IsNullOrEmpty($Folder))) {
         $FolderResolved = & $SafeCommands['Resolve-Path'] -Path $Folder
     }

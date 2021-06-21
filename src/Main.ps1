@@ -1027,7 +1027,7 @@ function Invoke-Pester {
             }
 
             if ((none $containers)) {
-                throw "No test files were found and no scriptblocks were provided."
+                throw "No test files were found and no scriptblocks were provided. Please ensure that you provided at least one path to a *$($PesterPreference.Run.TestExtension.Value) file, or a directory that contains such file.$(if ($null -ne $PesterPreference.Run.ExcludePath.Value -and 0 -lt @($PesterPreference.Run.ExcludePath.Value).Length) {" And that there is at least one file not excluded by ExcludeFile filter '$($PesterPreference.Run.ExcludePath.Value -join "', '")'."}) Or that you provided a ScriptBlock test container."
                 return
             }
 
@@ -1126,7 +1126,12 @@ function Invoke-Pester {
                     }
                 }
 
-                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+                if (-not (& $SafeCommands['Test-Path'] $PesterPreference.CodeCoverage.OutputPath.Value)) {
+                    $dir = & $SafeCommands['Split-Path'] $PesterPreference.CodeCoverage.OutputPath.Value
+                    $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
+                }
+
+                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }

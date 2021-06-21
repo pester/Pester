@@ -249,4 +249,41 @@ i -PassThru:$PassThru {
             Get-HitLocation $b | Verify-Location $b
         }
     }
+
+    b "Coverage result creates missing folder" {
+        t "Coverage result will create the destination folder if it is missing" {
+            # https://github.com/pester/Pester/issues/1875 point 2
+            $sb = {
+                Describe 'VSCode Output Test' {
+                    It 'Single error' {
+                        . "$PSScriptRoot/CoverageTestFile.ps1"
+                    }
+                }
+            }
+
+            $c = New-PesterConfiguration
+
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.PassThru = $true
+
+            $c.Output.Verbosity = "Detailed"
+
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1"
+            $c.CodeCoverage.UseBreakpoints = $true
+            $dir = [IO.Path]::GetTempPath() + "/nonExistingDirectory" + [Guid]::NewGuid()
+            $c.CodeCoverage.OutputPath = "$dir/coverage.xml"
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+            }
+            finally {
+                if (Test-Path $dir) {
+                    Remove-Item $dir -Force -Recurse
+                }
+            }
+
+            $r.Result | Verify-Equal 'Passed'
+        }
+    }
 }
