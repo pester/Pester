@@ -27,7 +27,7 @@ if ($PSVersionTable.PSVersion.Major -eq 3) {
 
 i -PassThru:$PassThru {
     b "Coverage with Breakpoints and with Tracer" {
-        dt "Coverage is the same when breakpoints are used as when they are not used" {
+        t "Coverage is the same when breakpoints are used as when they are not used" {
             $sb = {
                 Describe 'VSCode Output Test' {
                     It 'Single error' {
