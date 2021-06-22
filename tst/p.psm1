@@ -120,7 +120,7 @@ function t {
                 # otherwise show the assertion message and stacktrace to keep the noise
                 # on test failure low
                 if ([Exception] -ne $_.Exception.GetType()) {
-                    Write-Host "ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
+                    Write-Host "[n] ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
                     $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
                         Write-Host " " -NoNewline
                         Write-Host " $_ "  -NoNewline -ForegroundColor Black -BackgroundColor Red
