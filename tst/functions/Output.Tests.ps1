@@ -652,6 +652,17 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         '::endgroup::'
                     )
                 }
+                @{
+                    Header   = 'header'
+                    Message  = @('  message1', '  message2')
+                    Expected = @(
+                        '::error::header',
+                        '::group::Message',
+                        'message1',
+                        'message2',
+                        '::endgroup::'
+                    )
+                }
             ) {
                 param($Header, $Message, $Expected)
                 Format-CIErrorMessage -CIFormat 'GithubActions' -Header $Header -Message $Message | Should -Be $Expected

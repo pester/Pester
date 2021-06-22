@@ -870,7 +870,7 @@ function Format-CIErrorMessage {
         $lines.Add("::group::Message")
 
         foreach ($line in $Message) {
-            $lines.Add($line)
+            $lines.Add($line.TrimStart())
         }
 
         $lines.Add("::endgroup::")
