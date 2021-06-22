@@ -844,28 +844,36 @@ function Format-CIErrorMessage {
         [string[]] $Message
     )
 
-    $CIOutputMapping = @{
-        'AzureDevops'   = @{
-            # header task issue error, so it gets reported to build log. https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
-            Header        = "##vso[task.logissue type=error] $Header"
+    $lines = [System.Collections.Generic.List[string]]@()
 
-            # message error prefx, but doesn't get reported in build log. Only task issue errors get reported.
-            MessagePrefix = '##[error] '
-        }
-        'GithubActions' = @{
-            # header error, so it gets reported to build log. https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
-            Header        = "::error::$($Header.TrimStart())"
+    if ($CIFormat -eq 'AzureDevops') {
 
-            # Extra spaces to align message with Error: header.
-            # Not including ::error:: here since we won't want too much noise in build log from every message
-            MessagePrefix = '    '
+        # header task issue error, so it gets reported to build log
+        # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
+        $headerTaskIssueError = "##vso[task.logissue type=error] $Header"
+        $lines.Add($headerTaskIssueError)
+
+        # Add subsequent messages as errors, but do not get reported to build log
+        foreach ($line in $Message) {
+            $lines.Add("##[error] $line")
         }
     }
+    elseif ($CIFormat -eq 'GithubActions') {
 
-    $lines = [System.Collections.Generic.List[string]]@($CIOutputMapping.$CIFormat.Header)
+        # header error, so it gets reported to build log
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+        $headerError = "::error::$($Header.TrimStart())"
+        $lines.Add($headerError)
 
-    foreach ($line in $Message) {
-        $lines.Add("$($CIOutputMapping.$CIFormat.MessagePrefix)$line")
+        # Add rest of messages inside expandable group
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
+        $lines.Add("::group::")
+
+        foreach ($line in $Message) {
+            $lines.Add($line)
+        }
+
+        $lines.Add("::endgroup::")
     }
 
     return $lines
