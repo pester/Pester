@@ -27,7 +27,7 @@ if ($PSVersionTable.PSVersion.Major -eq 3) {
 
 i -PassThru:$PassThru {
     b "Coverage with Breakpoints and with Tracer" {
-        t "Coverage is the same when breakpoints are used as when they are not used" {
+        dt "Coverage is the same when breakpoints are used as when they are not used" {
             $sb = {
                 Describe 'VSCode Output Test' {
                     It 'Single error' {
@@ -71,6 +71,9 @@ i -PassThru:$PassThru {
             # $c.CodeCoverage.OutputPath = "coverage-with-breakpoints.xml"
             $bb = Invoke-Pester -Configuration $c
 
+
+            $bb | Verify-NotNull
+            $pp | Verify-NotNull
 
             Write-Host "is different?: $($bb.CodeCoverage.CommandsMissed.Count -ne $pp.CodeCoverage.CommandsMissed.Count)"
             Write-Host "is less?: $($bb.CodeCoverage.CommandsMissed.Count -lt $pp.CodeCoverage.CommandsMissed.Count)"

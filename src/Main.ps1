@@ -1126,12 +1126,13 @@ function Invoke-Pester {
                     }
                 }
 
-                if (-not (& $SafeCommands['Test-Path'] $PesterPreference.CodeCoverage.OutputPath.Value)) {
-                    $dir = & $SafeCommands['Split-Path'] $PesterPreference.CodeCoverage.OutputPath.Value
+                $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+                if (-not (& $SafeCommands['Test-Path'] $resolvedPath)) {
+                    $dir = & $SafeCommands['Split-Path'] $resolvedPath
                     $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
                 }
 
-                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
+                $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }
