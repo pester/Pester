@@ -636,7 +636,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     Message  = 'message'
                     Expected = @(
                         '::error::header',
-                        '::group::',
+                        '::group::Message',
                         'message',
                         '::endgroup::'
                     )
@@ -646,7 +646,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     Message  = @('message1', 'message2')
                     Expected = @(
                         '::error::header',
-                        '::group::',
+                        '::group::Message',
                         'message1',
                         'message2',
                         '::endgroup::'
