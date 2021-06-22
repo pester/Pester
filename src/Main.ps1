@@ -1179,7 +1179,19 @@ function Invoke-Pester {
 
         }
         catch {
-            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $formatErrorParams = @{
+                Err                 = $_
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+            }
+            else {
+                Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
+            }
+
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
