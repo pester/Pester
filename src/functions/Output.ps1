@@ -867,7 +867,7 @@ function Format-CIErrorMessage {
 
         # Add rest of messages inside expandable group
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
-        $lines.Add("::group::")
+        $lines.Add("::group::Message")
 
         foreach ($line in $Message) {
             $lines.Add($line)
