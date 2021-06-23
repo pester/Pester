@@ -982,6 +982,506 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        t "Data provided to container are accessible in ForEach on each level" {
+            $scenarios = @(
+                @{
+                    Scenario = @{
+                        Name     = "A"
+                        Contexts = @(
+                            @{
+                                Name     = "AA"
+                                Examples = @(
+                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
+                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
+                                )
+                            }
+                            @{
+                                Name     = "AB"
+                                Examples = @(
+                                    @{ User = @{ Name = "Peter"; Age = 30 } }
+                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
+                                )
+                            }
+                        )
+                    }
+                }
+                @{
+                    Scenario = @{
+                        Name     = "B"
+                        Contexts = @{
+                            Name     = "BB"
+                            Examples = @(
+                                @{ User = @{ Name = "Jane"; Age = 25 } }
+                            )
+                        }
+                    }
+                }
+            )
+
+            $sb = {
+                param ($Scenario)
+
+                Describe "Scenario - <name>" -ForEach $Scenario {
+
+                    Context "Context - <name>" -ForEach $Contexts {
+                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
+                            $User.Age | Should -BeLessOrEqual 35
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
+
+            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
+            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
+        }
+
+        t "Data provided to container are accessible during Discovery and Run" {
+            # issue: https://github.com/pester/Pester/issues/1770
+            $sb = {
+                param (
+                    # the issue uses mandatory, I tried it with and without it and it works
+                    # I am avoiding mandatory, because it will make the test ask for value when
+                    # the parameter passing breaks
+                    # [parameter(mandatory = $true)]
+                    [string] $EnvironmentName
+                )
+
+                Describe "Application" {
+                    It "Environment is <environmentName>" {
+                        $EnvironmentName | Should -Be "Production"
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ EnvironmentName = "Production" }
+
+            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Parameter name is added to Data when alias is used" {
+            # In normal PowerShell when calling a function/script with parameter-alias, only the real parameter name
+            # should be defined as variable and PSBoundParameters. Since Pester uses user-provided Data raw **in Run-phase**,
+            # we actually only provide alias in Run. We should at least add the parameter name as variable
+
+            $sb = {
+                param (
+                    [Alias('MyAlias')]
+                    $Value
+                )
+
+                if ($Value -ne 1) {
+                    throw "Expected `$Value to be 1 but it is, '$Value'"
+                }
+
+                if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                    # Normal PowerShell parameter-binding. Alias shouldn't be present
+                    throw "Expected `$MyAlias not to be present as variable, but it was"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        if ($Value -ne 1) {
+                            # Added by parameter default-value function in Pester to behave like general PowerShell
+                            # and be equal to Discovery
+                            throw "Expected `$Value to be 1 but it is, '$Value'"
+                        }
+
+                        if ($MyAlias -ne 1) {
+                            # Pester-specific behavior since we consume user-provided -Data directly
+                            throw "Expected `$MyAlias to be 1 but it is, '$MyAlias'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ MyAlias = 1 }
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Default values in parametric scripts" {
+        t "Default values are automatically added to container Data when available and parameter is undefined" {
+            try {
+                # Making sure both Context and Describe blocks triggers the logic
+                $sbDescribe = {
+                    param (
+                        [int] $Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $sbContext = {
+                    param (
+                        [int] $Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sbDescribe | Set-Content -Path $file
+
+                # Testing both file and scriptblock containers
+                $containers = @(
+                    (New-PesterContainer -Path $file),
+                    (New-PesterContainer -ScriptBlock $sbContext)
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[1].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                # Also works without pre-creating a container
+                $r2 = Invoke-Pester -Path $file -PassThru
+                $r2.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r2.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                # Interactive execution uses New-PesterContainer -Data covered by a test below
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Default values are available in all root-level blocks" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+                        }
+                    }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $r = Invoke-Pester -Path $file -PassThru
+
+                $r.Containers[0].Data.Count | Verify-Equal 1
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Uses evaluated default and includes null-defaults including non-defined" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123,
+                        $OtherParam,
+                        $MyNullParam = $null,
+                        $ExpressionParam = $(5 % 2)
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    if ($ExpressionParam -ne 1) {
+                        throw "Expected `$ExpressionParam to be 1, but it is '$ExpressionParam'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123, but it is '$Value'"
+                            }
+
+                            $v = Get-Variable -Name 'OtherParam'
+                            $v | Should -Not -BeNullOrEmpty
+                            $v.Value | Should -BeNullOrEmpty
+                        }
+                    }
+
+                    Context "c1" {
+                        It "t1" {
+                            if ($ExpressionParam -ne 1) {
+                                throw "Expected `$ExpressionParam to be 1, but it is '$ExpressionParam'"
+                            }
+
+                            $v2 = Get-Variable -Name 'MyNullParam'
+                            $v2 | Should -Not -BeNullOrEmpty
+                            $v2.Value | Should -BeNullOrEmpty
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $r = Invoke-Pester -Path $file -PassThru
+
+                $r.Containers[0].Data.Count | Verify-Equal 4
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+                # Should include parameters without user-defined default value
+                $r.Containers[0].Data.ContainsKey('OtherParam') | Verify-True
+                $r.Containers[0].Data['OtherParam'] | Verify-Null
+                # Should include parameters with default value of $null
+                $r.Containers[0].Data.ContainsKey('MyNullParam') | Verify-True
+                $r.Containers[0].Data['MyNullParam'] | Verify-Null
+                # Includes the evalutated default value, not the expression
+                $r.Containers[0].Data.ContainsKey('ExpressionParam') | Verify-True
+                $r.Containers[0].Data['ExpressionParam'] | Verify-Equal 1
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Only adds parameter-names as variables" {
+            $sb = {
+                param (
+                    [Alias('MyAlias')]
+                    $Value = 123
+                )
+
+                if ($Value -ne 123) {
+                    throw "Expected `$Value to be 123, but it is '$Value'"
+                }
+
+                if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                    throw "Expected `$MyAlias not to be present as variable, but it was"
+                }
+
+                Describe "d1" {
+                    It "t1" {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+
+                        if (Get-Variable -Name 'MyAlias' -ErrorAction SilentlyContinue) {
+                            throw "Expected `$MyAlias not to be present as variable, but it was"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+
+            $r.Containers[0].Data.Count | Verify-Equal 1
+            $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+            $r.Containers[0].Data['Value'] | Verify-Equal 123
+            # Should not include alias as variable
+            $r.Containers[0].Data.ContainsKey('MyAlias') | Verify-False
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Private scoped parameters are only available in root-level setup " {
+            try {
+                $sb = {
+                    param (
+                        [int] $private:Value = 123
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is '$Value'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123, but it is '$Value'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        BeforeAll {
+                            { Get-Variable -Name 'Value' -ErrorAction Stop } | Should -Throw -ExceptionType ([System.Management.Automation.ItemNotFoundException])
+                        }
+
+                        It "t1" {
+                            { Get-Variable -Name 'Value' -ErrorAction Stop } | Should -Throw -ExceptionType ([System.Management.Automation.ItemNotFoundException])
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $containers = @(
+                    (New-PesterContainer -Path $file),
+                    (New-PesterContainer -ScriptBlock $sb)
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('private:Value') | Verify-True
+                $r.Containers[0].Data['private:Value'] | Verify-Equal 123
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+
+                $r.Containers[1].Data.ContainsKey('private:Value') | Verify-True
+                $r.Containers[1].Data['private:Value'] | Verify-Equal 123
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
+
+        t "Parameter default values won't override user-provided parameter values" {
+            try {
+                $sb = {
+                    param (
+                        [int] $Value = 123,
+                        [string] $MyString = 'Oh no!'
+                    )
+
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123, but it is, '$Value'"
+                    }
+
+                    if ($MyString -ne 'Yay!') {
+                        throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                    }
+
+                    BeforeAll {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                        if ($MyString -ne 'Yay!') {
+                            throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                        }
+                    }
+
+                    Describe "d1" {
+                        It "t1" {
+                            if ($Value -ne 123) {
+                                throw "Expected `$Value to be 123 but it is, '$Value'"
+                            }
+                            if ($MyString -ne 'Yay!') {
+                                throw "Expected `$MyString to be 'Yay!', but it is, '$MyString'"
+                            }
+                        }
+                    }
+                }
+
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/file1.Tests.ps1"
+                $sb | Set-Content -Path $file
+
+                $containers = @(
+                    (New-PesterContainer -Path $file -Data @{ MyString = "Yay!" }),
+                    (New-PesterContainer -ScriptBlock $sb -Data @{ MyString = "Yay!" })
+                )
+                $r = Invoke-Pester -Container $containers -PassThru
+
+                $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+                $r.Containers[0].Data['Value'] | Verify-Equal 123
+                $r.Containers[0].Data.ContainsKey('MyString') | Verify-True
+                $r.Containers[0].Data['MyString'] | Verify-Equal "Yay!"
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
+            finally {
+                if ($null -ne $file -and (Test-Path $file)) {
+                    Remove-Item $file -Force
+                }
+            }
+        }
     }
 
     b "New-PesterContainer" {
@@ -1237,90 +1737,6 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
-        }
-
-        t "Data provided to container are accessible in ForEach on each level" {
-            $scenarios = @(
-                @{
-                    Scenario = @{
-                        Name     = "A"
-                        Contexts = @(
-                            @{
-                                Name     = "AA"
-                                Examples = @(
-                                    @{ User = @{ Name = "Jakub"; Age = 31 } }
-                                    @{ User = @{ Name = "Tomas"; Age = 27 } }
-                                )
-                            }
-                            @{
-                                Name     = "AB"
-                                Examples = @(
-                                    @{ User = @{ Name = "Peter"; Age = 30 } }
-                                    @{ User = @{ Name = "Jaap"; Age = 22 } }
-                                )
-                            }
-                        )
-                    }
-                }
-                @{
-                    Scenario = @{
-                        Name     = "B"
-                        Contexts = @{
-                            Name     = "BB"
-                            Examples = @(
-                                @{ User = @{ Name = "Jane"; Age = 25 } }
-                            )
-                        }
-                    }
-                }
-            )
-
-            $sb = {
-                param ($Scenario)
-
-                Describe "Scenario - <name>" -ForEach $Scenario {
-
-                    Context "Context - <name>" -ForEach $Contexts {
-                        It "Example - <user.name> with age <user.age> is less than 35" -ForEach $Examples {
-                            $User.Age | Should -BeLessOrEqual 35
-                        }
-                    }
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb -Data $scenarios
-
-            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
-            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "Scenario - A"
-            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal "Context - AA"
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "Example - Jakub with age 31 is less than 35"
-
-            $r.Containers[0].Blocks[0].Blocks[1].ExpandedName | Verify-Equal "Context - AB"
-            $r.Containers[0].Blocks[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal "Example - Peter with age 30 is less than 35"
-        }
-
-        t "Data provided to container are accessible during Discovery and Run" {
-            # issue: https://github.com/pester/Pester/issues/1770
-            $sb = {
-                param (
-                    # the issue uses mandatory, I tried it with and without it and it works
-                    # I am avoiding mandatory, because it will make the test ask for value when
-                    # the parameter passing breaks
-                    # [parameter(mandatory = $true)]
-                    [string] $EnvironmentName
-                )
-
-                Describe "Application" {
-                    It "Environment is <environmentName>" {
-                        $EnvironmentName | Should -Be "Production"
-                    }
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb -Data @{ EnvironmentName = "Production" }
-
-            $r = Invoke-Pester -Container $container -PassThru -Output Detailed
-            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
 
         t "<_> expands to `$_ in Describe and It" {

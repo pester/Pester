@@ -2398,6 +2398,8 @@ function New-BlockContainerObject {
         $Data
     )
 
+    if ($null -eq $Data) { $Data = @{} }
+
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
         "Path" { "File", (& $SafeCommands['Get-Item'] $Path) }
@@ -2623,4 +2625,35 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapper, $SessionStateInternal, $null)
 
     . $wrapper $Path $Data
+}
+
+function Add-MissingContainerParameters ($RootBlock, $Container, $CallingFunction) {
+    # Adds default values for container parameters not provided by the user.
+    # Also adds real parameter name as variable in Run-phase when alias was used, just like normal PowerShell will.
+
+    # Using AST to get parameter-names as $PSCmdLet.MyInvocation.MyCommand only works for advanced functions/scripts/cmdlets.
+    # No need to filter on parameter sets OR whether default values are set because Powershell adds all parameters (not aliases) as variables
+    # with default value or $null if not specified (probably to avoid error caused by inheritance).
+    $Ast = switch ($Container.Type) {
+        "ScriptBlock" { $container.Item.Ast }
+        "File" {
+            $externalScriptInfo = $CallingFunction.SessionState.InvokeCommand.GetCommand($Container.Item.PSPath, [System.Management.Automation.CommandTypes]::ExternalScript)
+            $externalScriptInfo.ScriptBlock.Ast
+        }
+        default { throw [System.ArgumentOutOfRangeException]"" }
+    }
+
+    if ($null -ne $Ast -and $null -ne $Ast.ParamBlock -and $Ast.ParamBlock.Parameters.Count -gt 0) {
+        $parametersToCheck = foreach ($param in $Ast.ParamBlock.Parameters) { $param.Name.VariablePath.UserPath }
+
+        foreach ($param in $parametersToCheck) {
+            $v = $CallingFunction.SessionState.PSVariable.Get($param)
+            if ((-not $RootBlock.Data.ContainsKey($param)) -and $v) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Runtime "Container parameter '$param' is undefined, adding to container Data with default value $(Format-Nicely $v.Value)."
+                }
+                $RootBlock.Data.Add($param, $v.Value)
+            }
+        }
+    }
 }
