@@ -654,11 +654,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $true
             $env:GITHUB_ACTIONS = $false
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is AzureDevops when Auto(manually set) and TF_BUILD are set" {
@@ -679,11 +682,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $true
             $env:GITHUB_ACTIONS = $false
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is AzureDevops when AzureDevops(manually set) and TF_BUILD are set" {
@@ -704,11 +710,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $true
             $env:GITHUB_ACTIONS = $false
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is None when Auto(default) and TF_BUILD is not set" {
@@ -728,11 +737,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $false
             $env:GITHUB_ACTIONS = $false
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is GithubActions when Auto(default) and GITHUB_ACTIONS are set" {
@@ -752,11 +764,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $false
             $env:GITHUB_ACTIONS = $true
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is GithubActions when Auto(manually set) and GITHUB_ACTIONS are set" {
@@ -777,11 +792,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $false
             $env:GITHUB_ACTIONS = $true
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is GithubActions when GithubActions(manually set) and GITHUB_ACTIONS are set" {
@@ -802,11 +820,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $false
             $env:GITHUB_ACTIONS = $true
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Output.CIFormat is None when Auto(default) and GITHUB_ACTIONS is not set" {
@@ -826,11 +847,14 @@ i -PassThru:$PassThru {
             $env:TF_BUILD = $false
             $env:GITHUB_ACTIONS = $false
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
-
-            $env:TF_BUILD = $previousTfBuildVariable
-            $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
         }
 
         t "Exception is thrown when incorrect option is set" {
