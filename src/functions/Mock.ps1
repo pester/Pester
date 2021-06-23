@@ -38,6 +38,7 @@ function New-MockBehavior {
         IsDefault   = $null -eq $ParameterFilter
         IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
+        Executed    = $false
         ScriptBlock = $MockWith
         Hook        = $Hook
         PSTypeName  = 'MockBehavior'
@@ -300,23 +301,27 @@ function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        $Behaviors
+        $Behaviors,
+        [switch]$Negate
     )
 
-    $unverified = [System.Collections.Generic.List[Object]]@()
+    $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $Behaviors) {
-        if ($b.Verifiable) {
-            $unverified.Add($b)
+        if ($b.Executed -eq $Negate.IsPresent) {
+            $filteredBehaviors.Add($b)
         }
     }
 
-    if ($unVerified.Count -gt 0) {
-        foreach ($b in $unVerified) {
-            $message = "$([System.Environment]::NewLine) Expected $($b.CommandName) "
+    if ($filteredBehaviors.Count -gt 0) {
+        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
+        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
+
+        foreach ($b in $filteredBehaviors) {
+            $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
             if ($b.ModuleName) {
-                $message += "in module $($b.ModuleName) "
+                $message += "from inside module $($b.ModuleName) "
             }
-            $message += "to be called with $(if ($null -ne $b.Filter) { $b.Filter.ToString().Trim() })"
+            if ($null -ne $b.Filter) { $message += "with { $($b.Filter.ToString().Trim()) }" }
         }
 
         return [PSCustomObject] @{
@@ -999,7 +1004,7 @@ function ExecuteBehavior {
         Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" }) $CommandName."
     }
 
-    $Behavior.Verifiable = $false
+    $Behavior.Executed = $true
 
     $scriptBlock = {
         param (

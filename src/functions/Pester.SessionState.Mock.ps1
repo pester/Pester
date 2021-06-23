@@ -72,7 +72,7 @@ The mock of the first filter to pass will be used. The exception to this
 rule are Mocks with no filters. They will always be evaluated last since
 they will act as a "catch all" mock.
 
-Mocks can be marked Verifiable. If so, the Assert-VerifiableMock command
+Mocks can be marked Verifiable. If so, the Should -InvokeVerifiable command
 can be used to check if all Verifiable mocks were actually called. If any
 verifiable mock is not called, Should -InvokeVerifiable will throw an
 exception and indicate all mocks not called.
@@ -633,7 +633,7 @@ https://pester.dev/docs/commands/Assert-VerifiableMock
     Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
     & $sb
 }
-function Should-InvokeVerifiable {
+function Should-InvokeVerifiable ([switch]$Negate) {
     <#
 .SYNOPSIS
 Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -666,7 +666,7 @@ This will not throw an exception because the mock was invoked.
 
 #>
     $behaviors = @(Get-VerifiableBehaviors)
-    Should-InvokeVerifiableInternal -Behaviors $behaviors
+    Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `
