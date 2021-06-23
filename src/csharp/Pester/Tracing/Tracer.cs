@@ -10,47 +10,112 @@ namespace Pester.Tracing
     public static class Tracer
     {
         private static Func<TraceLineInfo> GetTraceLineInfo;
-        private static Action ResetUI;
-        private static ITracer _tracer;
-        private static ITracer _tracer2;
+        private static Action ResetUI = () => { };
+        /// <summary>
+        /// Primary tracer (slot1).
+        /// </summary>
+        public static ITracer Tracer1 { get; private set; }
+        /// <summary>
+        /// Secondary tracer (slot2).
+        /// </summary>
+        public static ITracer Tracer2 { get; private set; }
 
+        [Obsolete("IsEnabled is obsolete because the internal state can become corrupted when script is cancelled, use ShouldRegisterTracer instead. The state of IsEnabled is set as before, but it won't be checked when using Patch or Register, to prevent the user session from being locked up by the incorrect state.")]
         public static bool IsEnabled { get; private set; }
 
-        public static bool HasTracer2 => _tracer2 != null;
+        /// <summary>
+        /// Check if we should call Register or Patch functions for the given tracer. It returns false when tracer is not present in slot 1, 
+        /// or if overwrite is true (default) and slot 1 has the same tracer as what we are registering. Use overwrite to check the type of the registered tracer
+        /// and allow replacing it with the new tracer if the types are the same. (e.g you are adding tracer for Pester code coverage, and user aborted the run
+        /// so Pester tracer from the previous run is still present, and you are now replacing it with another Pester code coverage tracer). You would rarely want
+        /// overwrite set to false. But for example when you run Profiler in Profiler, you would want to register the second tracer into slot2 not even though slot1 
+        /// has tracer of the same type.
+        /// </summary>
+        /// <param name="tracer">The tracer to use.</param>
+        /// <param name="overwrite">Allow overwriting the tracer in the main tracer slot if the tracer type we are adding is the same as the one that is already present.</param>
+        /// <returns></returns>
+        public static bool ShouldRegisterTracer(object tracer, bool overwrite = true)
+        {
+            if (tracer is null)
+                throw new ArgumentNullException(nameof(tracer));
 
+            if (overwrite)
+            {
+                // if there is a tracer in slot 1, and it is not the same as we are providing
+                // we should use slot 2 and only register the tracer
+                return HasDifferentTracer(Tracer1, tracer);
+            }
+
+            // we have tracer in slot 1, use slot 2 by registering the tracer
+            return HasTracer(Tracer1);
+        }
+
+        private static bool HasTracer(ITracer currentTracer)
+        {
+            return currentTracer != null;
+        }
+
+        private static bool HasDifferentTracer(ITracer currentTracer, object newTracer)
+        {
+            if (currentTracer == null)
+                return false;
+
+            if (currentTracer is ExternalTracerAdapter adapted)
+            {
+                return adapted.Tracer.GetType().Name != newTracer.GetType().Name;
+            }
+
+            return currentTracer.GetType().Name != newTracer.GetType().Name;
+        }
+
+        /// <summary>
+        /// Add a tracer to already setup session (to slot2). A tracer must implement ITracer or have a method `void Trace(string message, IScriptExtent extent, ScriptBlock scriptBlock, int level)`.
+        /// </summary>
+        /// <param name="tracer"></param>
         public static void Register(object tracer)
         {
-            if (!IsEnabled)
-                throw new InvalidOperationException($"Tracer is not active, if you want to activate it call {nameof(Patch)}.");
+            if (tracer is null)
+                throw new ArgumentNullException(nameof(tracer));
 
-            if (HasTracer2)
-                throw new InvalidOperationException("Tracer2 is already present.");
+            if (!HasTracer(Tracer1))
+                throw new InvalidOperationException($"Tracer1 is null. If you want to activate tracing call {nameof(Patch)}.");
 
-            _tracer2 = new ExternalTracerAdapter(tracer) ?? throw new ArgumentNullException(nameof(tracer));
-            TraceLine(null, justTracer2: true);
+            if (HasDifferentTracer(Tracer2, tracer))
+                throw new InvalidOperationException($"Tracer2 already has tracer {Tracer2.GetType().Name}, and you are registering {tracer.GetType().Name}.");
+
+            Tracer2 = tracer is ITracer t ? t : new ExternalTracerAdapter(tracer);
+
+            TraceLine(justTracer2: true);
         }
 
+        /// <summary>
+        /// Unregister tracer from an already setup session (slot2).
+        /// </summary>
         public static void Unregister()
         {
-            if (!IsEnabled)
-                throw new InvalidOperationException("Tracer is not active.");
-
-            if (!HasTracer2)
-                throw new InvalidOperationException("Tracer2 is not present.");
-
-            TraceLine(null, justTracer2: true);
-            TraceLine(null, justTracer2: true);
-            _tracer2 = null;
+            TraceLine(justTracer2: true);
+            TraceLine(justTracer2: true);
+            Tracer2 = null;
         }
 
-        public static void Patch(int version, EngineIntrinsics context, PSHostUserInterface ui, ITracer tracer)
+        /// <summary>
+        /// Enable tracing by patch the current session by replacing the UI host with another that triggers tracing on every statement. Set-PSDebug -Trace 1 needs to be called before this, and Set-PSDebug -Off needs to be called after Unpatch.
+        /// </summary>
+        /// <param name="powerShellVersion">Major PSVersion that is used `$PSVersionTable.PSVersion.Major`</param>
+        /// <param name="context">ExecutionContext to be used `$ExecutionContext`</param>
+        /// <param name="ui">UIHost to be replaced. `$host.UI`</param>
+        /// <param name="tracer">The tracer to be used. For example ProfilerTracer.</param>
+        public static void Patch(int powerShellVersion, EngineIntrinsics context, PSHostUserInterface ui, ITracer tracer)
         {
-            if (IsEnabled)
-                throw new InvalidOperationException($"Tracer is already active, if you want to add another tracer call {nameof(Register)}.");
+            if (context is null)
+                throw new ArgumentNullException(nameof(context));
 
-            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
+            if (ui is null)
+                throw new ArgumentNullException(nameof(ui));
 
-            var uiFieldName = version >= 6 ? "_externalUI" : "externalUI";
+            Tracer1 = tracer ?? throw new ArgumentNullException(nameof(tracer));
+
+            var uiFieldName = powerShellVersion >= 6 ? "_externalUI" : "externalUI";
             // we get InternalHostUserInterface, grab external ui from that and replace it with ours
             var externalUIField = ui.GetType().GetField(uiFieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             var externalUI = (PSHostUserInterface)externalUIField.GetValue(ui);
@@ -75,9 +140,9 @@ namespace Pester.Tracing
             var callStackType = _callStack.GetType();
 
             var countBindingFlags = BindingFlags.Instance | BindingFlags.NonPublic;
-            if (version == 3)
+            if (powerShellVersion == 3)
             {
-                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList
+                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList 
                 // Count is public property
                 countBindingFlags = BindingFlags.Instance | BindingFlags.Public;
             }
@@ -87,11 +152,11 @@ namespace Pester.Tracing
             var stack = callStackField.GetValue(debugger);
             var initialLevel = (int)getCount.Invoke(stack, empty);
 
-            if (version == 3)
+            if (powerShellVersion == 3)
             {
-                // we do the same operation as in the TraceLineAction below, but here
-                // we resolve the static things like types and properties, and then in the
-                // action we just use them to get the live data without the overhead of looking
+                // we do the same operation as in the TraceLineAction below, but here 
+                // we resolve the static things like types and properties, and then in the 
+                // action we just use them to get the live data without the overhead of looking 
                 // up properties all the time. This might be internally done in the reflection code
                 // did not measure the impact, and it is probably done for us in the reflection api itself
                 // in modern verisons of runtime
@@ -148,37 +213,45 @@ namespace Pester.Tracing
                 };
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             IsEnabled = true;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             // Add another event to the top apart from the scriptblock invocation
             // in Trace-ScriptInternal, this makes it more consistently work on first
             // run. Without this, the triggering line sometimes does not show up as 99.9%
-            TraceLine(null);
+            TraceLine();
         }
 
+        /// <summary>
+        /// Put the original UI host in place and stop tracing.  Set-PSDebug -Trace 0 (or Set-PSDebug -Off) needs to be called before this.
+        /// </summary>
         public static void Unpatch()
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             IsEnabled = false;
+#pragma warning restore CS0618 // Type or member is obsolete
+
             // Add Set-PSDebug -Trace 0 event and also another one for the internal disable
             // this make first run more consistent for some reason
-            TraceLine(null);
-            TraceLine(null);
+            TraceLine();
+            TraceLine();
             ResetUI();
-            _tracer = null;
-            _tracer2 = null;
+            Tracer1 = null;
+            Tracer2 = null;
         }
 
-        // keeping this public so I can write easier repros when something goes wrong,
-        // in that case we just need to patch, trace and unpatch and if that works then
-        // maybe the UI host does not work
-        public static void TraceLine(string message, bool justTracer2 = false)
+        private static void TraceLine(string message = null, bool justTracer2 = false)
         {
+            if (GetTraceLineInfo == null)
+                return;
+
             var traceLineInfo = GetTraceLineInfo();
             if (!justTracer2)
             {
-                _tracer.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
+                Tracer1?.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
             }
-            _tracer2?.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
+            Tracer2?.Trace(message, traceLineInfo.Extent, traceLineInfo.ScriptBlock, traceLineInfo.Level);
         }
 
         private struct TraceLineInfo

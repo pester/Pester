@@ -799,7 +799,7 @@ function Get-JaCoCoReportXml {
     $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
-        return
+        return [string]::Empty
     }
 
     $now = & $SafeCommands['Get-Date']
@@ -1091,27 +1091,42 @@ function Start-TraceScript ($Breakpoints) {
     # detect if profiler is imported and running and in that case just add us as a second tracer
     # to not disturb the profiling session
     $profilerType = "Profiler.Tracer" -as [Type]
-    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
-        $profilerType::Register($tracer)
+    $registered = $false
+    $patched = $false
+
+    if ($null -ne $profilerType) {
+        # api changed in 4.0.0
+        $version = [Version] (& $SafeCommands['Get-Item'] $profilerType.Assembly.Location).VersionInfo.FileVersion
+        if (($version -lt "4.0.0" -and $profilerType::IsEnabled) -or ($version -ge "4.0.0" -and $profilerType::ShouldRegisterTracer($tracer, $true))) {
+            $patched = $false
+            $registered = $true
+            $profilerType::Register($tracer)
+        }
     }
-    else {
+
+    if (-not $registered) {
+        $patched = $true
         [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
         Set-PSDebug -Trace 1
     }
 
-    $tracer
+    # true if we patched powershell and have to unpatch it later,
+    # false if we just registered to already running profiling session and just need to unregister ourselves
+    $patched, $tracer
 }
 
 function Stop-TraceScript {
-    # detect if profiler is imported and running and in that case just remove us as a second tracer
+    param ([bool] $Patched)
+
+    # if profiler is imported and running and in that case just remove us as a second tracer
     # to not disturb the profiling session
-    $profilerType = "Profiler.Tracer" -as [Type]
-    if ($null -ne $profilerType -and $profilerType::IsEnabled) {
-        $profilerType::Unregister()
-    }
-    else {
+    if ($Patched) {
         Set-PSDebug -Trace 0
         [Pester.Tracing.Tracer]::Unpatch()
+    }
+    else {
+        $profilerType = "Profiler.Tracer" -as [Type]
+        $profilerType::Unregister()
     }
 }
 

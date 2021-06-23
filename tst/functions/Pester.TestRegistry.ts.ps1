@@ -69,5 +69,27 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Result | Verify-Equal "Passed"
         }
+
+        t "TestRegistry can be disabled" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                        'TestRegistry:\' | Should -Not -Exist  -Because "TestRegistry is disabled in configuration"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    TestRegistry = @{
+                        Enabled = $false
+                    }
+                    Run          = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                })
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Result | Verify-Equal "Passed"
+        }
     }
 }

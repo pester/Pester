@@ -420,5 +420,40 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        t "Write JUnit report using Invoke-Pester -OutputFormat JUnitXML into a folder that does not exist" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            try {
+                $script = Join-Path ([IO.Path]::GetTempPath()) "test$([Guid]::NewGuid()).Tests.ps1"
+                $sb | Set-Content -Path $script -Force
+
+                $dir = Join-Path ([IO.Path]::GetTempPath()) "dir$([Guid]::NewGuid())"
+
+                $xml = Join-Path $dir "TestResults.xml"
+                $r = Invoke-Pester -Show None -Path $script -OutputFormat JUnitXML -OutputFile $xml -PassThru
+
+                $xmlResult = [xml] (Get-Content -Path $xml)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.status | Verify-Equal "Passed"
+                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $script) {
+                    Remove-Item $script -Force -ErrorAction Ignore
+                }
+
+                if (Test-Path $dir) {
+                    Remove-Item $dir -Force -ErrorAction Ignore -Recurse
+                }
+            }
+        }
     }
 }

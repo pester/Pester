@@ -933,10 +933,13 @@ function Invoke-Pester {
                 # and that way output can consume the fixed object that decorator
                 # decorated, not nice but works
                 Get-RSpecObjectDecoratorPlugin
-                Get-TestDrivePlugin
             )
 
-            if ("Windows" -eq (GetPesterOs)) {
+            if ($PesterPreference.TestDrive.Enabled.Value) {
+                $plugins += @(Get-TestDrivePlugin)
+            }
+
+            if ($PesterPreference.TestRegistry.Enabled.Value -and "Windows" -eq (GetPesterOs)) {
                 $plugins += @(Get-TestRegistryPlugin)
             }
 
@@ -1027,7 +1030,7 @@ function Invoke-Pester {
             }
 
             if ((none $containers)) {
-                throw "No test files were found and no scriptblocks were provided."
+                throw "No test files were found and no scriptblocks were provided. Please ensure that you provided at least one path to a *$($PesterPreference.Run.TestExtension.Value) file, or a directory that contains such file.$(if ($null -ne $PesterPreference.Run.ExcludePath.Value -and 0 -lt @($PesterPreference.Run.ExcludePath.Value).Length) {" And that there is at least one file not excluded by ExcludeFile filter '$($PesterPreference.Run.ExcludePath.Value -join "', '")'."}) Or that you provided a ScriptBlock test container."
                 return
             }
 
@@ -1126,7 +1129,13 @@ function Invoke-Pester {
                     }
                 }
 
-                $stringWriter.ToString() | & $SafeCommands['Out-File'] $PesterPreference.CodeCoverage.OutputPath.Value -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value
+                $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+                if (-not (& $SafeCommands['Test-Path'] $resolvedPath)) {
+                    $dir = & $SafeCommands['Split-Path'] $resolvedPath
+                    $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
+                }
+
+                $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
                     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }

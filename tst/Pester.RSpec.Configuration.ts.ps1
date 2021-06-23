@@ -160,6 +160,14 @@ i -PassThru:$PassThru {
         t "Debug.ShowNavigationMarkers is `$false" {
             [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
         }
+
+        t "TestDrive.Enabled is `$true" {
+            [PesterConfiguration]::Default.TestDrive.Enabled.Value | Verify-True
+        }
+
+        t "TestRegistry.Enabled is `$true" {
+            [PesterConfiguration]::Default.TestRegistry.Enabled.Value | Verify-True
+        }
     }
 
     b "Assignment" {
@@ -235,6 +243,23 @@ i -PassThru:$PassThru {
 
             Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
             Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
+
+        t "Modifying the private Default property of an option throws" {
+            $config = [PesterConfiguration]::Default
+            { $config.Run.Path.Default = 'invalid' } | Verify-Throw
+        }
+
+        t "Modifying the private Value property of an option throws" {
+            $config = [PesterConfiguration]::Default
+            { $config.Run.Path.Value = 'invalid' } | Verify-Throw
+        }
+
+        t "IsOriginalValue returns false after change even if same as default" {
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path.IsOriginalValue() | Verify-True
+            $config.Run.Path = $config.Run.Path.Default
+            $config.Run.Path.IsOriginalValue() | Verify-False
         }
     }
 

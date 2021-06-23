@@ -2779,3 +2779,53 @@ Describe "Debugging mocks" {
         }
     }
 }
+
+Describe "When inherited variables conflicts with parameters" {
+    BeforeAll {
+        Mock FunctionUnderTest { 'default' }
+        Mock FunctionUnderTest { 'filtered' } -ParameterFilter { $param1 -eq 'abc' } -Verifiable
+    }
+
+    It "parameterized mock should not be called due to inherited variable" {
+        $param1 = 'abc'
+        FunctionUnderTest | Should -Be 'default'
+    }
+
+    It "InvokeVerifiable should not pass due to test variable" {
+        # Uses same logic as mock execution, so should not be tricked
+        $param1 = 'abc'
+        FunctionUnderTest | Should -Be 'default'
+        { Should -InvokeVerifiable } | Should -Throw
+    }
+
+    It "Should Invoke ParameterFilter will count false positive for the first FunctionUnderTest call" {
+        # https://github.com/pester/Pester/issues/1873
+        # this will pass the parameter filter because we define a variable param1 with the same name and value as the expected parameter value
+        FunctionUnderTest | Should -Be 'default'
+        FunctionUnderTest -param1 'abc' | Should -Be 'filtered'
+        $param1 = 'abc'
+
+        # This should show warning about conflict when in Diagnostic output (Mock debug message)
+        # about already having a variable in the scope that is the same as parameter name
+        Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 'abc' } -Times 2 -Exactly
+    }
+
+    It "Invoke ParameterFilter works as expected when PesterBoundParamters is used" {
+        # Workaround mentioned in debug message warning mentioned in previous test
+        FunctionUnderTest | Should -Be 'default'
+        FunctionUnderTest -param1 'abc' | Should -Be 'filtered'
+        $param1 = 'abc'
+
+        # No warning will be shown in debug as there's no conflict
+        Should -Invoke FunctionUnderTest -ParameterFilter { $PesterBoundParameters.param1 -eq 'abc' } -Times 1 -Exactly
+    }
+
+    It "Calling mock with parameter overrides inherited variable in filter" {
+        FunctionUnderTest -param1 '123' | Should -Be 'default'
+        $param1 = 'abc'
+
+        # This should show warning about conflict when in Diagnostic output (Mock debug message)
+        Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 'abc' } -Times 0 -Exactly
+        Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 123 } -Times 1 -Exactly
+    }
+}
