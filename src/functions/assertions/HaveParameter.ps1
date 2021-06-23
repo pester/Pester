@@ -108,6 +108,75 @@
         }
     }
 
+    function Get-ArgumentCompleter {
+        <#
+        .SYNOPSIS
+            Get custom argument completers registered in the current session.
+        .DESCRIPTION
+            Get custom argument completers registered in the current session.
+
+            By default Get-ArgumentCompleter lists all of the completers registered in the session.
+        .EXAMPLE
+            Get-ArgumentCompleter
+
+            Get all of the argument completers for PowerShell commands in the current session.
+        .EXAMPLE
+            Get-ArgumentCompleter -CommandName Invoke-ScriptAnalyzer
+
+            Get all of the argument completers used by the Invoke-ScriptAnalyzer command.
+        .EXAMPLE
+            Get-ArgumentCompleter -Native
+
+            Get all of the argument completers for native commands in the current session.
+        .NOTES
+            Author: Chris Dent
+        #>
+
+        [CmdletBinding()]
+        param (
+            # Filter results by command name.
+            [Parameter(Mandatory = $true)]
+            [String]$CommandName,
+
+            # Filter results by parameter name.
+            [Parameter(Mandatory = $true)]
+            [String]$ParameterName
+        )
+
+        $getExecutionContextFromTLS = [PowerShell].Assembly.GetType('System.Management.Automation.Runspaces.LocalPipeline').GetMethod(
+            'GetExecutionContextFromTLS',
+            [System.Reflection.BindingFlags]'Static, NonPublic'
+        )
+        $internalExecutionContext = $getExecutionContextFromTLS.Invoke(
+            $null,
+            [System.Reflection.BindingFlags]'Static, NonPublic',
+            $null,
+            $null,
+            $PSCulture
+        )
+
+        $argumentCompletersProperty = $internalExecutionContext.GetType().GetProperty(
+            'CustomArgumentCompleters',
+            [System.Reflection.BindingFlags]'NonPublic, Instance'
+        )
+        $argumentCompleters = $argumentCompletersProperty.GetGetMethod($true).Invoke(
+            $internalExecutionContext,
+            [System.Reflection.BindingFlags]'Instance, NonPublic, GetProperty',
+            $null,
+            @(),
+            $PSCulture
+        )
+
+        $completerName = '{0}:{1}' -f $CommandName, $ParameterName
+        if ($argumentCompleters.ContainsKey($completerName)) {
+            [PSCustomObject]@{
+                CommandName   = $CommandName
+                ParameterName = $ParameterName
+                Definition    = $argumentCompleters[$completerName]
+            }
+        }
+    }
+
     if ($Type -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
         $parsedType = ($Type -replace '^\[(.*)\]$', '$1') -as [Type]
@@ -156,7 +225,7 @@
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
             $testType = ($Type -eq $actualType)
-            $filters += "$(if ($Negate) {"not "})of type [$($Type.FullName)]"
+            $filters += "$(if ($Negate) { "not " })of type [$($Type.FullName)]"
 
             if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
@@ -182,6 +251,10 @@
 
         if ($HasArgumentCompleter) {
             $testArgumentCompleter = $attributes | & $SafeCommands['Where-Object'] { $_ -is [ArgumentCompleter] }
+
+            if (-not $testArgumentCompleter) {
+                $testArgumentCompleter = Get-ArgumentCompleter -CommandName $ActualValue.Name -ParameterName $ParameterName
+            }
             $filters += "has ArgumentCompletion"
 
             if (-not $Negate -and -not $testArgumentCompleter) {
