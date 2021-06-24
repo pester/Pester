@@ -69,6 +69,7 @@ $script:SafeCommands = @{
     'Split-Path'           = & $Get_Command -Name Split-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Start-Sleep'          = & $Get_Command -Name Start-Sleep          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Test-Path'            = & $Get_Command -Name Test-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Update-TypeData'      = & $Get_Command -Name Update-TypeData      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Where-Object'         = & $Get_Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Write-Error'          = & $Get_Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Host'           = & $Get_Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters

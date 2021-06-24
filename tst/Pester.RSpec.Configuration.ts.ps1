@@ -550,6 +550,119 @@ i -PassThru:$PassThru {
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
+
+        t "Merges configuration when hashtable keys are boxed in PSObject" {
+            $MyOptions = @{
+                Run    = New-Object PSObject -ArgumentList (
+                    @{
+                        PassThru = $true
+                    }
+                )
+                Filter = New-Object PSObject -ArgumentList (
+                    @{
+                        Tag = "Core"
+                    }
+                )
+            }
+
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a hashtable has been serialized" {
+            $BeforeSerialization = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = New-PesterConfiguration -Hashtable $AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object includes an array of values" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Path = @(
+                        'c:\path1'
+                        'c:\path2'
+                    )
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Path.Value -join ',' | Verify-Equal 'c:\path1,c:\path2'
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ScriptBlock" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    ScriptBlock = {
+                        'Hello world'
+                    }
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.ScriptBlock.Value.GetType() | Verify-Equal ([ScriptBlock[]])
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ContainerInfo object" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Container = @(
+                        $container = [Pester.ContainerInfo]::Create()
+                        $container.Type = 'File'
+                        $container.Item = 'Item'
+                        $container.Data = 'Data'
+                        $container
+                    )
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Container.Value.GetType() | Verify-Equal ([Pester.ContainerInfo[]])
+            $config.Run.Container.Value[0].Type | Verify-Equal 'File'
+            $config.Run.Container.Value[0].Item | Verify-Equal 'Item'
+            $config.Run.Container.Value[0].Data | Verify-Equal 'Data'
+        }
     }
 
     b "Output.StackTraceVerbosity" {

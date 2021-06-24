@@ -43,7 +43,17 @@ namespace Pester
 
         public static IDictionary GetIDictionaryOrNull(this IDictionary dictionary, string key)
         {
-            return dictionary.Contains(key) ? dictionary[key] as IDictionary : null;
+            if (!dictionary.Contains(key))
+                return null;
+
+            if (dictionary[key] is PSObject)
+            {
+                return ((PSObject)dictionary[key]).BaseObject as IDictionary;
+            }
+            else
+            {
+                return dictionary[key] as IDictionary;
+            }
         }
 
         public static T[] GetArrayOrNull<T>(this IDictionary dictionary, string key) where T : class
