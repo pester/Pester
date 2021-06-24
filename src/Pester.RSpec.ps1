@@ -322,6 +322,9 @@ function New-PesterConfiguration {
       Line: Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
       Default value: @()
 
+      ExcludeLine: Exclude by file and scriptblock start line, takes precedence over Line.
+      Default value: @()
+
       FullName: Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
       Default value: @()
 
