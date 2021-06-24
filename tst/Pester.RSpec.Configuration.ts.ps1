@@ -91,6 +91,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value | Verify-Equal Filtered
         }
 
+        t "Output.CIFormat is Auto" {
+            [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
+        }
+
         # CodeCoverage configuration
         t "CodeCoverage.Enabled is `$false" {
             [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False
@@ -623,11 +627,271 @@ i -PassThru:$PassThru {
                 }
                 Output = @{
                     StackTraceVerbosity = "Something"
+                    CIFormat            = 'None'
                 }
             }
 
             $r = Invoke-Pester -Configuration $c
             $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+        }
+    }
+
+    b "Output.CIFormat" {
+        t "Output.CIFormat is AzureDevops when Auto(default) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is AzureDevops when Auto(manually set) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "Auto"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is AzureDevops when AzureDevops(manually set) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "AzureDevops"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is None when Auto(default) and TF_BUILD is not set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when Auto(default) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when Auto(manually set) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "Auto"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when GithubActions(manually set) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "GithubActions"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is None when Auto(default) and GITHUB_ACTIONS is not set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    CIFormat = "Something"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI format 'Something'"
+        }
+
+        t "Output.CIFormat is None when set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
         }
     }
 }

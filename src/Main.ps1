@@ -899,6 +899,24 @@ function Invoke-Pester {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
             }
 
+            if ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
+
+                # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+                # Do not fix this to check for boolean value, the value is set to literal string 'True'
+                if ($env:TF_BUILD -eq 'True') {
+                    $PesterPreference.Output.CIFormat = 'AzureDevops'
+                }
+                # Variable is set to 'True' if the script is being run by a Github Actions workflow. https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
+                # Do not fix this to check for boolean value, the value is set to literal string 'True'
+                elseif ($env:GITHUB_ACTIONS -eq 'True') {
+                    $PesterPreference.Output.CIFormat = 'GithubActions'
+                }
+
+                else {
+                    $PesterPreference.Output.CIFormat = 'None'
+                }
+            }
+
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
@@ -1167,7 +1185,19 @@ function Invoke-Pester {
 
         }
         catch {
-            Write-ErrorToScreen $_ -Throw:$PesterPreference.Run.Throw.Value -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $formatErrorParams = @{
+                Err                 = $_
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+            }
+            else {
+                Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
+            }
+
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }

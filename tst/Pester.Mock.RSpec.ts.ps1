@@ -342,8 +342,16 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
-                    Should = @{ ErrorAction = 'Continue' }
+                    Run    = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                    Should = @{
+                        ErrorAction = 'Continue'
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
                 })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
@@ -1011,7 +1019,13 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    Run    = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
                 })
 
             $t = $r.Containers[0].Blocks[0].Tests[0]

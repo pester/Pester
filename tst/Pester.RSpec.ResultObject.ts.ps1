@@ -331,7 +331,10 @@ i -PassThru:$PassThru {
                     ScriptBlock = $sb
                     PassThru    = $true
                 }
-                Output = @{ Verbosity = "Normal" }
+                Output = @{
+                    Verbosity = "Normal"
+                    CIFormat  = 'None'
+                }
             }
 
             $result | Verify-NotNull

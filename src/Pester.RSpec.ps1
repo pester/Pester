@@ -399,6 +399,9 @@ function New-PesterConfiguration {
       StackTraceVerbosity: The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.
       Default value: 'Filtered'
 
+      CIFormat: The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.
+      Default value: 'Auto'
+
     TestDrive:
       Enabled: Enable TestDrive.
       Default value: $true

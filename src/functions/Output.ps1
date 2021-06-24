@@ -513,8 +513,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 throw "Container type '$($container.Type)' is not supported."
             }
 
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] Discovery in $($path) failed with:"
-            Write-ErrorToScreen $Context.Block.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $errorHeader = "[-] Discovery in $($path) failed with:"
+
+            $formatErrorParams = @{
+                Err                 = $Context.Block.ErrorRecord
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            }
+            else {
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-ErrorToScreen @formatErrorParams
+            }
         }
     }
 
@@ -573,8 +586,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         if ($Context.Result.ErrorRecord.Count -gt 0) {
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail "[-] $($Context.Result.Item) failed with:"
-            Write-ErrorToScreen $Context.Result.ErrorRecord -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+            $errorHeader = "[-] $($Context.Result.Item) failed with:"
+
+            $formatErrorParams = @{
+                Err                 = $Context.Result.ErrorRecord
+                StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+            }
+
+            if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            }
+            else {
+                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-ErrorToScreen $formatErrorParams
+            }
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -640,6 +666,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
         }
 
+        if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
+            throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
@@ -671,10 +701,21 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                 }
                 else {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                    $formatErrorParams = @{
+                        Err                 = $_test.ErrorRecord
+                        ErrorMargin         = $error_margin
+                        StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+                    }
 
-                    Write-ErrorToScreen $_test.ErrorRecord -ErrorMargin $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+                    if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+                        $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                    }
+                    else {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                        Write-ErrorToScreen @formatErrorParams
+                    }
                 }
                 break
             }
@@ -760,8 +801,23 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
-        Write-ErrorToScreen $Context.Block.ErrorRecord $error_margin -StackTraceVerbosity:$PesterPreference.Output.StackTraceVerbosity.Value
+
+        $errorHeader = "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+
+        $formatErrorParams = @{
+            Err                 = $Context.Block.ErrorRecord
+            ErrorMargin         = $error_margin
+            StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+        }
+
+        if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
+            $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
+            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+        }
+        else {
+            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail $errorHeader
+            Write-ErrorToScreen @formatErrorParams
+        }
     }
 
     $p.End = {
@@ -771,6 +827,77 @@ function Get-WriteScreenPlugin ($Verbosity) {
     }
 
     New-PluginObject @p
+}
+
+function Format-CIErrorMessage {
+    [OutputType([System.Collections.Generic.List[string]])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
+        [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [string] $Header,
+
+        [Parameter(Mandatory)]
+        [string[]] $Message
+    )
+
+    $lines = [System.Collections.Generic.List[string]]@()
+
+    if ($CIFormat -eq 'AzureDevops') {
+
+        # header task issue error, so it gets reported to build log
+        # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
+        $headerTaskIssueError = "##vso[task.logissue type=error] $Header"
+        $lines.Add($headerTaskIssueError)
+
+        # Add subsequent messages as errors, but do not get reported to build log
+        foreach ($line in $Message) {
+            $lines.Add("##[error] $line")
+        }
+    }
+    elseif ($CIFormat -eq 'GithubActions') {
+
+        # header error, so it gets reported to build log
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
+        $headerError = "::error::$($Header.TrimStart())"
+        $lines.Add($headerError)
+
+        # Add rest of messages inside expandable group
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
+        $lines.Add("::group::Message")
+
+        foreach ($line in $Message) {
+            $lines.Add($line.TrimStart())
+        }
+
+        $lines.Add("::endgroup::")
+    }
+
+    return $lines
+}
+
+function Write-CIErrorToScreen {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
+        [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [string] $Header,
+
+        [Parameter(Mandatory)]
+        [string[]] $Message
+    )
+
+    $errorMessage = Format-CIErrorMessage @PSBoundParameters
+
+    foreach ($line in $errorMessage) {
+        & $SafeCommands['Write-Host'] $line
+    }
 }
 
 function Format-ErrorMessage {
