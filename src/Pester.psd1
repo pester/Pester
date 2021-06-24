@@ -25,10 +25,10 @@
     PowerShellVersion = '3.0'
 
     # Type files (.ps1xml) to be loaded when importing this module
-    TypesToProcess = @()
+    TypesToProcess    = @()
 
     # Format files (.ps1xml) to be loaded when importing this module
-    FormatsToProcess = @('Pester.Format.ps1xml', 'PesterConfiguration.Format.ps1xml')
+    FormatsToProcess  = @('Pester.Format.ps1xml', 'PesterConfiguration.Format.ps1xml')
 
     # Functions to export from this module
     FunctionsToExport = @(
@@ -99,7 +99,7 @@
         # It's for rebuilding PowerShellGet (and PoshCode) NuGet-style packages
         # We had to do this because it's the only place we're allowed to extend the manifest
         # https://connect.microsoft.com/PowerShell/feedback/details/421837
-        PSData = @{
+        PSData                  = @{
             # The primary categorization of this module (from the TechNet Gallery tech tree).
             Category     = "Scripting Techniques"
 
@@ -119,7 +119,7 @@
             ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.3.0'
 
             # Prerelease string of this module
-            Prerelease   = 'alpha4'
+            Prerelease   = 'alpha5'
         }
 
         # Minimum assembly version required
