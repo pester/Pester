@@ -1721,6 +1721,21 @@ function Test-ShouldRun {
         }
     }
 
+    $excludeLineFilter = $Filter.ExcludeLine
+
+    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    if ($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) {
+        foreach ($l in $excludeLineFilter -replace '\\', '/') {
+            if ($l -eq $line) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because its path:line '$line' matches line filter '$excludeLineFilter'."
+                }
+                $result.Exclude = $true
+                return $result
+            }
+        }
+    }
+
     # - place exclude filters above this line and include below this line
 
     $lineFilter = $Filter.Line
