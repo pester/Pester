@@ -2286,14 +2286,16 @@ function New-FilterObject {
         [String[]] $FullName,
         [String[]] $Tag,
         [String[]] $ExcludeTag,
-        [String[]] $Line
+        [String[]] $Line,
+        [String[]] $ExcludeLine
     )
 
     [PSCustomObject] @{
-        FullName   = $FullName
-        Tag        = $Tag
-        ExcludeTag = $ExcludeTag
-        Line       = $Line
+        FullName    = $FullName
+        Tag         = $Tag
+        ExcludeTag  = $ExcludeTag
+        Line        = $Line
+        ExcludeLine = $ExcludeLine
     }
 }
 

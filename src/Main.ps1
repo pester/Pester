@@ -1015,6 +1015,7 @@ function Invoke-Pester {
                 -Tag $PesterPreference.Filter.Tag.Value `
                 -ExcludeTag $PesterPreference.Filter.ExcludeTag.Value `
                 -Line $PesterPreference.Filter.Line.Value `
+                -ExcludeLine $PesterPreference.Filter.ExcludeLine.Value `
                 -FullName $PesterPreference.Filter.FullName.Value
 
             $containers = @()
