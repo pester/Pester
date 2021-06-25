@@ -63,7 +63,7 @@ function Export-NUnitReport {
     Pester can generate a result-object containing information about all
     tests that are processed in a run. This object can then be exported to an
     NUnit-compatible XML-report using this function. The report is generated
-    using the NUnit 2.5-schema.
+    using the NUnit 2.5-schema (default) or NUnit3-compatible format.
 
     This can be useful for further processing or publishing of test results,
     e.g. as part of a CI/CD pipeline.
@@ -95,10 +95,13 @@ function Export-NUnitReport {
         $Result,
 
         [parameter(Mandatory = $true)]
-        [String] $Path
+        [String] $Path,
+
+        [ValidateSet('NUnit2.5', 'NUnit3')]
+        [string] $Format = 'NUnit2.5'
     )
 
-    Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
+    Export-XmlReport -Result $Result -Path $Path -Format $Format
 }
 
 function Export-JUnitReport {
@@ -157,7 +160,7 @@ function Export-XmlReport {
         [String] $Path,
 
         [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'NUnit3', 'JUnitXml')]
         [string] $Format
     )
 
@@ -184,6 +187,10 @@ function Export-XmlReport {
         switch ($Format) {
             'NUnitXml' {
                 Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+            }
+
+            'NUnit3' {
+                Write-NUnit3Report -XmlWriter $xmlWriter -Result $Result
             }
 
             'JUnitXml' {
@@ -763,6 +770,10 @@ function Convert-TimeSpan {
     }
 }
 
+function Get-UTCTimeString ($DateTime) {
+    $DateTime.ToUniversalTime().ToString('u')
+}
+
 function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
     $name = $TestSuiteInfo.Name
 
@@ -978,12 +989,12 @@ function Get-RunTimeEnvironment() {
         'nunit-version' = '2.5.8.0'
         'junit-version' = '4'
         'os-version'    = $osSystemInformation.Version
-        platform        = $osSystemInformation.Name
-        cwd             = $pwd.Path
+        'platform'      = $osSystemInformation.Name
+        'cwd'           = $pwd.Path
         'machine-name'  = $computerName
-        user            = $username
+        'user'          = $username
         'user-domain'   = $env:userDomain
-        'clr-version'   = $CLrVersion
+        'clr-version'   = $ClrVersion
     }
 }
 
