@@ -476,6 +476,263 @@ i -PassThru:$PassThru {
             $actual.Include | Verify-False
             $actual.Exclude | Verify-False
         }
+
+        t "Given a test with file path and line number it excludes it when it matches the exclude lines filter" {
+            $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
+
+            $excludeLines = "$($sb.File):$($sb.StartPosition.StartLine)"
+
+            $f = New-FilterObject -ExcludeLine $excludeLines
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-True
+        }
+
+        t "Given a test with file path and line number it excludes it when it matches the exclude lines filter even when line filter is already set" {
+            $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
+
+            $includeLines = "$($sb.File):$($sb.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($sb.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual = Test-ShouldRun -Item $t -Filter $f
+            $actual.Include | Verify-False
+            $actual.Exclude | Verify-True
+        }
+
+        t "Given two tests with file paths and line numbers it excludes them when they match the exclude lines filter" {
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Test "test2" { "b" }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $test1 = $actual.Blocks[0].Tests[0]
+            $test2 = $actual.Blocks[0].Tests[1]
+
+            $excludeLines = "$($sb.File):$($test1.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual1.Include | Verify-False
+            $actual1.Exclude | Verify-True
+
+            $actual2 = Test-ShouldRun -Item $test2 -Filter $f
+            $actual2.Include | Verify-False
+            $actual2.Exclude | Verify-True
+        }
+
+        t "Given two tests with file paths and line numbers it includes the first one and excludes the second one when both filters are set" {
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Test "test2" { "b" }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $test1 = $actual.Blocks[0].Tests[0]
+            $test2 = $actual.Blocks[0].Tests[1]
+
+            $includeLines = "$($sb.File):$($test1.ScriptBlock.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual1.Include | Verify-True
+            $actual1.Exclude | Verify-False
+
+            $actual2 = Test-ShouldRun -Item $test2 -Filter $f
+            $actual2.Include | Verify-False
+            $actual2.Exclude | Verify-True
+        }
+
+        t "Given multiple tests with file paths and line numbers it includes the lines that match the lines filter and excludes when overriden with the exclude filter" {
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Test "test2" { "b" }
+                    New-Test "test3" { "c" }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $test1 = $actual.Blocks[0].Tests[0]
+            $test2 = $actual.Blocks[0].Tests[1]
+            $test3 = $actual.Blocks[0].Tests[2]
+
+            $includeLines = "$($sb.File):$($test1.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($test3.ScriptBlock.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($test3.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual1.Include | Verify-True
+            $actual1.Exclude | Verify-False
+
+            $actual2 = Test-ShouldRun -Item $test2 -Filter $f
+            $actual2.Include | Verify-True
+            $actual2.Exclude | Verify-False
+
+            $actual3 = Test-ShouldRun -Item $test3 -Filter $f
+            $actual3.Include | Verify-False
+            $actual3.Exclude | Verify-True
+        }
+
+        t "Given multiple tests with file paths and line numbers it excludes selected tests inside a block" {
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Test "test2" { "b" }
+                    New-Test "test3" { "c" }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $block1 = $actual.Blocks[0]
+            $test1 = $block1.Tests[0]
+            $test2 = $block1.Tests[1]
+            $test3 = $block1.Tests[2]
+
+            $includeLines = "$($sb.File):$($block1.ScriptBlock.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($test3.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $block1 -Filter $f
+            $actual1.Include | Verify-True
+            $actual1.Exclude | Verify-False
+
+            $actual2 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual2.Include | Verify-True
+            $actual2.Exclude | Verify-False
+
+            $actual3 = Test-ShouldRun -Item $test2 -Filter $f
+            $actual3.Include | Verify-False
+            $actual3.Exclude | Verify-True
+
+            $actual4 = Test-ShouldRun -Item $test3 -Filter $f
+            $actual4.Include | Verify-False
+            $actual4.Exclude | Verify-True
+        }
+
+        t "Given multiple tests with file paths and line numbers it excludes block" {
+            $sb = {
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+                    New-Test "test2" { "b" }
+                    New-Test "test3" { "c" }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $block1 = $actual.Blocks[0]
+
+            $excludeLines = "$($sb.File):$($block1.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $block1 -Filter $f
+            $actual1.Include | Verify-False
+            $actual1.Exclude | Verify-True
+        }
+
+        t "Given multiple tests with file paths and line numbers it excludes nested blocks" {
+            $sb = {
+                # Describe
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+
+                    # Context
+                    New-Block "block2" {
+                        New-Test "test2" { "b" }
+                        New-Test "test3" { "c" }
+                    }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $block1 = $actual.Blocks[0]
+            $test1 = $block1.Tests[0]
+            $block2 = $actual.Blocks[0].Blocks[0]
+
+            $includeLines = "$($sb.File):$($block1.ScriptBlock.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($block2.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $block1 -Filter $f
+            $actual1.Include | Verify-True
+            $actual1.Exclude | Verify-False
+
+            $actual2 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual2.Include | Verify-True
+            $actual2.Exclude | Verify-False
+
+            $actual3 = Test-ShouldRun -Item $block2 -Filter $f
+            $actual3.Include | Verify-False
+            $actual3.Exclude | Verify-True
+        }
+
+        t "Given multiple tests with file paths and line numbers it includes nested blocks but excludes selected tests" {
+            $sb = {
+                # Describe
+                New-Block "block1" {
+                    New-Test "test1" { "a" }
+
+                    # Context
+                    New-Block "block2" {
+                        New-Test "test2" { "b" }
+                        New-Test "test3" { "c" }
+                    }
+                }
+            }
+
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb)
+
+            $block1 = $actual.Blocks[0]
+            $test1 = $block1.Tests[0]
+            $block2 = $actual.Blocks[0].Blocks[0]
+            $test2 = $block2.Tests[0]
+            $test3 = $block2.Tests[1]
+
+            $includeLines = "$($sb.File):$($block1.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($block2.ScriptBlock.StartPosition.StartLine)", "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)"
+            $excludeLines = "$($sb.File):$($test2.ScriptBlock.StartPosition.StartLine)"
+
+            $f = New-FilterObject -Line $includeLines -ExcludeLine $excludeLines
+
+            $actual1 = Test-ShouldRun -Item $block1 -Filter $f
+            $actual1.Include | Verify-True
+            $actual1.Exclude | Verify-False
+
+            $actual2 = Test-ShouldRun -Item $test1 -Filter $f
+            $actual2.Include | Verify-True
+            $actual2.Exclude | Verify-False
+
+            $actual3 = Test-ShouldRun -Item $block2 -Filter $f
+            $actual3.Include | Verify-True
+            $actual3.Exclude | Verify-False
+
+            $actual4 = Test-ShouldRun -Item $test2 -Filter $f
+            $actual4.Include | Verify-False
+            $actual4.Exclude | Verify-True
+
+            $actual5 = Test-ShouldRun -Item $test3 -Filter $f
+            $actual5.Include | Verify-True
+            $actual5.Exclude | Verify-False
+        }
     }
 
     b "path filter" {
