@@ -477,7 +477,7 @@ i -PassThru:$PassThru {
             $actual.Exclude | Verify-False
         }
 
-        t "Given a test with file path and line number it excludes it when it matches the exclude lines filter" {
+        t "Given a test with file path and line number it excludes it when it matches the ExcludeLine filter" {
             $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
 
             $excludeLines = "$($sb.File):$($sb.StartPosition.StartLine)"
@@ -489,7 +489,7 @@ i -PassThru:$PassThru {
             $actual.Exclude | Verify-True
         }
 
-        t "Given a test with file path and line number it excludes it when it matches the exclude lines filter even when line filter is already set" {
+        t "Given a test with file path and line number it overrides the Line filter when it matches the ExcludeLine filter" {
             $t = New-TestObject -Name "test1" -ScriptBlock ($sb = { "test" }) -StartLine $sb.StartPosition.StartLine
 
             $includeLines = "$($sb.File):$($sb.StartPosition.StartLine)"
@@ -502,7 +502,7 @@ i -PassThru:$PassThru {
             $actual.Exclude | Verify-True
         }
 
-        t "Given two tests with file paths and line numbers it excludes them when they match the exclude lines filter" {
+        t "Given two tests with file paths and line numbers it excludes both they match the ExcludeLine filter" {
             $sb = {
                 New-Block "block1" {
                     New-Test "test1" { "a" }
@@ -528,7 +528,7 @@ i -PassThru:$PassThru {
             $actual2.Exclude | Verify-True
         }
 
-        t "Given two tests with file paths and line numbers it includes the first one and excludes the second one when both filters are set" {
+        t "Given two tests with file paths and line numbers it includes the first one from Line filter and excludes second one from ExcludeLine filter" {
             $sb = {
                 New-Block "block1" {
                     New-Test "test1" { "a" }
@@ -555,7 +555,7 @@ i -PassThru:$PassThru {
             $actual2.Exclude | Verify-True
         }
 
-        t "Given multiple tests with file paths and line numbers it includes the lines that match the lines filter and excludes when overriden with the exclude filter" {
+        t "Given multiple tests with file paths and line numbers it includes the lines that match the Line filter and excludes when overriden with the ExcludeLine filter" {
             $sb = {
                 New-Block "block1" {
                     New-Test "test1" { "a" }
@@ -686,7 +686,7 @@ i -PassThru:$PassThru {
             $actual3.Exclude | Verify-True
         }
 
-        t "Given multiple tests with file paths and line numbers it includes nested blocks but excludes selected tests" {
+        t "Given multiple tests with file paths and line numbers it includes nested blocks but excludes selected tests within blocks" {
             $sb = {
                 # Describe
                 New-Block "block1" {
