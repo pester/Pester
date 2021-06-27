@@ -15,6 +15,11 @@ namespace Pester
             return new PSNoteProperty(name, value);
         }
 
+        public static PSScriptMethod CreateScriptMethod(string name, ScriptBlock scriptBlock)
+        {
+            return new PSScriptMethod(name, scriptBlock);
+        }
+
         public static Dictionary<string, object> CreateDictionary()
         {
             return new Dictionary<string, object>();
