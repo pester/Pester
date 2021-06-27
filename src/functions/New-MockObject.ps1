@@ -91,45 +91,45 @@ https://pester.dev/docs/usage/mocking
                 $mock.PSObject.Properties.Remove($property.Key)
             }
             $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty($property.Key, $property.Value))
-            }
         }
-
-        if ($null -ne $Methods) {
-            foreach ($method in $Methods.GetEnumerator()) {
-                $historyName = "$($MethodHistoryPrefix)$($method.Key)"
-                if ($mock.PSObject.Properties.Item($historyName)) {
-                    $mock.PSObject.Properties.Remove($historyName)
-                }
-                $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty($historyName, [System.Collections.Generic.List[object]]@()))
-
-                $saveHistoryAndInvokeUserScriptBlock = & {
-                    # this new scriptblock ensures we only copy the variables here
-                    # because closure only copies local variables, the scriptblock execution
-                    # returns a scriptblock that is a closure
-
-                    # save the provided scriptblock as $scriptblock in the closure
-                    $scriptBlock = $method.Value
-                    # save history name as $historyName in the closure
-                    $historyName = $historyName
-                    # save count as reference object so we can easily update the value
-                    $count = @{ Count = 0 }
-
-                    {
-                        # before invoking user scriptblock up the counter by 1 and save args
-                        $this.$historyName.Add([PSCustomObject] @{ Call = ++$count.Count; Arguments = $args })
-
-                        # then splat the args, if user specifies parameters in the scriptblock they
-                        # will get the values by order, same as if they called the script method
-                        & $scriptBlock @args
-                    }.GetNewClosure()
-                }
-                if ($mock.PSObject.Methods.Item($method.Key)) {
-                    $mock.PSObject.Methods.Remove($method.Key)
-                }
-
-                $mock.PSObject.Methods.Add([Pester.Factory]::CreateScriptMethod($method.Key, $saveHistoryAndInvokeUserScriptBlock))
-            }
-        }
-
-        $mock
     }
+
+    if ($null -ne $Methods) {
+        foreach ($method in $Methods.GetEnumerator()) {
+            $historyName = "$($MethodHistoryPrefix)$($method.Key)"
+            if ($mock.PSObject.Properties.Item($historyName)) {
+                $mock.PSObject.Properties.Remove($historyName)
+            }
+            $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty($historyName, [System.Collections.Generic.List[object]]@()))
+
+            $saveHistoryAndInvokeUserScriptBlock = & {
+                # this new scriptblock ensures we only copy the variables here
+                # because closure only copies local variables, the scriptblock execution
+                # returns a scriptblock that is a closure
+
+                # save the provided scriptblock as $scriptblock in the closure
+                $scriptBlock = $method.Value
+                # save history name as $historyName in the closure
+                $historyName = $historyName
+                # save count as reference object so we can easily update the value
+                $count = @{ Count = 0 }
+
+                {
+                    # before invoking user scriptblock up the counter by 1 and save args
+                    $this.$historyName.Add([PSCustomObject] @{ Call = ++$count.Count; Arguments = $args })
+
+                    # then splat the args, if user specifies parameters in the scriptblock they
+                    # will get the values by order, same as if they called the script method
+                    $scriptBlock.InvokeWithContext($null, @($ExecutionContext.SessionState.PSVariable.Get('this')), $args)
+                }.GetNewClosure()
+            }
+            if ($mock.PSObject.Methods.Item($method.Key)) {
+                $mock.PSObject.Methods.Remove($method.Key)
+            }
+
+            $mock.PSObject.Methods.Add([Pester.Factory]::CreateScriptMethod($method.Key, $saveHistoryAndInvokeUserScriptBlock))
+        }
+    }
+
+    $mock
+}

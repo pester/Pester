@@ -15,6 +15,21 @@ Describe 'New-MockObject' {
         $mockObject.Id | Should -Be 123
     }
 
+    It 'User scriptblock can use $this to reference to itself' {
+        $o = [PSCustomObject]@{
+            Name = 'Jakub'
+        }
+
+        $mockObject = New-MockObject -InputObject $o -Methods @{ GetName = {
+                $this.Name
+            }
+        }
+
+        $mockObject | Should -Be $o
+        $mockObject.Name | Should -Be 'Jakub'
+        $mockObject.GetName() | Should -Be 'Jakub'
+    }
+
     Context 'Methods' {
         It "Adds a method to the object" {
             $o = New-Object -TypeName 'System.Diagnostics.Process'
