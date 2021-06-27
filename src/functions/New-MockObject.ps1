@@ -97,37 +97,46 @@ https://pester.dev/docs/usage/mocking
     if ($null -ne $Methods) {
         foreach ($method in $Methods.GetEnumerator()) {
             $historyName = "$($MethodHistoryPrefix)$($method.Key)"
+            $mockState = $mock.PSObject.Properties.Item("__mock")
+            if (-not $mockState) {
+                $mockState = @{}
+                $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("__mock", $mockState))
+            }
+
+            $mockState[$historyName] = @{
+                Count  = 0
+                Method = $method.Value
+            }
+
             if ($mock.PSObject.Properties.Item($historyName)) {
                 $mock.PSObject.Properties.Remove($historyName)
             }
+
             $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty($historyName, [System.Collections.Generic.List[object]]@()))
 
-            $saveHistoryAndInvokeUserScriptBlock = & {
-                # this new scriptblock ensures we only copy the variables here
-                # because closure only copies local variables, the scriptblock execution
-                # returns a scriptblock that is a closure
+            # this will be used as text below, and historyName is replaced. So we don't have to create a closure
+            # to hold the history name, and so user can still use $this because we are running in the same session state
+            $scriptBlock = {
+                $private:historyName = "###historyName###"
+                $private:state = $this.__mock[$private:historyName]
+                # before invoking user scriptblock up the counter by 1 and save args
+                $this.$private:historyName.Add([PSCustomObject] @{ Call = ++$private:state.Count; Arguments = $args })
 
-                # save the provided scriptblock as $scriptblock in the closure
-                $scriptBlock = $method.Value
-                # save history name as $historyName in the closure
-                $historyName = $historyName
-                # save count as reference object so we can easily update the value
-                $count = @{ Count = 0 }
-
-                {
-                    # before invoking user scriptblock up the counter by 1 and save args
-                    $this.$historyName.Add([PSCustomObject] @{ Call = ++$count.Count; Arguments = $args })
-
-                    # then splat the args, if user specifies parameters in the scriptblock they
-                    # will get the values by order, same as if they called the script method
-                    $scriptBlock.InvokeWithContext($null, @($ExecutionContext.SessionState.PSVariable.Get('this')), $args)
-                }.GetNewClosure()
+                # then splat the args, if user specifies parameters in the scriptblock they
+                # will get the values by order, same as if they called the script method
+                & $private:state.Method @args
             }
+
+            $scriptBlock = [ScriptBlock]::Create(($scriptBlock -replace "###historyName###", $historyName))
+
+            $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($method.Value, $null)
+            $script:ScriptBlockSessionStateInternalProperty.SetValue($scriptBlock, $SessionStateInternal, $null)
+
             if ($mock.PSObject.Methods.Item($method.Key)) {
                 $mock.PSObject.Methods.Remove($method.Key)
             }
 
-            $mock.PSObject.Methods.Add([Pester.Factory]::CreateScriptMethod($method.Key, $saveHistoryAndInvokeUserScriptBlock))
+            $mock.PSObject.Methods.Add([Pester.Factory]::CreateScriptMethod($method.Key, $scriptBlock))
         }
     }
 
