@@ -24,6 +24,7 @@ namespace Pester
         private StringArrayOption _tag;
         private StringArrayOption _excludeTag;
         private StringArrayOption _line;
+        private StringArrayOption _excludeLine;
         private StringArrayOption _fullName;
 
         public static FilterConfiguration Default { get { return new FilterConfiguration(); } }
@@ -39,6 +40,7 @@ namespace Pester
                 Tag = configuration.GetArrayOrNull<string>("Tag") ?? Tag;
                 ExcludeTag = configuration.GetArrayOrNull<string>("ExcludeTag") ?? ExcludeTag;
                 Line = configuration.GetArrayOrNull<string>("Line") ?? Line;
+                ExcludeLine = configuration.GetArrayOrNull<string>("ExcludeLine") ?? ExcludeLine;
                 FullName = configuration.GetArrayOrNull<string>("FullName") ?? FullName;
             }
         }
@@ -47,6 +49,7 @@ namespace Pester
             Tag = new StringArrayOption("Tags of Describe, Context or It to be run.", new string[0]);
             ExcludeTag = new StringArrayOption("Tags of Describe, Context or It to be excluded from the run.", new string[0]);
             Line = new StringArrayOption(@"Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'", new string[0]);
+            ExcludeLine = new StringArrayOption("Exclude by file and scriptblock start line, takes precedence over Line.", new string[0]);
             FullName = new StringArrayOption("Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'", new string[0]);
         }
 
@@ -93,6 +96,22 @@ namespace Pester
                 else
                 {
                     _line = new StringArrayOption(_line, value?.Value);
+                }
+            }
+        }
+
+        public StringArrayOption ExcludeLine
+        {
+            get { return _excludeLine; }
+            set
+            {
+                if (_excludeLine == null)
+                {
+                    _excludeLine = value;
+                }
+                else
+                {
+                    _excludeLine = new StringArrayOption(_excludeLine, value?.Value);
                 }
             }
         }

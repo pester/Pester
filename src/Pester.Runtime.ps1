@@ -1721,6 +1721,23 @@ function Test-ShouldRun {
         }
     }
 
+    $excludeLineFilter = $Filter.ExcludeLine
+
+    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    if ($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) {
+        foreach ($l in $excludeLineFilter -replace '\\', '/') {
+            if ($l -eq $line) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because its path:line '$line' matches line filter '$excludeLineFilter'."
+                    Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is explicitly excluded, because it matched line filter, and will run even if -Skip is specified on it. Any skipped children will still be skipped."
+                }
+                $result.Exclude = $true
+                $result.Explicit = $true
+                return $result
+            }
+        }
+    }
+
     # - place exclude filters above this line and include below this line
 
     $lineFilter = $Filter.Line
@@ -2286,14 +2303,16 @@ function New-FilterObject {
         [String[]] $FullName,
         [String[]] $Tag,
         [String[]] $ExcludeTag,
-        [String[]] $Line
+        [String[]] $Line,
+        [String[]] $ExcludeLine
     )
 
     [PSCustomObject] @{
-        FullName   = $FullName
-        Tag        = $Tag
-        ExcludeTag = $ExcludeTag
-        Line       = $Line
+        FullName    = $FullName
+        Tag         = $Tag
+        ExcludeTag  = $ExcludeTag
+        Line        = $Line
+        ExcludeLine = $ExcludeLine
     }
 }
 
