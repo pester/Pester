@@ -5,10 +5,11 @@ $script:SafeCommands['Get-MockDynamicParameter'] = $ExecutionContext.SessionStat
 $script:SafeCommands['Write-PesterDebugMessage'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Write-PesterDebugMessage', 'function')
 $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Set-DynamicParameterVariable', 'function')
 
-
 & $SafeCommands['Set-Alias'] 'Add-AssertionOperator' 'Add-ShouldOperator'
 & $SafeCommands['Set-Alias'] 'Get-AssertionOperator' 'Get-ShouldOperator'
 
+& $SafeCommands['Update-TypeData'] -TypeName PesterConfiguration -TypeConverter 'PesterConfigurationDeserializer' -SerializationDepth 5 -Force
+& $SafeCommands['Update-TypeData'] -TypeName 'Deserialized.PesterConfiguration' -TargetTypeForDeserialization PesterConfiguration -Force
 
 & $script:SafeCommands['Export-ModuleMember'] @(
     'Invoke-Pester'
@@ -36,6 +37,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
     # config
     'New-PesterContainer'
+    'New-PesterConfiguration'
 
     # export
     'Export-NunitReport'

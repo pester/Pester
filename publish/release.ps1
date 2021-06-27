@@ -1,10 +1,10 @@
-# build should provide '%system.teamcity.build.checkoutDir%'
+﻿# build should provide '%system.teamcity.build.checkoutDir%'
 param (
     [Parameter(Mandatory)]
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = '7B9157664392D633EDA2C0248605C1C868EBDE43',
+    [String] $CertificateThumbprint = 'c7b0582906e5205b8399d92991694a614d0c0b22',
     [Switch] $Force
 )
 
@@ -17,14 +17,13 @@ if (Test-Path $bin) {
     Remove-Item $bin -Recurse -Force
 }
 
-pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -clean"
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Clean -Inline"
 if ($LASTEXITCODE -ne 0) {
     throw "build failed!"
 }
 
 $m = Test-ModuleManifest $bin/Pester.psd1
-$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease)
-{
+$version = if ($m.PrivateData -and $m.PrivateData.PSData -and $m.PrivateData.PSData.PreRelease) {
     "$($m.Version)-$($m.PrivateData.PSData.PreRelease)"
 }
 else {
@@ -48,25 +47,29 @@ if ($LASTEXITCODE -ne 0) {
     throw "test failed!"
 }
 
+pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Inline"
+if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
+    throw "Module is too small, are you publishing non-inlined module?"
+}
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
 
 $files = @(
-"nunit_schema_2.5.xsd"
-"junit_schema_4.xsd"
-"Pester.psd1"
-"Pester.psm1"
-"report.dtd"
-"bin\net452\Pester.dll"
-"bin\net452\Pester.pdb"
-"bin\netstandard2.0\Pester.dll"
-"bin\netstandard2.0\Pester.pdb"
-"en-US\about_BeforeEach_AfterEach.help.txt"
-"en-US\about_Mocking.help.txt"
-"en-US\about_Pester.help.txt"
-"en-US\about_Should.help.txt"
-"en-US\about_TestDrive.help.txt"
+    "nunit_schema_2.5.xsd"
+    "junit_schema_4.xsd"
+    "Pester.psd1"
+    "Pester.psm1"
+    "report.dtd"
+    "bin\net452\Pester.dll"
+    "bin\net452\Pester.pdb"
+    "bin\netstandard2.0\Pester.dll"
+    "bin\netstandard2.0\Pester.pdb"
+    "en-US\about_BeforeEach_AfterEach.help.txt"
+    "en-US\about_Mocking.help.txt"
+    "en-US\about_Pester.help.txt"
+    "en-US\about_Should.help.txt"
+    "en-US\about_TestDrive.help.txt"
 )
 
 $notFound = @()
@@ -99,6 +102,7 @@ if (Test-Path $nugetDir) {
 }
 $null = New-Item -ItemType Directory -Path $nugetDir
 Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
+Copy-Item "$PSScriptRoot/../LICENSE" $nugetDir -Recurse
 
 Out-File $nugetDir\VERIFICATION.txt -InputObject @"
 VERIFICATION

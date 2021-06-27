@@ -1,8 +1,8 @@
 trigger:
-  - v5.0
+  - main
   - rel/*
 pr:
-  - v5.0
+  - main
   - rel/*
 
 variables:
@@ -16,15 +16,12 @@ stages:
         workspace:
           clean: all
         pool:
-          name: Default
-          demands:
-            - net452
-            - netcoreapp3.1
+          vmImage: windows-2019
         timeoutInMinutes: 3
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -Clean
+          - powershell: ./build.ps1 -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
@@ -89,6 +86,7 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20
       - job:
         workspace:
           clean: all
@@ -135,3 +133,4 @@ stages:
               testResultsFiles: 'testResults.xml'
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
+        timeoutInMinutes: 20

@@ -3,6 +3,9 @@ Test.xml
 vendor/packages/
 .DS_Store
 .vscode/
+# But don't exclude settings.json
+!.vscode/settings.json
+
 coverage.xml
 testResults.xml
 
@@ -146,7 +149,7 @@ _TeamCity*
 !.axoCover/settings.json
 
 # Coverlet is a free, cross platform Code Coverage Tool
-coverage*[.json, .xml, .info]
+coverage[.json, .xml, .info]
 
 # Visual Studio code coverage results
 *.coverage
@@ -359,3 +362,4 @@ MigrationBackup/
 .ionide/
 
 tmp/
+

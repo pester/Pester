@@ -1,4 +1,4 @@
-function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that collection contains a specific value.
@@ -6,6 +6,7 @@ Uses PowerShell's -contains operator to confirm.
 
 .EXAMPLE
 1,2,3 | Should -Contain 1
+
 This test passes, as 1 exists in the provided collection.
 #>
     [bool] $succeeded = $ActualValue -contains $ExpectedValue

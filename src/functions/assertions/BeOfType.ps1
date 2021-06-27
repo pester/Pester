@@ -1,4 +1,4 @@
-
+﻿
 function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
     <#
 .SYNOPSIS
@@ -7,20 +7,23 @@ Asserts that the actual value should be an object of a specified type
 
 .EXAMPLE
 $actual = Get-Item $env:SystemRoot
-PS C:\>$actual | Should -BeOfType System.IO.DirectoryInfo
+$actual | Should -BeOfType System.IO.DirectoryInfo
 
 This test passes, as $actual is a DirectoryInfo object.
 
 .EXAMPLE
 $actual | Should -BeOfType System.IO.FileSystemInfo
+
 This test passes, as DirectoryInfo's base class is FileSystemInfo.
 
 .EXAMPLE
 $actual | Should -HaveType System.IO.FileSystemInfo
+
 This test passes for the same reason, but uses the -HaveType alias instead.
 
 .EXAMPLE
 $actual | Should -BeOfType System.IO.FileInfo
+
 This test will fail, as FileInfo is not a base class of DirectoryInfo.
 #>
     if ($ExpectedType -is [string]) {

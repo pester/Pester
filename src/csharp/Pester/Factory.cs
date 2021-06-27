@@ -1,6 +1,8 @@
 using System.Management.Automation;
 using System.Collections.Generic;
 using System;
+using System.Text;
+using System.IO;
 
 namespace Pester
 {
@@ -36,6 +38,7 @@ namespace Pester
         {
             return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating);
         }
+
         public static ErrorRecord CreateErrorRecord(string errorId, string message, string file, string line, string lineText, bool terminating)
         {
             var exception = new Exception(message);
@@ -49,6 +52,16 @@ namespace Pester
             targetObject.Add("Terminating", terminating);
             var errorRecord = new ErrorRecord(exception, errorId, errorCategory, targetObject);
             return errorRecord;
+        }
+
+        public static StringBuilder CreateStringBuilder()
+        {
+            return new StringBuilder();
+        }
+
+        public static StringWriter CreateStringWriter()
+        {
+            return new StringWriter();
         }
     }
 }

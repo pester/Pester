@@ -1,4 +1,4 @@
-function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider.
@@ -6,8 +6,8 @@ The object must have valid path syntax. It essentially must pass a Test-Path cal
 
 .EXAMPLE
 $actual = (Dir . )[0].FullName
-PS C:\>Remove-Item $actual
-PS C:\>$actual | Should -Exist
+Remove-Item $actual
+$actual | Should -Exist
 
 `Should -Exist` calls Test-Path. Test-Path expects a file,
 returns $false because the file was removed, and fails the test.

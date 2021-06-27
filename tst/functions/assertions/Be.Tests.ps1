@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -74,13 +74,13 @@ InPesterModuleScope {
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
-            {abc} | Should -Be "aBc"
-            {abc} | Should -EQ "aBc"
+            { abc } | Should -Be " aBc "
+            { abc } | Should -EQ " aBc "
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value (case sensitive)" {
-            {abc} | Should -BeExactly "abc"
-            {abc} | Should -CEQ "abc"
+            { abc } | Should -BeExactly " abc "
+            { abc } | Should -CEQ " abc "
         }
 
         It 'Does not overflow on IEnumerable' {
@@ -139,27 +139,27 @@ InPesterModuleScope {
         }
 
         It "Outputs verbose message for two strings of different length" {
-            ShouldBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'"
+            ShouldBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n           ^"
         }
 
         It "Outputs verbose message for two strings of different length" {
-            ShouldBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'"
+            ShouldBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n           ^"
         }
 
         It "Outputs verbose message for two different strings of the same length" {
-            ShouldBeFailureMessage "x" "y" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'y'`nBut was:  'x'"
+            ShouldBeFailureMessage "x" "y" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'y'`nBut was:  'x'`n           ^"
         }
 
         It "Replaces non-printable characters correctly" {
-            ShouldBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '\n\r\b\0\ty'`nBut was:  '\n\r\b\0\tx'"
+            ShouldBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '\n\r\b\0\ty'`nBut was:  '\n\r\b\0\tx'`n           ----------^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced before the difference" {
-            ShouldBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123\n789'`nBut was:  '123\n456'"
+            ShouldBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123\n789'`nBut was:  '123\n456'`n           -----^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
-            ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!\n123'`nBut was:  'abcd\n123'"
+            ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!\n123'`nBut was:  'abcd\n123'`n           ---^"
         }
     }
 }
@@ -195,7 +195,123 @@ InPesterModuleScope {
 
     Describe "ShouldBeExactlyFailureMessage" {
         It "Writes verbose message for strings that differ by case" {
-            ShouldBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'"
+            ShouldBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'`n           ^"
+        }
+    }
+}
+
+InPesterModuleScope {
+    Describe "Format-AsExcerpt" {
+        BeforeAll {
+            $excerptMarker = "..."
+        }
+
+        It "When difference is on the any of the chars and the string fits on the screen it returns it" -TestCases @(
+            @{ DifferenceIndex = 0 }
+            @{ DifferenceIndex = 1 }
+            @{ DifferenceIndex = 2 }
+            @{ DifferenceIndex = 3 }
+            @{ DifferenceIndex = 4 }
+            @{ DifferenceIndex = 5 }
+            @{ DifferenceIndex = 6 }
+            @{ DifferenceIndex = 7 }
+            @{ DifferenceIndex = 8 }
+            @{ DifferenceIndex = 9 }
+        ) {
+            $actual = Format-AsExcerpt -InputObject "0123456789" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            #                                        ^^^^^^^^^^
+            $actual.Line | Verify-Equal "0123456789"
+            $actual.Line.Length | Verify-Equal 10
+            $actual.DifferenceIndex | Verify-Equal $DifferenceIndex
+        }
+
+        It "When difference is at the start and the string does not fit on the screen it cuts the end" -TestCases @(
+            @{ DifferenceIndex = 0 } #...
+            @{ DifferenceIndex = 1 }
+            @{ DifferenceIndex = 2 }
+            @{ DifferenceIndex = 3 } # context
+        ) {
+            $actual = Format-AsExcerpt -InputObject "0123456789cut" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            #                                        ^^^^
+            $actual.Line | Verify-Equal "0123456..."
+            $actual.Line.Length | Verify-Equal 10
+            $actual.DifferenceIndex | Verify-Equal $DifferenceIndex
+        }
+
+        It "When difference is at the end and the string does not fit on the screen it cuts the start" -TestCases @(
+            @{ DifferenceIndex = 9 }
+        ) {
+            $actual = Format-AsExcerpt -InputObject "cut01234567890" -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            $actual.Line | Verify-Equal "...4567890"
+            $actual.Line.Length | Verify-Equal 10
+            $actual.DifferenceIndex | Verify-Equal 5
+        }
+
+        It "When difference is in the middle it cuts start and end" -TestCases @(
+            @{ DifferenceIndex = 9; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...cc01..." }
+            @{ DifferenceIndex = 10; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...c012..." }
+            @{ DifferenceIndex = 11; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...0123..." }
+            @{ DifferenceIndex = 12; InputObject = "aaabbbccc0123aaabbbccc"; NewIndex = 5; Output = "...123a..." }
+        ) {
+            # because there will be cut markers from both sides our actual output shrinks to just 4 chars
+            $actual = Format-AsExcerpt -InputObject $InputObject -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            $actual.Line | Verify-Equal $Output
+            $actual.Line.Length | Verify-Equal 10
+            $actual.DifferenceIndex | Verify-Equal $NewIndex
+
+        }
+
+        It "When difference is in the middle close to the start it does not cut the start" -TestCases @(
+            @{ DifferenceIndex = 5; InputObject = "ccccc0cccccccccccccccc"; NewIndex = 5; Output = "ccccc0c..." }
+        ) {
+            # because there will be cut markers from both sides our actual output shrinks to just 4 chars
+            $actual = Format-AsExcerpt -InputObject $InputObject -LineLength 10 -DifferenceIndex $DifferenceIndex -ExcerptMarker $excerptMarker -ContextLength 1
+            $actual.Line | Verify-Equal $Output
+            $actual.Line.Length | Verify-Equal 10
+            $actual.DifferenceIndex | Verify-Equal $NewIndex
+
+        }
+    }
+
+    Describe "Get-CompareStringMessage" {
+        It "The arrow points to the correct position when start of the string is cut" {
+            $actual = Get-CompareStringMessage `
+                -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 65.`nStrings differ at index 64.`nExpected: '...aaaaaaaaa'`nBut was:  '...aaaaaaaab'`n           -----------^"
+        }
+
+        It "The strings remain in the same relative positions if both their starts are cut" {
+            $actual = Get-CompareStringMessage `
+                -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 44`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaab'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
+        }
+
+        It "The strings remain in the same relative positions when one is much shorter than the other" {
+            $actual = Get-CompareStringMessage `
+                -ExpectedValue "aaaaaaaaab" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 10`nActual length:   56`nStrings differ at index 9.`nExpected: 'aaaaaaaaab'`nBut was:  'aaaaaaaaaaaaaaa...'`n           ---------^"
+        }
+
+        It "The arrow points to the right place when difference is after the end of the shorter string" {
+            $actual = Get-CompareStringMessage `
+                -ExpectedValue "aaaaaaaaaa" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 10`nActual length:   56`nStrings differ at index 10.`nExpected: 'aaaaaaaaaa'`nBut was:  'aaaaaaaaaaaaaaa...'`n           ----------^"
+        }
+
+        It "The arrow points to the right place when difference is after the end of the shorter string and both were shortened" {
+            $actual = Get-CompareStringMessage `
+                -ExpectedValue "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" `
+                -Actual        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaab" -MaximumLineLength 35 -ContextLength 3
+
+            $actual -join "`n" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 43`nActual length:   56`nStrings differ at index 43.`nExpected: '...aaaaaaaa'`nBut was:  '...aaaaaaaaaaaa...'`n           -----------^"
         }
     }
 }

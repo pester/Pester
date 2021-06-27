@@ -1,4 +1,4 @@
-
+﻿
 function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
@@ -7,18 +7,22 @@ The static [String]::IsNullOrEmpty() method is used to do the comparison.
 
 .EXAMPLE
 $null | Should -BeNullOrEmpty
+
 This test will pass. $null is null.
 
 .EXAMPLE
 $null | Should -Not -BeNullOrEmpty
+
 This test will fail and throw an error.
 
 .EXAMPLE
 @() | Should -BeNullOrEmpty
+
 An empty collection will pass this test.
 
 .EXAMPLE
 ""  | Should -BeNullOrEmpty
+
 An empty string will pass this test.
 #>
     if ($null -eq $ActualValue -or $ActualValue.Count -eq 0) {

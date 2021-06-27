@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -45,19 +45,19 @@ function Verify-Property {
 }
 
 # template
-    # b "<" {
-    #     t ">" {
-    #         $result = Invoke-Pester -ScriptBlock {
-    #             Describe "d1" {
-    #                 It "i1" { $true }
-    #             }
-    #         }
+# b "<" {
+#     t ">" {
+#         $result = Invoke-Pester -ScriptBlock {
+#             Describe "d1" {
+#                 It "i1" { $true }
+#             }
+#         }
 
-    #         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
-    #         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
-    #         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
-    #     }
-    # }
+#         $result.Containers[0].Blocks[0].ErrorRecord | Verify-Null
+#         $result.Containers[0].Blocks[0].Tests.Count | Verify-Equal 10
+#         $result.Containers[0].Blocks[0].Tests[0].Passed | Verify-True
+#     }
+# }
 
 i -PassThru:$PassThru {
     # b General {
@@ -75,7 +75,7 @@ i -PassThru:$PassThru {
                 $temp = [IO.Path]::GetTempPath().TrimEnd('\\').TrimEnd("/")
 
                 $file1 = @{
-                    Path = "$temp/file1.Tests.ps1"
+                    Path    = "$temp/file1.Tests.ps1"
                     Content = {
                         Describe "file1" {
                             It "fail" {
@@ -103,10 +103,10 @@ i -PassThru:$PassThru {
                     }
                 }
                 $result = Invoke-Pester -Configuration @{
-                    Run = @{
+                    Run    = @{
                         ScriptBlock = $sb
-                        Path = $file1.Path
-                        PassThru = $true
+                        Path        = $file1.Path
+                        PassThru    = $true
                     }
                     Filter = @{ ExcludeTag = "Slow" }
                     Output = @{ Verbosity = "None" }
@@ -172,9 +172,9 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Output = @{ Verbosity = "None" }
             }
@@ -245,9 +245,9 @@ i -PassThru:$PassThru {
             }
 
             $result = Invoke-Pester -Configuration @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
                 Filter = @{
                     ExcludeTag = "a"
@@ -290,6 +290,114 @@ i -PassThru:$PassThru {
             $result.Containers[0].Blocks[3].Name | Verify-Equal "d5"
             $result.Containers[0].Blocks[3] | Verify-Property "Result"
             $result.Containers[0].Blocks[3].Result | Verify-Equal "NotRun"
+        }
+    }
+
+    b "Failing in discovery" {
+        t "Result object indicates failure when discovery fails in container or in block" {
+            $sb = @(
+                {
+                    throw "container 1 failed"
+                }
+
+                {
+                    Describe "d1" {
+                        throw "code in container 2 failed in describe"
+                        AfterAll { throw "abc" }
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+
+                {
+                    # container 3 is discovered just fine
+                    Describe "d2" {
+                        Describe "d3" {
+                            It "pass" {
+                                1 | Should -Be 1
+                            }
+                        }
+
+                        It "pass" {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+            )
+
+            $result = Invoke-Pester -Configuration @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "Normal"
+                    CIFormat  = 'None'
+                }
+            }
+
+            $result | Verify-NotNull
+            $result | Verify-Property "Result"
+            $result.Result | Verify-Equal "Failed"
+            $result | Verify-Property "Version"
+            ($result.Version -split "-")[0] | Verify-Equal (Get-Module Pester).Version.ToString()
+            $result.PSVersion | Verify-Equal $PSVersionTable.PSVersion
+            $result | Verify-Property "FailedBlocksCount"
+            $result.FailedBlocksCount | Verify-Equal 0
+            $result | Verify-Property "FailedContainersCount"
+            $result.FailedContainersCount | Verify-Equal 2
+
+            $result | Verify-Property "Containers"
+            $result.Containers.Count | Verify-Equal 3
+            $result.Containers[0] | Verify-Property "Result"
+            $result.Containers[0].Result | Verify-Equal "Failed"
+
+            $result.Containers[1] | Verify-Property "Result"
+            $result.Containers[1].Result | Verify-Equal "Failed"
+
+            $result.Containers[2] | Verify-Property "Result"
+            $result.Containers[2].Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Nulling internal properties" {
+        t "Result object nulls plugins, and recursive properties" {
+            $sb = {
+                Describe "d2" {
+                    It "pass" {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $result = Invoke-Pester -Configuration @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{ Verbosity = "Normal" }
+                Debug  = @{ ReturnRawResultObject = $false }
+            }
+
+            $result | Verify-NotNull
+            $result | Verify-Property "Plugins"
+            $result.Plugins | Verify-Null
+            $result | Verify-Property "PluginConfiguration"
+            $result.PluginConfiguration | Verify-Null
+            $result | Verify-Property "PluginData"
+            $result.PluginData | Verify-Null
+
+            $result.Containers[0].Blocks[0] | Verify-Property "FrameworkData"
+            $result.Containers[0].Blocks[0].FrameworkData | Verify-Null
+            $result.Containers[0].Blocks[0] | Verify-Property "PluginData"
+            $result.Containers[0].Blocks[0].PluginData | Verify-Null
+
+            $result.Containers[0].Blocks[0].Tests[0] | Verify-Property "FrameworkData"
+            $result.Containers[0].Blocks[0].Tests[0].FrameworkData | Verify-Null
+            $result.Containers[0].Blocks[0].Tests[0] | Verify-Property "PluginData"
+            $result.Containers[0].Blocks[0].Tests[0].PluginData | Verify-Null
+
         }
     }
 }

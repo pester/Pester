@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -88,18 +88,22 @@ i -PassThru:$PassThru {
             $xmlTestCase.result | Verify-Equal "Failure"
             $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-            $failureLine = $sb.StartPosition.StartLine+3
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
-            $message[-3] | Verify-Equal "Expected: 'Test'"
-            $message[-2] | Verify-Equal "But was:  'Testing'"
-            $message[-1] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $message[1] | Verify-Equal "Expected length: 4"
+            $message[2] | Verify-Equal "Actual length:   7"
+            $message[3] | Verify-Equal "Strings differ at index 4."
+            $message[4] | Verify-Equal "Expected: 'Test'"
+            $message[5] | Verify-Equal "But was:  'Testing'"
+            $message[6] | Verify-Equal "           ----^"
 
-            $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
+            $failureLine = $sb.StartPosition.StartLine + 3
+            $stackTraceText = $xmlTestCase.failure.'stack-trace' -split "`n"
+            $stackTraceText[0] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
-         t "should write a failed test result when there are multiple errors" {
+        t "should write a failed test result when there are multiple errors" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Failed testcase" {
@@ -121,12 +125,20 @@ i -PassThru:$PassThru {
 
             $message = $xmlTestCase.failure.message -split "`n"
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
+            $message[1] | Verify-Equal "Expected length: 4"
+            $message[2] | Verify-Equal "Actual length:   7"
+            $message[3] | Verify-Equal "Strings differ at index 4."
+            $message[4] | Verify-Equal "Expected: 'Test'"
+            $message[5] | Verify-Equal "But was:  'Testing'"
+            $message[6] | Verify-Equal "           ----^"
             $message[7] | Verify-Equal "[1] RuntimeException: teardown failed"
 
             $sbStartLine = $sb.StartPosition.StartLine
-            $stackTrace = $xmlTestCase.failure.'stack-trace' -split "`n"
-            $stackTrace[0] | Verify-Equal "[0] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
-            $stackTrace[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
+            $failureLine = $sb.StartPosition.StartLine + 3
+            $stackTraceText = $xmlTestCase.failure.'stack-trace' -split "`n"
+            $stackTraceText[0] | Verify-Equal "[0] at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
+            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
+            $stackTraceText[2] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
 
         }
 
@@ -448,9 +460,9 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                Run = @{ ScriptBlock = $sb; PassThru = $true };
-                Output = @{ Verbosity = 'None' }
-            })
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true };
+                    Output = @{ Verbosity = 'None' }
+                })
 
             $xmlResult = $r | ConvertTo-NUnitReport
 
@@ -526,6 +538,41 @@ i -PassThru:$PassThru {
 
                 if (Test-Path $xml) {
                     Remove-Item $xml -Force -ErrorAction Ignore
+                }
+            }
+        }
+
+        t "Write NUnit report using Invoke-Pester -OutputFormat NUnit2.5 into a folder that does not exist" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            try {
+                $script = Join-Path ([IO.Path]::GetTempPath()) "test$([Guid]::NewGuid()).Tests.ps1"
+                $sb | Set-Content -Path $script -Force
+
+                $dir = Join-Path ([IO.Path]::GetTempPath()) "dir$([Guid]::NewGuid())"
+
+                $xml = Join-Path $dir "TestResults.xml"
+                $r = Invoke-Pester -Show None -Path $script -OutputFormat NUnit2.5 -OutputFile $xml -PassThru
+
+                $xmlResult = [xml] (Get-Content $xml -Raw)
+                $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
+                $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
+                $xmlTestCase.result | Verify-Equal "Success"
+                $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            }
+            finally {
+                if (Test-Path $script) {
+                    Remove-Item $script -Force -ErrorAction Ignore
+                }
+
+                if (Test-Path $dir) {
+                    Remove-Item $dir -Force -ErrorAction Ignore -Recurse
                 }
             }
         }

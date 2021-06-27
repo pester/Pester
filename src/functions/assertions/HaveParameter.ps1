@@ -1,4 +1,4 @@
-function Should-HaveParameter (
+﻿function Should-HaveParameter (
     $ActualValue,
     [String] $ParameterName,
     $Type,
@@ -14,6 +14,7 @@ function Should-HaveParameter (
 
     .EXAMPLE
         Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -Mandatory
+
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
     .NOTES
@@ -28,24 +29,6 @@ function Should-HaveParameter (
 
     if ($null -eq $ParameterName) {
         throw "The ParameterName can't be empty"
-    }
-
-    #region HelperFunctions
-    function Join-And ($Items, $Threshold = 2) {
-
-        if ($null -eq $items -or $items.count -lt $Threshold) {
-            $items -join ', '
-        }
-        else {
-            $c = $items.count
-            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
-        }
-    }
-
-    function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value) {
-            " $Value"
-        }
     }
 
     function Get-ParameterInfo {
@@ -82,7 +65,7 @@ function Should-HaveParameter (
                     $j--
                 }
                 if (-not $token.PSObject.Properties.Item('Depth')) {
-                    $token | & $SafeCommands['Add-Member'] Depth -MemberType NoteProperty -Value $j
+                    $token.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Depth", $j))
                 }
                 $token
 
@@ -121,6 +104,75 @@ function Should-HaveParameter (
                     $paramInfo.Type = $paramBlock[$i - 1].Content
                 }
                 $paramInfo
+            }
+        }
+    }
+
+    function Get-ArgumentCompleter {
+        <#
+        .SYNOPSIS
+            Get custom argument completers registered in the current session.
+        .DESCRIPTION
+            Get custom argument completers registered in the current session.
+
+            By default Get-ArgumentCompleter lists all of the completers registered in the session.
+        .EXAMPLE
+            Get-ArgumentCompleter
+
+            Get all of the argument completers for PowerShell commands in the current session.
+        .EXAMPLE
+            Get-ArgumentCompleter -CommandName Invoke-ScriptAnalyzer
+
+            Get all of the argument completers used by the Invoke-ScriptAnalyzer command.
+        .EXAMPLE
+            Get-ArgumentCompleter -Native
+
+            Get all of the argument completers for native commands in the current session.
+        .NOTES
+            Author: Chris Dent
+        #>
+
+        [CmdletBinding()]
+        param (
+            # Filter results by command name.
+            [Parameter(Mandatory = $true)]
+            [String]$CommandName,
+
+            # Filter results by parameter name.
+            [Parameter(Mandatory = $true)]
+            [String]$ParameterName
+        )
+
+        $getExecutionContextFromTLS = [PowerShell].Assembly.GetType('System.Management.Automation.Runspaces.LocalPipeline').GetMethod(
+            'GetExecutionContextFromTLS',
+            [System.Reflection.BindingFlags]'Static, NonPublic'
+        )
+        $internalExecutionContext = $getExecutionContextFromTLS.Invoke(
+            $null,
+            [System.Reflection.BindingFlags]'Static, NonPublic',
+            $null,
+            $null,
+            $PSCulture
+        )
+
+        $argumentCompletersProperty = $internalExecutionContext.GetType().GetProperty(
+            'CustomArgumentCompleters',
+            [System.Reflection.BindingFlags]'NonPublic, Instance'
+        )
+        $argumentCompleters = $argumentCompletersProperty.GetGetMethod($true).Invoke(
+            $internalExecutionContext,
+            [System.Reflection.BindingFlags]'Instance, NonPublic, GetProperty',
+            $null,
+            @(),
+            $PSCulture
+        )
+
+        $completerName = '{0}:{1}' -f $CommandName, $ParameterName
+        if ($argumentCompleters.ContainsKey($completerName)) {
+            [PSCustomObject]@{
+                CommandName   = $CommandName
+                ParameterName = $ParameterName
+                Definition    = $argumentCompleters[$completerName]
             }
         }
     }
@@ -173,7 +225,7 @@ function Should-HaveParameter (
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
             $testType = ($Type -eq $actualType)
-            $filters += "$(if ($Negate) {"not "})of type [$($Type.FullName)]"
+            $filters += "$(if ($Negate) { "not " })of type [$($Type.FullName)]"
 
             if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
@@ -199,6 +251,10 @@ function Should-HaveParameter (
 
         if ($HasArgumentCompleter) {
             $testArgumentCompleter = $attributes | & $SafeCommands['Where-Object'] { $_ -is [ArgumentCompleter] }
+
+            if (-not $testArgumentCompleter) {
+                $testArgumentCompleter = Get-ArgumentCompleter -CommandName $ActualValue.Name -ParameterName $ParameterName
+            }
             $filters += "has ArgumentCompletion"
 
             if (-not $Negate -and -not $testArgumentCompleter) {

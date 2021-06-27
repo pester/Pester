@@ -1,4 +1,4 @@
-$script:failed = 0
+﻿$script:failed = 0
 $script:total = 0
 
 
@@ -12,7 +12,7 @@ function ImportDir {
     $sb = {
         param ($p)
         foreach ($f in @(Get-ChildItem $Directory -Recurse -Filter *.ps1 |
-                    where { $_.FullName -notLike "*Tests.ps1"} |
+                    where { $_.FullName -notLike "*Tests.ps1" } |
                     select -ExpandProperty FullName)) {
             . $f
         }
@@ -53,7 +53,7 @@ function i {
     if ($PassThru) {
         [PSCustomObject]@{
             Failed = $script:failed
-            Total = $script:total
+            Total  = $script:total
         }
     }
 
@@ -113,14 +113,14 @@ function t {
             catch {
                 $script:failed++
                 function Get-FullStackTrace ($ErrorRecord) {
-                    $_.ScriptStackTrace | Out-String | % { $_ -replace '\s*line\s+(\d+)', '$1'}
+                    $_.ScriptStackTrace | Out-String | % { $_ -replace '\s*line\s+(\d+)', '$1' }
                 }
                 # verify throws Exception directly, so if the type is someting
                 # different then show me more info because it's likely a bug in my code
                 # otherwise show the assertion message and stacktrace to keep the noise
                 # on test failure low
                 if ([Exception] -ne $_.Exception.GetType()) {
-                    Write-Host "ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
+                    Write-Host "[n] ERROR: - $Name -> $($_| Out-String) "  -ForegroundColor Black -BackgroundColor Red
                     $(Get-FullStackTrace $_) -split [Environment]::NewLine | foreach {
                         Write-Host " " -NoNewline
                         Write-Host " $_ "  -NoNewline -ForegroundColor Black -BackgroundColor Red

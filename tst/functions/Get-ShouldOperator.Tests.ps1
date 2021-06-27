@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
     Describe 'Get-ShouldOperator' {
@@ -9,7 +9,7 @@ InPesterModuleScope {
                 $OpCount = $AssertionOperators.Count
 
                 $get1 = Get-ShouldOperator
-                Add-ShouldOperator -Name 'test' -Test {'test'}
+                Add-ShouldOperator -Name 'test' -Test { 'test' }
                 $get2 = Get-ShouldOperator
             }
 
@@ -35,15 +35,29 @@ InPesterModuleScope {
                 $BGT = Get-ShouldOperator -Name BeGreaterThan
             }
 
-            It 'Should return a help examples object' {
-                # BeOfType doesn't work here. PowerShell's help system is weird
-                ($BGT | Get-Member)[0].TypeName | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
+            It 'Should return a PesterAssertionOperatorHelp-object' {
+                $BGT.Name | Should -BeExactly 'BeGreaterThan'
+                $BGT.Aliases | Should -BeExactly @('GT')
+                # BeOfType doesn't currently work with PSCustomObject typenames
+                $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionOperatorHelp'
+                $BGT.Help.PSTypeNames[0] | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
+                $BGT.Help.syntax.syntaxItem[0].name | Should -Be 'Should -BeGreaterThan'
+                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeOfType [string]
+                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeLike '*-ActualValue*'
             }
 
             It 'Returns help for all internal Pester assertion operators' {
-                $AssertionOperators.Keys | Where-Object {$_ -ne 'test'} | ForEach-Object {
+                $AssertionOperators.Keys | ForEach-Object {
                     Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty -Because "$_ should have help"
                 }
+            }
+
+            It 'Throws on invalid assertion-name' {
+                { Get-ShouldOperator BeHorrible } | Should -Throw -ExceptionType ([System.Management.Automation.ParameterBindingException]) -ErrorId 'ParameterArgumentValidationError,Get-ShouldOperator' -ExpectedMessage "*on parameter 'Name'*does not belong to the set*"
+            }
+
+            It 'Supports positional value' {
+                { Get-ShouldOperator Be } | Should -Not -Throw -ErrorId 'PositionalParameterNotFound,Get-ShouldOperators' -Because 'Name-parameter supports values at position 0'
             }
         }
     }

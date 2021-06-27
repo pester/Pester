@@ -33,10 +33,12 @@ function New-MockBehavior {
 
     [PSCustomObject] @{
         CommandName = $ContextInfo.Command.Name
-        ModuleName  = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
+        ModuleName  = $ContextInfo.TargetModule
         Filter      = $ParameterFilter
         IsDefault   = $null -eq $ParameterFilter
+        IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
+        Executed    = $false
         ScriptBlock = $MockWith
         Hook        = $Hook
         PSTypeName  = 'MockBehavior'
@@ -54,15 +56,14 @@ function EscapeSingleQuotedStringContent ($Content) {
 
 function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $commandName = $contextInfo.Command.Name
-    $moduleName = if ($contextInfo.IsFromRequestedModule) { $contextInfo.Module.Name } else { '' }
-    $metadata = $null
+    $moduleName = $contextInfo.TargetModule
+    $metadata = $contextInfo.CommandMetadata
     $cmdletBinding = ''
     $paramBlock = ''
     $dynamicParamBlock = ''
     $dynamicParamScriptBlock = $null
 
     if ($contextInfo.Command.psobject.Properties['ScriptBlock'] -or $contextInfo.Command.CommandType -eq 'Cmdlet') {
-        $metadata = [System.Management.Automation.CommandMetaData]$contextInfo.Command
         $null = $metadata.Parameters.Remove('Verbose')
         $null = $metadata.Parameters.Remove('Debug')
         $null = $metadata.Parameters.Remove('ErrorAction')
@@ -89,8 +90,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
 
-        # Will modify $metadata object in-place
-        $originalMetadata = $metadata
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
 
@@ -101,7 +100,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
 
             if ($dynamicParamStatements -match '\S') {
-                $metadataSafeForDynamicParams = [System.Management.Automation.CommandMetaData]$contextInfo.Command
+                $metadataSafeForDynamicParams = $contextInfo.CommandMetadata2
                 foreach ($param in $metadataSafeForDynamicParams.Parameters.Values) {
                     $param.ParameterSets.Clear()
                 }
@@ -201,15 +200,19 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $mockScript = [scriptblock]::Create($code)
 
+    $mockName = "PesterMock_$(if ([string]::IsNullOrEmpty($ModuleName)) { "script" } else { $ModuleName })_${CommandName}_$([Guid]::NewGuid().Guid)"
+
     $mock = @{
         OriginalCommand         = $contextInfo.Command
+        OriginalMetadata        = $contextInfo.CommandMetadata
+        OriginalMetadata2       = $contextInfo.CommandMetadata2
         CommandName             = $commandName
         SessionState            = $contextInfo.SessionState
         CallerSessionState      = $contextInfo.CallerSessionState
         Metadata                = $metadata
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = [Collections.Generic.List[object]]@($commandName)
-        BootstrapFunctionName   = 'PesterMock_' + [Guid]::NewGuid().Guid
+        BootstrapFunctionName   = $mockName
     }
 
     if ($mock.OriginalCommand.ModuleName) {
@@ -298,23 +301,27 @@ function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        $Behaviors
+        $Behaviors,
+        [switch]$Negate
     )
 
-    $unverified = [System.Collections.Generic.List[Object]]@()
+    $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
     foreach ($b in $Behaviors) {
-        if ($b.Verifiable) {
-            $unverified.Add($b)
+        if ($b.Executed -eq $Negate.IsPresent) {
+            $filteredBehaviors.Add($b)
         }
     }
 
-    if ($unVerified.Count -gt 0) {
-        foreach ($b in $unVerified) {
-            $message = "$([System.Environment]::NewLine) Expected $($b.CommandName) "
+    if ($filteredBehaviors.Count -gt 0) {
+        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
+        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
+
+        foreach ($b in $filteredBehaviors) {
+            $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
             if ($b.ModuleName) {
-                $message += "in module $($b.ModuleName) "
+                $message += "from inside module $($b.ModuleName) "
             }
-            $message += "to be called with $($b.Filter)"
+            if ($null -ne $b.Filter) { $message += "with { $($b.Filter.ToString().Trim()) }" }
         }
 
         return [PSCustomObject] @{
@@ -368,7 +375,7 @@ function Should-InvokeInternal {
         $ModuleName = $SessionState.Module.Name
     }
 
-    $ModuleName = if ($ContextInfo.IsFromRequestedModule) { $ContextInfo.Module.Name } else { $null }
+    $ModuleName = $ContextInfo.TargetModule
     $CommandName = $ContextInfo.Command.Name
 
     $callHistory = $MockTable["$ModuleName||$CommandName"]
@@ -385,6 +392,34 @@ function Should-InvokeInternal {
     $matchingCalls = [System.Collections.Generic.List[object]]@()
     $nonMatchingCalls = [System.Collections.Generic.List[object]]@()
 
+    # Check for variables in ParameterFilter that already exists in session. Risk of conflict
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        $preExistingFilterVariables = @{}
+        foreach ($v in $filter.Ast.FindAll( { $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
+            if ($existingVar = $SessionState.PSVariable.Get($v.VariablePath.UserPath)) {
+                $preExistingFilterVariables.Add($v.VariablePath.UserPath, $existingVar.Value)
+            }
+        }
+
+        # Check against parameters and aliases in mocked command as it may cause false positives
+        if ($preExistingFilterVariables.Count -gt 0) {
+            foreach ($p in $ContextInfo.Hook.Metadata.Parameters.GetEnumerator()) {
+                if ($preExistingFilterVariables.ContainsKey($p.Key)) {
+                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) with value '$($preExistingFilterVariables[$p.Key])' exists in current scope and matches a parameter in $CommandName which may cause false matches in ParameterFilter. Consider renaming the existing variable or use `$PesterBoundParameters.$($p.Key) in ParameterFilter."
+                }
+
+                $aliases = $p.Value.Aliases
+                if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+                    foreach ($a in $aliases) {
+                        if ($preExistingFilterVariables.ContainsKey($a)) {
+                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) with value '$($preExistingFilterVariables[$a])' exists in current scope and matches a parameter in $CommandName which may cause false matches in ParameterFilter. Consider renaming the existing variable or use `$PesterBoundParameters.$($a) in ParameterFilter."
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     foreach ($historyEntry in $callHistory) {
 
         $params = @{
@@ -392,7 +427,10 @@ function Should-InvokeInternal {
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
-            SessionState    = $ContextInfo.Hook.CallerSessionState
+            # do not use the callser session state from the hook, the parameter filter
+            # on Should -Invoke can come from a different session state if inModuleScope is used to
+            # wrap it. Use the caller session state to which the scriptblock is bound
+            SessionState    = $SessionState
         }
 
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
@@ -421,7 +459,8 @@ function Should-InvokeInternal {
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
             }
         }
-    } else {
+    }
+    else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
@@ -536,23 +575,51 @@ function Resolve-Command {
             $command = $resolved
         }
 
-        return $command
+        if ($command) {
+            $command
+
+            # trying to resolve metadate for non scriptblock / cmdlet results in this beautiful error:
+            # PSInvalidCastException: Cannot convert value "notepad.exe" to type "System.Management.Automation.CommandMetadata".
+            # Error: "Cannot perform operation because operation "NewNotSupportedException at offset 34 in file:line:column <filename unknown>:0:0
+            if ($command.PSObject.Properties['ScriptBlock'] -or $command.CommandType -eq 'Cmdlet') {
+                # Resolve command metadata in the same scope where we resolved the command to have
+                # all custom attributes available https://github.com/pester/Pester/issues/1772
+                [System.Management.Automation.CommandMetaData] $command
+                # resolve it one more time because we need two instances sometimes for dynamic
+                # parameters resolve
+                [System.Management.Automation.CommandMetaData] $command
+            }
+        }
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     }
+
     if ($ModuleName) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
-        $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
+
+        if ($null -ne $callerSessionState.Module -and $callerSessionState.Module.Name -eq $ModuleName) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "We are already running in $ModuleName. Using that."
+            }
+
+            $module = $callerSessionState.Module
+            $SessionState = $callerSessionState
         }
-        # this is the target session state in which we will insert the mock
-        $SessionState = $module.SessionState
-        $command = & $module $findAndResolveCommand -Name $CommandName
+        else {
+            $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
+            }
+
+            # this is the target session state in which we will insert the mock
+            $SessionState = $module.SessionState
+        }
+
+        $command, $commandMetadata, $commandMetadata2 = & $module $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($command.Module -eq $module) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -571,25 +638,24 @@ function Resolve-Command {
             }
         }
     }
-
-    if (-not $command) {
-
-
-        # TODO: this resolves the command in the caller scope if the command was not found in the module scope, but that does not make sense does it? When the user specifies that he want's to use Module it should use just Module. Disabling the fall through makes tests fail.
+    else {
+        # we used to fallback to the script scope when command was not found in the module, we no longer do that
+        # now we just search the script scope when module name is not specified. This was probably needed because of
+        # some incosistencies of resolving the mocks. But it never made sense to me.
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the caller scope."
+            Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the script scope."
         }
         Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $SessionState
-        $command = & $findAndResolveCommand -Name $CommandName
+        $command, $commandMetadata, $commandMetadata2 = & $findAndResolveCommand -Name $CommandName
         if ($command) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the caller scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
+                Write-PesterDebugMessage -Scope Mock "Found the command $CommandName in the script scope$(if ($CommandName -ne $command.Name) {" and it resolved to $($command.Name)"})."
             }
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the caller scope."
+                Write-PesterDebugMessage -Scope Mock "Did not find command $CommandName in the script scope."
             }
         }
     }
@@ -607,6 +673,8 @@ function Resolve-Command {
         $module = $command.Mock.Hook.SessionState.Module
         return @{
             Command                 = $command.Mock.Hook.OriginalCommand
+            CommandMetadata         = $command.Mock.Hook.OriginalMetadata
+            CommandMetadata2        = $command.Mock.Hook.OriginalMetadata2
             # the session state of the target module
             SessionState            = $command.Mock.Hook.SessionState
             # the session state in which we invoke the mock body (where the test runs)
@@ -615,8 +683,9 @@ function Resolve-Command {
             Module                  = $command.Mock.Hook.OriginalCommand.Module
             # true if we inserted the mock into a module
             IsFromModule            = $null -ne $module
+            TargetModule            = $ModuleName
             # true if the commmand comes from the target module
-            IsFromRequestedModule   = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
+            IsFromTargetModule      = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
             IsMockBootstrapFunction = $true
             Hook                    = $command.Mock.Hook
         }
@@ -625,12 +694,18 @@ function Resolve-Command {
     $module = $command.Module
     return @{
         Command                 = $command
+        CommandMetadata         = $commandMetadata
+        CommandMetadata2        = $commandMetadata2
         SessionState            = $SessionState
         CallerSessionState      = $callerSessionState
         Module                  = $module
 
         IsFromModule            = $null -ne $module
-        IsFromRequestedModule   = $null -ne $module -and $module.Name -eq $ModuleName
+        # The target module in which we are inserting the mock, this may not be the same as the module in which the
+        # function is defined. For example when module m exports function f, and we mock it in script scope or in module o.
+        # They would be the same if we mock an internal function in module m by specifying -ModuleName m, to be able to test it.
+        TargetModule            = $ModuleName
+        IsFromTargetModule      = $null -ne $module -and $module.Name -eq $ModuleName
         IsMockBootstrapFunction = $false
         Hook                    = $null
     }
@@ -855,7 +930,7 @@ function FindMatchingBehavior {
     )
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Finding a mock behavior."
+        Write-PesterDebugMessage -Scope Mock "Finding behavior to use, one that passes filter or a default:"
     }
 
     $foundDefaultBehavior = $false
@@ -929,7 +1004,7 @@ function ExecuteBehavior {
         Write-PesterDebugMessage -Scope Mock "Executing mock behavior for mock$(if ($ModuleName) {" $ModuleName -" }) $CommandName."
     }
 
-    $Behavior.Verifiable = $false
+    $Behavior.Executed = $true
 
     $scriptBlock = {
         param (
@@ -970,6 +1045,8 @@ function ExecuteBehavior {
             }
             catch {
             }) -ScriptBlock ${Script Block}
+        # define this in the current scope to be used instead of $PSBoundParameter if needed
+        $PesterBoundParameters = if ($null -ne $___BoundParameters___) { $___BoundParameters___ } else { @{} }
         & ${Script Block} @___BoundParameters___ @___ArgumentList___
     }
 
@@ -1078,20 +1155,23 @@ function Test-ParameterFilter {
             $private:______mock_parameters.SessionState.PSVariable.Set($private:______current.Key, $private:______current.Value)
         }
 
+        # define this in the current scope to be used instead of $PSBoundParameter if needed
+        $PesterBoundParameters = if ($null -ne $private:______mock_parameters.Context) { $private:______mock_parameters.Context } else { @{} }
+
         #TODO: a hacky solution to make Should throw on failure in Mock ParameterFilter, to make it good enough for the first release $______isInMockParameterFilter
         # this should not be private, it should leak into Should command when used in ParameterFilter
         $______isInMockParameterFilter = $true
         # $private:BoundParameters = $private:______mock_parameters.BoundParameters
-        $private:Arguments = $private:______mock_parameters.Arguments
+        $private:______arguments = $private:______mock_parameters.Arguments
         # TODO: not binding the bound parameters here because it would make the parameters unbound when the user does
         # not provide a param block, which they would never provide, so that is okay, but if there is a workaround this then
         # it would be nice to have. maybe changing the order in which I bind?
-        & $private:______mock_parameters.ScriptBlock @Arguments
+        & $private:______mock_parameters.ScriptBlock @______arguments
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) {foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" }}) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
@@ -1101,23 +1181,28 @@ function Test-ParameterFilter {
         Write-ScriptBlockInvocationHint -Hint "Mock - Parameter filter" -ScriptBlock $wrapper
     }
     $parameters = @{
-        ScriptBlock     = $ScriptBlock
-        BoundParameters = $BoundParameters
-        Arguments       = $Arguments
-        SessionState    = $SessionState
-        Context         = $context
-        Set_StrictMode  = $SafeCommands['Set-StrictMode']
+        ScriptBlock        = $ScriptBlock
+        BoundParameters    = $BoundParameters
+        Arguments          = $Arguments
+        SessionState       = $SessionState
+        Context            = $context
+        Set_StrictMode     = $SafeCommands['Set-StrictMode']
+        WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
+        Write_DebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            { param ($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }
+        }
+        else { $null }
     }
 
     $result = & $wrapper $parameters
     if ($result) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Mock filter passed."
+            Write-PesterDebugMessage -Scope Mock -Message "Mock filter returned value '$result', which is truthy. Filter passed."
         }
     }
     else {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Mock filter did not pass."
+            Write-PesterDebugMessage -Scope Mock -Message "Mock filter returned value '$result', which is falsy. Filter did not pass."
         }
     }
     $result
@@ -1482,7 +1567,7 @@ function Test-IsClosure {
     )
 }
 
-function Remove-MockFunctionsAndAliases {
+function Remove-MockFunctionsAndAliases ($SessionState) {
     # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
     # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
@@ -1490,12 +1575,46 @@ function Remove-MockFunctionsAndAliases {
     # So before putting Pester state in place we should make sure that all Pester mocks are gone
     # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
     # bootstrap function.
-    foreach ($alias in (& $script:SafeCommands['Get-Alias'] -Definition "PesterMock_*")) {
-        & $script:SafeCommands['Remove-Item'] "alias:/$($alias.Name)"
+    $Get_Alias = $script:SafeCommands['Get-Alias']
+    $Get_Command = $script:SafeCommands['Get-Command']
+    $Remove_Item = $script:SafeCommands['Remove-Item']
+    foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
+        & $Remove_Item "alias:/$($alias.Name)"
     }
 
-    foreach ($bootstrapFunction in (& $script:SafeCommands['Get-Command'] -Name "PesterMock_*")) {
-        & $script:SafeCommands['Remove-Item'] "function:/$($bootstrapFunction.Name)"
+    foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
+        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+    }
+
+    $ScriptBlock = {
+        param ($Get_Alias, $Get_Command, $Remove_Item)
+        foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
+            & $Remove_Item "alias:/$($alias.Name)"
+        }
+
+        foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
+            & $Remove_Item "function:/$($bootstrapFunction.Name)"
+        }
+    }
+
+    # clean up in caller session state
+    Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
+    & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+
+    # clean up also in all loaded script modules
+    $modules = & $script:SafeCommands['Get-Module']
+    foreach ($module in $modules) {
+        # we cleaned up in module on the start of this method without overhead of moving to module scope
+        if ('pester' -eq $module.Name) {
+            continue
+        }
+
+        # some script modules aparently can have no session state
+        # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
+        # https://github.com/pester/Pester/issues/1921
+        if ('Script' -eq $module.ModuleType -and $null -ne $module.SessionState) {
+            & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+        }
     }
 }
 

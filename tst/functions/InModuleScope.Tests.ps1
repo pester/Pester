@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 Describe "Module scope separation" {
     Context "When users define variables with the same name as Pester parameters" {
@@ -81,4 +81,183 @@ Describe "Get-ScriptModule behavior" {
 
     }
 
+}
+
+Describe 'InModuleScope arguments and parameter binding' {
+
+    BeforeAll {
+        Get-Module TestModule2 | Remove-Module
+        New-Module -Name TestModule2 { } | Import-Module -Force
+    }
+
+    It 'Works with parameters while using advanced function/script' {
+        # https://github.com/pester/Pester/issues/1809
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+
+        $sb = {
+            param
+            (
+                [Parameter()]
+                [System.String]
+                $SomeParam
+            )
+            "$SomeParam"
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb | Should -Be $inModuleScopeParameters.SomeParam
+    }
+
+    It 'Works with parameters and arguments while using advanced function/script' {
+        # https://github.com/pester/Pester/issues/1809
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+
+        $myArgs = "foo", 123
+
+        $sb = {
+            param
+            (
+                [Parameter()]
+                [System.String]
+                $SomeParam,
+
+                [Parameter(ValueFromRemainingArguments = $true)]
+                $RemainingArgs
+            )
+            "$SomeParam"
+            $RemainingArgs.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should -Be @($inModuleScopeParameters.SomeParam, $myArgs.Count)
+    }
+
+    It 'Arguments are available in scriptblock' {
+        $arguments = @(12345)
+
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments.Count, $arguments
+    }
+
+    It 'single argument works' {
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList 'hello' -ScriptBlock $sb | Should -Be 1, 'hello'
+    }
+
+    It 'array argument works' {
+        $arguments = [int[]](1, 2, 3), 'hello'
+        $sb = {
+            $args.Count
+            $args[0].Count
+            $args[1]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be 2, 3, 'hello'
+    }
+
+    It 'Support $null as argument' {
+        $sb = {
+            $args.Count
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -ArgumentList $null -ScriptBlock $sb | Should -Be 1, $null
+    }
+
+    It 'Arguments are first in args when parameters are also used and no param-block exists' {
+        # https://github.com/pester/Pester/pull/1957#discussion_r637891515
+        $inModuleScopeParameters = @{
+            SomeParam = 'SomeValue'
+        }
+        $arguments = 12345
+
+        $sb = {
+            $args[0]
+        }
+
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments
+    }
+
+    It '$args is empty when no arguments are provided' {
+        # https://github.com/pester/Pester/pull/1957#discussion_r637772167
+        $sb = {
+            $args.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -Be 0
+    }
+
+    It 'Arguments bind to remaining parameters in param-block' {
+        $sb = {
+            param($param1, $param2)
+            $param1
+            $param2
+            $args.Count
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters @{ param1 = 'foo' } -ArgumentList 123 | Should -Be 'foo', 123, 0
+    }
+
+    It 'internal variables used in InModuleScope wrapper does not leak into scriptblock' {
+        $sb = {
+            $null -eq $SessionState
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -BeTrue
+    }
+
+    It 'Automatically imports parameters as variables in module scoped scriptblock' {
+        # https://github.com/pester/Pester/issues/1603
+        $inModuleScopeParameters = @{
+            SomeParam2 = 'MyValue'
+        }
+
+        $sb = {
+            "$SomeParam2"
+        }
+
+        $sb2 = {
+            # Should return nothing. Making sure dynamic variable isn't persisted in module state.
+            "$SomeParam2"
+        }
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters $inModuleScopeParameters | Should -Be $inModuleScopeParameters.SomeParam2
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should -BeNullOrEmpty
+    }
+
+    AfterAll {
+        Remove-Module TestModule2 -Force
+    }
+}
+
+Describe "Using variables within module scope" {
+    BeforeAll {
+        Get-Module TestModule2 | Remove-Module
+        New-Module -Name TestModule2 { } | Import-Module -Force
+    }
+
+    It 'Only script-scoped variables should persist across InModuleScope calls' {
+        $setup = {
+            $script:myVar = 'bar'
+            $myVar2 = 'bar'
+        }
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $setup
+
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should -Be 'bar'
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should -BeNullOrEmpty
+    }
+
+    AfterAll {
+        Remove-Module TestModule2 -Force
+    }
 }

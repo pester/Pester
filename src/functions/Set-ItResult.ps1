@@ -1,4 +1,4 @@
-function Set-ItResult {
+﻿function Set-ItResult {
     <#
     .SYNOPSIS
     Set-ItResult is used inside the It block to explicitly set the test result
@@ -60,7 +60,7 @@ function Set-ItResult {
 
     [String]$Message = "is skipped"
     if ($Result -ne 'Skipped') {
-        [String]$Because = if ($Because) {$Result.ToUpper(), $Because -join ': '} else {$Result.ToUpper()}
+        [String]$Because = if ($Because) { $Result.ToUpper(), $Because -join ': ' } else { $Result.ToUpper() }
     }
     if ($Because) {
         [String]$Message += ", because $Because"

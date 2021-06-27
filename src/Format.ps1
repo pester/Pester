@@ -1,7 +1,9 @@
-# if -not build
-. "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
-& $SafeCommands['Import-Module'] "$PSScriptRoot/TypeClass.psm1" -DisableNameChecking
-# endif
+﻿# PESTER_BUILD
+if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
+    . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
+    . "$PSScriptRoot/TypeClass.ps1"
+}
+# end PESTER_BUILD
 
 function Format-Collection ($Value, [switch]$Pretty) {
     $Limit = 10
@@ -10,8 +12,15 @@ function Format-Collection ($Value, [switch]$Pretty) {
         $separator = ",`n"
     }
     $count = $Value.Count
-    $trimmed = $count  -gt $Limit
-    '@(' + (($Value | & $SafeCommands['Select-Object'] -First $Limit | & $SafeCommands['ForEach-Object'] { Format-Nicely -Value $_ -Pretty:$Pretty }) -join $separator) + $(if ($trimmed) {', ...'}) + ')'
+    $trimmed = $count -gt $Limit
+
+    $formattedCollection = @()
+    for ($i = 0; $i -lt [System.Math]::Min($count, $Limit); $i++) {
+        $formattedValue = Format-Nicely -Value $Value[$i] -Pretty:$Pretty
+        $formattedCollection += $formattedValue
+    }
+
+    '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'
 }
 
 function Format-Object ($Value, $Property, [switch]$Pretty) {
@@ -140,7 +149,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
 function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit = 4) {
 
     $properties = @($InputObject.PSObject.Properties |
-            & $SafeCommands['Where-Object'] { $_.Name -notlike "_*"} |
+            & $SafeCommands['Where-Object'] { $_.Name -notlike "_*" } |
             & $SafeCommands['Select-Object'] -expand Name |
             & $SafeCommands['Sort-Object'])
     $significant = @()
@@ -189,21 +198,19 @@ function Format-Type ([Type]$Value) {
     [string]$Value
 }
 
-# if -not build
-& $SafeCommands['Export-ModuleMember'] -Function @(
-    'Format-Collection'
-    'Format-Object'
-    'Format-Null'
-    'Format-Boolean'
-    'Format-String'
-    'Format-Date'
-    'Format-ScriptBlock'
-    'Format-Number'
-    'Format-Hashtable'
-    'Format-Dictionary'
-    'Format-Type'
-    'Format-Nicely'
-    'Get-DisplayProperty'
-    'Get-ShortType'
-)
-# endif
+function Join-And ($Items, $Threshold = 2) {
+
+    if ($null -eq $items -or $items.count -lt $Threshold) {
+        $items -join ', '
+    }
+    else {
+        $c = $items.count
+        ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
+    }
+}
+
+function Add-SpaceToNonEmptyString ([string]$Value) {
+    if ($Value) {
+        " $Value"
+    }
+}

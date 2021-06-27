@@ -1,4 +1,4 @@
-# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
+﻿# Tried using $ExecutionState.InvokeCommand.GetCmdlet() here, but it does not trigger module auto-loading the way
 # Get-Command does.  Since this is at import time, before any mocks have been defined, that's probably acceptable.
 # If someone monkeys with Get-Command before they import Pester, they may break something.
 
@@ -26,6 +26,7 @@ $script:SafeCommands = @{
     'Get-ChildItem'        = & $Get_Command -Name Get-ChildItem        -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Content'          = & $Get_Command -Name Get-Content          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Date'             = & $Get_Command -Name Get-Date             -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
+    'Get-Help'             = & $Get_Command -Name Get-Help             -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Get-Item'             = & $Get_Command -Name Get-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-ItemProperty'     = & $Get_Command -Name Get-ItemProperty     -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Get-Location'         = & $Get_Command -Name Get-Location         -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
@@ -68,6 +69,7 @@ $script:SafeCommands = @{
     'Split-Path'           = & $Get_Command -Name Split-Path           -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'Start-Sleep'          = & $Get_Command -Name Start-Sleep          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Test-Path'            = & $Get_Command -Name Test-Path            -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
+    'Update-TypeData'      = & $Get_Command -Name Update-TypeData      -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Where-Object'         = & $Get_Command -Name Where-Object         -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
     'Write-Error'          = & $Get_Command -Name Write-Error          -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Write-Host'           = & $Get_Command -Name Write-Host           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
@@ -88,7 +90,7 @@ elseif (($wmi = & $Get_Command -Name Get-WmiObject -Module Microsoft.PowerShell.
 }
 elseif (($unames = & $Get_Command -Name uname -CommandType Application -ErrorAction Ignore)) {
     $script:SafeCommands['uname'] = if ($null -ne $unames -and 0 -lt @($unames).Count) { $unames[0] }
-    if  (($ids = & $Get_Command -Name id -CommandType Application -ErrorAction Ignore)) {
+    if (($ids = & $Get_Command -Name id -CommandType Application -ErrorAction Ignore)) {
         $script:SafeCommands['id'] = if ($null -ne $ids -and 0 -lt @($ids).Count) { $ids[0] }
     }
 }

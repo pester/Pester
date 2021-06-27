@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -34,8 +34,8 @@ function Verify-PathEqual {
         throw "Actual is null or empty."
     }
 
-    $e = ($expected -replace "\\",'/').Trim('/')
-    $a = ($actual -replace "\\",'/').Trim('/')
+    $e = ($expected -replace "\\", '/').Trim('/')
+    $a = ($actual -replace "\\", '/').Trim('/')
 
     if ($e -ne $a) {
         throw "Expected path '$e' to be equal to '$a'."
@@ -46,11 +46,11 @@ i -PassThru:$PassThru {
     b "Default configuration" {
 
         # General configuration
-        t "Exit is `$false" {
+        t "Run.Exit is `$false" {
             [PesterConfiguration]::Default.Run.Exit.Value | Verify-False
         }
 
-        t "Path is string array, with '.'" {
+        t "Run.Path is string array, with '.'" {
             $value = [PesterConfiguration]::Default.Run.Path.Value
 
             # do not do $value | Verify-NotNull
@@ -61,7 +61,7 @@ i -PassThru:$PassThru {
             $value[0] | Verify-Equal '.'
         }
 
-        t "ScriptBlock is empty ScriptBlock array" {
+        t "Run.ScriptBlock is empty ScriptBlock array" {
             $value = [PesterConfiguration]::Default.Run.ScriptBlock.Value
 
             # do not do $value | Verify-NotNull
@@ -71,20 +71,28 @@ i -PassThru:$PassThru {
             $value.Count | Verify-Equal 0
         }
 
-        t "TestExtension is *.Tests.ps1" {
+        t "Run.TestExtension is *.Tests.ps1" {
             [PesterConfiguration]::Default.Run.TestExtension.Value | Verify-Equal ".Tests.ps1"
         }
 
 
         # Output configuration
-        t "Verbosity is Normal" {
+        t "Output.Verbosity is Normal" {
             [PesterConfiguration]::Default.Output.Verbosity.Value | Verify-Equal "Normal"
         }
 
-        t "Verbosity Minimal is translated to Normal (backwards compat for currently unsupported option)" {
+        t "Output.Verbosity Minimal is translated to Normal (backwards compat for currently unsupported option)" {
             $p = [PesterConfiguration]::Default
             $p.Output.Verbosity = "Minimal"
             $p.Output.Verbosity.Value | Verify-Equal "Normal"
+        }
+
+        t "Output.StackTraceVerbosity is Filtered" {
+            [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value | Verify-Equal Filtered
+        }
+
+        t "Output.CIFormat is Auto" {
+            [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
         }
 
         # CodeCoverage configuration
@@ -156,6 +164,14 @@ i -PassThru:$PassThru {
         t "Debug.ShowNavigationMarkers is `$false" {
             [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
         }
+
+        t "TestDrive.Enabled is `$true" {
+            [PesterConfiguration]::Default.TestDrive.Enabled.Value | Verify-True
+        }
+
+        t "TestRegistry.Enabled is `$true" {
+            [PesterConfiguration]::Default.TestRegistry.Enabled.Value | Verify-True
+        }
     }
 
     b "Assignment" {
@@ -186,7 +202,7 @@ i -PassThru:$PassThru {
 
         t "StringArrayOption can be assigned an array of Strings" {
             $config = [PesterConfiguration]::Default
-            $path = "C:\",  "D:\"
+            $path = "C:\", "D:\"
             $config.Run.Path = $path
 
             Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
@@ -200,18 +216,72 @@ i -PassThru:$PassThru {
             Verify-Same $path[0] -Actual $config.Run.Path.Value[0]
             Verify-Same $path[1] -Actual $config.Run.Path.Value[1]
         }
+
+        t "StringArrayOption can be assigned an System.Management.Automation.PathInfo" {
+            $config = [PesterConfiguration]::Default
+            $path = Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path
+            $config.Run.Path = $path
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+        }
+
+        t "StringArrayOption can be assigned an System.Management.Automation.PathInfo in object array" {
+            $config = [PesterConfiguration]::Default
+            $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path), (Join-Path (Split-Path $PWD ) (Split-Path $PWD -Leaf) | Resolve-Path)
+            $config.Run.Path = $path
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+            Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
+
+        t "StringArrayOption can be assigned an PSCustomObject from hashtable" {
+            $path = Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf) | Resolve-Path
+            $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+        }
+
+        t "StringArrayOption can be assigned PSCustomObjects in object array" {
+            $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)), (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)) | Resolve-Path
+            $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
+
+            Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
+            Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
+
+        t "Modifying the private Default property of an option throws" {
+            $config = [PesterConfiguration]::Default
+            { $config.Run.Path.Default = 'invalid' } | Verify-Throw
+        }
+
+        t "Modifying the private Value property of an option throws" {
+            $config = [PesterConfiguration]::Default
+            { $config.Run.Path.Value = 'invalid' } | Verify-Throw
+        }
+
+        t "IsOriginalValue returns false after change even if same as default" {
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path.IsOriginalValue() | Verify-True
+            $config.Run.Path = $config.Run.Path.Default
+            $config.Run.Path.IsOriginalValue() | Verify-False
+        }
     }
 
     b "Cloning" {
         t "Configuration can be shallow cloned to avoid modifying user values" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.StackTraceVerbosity = "Filtered"
 
             $cloned = [PesterConfiguration]::ShallowClone($user)
             $cloned.Output.Verbosity = "None"
+            $cloned.Output.StackTraceVerbosity = "None"
 
             $user.Output.Verbosity.Value | Verify-Equal "Normal"
+            $user.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
+
             $cloned.Output.Verbosity.Value | Verify-Equal "None"
+            $cloned.Output.StackTraceVerbosity.Value | Verify-Equal "None"
         }
     }
 
@@ -219,15 +289,18 @@ i -PassThru:$PassThru {
         t "configurations can be merged" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.StackTraceVerbosity = "Filtered"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
+            $override.Output.StackTraceVerbosity = "None"
             $override.Run.Path = "C:\test.ps1"
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             $result.Output.Verbosity.Value | Verify-Equal "None"
+            $result.Output.StackTraceVerbosity.Value | Verify-Equal "None"
             $result.Run.Path.Value | Verify-Equal "C:\test.ps1"
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
@@ -235,9 +308,11 @@ i -PassThru:$PassThru {
         t "merged object is a new instance" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Normal"
+            $user.Output.StackTraceVerbosity = "Filtered"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = "None"
+            $override.Output.StackTraceVerbosity = "None"
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
@@ -248,29 +323,32 @@ i -PassThru:$PassThru {
         t "values are overwritten even if they are set to the same value as default" {
             $user = [PesterConfiguration]::Default
             $user.Output.Verbosity = "Diagnostic"
+            $user.Output.StackTraceVerbosity = "Full"
             $user.Filter.Tag = "abc"
 
             $override = [PesterConfiguration]::Default
             $override.Output.Verbosity = [PesterConfiguration]::Default.Output.Verbosity
+            $override.Output.StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity
 
             $result = [PesterConfiguration]::Merge($user, $override)
 
             # has the same value as default but was written so it will override
             $result.Output.Verbosity.Value | Verify-Equal "Normal"
+            $result.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
     }
 
-    b "Advanced interface - Run paths"  {
+    b "Advanced interface - Run paths" {
         t "Running from multiple paths" {
             $container1 = "$PSScriptRoot/testProjects/BasicTests/folder1"
             $container2 = "$PSScriptRoot/testProjects/BasicTests/folder2"
 
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = $container1, $container2
+                Run    = @{
+                    Path     = $container1, $container2
                     PassThru = $true
                 }
                 Output = @{
@@ -285,8 +363,8 @@ i -PassThru:$PassThru {
 
         t "Filtering based on tags" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -310,8 +388,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test based on line of It" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -331,8 +409,8 @@ i -PassThru:$PassThru {
 
         t "Filtering tests based on line of Describe" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -355,8 +433,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test with testcases based on line of It" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -379,8 +457,8 @@ i -PassThru:$PassThru {
 
         t "Filtering test based on name will find the test" {
             $c = [PesterConfiguration]@{
-                Run = @{
-                    Path = "$PSScriptRoot/testProjects/BasicTests"
+                Run    = @{
+                    Path     = "$PSScriptRoot/testProjects/BasicTests"
                     PassThru = $true
                 }
                 Filter = @{
@@ -416,13 +494,517 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run = @{
                     ScriptBlock = $sb
-                    PassThru = $true
+                    PassThru    = $true
                 }
             }
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.Verbosity.Value  | Verify-Equal 'None'
             $r.Configuration.Run.ScriptBlock.Value | Verify-Equal $sb
+        }
+    }
+
+    b "configuration modified at runtime" {
+        t "changes at runtime doesn't leak to advanced configuration object" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = 'Diagnostic'
+                }
+                Debug  = @{
+                    WriteDebugMessagesFrom = 'Something'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            # Diagnostic modifies Debug.WriteDebugMessagesFrom at runtime
+            $r.Configuration.Debug.WriteDebugMessagesFrom.Value.Count -gt 1 | Verify-True
+            'Something' -eq $c.Debug.WriteDebugMessagesFrom.Value | Verify-True
+        }
+    }
+
+    b "New-PesterConfiguration" {
+        t "Creates default configuration when no parameters are specified" {
+            $config = New-PesterConfiguration
+
+            $config | Verify-Type ([PesterConfiguration])
+            $config.Run.Path.Value | Verify-Equal $config.Run.Path.Default
+            $config.Run.PassThru.Value | Verify-Equal $config.Run.PassThru.Default
+        }
+
+        t "Merges configuration when hashtable is provided" {
+            $MyOptions = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when hashtable keys are boxed in PSObject" {
+            $MyOptions = @{
+                Run    = New-Object PSObject -ArgumentList (
+                    @{
+                        PassThru = $true
+                    }
+                )
+                Filter = New-Object PSObject -ArgumentList (
+                    @{
+                        Tag = "Core"
+                    }
+                )
+            }
+
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a hashtable has been serialized" {
+            $BeforeSerialization = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = New-PesterConfiguration -Hashtable $AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = "Core"
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+        }
+
+        t "Merges configuration when a PesterConfiguration object includes an array of values" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Path = @(
+                        'c:\path1'
+                        'c:\path2'
+                    )
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Path.Value -join ',' | Verify-Equal 'c:\path1,c:\path2'
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ScriptBlock" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    ScriptBlock = {
+                        'Hello world'
+                    }
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.ScriptBlock.Value.GetType() | Verify-Equal ([ScriptBlock[]])
+        }
+
+        t "Merges configuration when a PesterConfiguration object has been serialized with a ContainerInfo object" {
+            $BeforeSerialization = New-PesterConfiguration -Hashtable @{
+                Run = @{
+                    Container = @(
+                        $container = [Pester.ContainerInfo]::Create()
+                        $container.Type = 'File'
+                        $container.Item = 'Item'
+                        $container.Data = 'Data'
+                        $container
+                    )
+                }
+            }
+
+            $Serializer = [System.Management.Automation.PSSerializer]
+            $AfterSerialization = $Serializer::Deserialize($Serializer::Serialize($BeforeSerialization))
+            $config = [PesterConfiguration]$AfterSerialization
+
+            $config.Run.Container.Value.GetType() | Verify-Equal ([Pester.ContainerInfo[]])
+            $config.Run.Container.Value[0].Type | Verify-Equal 'File'
+            $config.Run.Container.Value[0].Item | Verify-Equal 'Item'
+            $config.Run.Container.Value[0].Data | Verify-Equal 'Data'
+        }
+    }
+
+    b "Output.StackTraceVerbosity" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $false
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            foreach ($option in "None", "FirstLine", "Filtered", "Full") {
+                $c.Output.StackTraceVerbosity = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal $option
+            }
+        }
+
+        t "Default is Filtered" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $false
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal "Filtered"
+        }
+
+        t "Debug.ShowFullErrors overrides Output.StackTraceVerbosity to Full when set to `$true" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.StackTraceVerbosity.Value | Verify-Equal "Full"
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Debug  = @{
+                    ShowFullErrors = $false
+                }
+                Output = @{
+                    StackTraceVerbosity = "Something"
+                    CIFormat            = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+        }
+    }
+
+    b "Output.CIFormat" {
+        t "Output.CIFormat is AzureDevops when Auto(default) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is AzureDevops when Auto(manually set) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "Auto"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is AzureDevops when AzureDevops(manually set) and TF_BUILD are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "AzureDevops"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $true
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "AzureDevops"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is None when Auto(default) and TF_BUILD is not set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when Auto(default) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when Auto(manually set) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "Auto"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is GithubActions when GithubActions(manually set) and GITHUB_ACTIONS are set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "GithubActions"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "GithubActions"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Output.CIFormat is None when Auto(default) and GITHUB_ACTIONS is not set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                }
+            }
+
+            $previousTfBuildVariable = $env:TF_BUILD
+            $previousGithubActionsVariable = $env:GITHUB_ACTIONS
+
+            $env:TF_BUILD = $false
+            $env:GITHUB_ACTIONS = $false
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+            }
+            finally {
+                $env:TF_BUILD = $previousTfBuildVariable
+                $env:GITHUB_ACTIONS = $previousGithubActionsVariable
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    CIFormat = "Something"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI format 'Something'"
+        }
+
+        t "Output.CIFormat is None when set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = "None"
+                    CIFormat  = "None"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
         }
     }
 }

@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
     Debug = @{
-        ShowFullErrors  = $true
+        ShowFullErrors = $true
     }
 }
 $PSDefaultParameterValues = @{}
@@ -35,7 +35,7 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
 
 i -PassThru:$PassThru {
     b "Interactive execution" {
-        t "Works when testfile is invoked directly" {
+        t "Works with directly invoked testfile using Describe" {
             # https://github.com/pester/Pester/issues/1771
 
             $temp = [IO.Path]::GetTempPath()
@@ -45,13 +45,82 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("& $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
-                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]'
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked testfile using Context" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'Context "c" { It "i" { 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Context c"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked parameterized testfile using Describe" {
+            # https://github.com/pester/Pester/issues/1784
+
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Describe "d - <File>" { It "i" { $MyValue | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d - demo.ps1"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked parameterized testfile using Context" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Context "c - <File>" { It "i" { $MyValue | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Context c - demo.ps1"
             }
             finally {
                 Remove-Item -Path $testpath

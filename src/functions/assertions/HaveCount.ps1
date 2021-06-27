@@ -1,10 +1,11 @@
-function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
 .SYNOPSIS
 Asserts that a collection has the expected amount of items.
 
 .EXAMPLE
 1,2,3 | Should -HaveCount 3
+
 This test passes, because it expected three objects, and received three.
 This is like running `@(1,2,3).Count` in PowerShell.
 #>

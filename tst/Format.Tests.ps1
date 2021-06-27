@@ -1,9 +1,9 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 BeforeAll {
     Get-Module Axiom, Format | Remove-Module
     Import-Module $PSScriptRoot\axiom\Axiom.psm1 -ErrorAction 'stop' -DisableNameChecking
-    Import-Module $PSScriptRoot\..\src\Format.psm1 -ErrorAction 'stop' -DisableNameChecking
+    . $PSScriptRoot\..\src\Format.ps1
 }
 
 # discovery time setup
@@ -24,8 +24,15 @@ Describe "Format-Collection" {
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 
-    It "Formats collection that is longer than 10 with elipsis" -TestCases @(
-        @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...)" }
+    It "Formats collection that is longer than 10 with elipsis and output remaining value count" -TestCases @(
+        @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...10 more)" }
+    ) {
+        param ($Value, $Expected)
+        Format-Collection -Value $Value | Verify-Equal $Expected
+    }
+
+    It "Formats collection '<value>' with `$null values to '<expected>'" -TestCases @(
+        @{ Value = @('a', 'b', 'c', $null); Expected = "@('a', 'b', 'c', `$null)" }
     ) {
         param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
@@ -103,7 +110,7 @@ Describe "Format-DateTime" {
 
 Describe "Format-ScriptBlock" {
     It "Formats scriptblock as string with curly braces" {
-        Format-ScriptBlock -Value {abc} | Verify-Equal '{abc}'
+        Format-ScriptBlock -Value { abc } | Verify-Equal '{ abc }'
     }
 }
 
@@ -141,16 +148,16 @@ Describe "Format-ScriptBlock" {
 
 Describe "Format-Nicely" {
     It "Formats value '<value>' correctly to '<expected>'" -TestCases @(
-        @{ Value = $null; Expected = '$null'}
-        @{ Value = $true; Expected = '$true'}
-        @{ Value = $false; Expected = '$false'}
-        @{ Value = 'a' ; Expected = "'a'"},
-        @{ Value = '' ; Expected = '<empty>'},
-        @{ Value = ([datetime]636545721418385266) ; Expected = '2018-02-18T17:35:41.8385266'},
+        @{ Value = $null; Expected = '$null' }
+        @{ Value = $true; Expected = '$true' }
+        @{ Value = $false; Expected = '$false' }
+        @{ Value = 'a' ; Expected = "'a'" },
+        @{ Value = '' ; Expected = '<empty>' },
+        @{ Value = ([datetime]636545721418385266) ; Expected = '2018-02-18T17:35:41.8385266' },
         @{ Value = 1; Expected = '1' },
         @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
         @{ Value = 1.1; Expected = '1.1' },
-        @{ Value = [int]; Expected = '[int]'}
+        @{ Value = [int]; Expected = '[int]' }
         # @{ Value = [PSCustomObject] @{ Name = "Jakub" }; Expected = 'PSObject{Name=Jakub}' },
         #@{ Value = (Get-Process Idle); Expected = 'Diagnostics.Process{Id=0; Name=Idle}'},
         #@{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28}); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}"}
@@ -192,10 +199,36 @@ Describe "Get-ShortType" {
         @{ Value = 1.1; Expected = 'double' },
         @{ Value = 'a' ; Expected = 'string' },
         @{ Value = $null ; Expected = '<none>' },
-        @{ Value = [PSCustomObject] @{Name = 'Jakub'} ; Expected = 'PSObject'},
+        @{ Value = [PSCustomObject] @{Name = 'Jakub' } ; Expected = 'PSObject' },
         @{ Value = [Object[]]1, 2, 3 ; Expected = 'collection' }
     ) {
         param($Value, $Expected)
         Get-ShortType -Value $Value | Verify-Equal $Expected
+    }
+}
+
+Describe "Join-And" {
+    It "Given '<items>' and default threshold of 2 it returns the correct joined string '<expected>'" -TestCases @(
+        @{ Items = $null; Expected = [string]::Empty },
+        @{ Items = @('one'); Expected = 'one' },
+        @{ Items = @('one', 'two'); Expected = 'one and two' },
+        @{ Items = @('one', 'two', 'three'); Expected = 'one, two and three' }
+    ) {
+        param($Items, $Expected)
+        Join-And -Items $Items | Verify-Equal $Expected
+    }
+
+    It "Given '<items>' and custom threshold <threshold> it returns the correct joined string '<expected>'" -TestCases @(
+        @{ Items = @('one', 'two', 'three'); Threshold = 3; Expected = 'one, two and three' },
+        @{ Items = @('one', 'two', 'three'); Threshold = 4; Expected = 'one, two, three' }
+    ) {
+        param($Items, $Threshold, $Expected)
+        Join-And -Items $Items -Threshold $Threshold | Verify-Equal $Expected
+    }
+}
+
+Describe "Add-SpaceToNonEmptyString" {
+    It "Formats non-empty string with leading whitespace" {
+        Add-SpaceToNonEmptyString -Value 'message' | Verify-Equal ' message'
     }
 }

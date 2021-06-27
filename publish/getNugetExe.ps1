@@ -1,4 +1,4 @@
-$VerbosePreference = 'Continue'
+﻿$VerbosePreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 
 try {

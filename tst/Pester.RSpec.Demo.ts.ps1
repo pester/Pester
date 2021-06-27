@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -195,18 +195,19 @@ i -PassThru:$PassThru {
             }
         }
 
-       t "should will fail on the first failure by default" {
+        t "should will fail on the first failure by default" {
 
             function Get-User {
                 @{
                     Name = "Jakub"
-                    Age = 31
+                    Age  = 31
                 }
             }
 
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $err = $r.Containers[0].Blocks[0].Tests[0].ErrorRecord
@@ -218,7 +219,7 @@ i -PassThru:$PassThru {
             function Get-User {
                 @{
                     Name = "Jakub"
-                    Age = 31
+                    Age  = 31
                 }
             }
 
@@ -226,6 +227,7 @@ i -PassThru:$PassThru {
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
             $configuration.Should.ErrorAction = 'Continue'
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $err = $r.Containers[0].Blocks[0].Tests[0].ErrorRecord
@@ -242,6 +244,7 @@ i -PassThru:$PassThru {
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
             $configuration.Should.ErrorAction = 'Continue'
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $err = $r.Containers[0].Blocks[0].Tests[0].ErrorRecord
@@ -271,6 +274,7 @@ i -PassThru:$PassThru {
             $configuration = [PesterConfiguration]::Default
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.Count | Verify-Equal 2
@@ -314,6 +318,7 @@ i -PassThru:$PassThru {
             $configuration.Run.ScriptBlock = $sb
             $configuration.Run.PassThru = $true
             $configuration.Output.Verbosity = "normal"
+            $configuration.Output.CIFormat = 'None'
             $r = Invoke-Pester -Configuration $configuration
 
             $r.Containers[0].Blocks[0].Tests[3].Result | Verify-Equal "Failed"

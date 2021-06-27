@@ -1,10 +1,11 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
 
+& "$PSScriptRoot\..\..\build.ps1"
 Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
@@ -18,7 +19,7 @@ $global:PesterPreference = @{
 i -PassThru:$PassThru {
     b "Test drive clean up" {
         t "TestDrive is removed after execution" {
-            $c = @{ DrivePath = $null}
+            $c = @{ DrivePath = $null }
             $sb = {
                 Describe "a" {
                     It "i" {
@@ -52,13 +53,35 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe "a" {
                     It "i" {
-                        $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $innerSb; PassThru = $true }})
+                        $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $innerSb; PassThru = $true } })
                         $r.Result | Should -Be "Passed"
                     }
                 }
             }
 
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true } })
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Result | Verify-Equal "Passed"
+        }
+
+        t "TestDrive can be disabled" {
+            $sb = {
+                Describe "d" {
+                    It "i" {
+                        'TestDrive:\' | Should -Not -Exist  -Because "TestDrive is disabled in configuration"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    TestDrive = @{
+                        Enabled = $false
+                    }
+                    Run       = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                })
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Result | Verify-Equal "Passed"
         }

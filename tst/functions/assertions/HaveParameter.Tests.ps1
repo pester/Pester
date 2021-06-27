@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -44,8 +44,19 @@ InPesterModuleScope {
                                 ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
                         }
                     )]
-                    [String]$ParamWithArgumentCompleter = "./.git"
+                    [String]$ParamWithArgumentCompleter = "./.git",
+
+                    [Parameter()]
+                    [String]$ParamWithRegisteredArgumentCompleter = "./.git"
                 )
+            }
+
+            Register-ArgumentCompleter -CommandName Invoke-DummyFunction -ParameterName ParamWithRegisteredArgumentCompleter -ScriptBlock {
+                param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameter)
+
+                & Get-ChildItem |
+                    Where-Object { $_.Name -like "$wordToComplete*" } |
+                    ForEach-Object { [System.Management.Automation.CompletionResult]::new( $_.Name, $_.Name, [System.Management.Automation.CompletionResultType]::ParameterValue, $_.Name ) }
             }
         }
         else {
@@ -98,6 +109,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             }
         ) {
             param($ParameterName)
@@ -117,6 +129,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "String" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String" }
             }
         ) {
             param($ParameterName, $ExpectedType)
@@ -126,6 +139,7 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> has an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             ) {
                 param($ParameterName)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter
@@ -138,6 +152,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = "." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedValue = "./.git" }
             }
         ) {
             param($ParameterName, $ExpectedValue)
@@ -149,6 +164,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git" }
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
@@ -162,6 +178,7 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> exists, is of type <ExpectedType>, has a default value '<ExpectedValue>' and has an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter
@@ -186,6 +203,8 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
+
             }
             @{ParameterName = "InputObject" }
         ) {
@@ -199,6 +218,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [DateTime] }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "DateTime" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "DateTime" }
             }
             @{ParameterName = "InputObject"; ExpectedType = [String] }
         ) {
@@ -224,6 +244,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = "" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "." }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedValue = "." }
             }
             @{ParameterName = "InputObject"; ExpectedValue = "" }
         ) {
@@ -237,6 +258,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [DateTime]; ExpectedValue = "." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "" }
             }
             @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = "" }
         ) {
@@ -254,6 +276,7 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "." }
                 @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
                 @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = "." }
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
@@ -284,7 +307,7 @@ InPesterModuleScope {
         }
     }
 
-    Describe "Should -Not -HavePameter" {
+    Describe "Should -Not -HaveParameter" {
         BeforeAll {
             . $functionsBlock
         }
@@ -302,6 +325,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             }
             @{ParameterName = "InputObject" }
         ) {
@@ -314,6 +338,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[TimeSpan]" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [TimeSpan] }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [Timespan] }
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]" }
         ) {
@@ -327,6 +352,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[Int32]"; ExpectedValue = ".." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [TimeSpan]; ExpectedValue = "." }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [TimeSpan]; ExpectedValue = "." }
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]"; ExpectedValue = "" }
         ) {
@@ -352,6 +378,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation" }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             }
         ) {
             param($ParameterName)
@@ -371,6 +398,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String] }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String" }
             }
         ) {
             param($ParameterName, $ExpectedType)
@@ -383,6 +411,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = "[String]"; ExpectedValue = ".." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
@@ -392,6 +421,7 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> has an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "ParamWithArgumentCompleter" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             ) {
                 param($ParameterName)
                 { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -HasArgumentCompleter } | Verify-AssertionFailed
@@ -404,6 +434,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedValue = "." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedValue = "./.git" }
             }
         ) {
             param($ParameterName, $ExpectedValue)
@@ -416,6 +447,7 @@ InPesterModuleScope {
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "." }
             }
         ) {
             param($ParameterName, $ExpectedType, $ExpectedValue)
@@ -427,7 +459,9 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "./.git" }
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "" }
-
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "" }
             ) {
                 param($ParameterName, $ExpectedType, $ExpectedValue)
                 { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
@@ -445,9 +479,12 @@ InPesterModuleScope {
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
-            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
-                $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ParamWithArgumentCompleter -Type [String] -DefaultValue "./.git" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithArgumentCompleter, not of type [System.String], the default value not to be './.git' and has ArgumentCompletion, because of reasons, but it was of type [System.String], the default value was './.git' and has ArgumentCompletion."
+            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" -TestCases @(
+                @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "System.String"; ExpectedValue = "./.git" }
+                @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "System.String"; ExpectedValue = "./.git" }
+            ) {
+                $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and has ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and has ArgumentCompletion."
             }
         }
     }
