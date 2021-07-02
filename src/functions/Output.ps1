@@ -486,24 +486,67 @@ function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
         $p.EachTestTeardownEnd = {
             param($Context)
 
-            # If the test is not marked skipped and it is failed
-            # Go through every unexecuted test in the block and mark it as skipped
+            # If test is not marked skipped and failed
+            # Go through block tests and child tests and mark unexecuted tests as skipped
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
 
-                # Current block tests
-                # Doesn't include child tests
-                foreach ($test in $Context.Test.Block.Tests) {
+                foreach ($test in $Context.Block.Tests) {
                     if (-not $test.Executed) {
                         $test.Skipped = $true
                     }
                 }
 
-                # Flatten block to get child tests
-                foreach ($test in ($Context.Test.Block | View-Flat)) {
+                foreach ($test in ($Context.Block | View-Flat)) {
                     if (-not $test.Executed) {
                         $test.Skipped = $true
                     }
                 }
+            }
+        }
+    }
+
+    elseif ($SkipRemainingOnFailure -eq 'Container') {
+        $p.EachTestTeardownEnd = {
+            param($Context)
+
+            # If test is not marked skipped and failed
+            # Go through every test in container from block root and marked unexecuted tests as skipped
+            if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
+                foreach ($test in ($Context.Block.Root | View-Flat)) {
+                    if (-not $test.Executed) {
+                        $test.Skipped = $true
+                    }
+                }
+            }
+        }
+    }
+
+    elseif ($SkipRemainingOnFailure -eq 'Run') {
+        $script:containerHasFailed = $false
+
+        $p.EachTestSetupStart = {
+
+            # If the container has failed at some point
+            # Skip the test before it runs
+            # This handles skipping tests that failed from different containers in the same run
+            if ($script:containerHasFailed) {
+                $Context.Test.Skipped = $true
+            }
+        }
+
+        $p.EachTestTeardownEnd = {
+            param($Context)
+
+            # If test is not marked skipped and failed
+            # Go through every test in container from block root and marked unexecuted tests as skipped
+            if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
+                foreach ($test in ($Context.Block.Root | View-Flat)) {
+                    if (-not $test.Executed) {
+                        $test.Skipped = $true
+                    }
+                }
+
+                $script:containerHasFailed = $true
             }
         }
     }
