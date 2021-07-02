@@ -477,6 +477,40 @@ function ConvertTo-HumanTime {
     }
 }
 
+function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
+    $p = @{
+        Name = "SkipRemainingOnFailure"
+    }
+
+    if ($SkipRemainingOnFailure -eq 'Block') {
+        $p.EachTestTeardownEnd = {
+            param($Context)
+
+            # If the test is not marked skipped and it is failed
+            # Go through every unexecuted test in the block and mark it as skipped
+            if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
+
+                # Current block tests
+                # Doesn't include child tests
+                foreach ($test in $Context.Test.Block.Tests) {
+                    if (-not $test.Executed) {
+                        $test.Skipped = $true
+                    }
+                }
+
+                # Flatten block to get child tests
+                foreach ($test in ($Context.Test.Block | View-Flat)) {
+                    if (-not $test.Executed) {
+                        $test.Skipped = $true
+                    }
+                }
+            }
+        }
+    }
+
+    New-PluginObject @p
+}
+
 function Get-WriteScreenPlugin ($Verbosity) {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
     # The plugin is not imported when output None is specified so the usual level of output is Normal.

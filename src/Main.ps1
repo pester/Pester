@@ -963,6 +963,10 @@ function Invoke-Pester {
 
             $plugins += @(Get-MockPlugin)
 
+            if ($PesterPreference.Run.SkipRemainingOnFailure.Value -ne 'None') {
+                $plugins += Get-SkipRemainingOnFailurePlugin -SkipRemainingOnFailure $PesterPreference.Run.SkipRemainingOnFailure.Value
+            }
+
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
                         $PesterPreference.CodeCoverage.Path.Value
