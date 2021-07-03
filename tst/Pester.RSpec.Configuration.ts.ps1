@@ -75,6 +75,9 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Run.TestExtension.Value | Verify-Equal ".Tests.ps1"
         }
 
+        t "Run.SkipRemainingOnFailure is None" {
+            [PesterConfiguration]::Default.Run.SkipRemainingOnFailure.Value | Verify-Equal "None"
+        }
 
         # Output configuration
         t "Output.Verbosity is Normal" {
@@ -1005,6 +1008,42 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+        }
+    }
+
+    b "Run.SkipRemainingOnFailure" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in "None", "Block", "Container", "Run") {
+                $c.Run.SkipRemainingOnFailure = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Run.SkipRemainingOnFailure.Value | Verify-Equal $option
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Something'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported SkipRemainingOnFailure option 'Something'"
         }
     }
 }
