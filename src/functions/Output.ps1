@@ -805,6 +805,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+
+                    if ($PesterPreference.Run.SkipRemainingOnFailure.Value -in 'Block', 'Container', 'Run') {
+                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin Skipped due to previous failure and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+                    }
                 }
                 break
             }
