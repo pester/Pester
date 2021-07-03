@@ -1035,10 +1035,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Something'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 

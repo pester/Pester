@@ -2023,10 +2023,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'None'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
@@ -2055,10 +2058,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
@@ -2089,10 +2095,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
@@ -2132,10 +2141,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
@@ -2172,10 +2184,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Container'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
@@ -2220,10 +2235,13 @@ i -PassThru:$PassThru {
             }
 
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock            = $sb1, $sb2
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Run'
+                }
+                Output = @{
+                    CIFormat = 'None'
                 }
             }
 
