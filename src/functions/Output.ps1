@@ -747,6 +747,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
         }
 
+        if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
+            throw "Unsupported SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
