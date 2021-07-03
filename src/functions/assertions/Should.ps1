@@ -41,7 +41,7 @@ function Should {
     https://pester.dev/docs/commands/Should
 
     .LINK
-    https://pester.dev/docs/usage/assertions
+    https://pester.dev/docs/assertions/assertions
 
     .EXAMPLE
     ```powershell
