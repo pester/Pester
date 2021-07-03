@@ -2004,4 +2004,242 @@ i -PassThru:$PassThru {
             $err | Verify-Equal "Pester run failed, because 3 tests failed, 1 block failed and 2 containers failed"
         }
     }
+
+    b "Run.SkipRemainingOnFailure" {
+
+        t "Default behavior of running every test after a failure" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    It "d" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+
+            $r.Containers[0].Blocks[0].Tests[2].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[2].Passed | Should -BeTrue
+        }
+
+        t "Test is skipped after first failure inside block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+        }
+
+        t "Child tests are skipped after first failure inside parent block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+        }
+
+        t "Tests outside of block are not skipped after first failure inside block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Should -BeTrue
+        }
+
+        t "Tests inside container are all skipped after first failure" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Container'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Should -BeTrue
+        }
+
+        t "Tests inside run with multiple scriptblocks are all skipped after first failure" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Run'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Should -BeTrue
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Should -BeTrue
+        }
+    }
 }
