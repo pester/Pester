@@ -67,7 +67,7 @@ namespace Pester
             Throw = new BoolOption("Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
-            SkipRemainingOnFailure = new StringOption("Skips remaining tests depending on scope, options are None, Run, Container and Block.", "None");
+            SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
         }
 
         public StringArrayOption Path

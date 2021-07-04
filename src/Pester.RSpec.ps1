@@ -312,7 +312,7 @@ function New-PesterConfiguration {
       SkipRun: Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.
       Default value: $false
 
-      SkipRemainingOnFailure: Skips remaining tests depending on scope, options are None, Run, Container and Block.
+      SkipRemainingOnFailure: Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.
       Default value: 'None'
 
     Filter:
