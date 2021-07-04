@@ -492,13 +492,13 @@ function Get-SkipRemainingOnFailurePlugin {
 
                 foreach ($test in $Context.Block.Tests) {
                     if (-not $test.Executed) {
-                        $test.Skipped = $true
+                        $test.Skip = $true
                     }
                 }
 
                 foreach ($test in ($Context.Block | View-Flat)) {
                     if (-not $test.Executed) {
-                        $test.Skipped = $true
+                        $test.Skip = $true
                     }
                 }
             }
@@ -514,7 +514,7 @@ function Get-SkipRemainingOnFailurePlugin {
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 foreach ($test in ($Context.Block.Root | View-Flat)) {
                     if (-not $test.Executed) {
-                        $test.Skipped = $true
+                        $test.Skip = $true
                     }
                 }
             }
@@ -530,7 +530,7 @@ function Get-SkipRemainingOnFailurePlugin {
             # Skip the test before it runs
             # This handles skipping tests that failed from different containers in the same run
             if ($script:containerHasFailed) {
-                $Context.Test.Skipped = $true
+                $Context.Test.Skip = $true
             }
         }
 
@@ -542,7 +542,7 @@ function Get-SkipRemainingOnFailurePlugin {
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 foreach ($test in ($Context.Block.Root | View-Flat)) {
                     if (-not $test.Executed) {
-                        $test.Skipped = $true
+                        $test.Skip = $true
                     }
                 }
 
