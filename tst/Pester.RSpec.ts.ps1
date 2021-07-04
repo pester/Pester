@@ -2077,6 +2077,53 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
 
+        t "Tests are skipped after first failure inside block for multiple scriptblocks" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "d" {
+                    It "e" {
+                        $false | Should -BeTrue
+                    }
+                    It "f" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+        }
+
         t "Child tests are skipped after first failure inside parent block" {
             $sb = {
                 Describe "a" {
@@ -2207,6 +2254,83 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+        }
+
+        t "Tests inside container are all skipped after first failure for multiple scriptblocks" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "h" {
+                    It "i" {
+                        $false | Should -BeTrue
+                    }
+                    It "j" {
+                        $true | Should -BeTrue
+                    }
+                    Context "l" {
+                        It "m" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "n" {
+                    It "o" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Container'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[1].Tests[0].Passed | Verify-True
         }
 
         t "Tests inside run with multiple scriptblocks are all skipped after first failure" {
