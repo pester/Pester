@@ -2035,14 +2035,14 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
 
-            $r.Containers[0].Blocks[0].Tests[2].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[2].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[2].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[2].Passed | Verify-True
         }
 
         t "Test is skipped after first failure inside block" {
@@ -2070,11 +2070,11 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
         }
 
         t "Child tests are skipped after first failure inside parent block" {
@@ -2107,14 +2107,14 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
 
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
         }
 
         t "Tests outside of block are not skipped after first failure inside block" {
@@ -2153,11 +2153,11 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[1].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[1].Tests[0].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
         }
 
         t "Tests inside container are all skipped after first failure" {
@@ -2196,17 +2196,17 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
 
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
 
-            $r.Containers[0].Blocks[1].Tests[0].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[1].Tests[0].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
         }
 
         t "Tests inside run with multiple scriptblocks are all skipped after first failure" {
@@ -2247,17 +2247,17 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
 
-            $r.Containers[0].Blocks[0].Tests[0].Skipped | Should -BeFalse
-            $r.Containers[0].Blocks[0].Tests[0].Passed | Should -BeFalse
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
 
-            $r.Containers[0].Blocks[0].Tests[1].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Tests[1].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
 
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Should -BeTrue
-            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Should -BeTrue
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
 
-            $r.Containers[1].Blocks[0].Tests[0].Skipped | Should -BeTrue
-            $r.Containers[1].Blocks[0].Tests[0].Passed | Should -BeTrue
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-True
         }
     }
 }
