@@ -477,12 +477,12 @@ function ConvertTo-HumanTime {
     }
 }
 
-function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
+function Get-SkipRemainingOnFailurePlugin {
     $p = @{
         Name = "SkipRemainingOnFailure"
     }
 
-    if ($SkipRemainingOnFailure -eq 'Block') {
+    if ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Block') {
         $p.EachTestTeardownEnd = {
             param($Context)
 
@@ -505,7 +505,7 @@ function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
         }
     }
 
-    elseif ($SkipRemainingOnFailure -eq 'Container') {
+    elseif ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Container') {
         $p.EachTestTeardownEnd = {
             param($Context)
 
@@ -521,7 +521,7 @@ function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
         }
     }
 
-    elseif ($SkipRemainingOnFailure -eq 'Run') {
+    elseif ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Run') {
         $script:containerHasFailed = $false
 
         $p.EachTestSetupStart = {
@@ -547,6 +547,14 @@ function Get-SkipRemainingOnFailurePlugin ($SkipRemainingOnFailure) {
                 }
 
                 $script:containerHasFailed = $true
+            }
+        }
+    }
+
+    else {
+        if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
+            $p.EachTestTeardownEnd = {
+                throw "Unsupported SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
             }
         }
     }
