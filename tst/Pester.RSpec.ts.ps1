@@ -2072,9 +2072,12 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
 
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2051' and Run.SkipRemainingOnFailure set to 'Block'"
         }
 
         t "Tests are skipped after first failure inside block for multiple scriptblocks" {
@@ -2115,13 +2118,21 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2086' and Run.SkipRemainingOnFailure set to 'Block'"
 
             $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
             $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'd.e:2097' and Run.SkipRemainingOnFailure set to 'Block'"
         }
 
         t "Child tests are skipped after first failure inside parent block" {
@@ -2156,12 +2167,17 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
 
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2141' and Run.SkipRemainingOnFailure set to 'Block'"
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2141' and Run.SkipRemainingOnFailure set to 'Block'"
         }
 
         t "Tests outside of block are not skipped after first failure inside block" {
@@ -2169,14 +2185,6 @@ i -PassThru:$PassThru {
                 Describe "a" {
                     It "b" {
                         $false | Should -BeTrue
-                    }
-                    It "c" {
-                        $true | Should -BeTrue
-                    }
-                    Context "d" {
-                        It "e" {
-                            $true | Should -BeTrue
-                        }
                     }
                 }
 
@@ -2202,6 +2210,7 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
 
             $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
@@ -2245,15 +2254,22 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
 
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2222' and Run.SkipRemainingOnFailure set to 'Container'"
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2222' and Run.SkipRemainingOnFailure set to 'Container'"
 
             $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2222' and Run.SkipRemainingOnFailure set to 'Container'"
         }
 
         t "Tests inside container are all skipped after first failure for multiple scriptblocks" {
@@ -2316,21 +2332,41 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2278' and Run.SkipRemainingOnFailure set to 'Container'"
+
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2278' and Run.SkipRemainingOnFailure set to 'Container'"
+
             $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2278' and Run.SkipRemainingOnFailure set to 'Container'"
 
             $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
             $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'h.i:2300' and Run.SkipRemainingOnFailure set to 'Container'"
+
             $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'h.i:2300' and Run.SkipRemainingOnFailure set to 'Container'"
+
             $r.Containers[1].Blocks[1].Tests[0].Skipped | Verify-True
             $r.Containers[1].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'h.i:2300' and Run.SkipRemainingOnFailure set to 'Container'"
         }
 
         t "Tests inside run with multiple scriptblocks are all skipped after first failure" {
@@ -2373,15 +2409,22 @@ i -PassThru:$PassThru {
 
             $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
             $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
 
             $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2375' and Run.SkipRemainingOnFailure set to 'Run'"
 
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2375' and Run.SkipRemainingOnFailure set to 'Run'"
 
             $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-True
             $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at path:line 'a.b:2375' and Run.SkipRemainingOnFailure set to 'Run'"
         }
     }
 }

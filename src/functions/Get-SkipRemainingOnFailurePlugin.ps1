@@ -1,3 +1,14 @@
+function New-SkippedTestMessage {
+    [OutputType([string])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [Pester.Test]
+        $Test
+    )
+    "Skipped due to previous failure at path:line '$($Test.ExpandedPath):$($Test.StartLine)' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+}
+
 function Get-SkipRemainingOnFailurePlugin {
     $p = @{
         Name = "SkipRemainingOnFailure"
@@ -11,15 +22,26 @@ function Get-SkipRemainingOnFailurePlugin {
             # Go through block tests and child tests and mark unexecuted tests as skipped
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
 
+                $errorRecord = [Pester.Factory]::CreateErrorRecord(
+                    'PesterTestSkipped',
+                    (New-SkippedTestMessage -Test $Context.Test),
+                    $null,
+                    $null,
+                    $null,
+                    $false
+                )
+
                 foreach ($test in $Context.Block.Tests) {
                     if (-not $test.Executed) {
                         $test.Skip = $true
+                        $test.ErrorRecord.Add($errorRecord)
                     }
                 }
 
                 foreach ($test in ($Context.Block | View-Flat)) {
                     if (-not $test.Executed) {
                         $test.Skip = $true
+                        $test.ErrorRecord.Add($errorRecord)
                     }
                 }
             }
@@ -33,9 +55,20 @@ function Get-SkipRemainingOnFailurePlugin {
             # If test is not marked skipped and failed
             # Go through every test in container from block root and marked unexecuted tests as skipped
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
+
+                $errorRecord = [Pester.Factory]::CreateErrorRecord(
+                    'PesterTestSkipped',
+                    (New-SkippedTestMessage -Test $Context.Test),
+                    $null,
+                    $null,
+                    $null,
+                    $false
+                )
+
                 foreach ($test in ($Context.Block.Root | View-Flat)) {
                     if (-not $test.Executed) {
                         $test.Skip = $true
+                        $test.ErrorRecord.Add($errorRecord)
                     }
                 }
             }
@@ -43,39 +76,32 @@ function Get-SkipRemainingOnFailurePlugin {
     }
 
     elseif ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Run') {
-        $script:containerHasFailed = $false
-
         $p.EachTestSetupStart = {
+            param($Context)
 
-            # If the container has failed at some point
+            # It test has failed at some point during the run
             # Skip the test before it runs
             # This handles skipping tests that failed from different containers in the same run
-            if ($script:containerHasFailed) {
+            if ($script:failedTest) {
                 $Context.Test.Skip = $true
+
+                $errorRecord = [Pester.Factory]::CreateErrorRecord(
+                    'PesterTestSkipped',
+                    (New-SkippedTestMessage -Test $script:failedTest),
+                    $null,
+                    $null,
+                    $null,
+                    $false
+                )
+                $Context.Test.ErrorRecord.Add($errorRecord)
             }
         }
 
         $p.EachTestTeardownEnd = {
             param($Context)
 
-            # If test is not marked skipped and failed
-            # Go through every test in container from block root and marked unexecuted tests as skipped
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
-                foreach ($test in ($Context.Block.Root | View-Flat)) {
-                    if (-not $test.Executed) {
-                        $test.Skip = $true
-                    }
-                }
-
-                $script:containerHasFailed = $true
-            }
-        }
-    }
-
-    else {
-        if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
-            $p.EachTestTeardownEnd = {
-                throw "Unsupported SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+                $script:failedTest = $Context.Test
             }
         }
     }
