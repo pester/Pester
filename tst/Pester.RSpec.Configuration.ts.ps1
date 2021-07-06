@@ -1039,14 +1039,14 @@ i -PassThru:$PassThru {
                     ScriptBlock            = $sb
                     PassThru               = $true
                     SkipRemainingOnFailure = 'Something'
+                    Throw                  = $true
                 }
                 Output = @{
                     CIFormat = 'None'
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported SkipRemainingOnFailure option 'Something'"
+            { Invoke-Pester -Configuration $c } | Verify-Throw
         }
     }
 }
