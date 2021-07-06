@@ -670,10 +670,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
         }
 
-        if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
-            throw "Unsupported SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
-        }
-
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
@@ -728,10 +724,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
                     & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
-
-                    if ($PesterPreference.Run.SkipRemainingOnFailure.Value -in 'Block', 'Container', 'Run') {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin Skipped due to previous failure and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
-                    }
                 }
                 break
             }
