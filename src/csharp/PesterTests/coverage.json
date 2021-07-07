@@ -1,0 +1,4748 @@
+{
+  "Pester.dll": {
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Configuration.cs": {
+      "PesterConfiguration": {
+        "PesterConfiguration PesterConfiguration::get_Default()": {
+          "Lines": {
+            "1135": 3
+          },
+          "Branches": []
+        },
+        "PesterConfiguration PesterConfiguration::ShallowClone(PesterConfiguration)": {
+          "Lines": {
+            "1138": 0,
+            "1139": 0,
+            "1140": 0,
+            "1141": 0,
+            "1142": 0,
+            "1143": 0,
+            "1144": 0,
+            "1145": 0,
+            "1146": 0,
+            "1147": 0,
+            "1148": 0
+          },
+          "Branches": []
+        },
+        "PesterConfiguration PesterConfiguration::Merge(PesterConfiguration,PesterConfiguration)": {
+          "Lines": {
+            "1151": 0,
+            "1152": 0,
+            "1153": 0,
+            "1154": 0,
+            "1155": 0,
+            "1156": 0,
+            "1157": 0,
+            "1158": 0,
+            "1159": 0,
+            "1160": 0,
+            "1161": 0
+          },
+          "Branches": []
+        },
+        "Pester.RunConfiguration PesterConfiguration::get_Run()": {
+          "Lines": {
+            "1188": 2
+          },
+          "Branches": []
+        },
+        "Pester.FilterConfiguration PesterConfiguration::get_Filter()": {
+          "Lines": {
+            "1189": 2
+          },
+          "Branches": []
+        },
+        "Pester.CodeCoverageConfiguration PesterConfiguration::get_CodeCoverage()": {
+          "Lines": {
+            "1190": 1
+          },
+          "Branches": []
+        },
+        "Pester.TestResultConfiguration PesterConfiguration::get_TestResult()": {
+          "Lines": {
+            "1191": 1
+          },
+          "Branches": []
+        },
+        "Pester.ShouldConfiguration PesterConfiguration::get_Should()": {
+          "Lines": {
+            "1192": 1
+          },
+          "Branches": []
+        },
+        "Pester.DebugConfiguration PesterConfiguration::get_Debug()": {
+          "Lines": {
+            "1193": 1
+          },
+          "Branches": []
+        },
+        "Pester.OutputConfiguration PesterConfiguration::get_Output()": {
+          "Lines": {
+            "1194": 1
+          },
+          "Branches": []
+        },
+        "System.Void PesterConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "1163": 0,
+            "1164": 0,
+            "1165": 0,
+            "1166": 0,
+            "1167": 0,
+            "1168": 0,
+            "1169": 0,
+            "1170": 0,
+            "1171": 0,
+            "1172": 0,
+            "1173": 0,
+            "1174": 0,
+            "1175": 0
+          },
+          "Branches": [
+            {
+              "Line": 1165,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1165,
+              "Offset": 14,
+              "EndOffset": 182,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void PesterConfiguration::.ctor()": {
+          "Lines": {
+            "1177": 1,
+            "1178": 1,
+            "1179": 1,
+            "1180": 1,
+            "1181": 1,
+            "1182": 1,
+            "1183": 1,
+            "1184": 1,
+            "1185": 1,
+            "1186": 1
+          },
+          "Branches": []
+        }
+      },
+      "Pester.Cloner": {
+        "T Pester.Cloner::ShallowClone(T)": {
+          "Lines": {
+            "30": 0,
+            "31": 0,
+            "32": 0,
+            "34": 0,
+            "35": 0,
+            "36": 0,
+            "37": 0,
+            "38": 0,
+            "40": 0,
+            "41": 0
+          },
+          "Branches": [
+            {
+              "Line": 34,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 36,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 118,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 118,
+              "EndOffset": 120,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.Merger": {
+        "T Pester.Merger::Merge(T,T)": {
+          "Lines": {
+            "47": 0,
+            "48": 0,
+            "49": 0,
+            "51": 0,
+            "52": 0,
+            "54": 0,
+            "55": 0,
+            "56": 0,
+            "57": 0,
+            "58": 0,
+            "60": 0,
+            "61": 0,
+            "62": 0,
+            "64": 0,
+            "65": 0,
+            "67": 0,
+            "68": 0
+          },
+          "Branches": [
+            {
+              "Line": 51,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 51,
+              "Offset": 36,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 51,
+              "Offset": 163,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 55,
+              "Offset": 115,
+              "EndOffset": 117,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 55,
+              "Offset": 115,
+              "EndOffset": 125,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 51,
+              "Offset": 163,
+              "EndOffset": 165,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.Option": {
+        "System.Boolean Pester.Option::IsOriginalValue()": {
+          "Lines": {
+            "76": 0,
+            "77": 0,
+            "78": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.Option`1": {
+        "T Pester.Option`1::get_Default()": {
+          "Lines": {
+            "96": 34
+          },
+          "Branches": []
+        },
+        "System.String Pester.Option`1::get_Description()": {
+          "Lines": {
+            "97": 34
+          },
+          "Branches": []
+        },
+        "T Pester.Option`1::get_Value()": {
+          "Lines": {
+            "98": 32
+          },
+          "Branches": []
+        },
+        "System.String Pester.Option`1::ToString()": {
+          "Lines": {
+            "101": 0,
+            "102": 0,
+            "103": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.Option`1::.ctor(Pester.Option`1<T>,T)": {
+          "Lines": {
+            "83": 2,
+            "84": 2,
+            "85": 2,
+            "86": 2
+          },
+          "Branches": []
+        },
+        "System.Void Pester.Option`1::.ctor(System.String,T,T)": {
+          "Lines": {
+            "88": 32,
+            "89": 32,
+            "90": 32,
+            "91": 32,
+            "92": 32,
+            "93": 32,
+            "94": 32
+          },
+          "Branches": []
+        }
+      },
+      "Pester.StringOption": {
+        "Pester.StringOption Pester.StringOption::op_Implicit(System.String)": {
+          "Lines": {
+            "124": 0,
+            "125": 0,
+            "126": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringOption::.ctor(Pester.StringOption,System.String)": {
+          "Lines": {
+            "108": 0,
+            "109": 0,
+            "111": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringOption::.ctor(System.String,System.String)": {
+          "Lines": {
+            "113": 10,
+            "114": 10,
+            "116": 10
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringOption::.ctor(System.String,System.String,System.String)": {
+          "Lines": {
+            "118": 0,
+            "119": 0,
+            "121": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.BoolOption": {
+        "Pester.BoolOption Pester.BoolOption::op_Implicit(System.Boolean)": {
+          "Lines": {
+            "147": 0,
+            "148": 0,
+            "149": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.BoolOption::.ctor(Pester.BoolOption,System.Boolean)": {
+          "Lines": {
+            "131": 0,
+            "132": 0,
+            "134": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.BoolOption::.ctor(System.String,System.Boolean)": {
+          "Lines": {
+            "136": 10,
+            "137": 10,
+            "139": 10
+          },
+          "Branches": []
+        },
+        "System.Void Pester.BoolOption::.ctor(System.String,System.Boolean,System.Boolean)": {
+          "Lines": {
+            "141": 0,
+            "142": 0,
+            "144": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.IntOption": {
+        "Pester.IntOption Pester.IntOption::op_Implicit(System.Int32)": {
+          "Lines": {
+            "170": 0,
+            "171": 0,
+            "172": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.IntOption::.ctor(Pester.IntOption,System.Int32)": {
+          "Lines": {
+            "154": 0,
+            "155": 0,
+            "157": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.IntOption::.ctor(System.String,System.Int32)": {
+          "Lines": {
+            "159": 0,
+            "160": 0,
+            "162": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.IntOption::.ctor(System.String,System.Int32,System.Int32)": {
+          "Lines": {
+            "164": 0,
+            "165": 0,
+            "167": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.DecimalOption": {
+        "Pester.DecimalOption Pester.DecimalOption::op_Implicit(System.Decimal)": {
+          "Lines": {
+            "193": 0,
+            "194": 0,
+            "195": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DecimalOption::.ctor(Pester.DecimalOption,System.Decimal)": {
+          "Lines": {
+            "177": 0,
+            "178": 0,
+            "180": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal)": {
+          "Lines": {
+            "182": 0,
+            "183": 0,
+            "185": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DecimalOption::.ctor(System.String,System.Decimal,System.Decimal)": {
+          "Lines": {
+            "187": 0,
+            "188": 0,
+            "190": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.StringArrayOption": {
+        "Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String[])": {
+          "Lines": {
+            "231": 0,
+            "232": 0,
+            "233": 0
+          },
+          "Branches": []
+        },
+        "Pester.StringArrayOption Pester.StringArrayOption::op_Implicit(System.String)": {
+          "Lines": {
+            "236": 0,
+            "237": 0,
+            "238": 0,
+            "239": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(Pester.StringArrayOption,System.String[])": {
+          "Lines": {
+            "200": 2,
+            "201": 2,
+            "203": 2
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(System.String,System.String[])": {
+          "Lines": {
+            "205": 8,
+            "206": 8,
+            "208": 8
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(System.String,System.String[],System.String[])": {
+          "Lines": {
+            "210": 0,
+            "211": 0,
+            "213": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(System.String[])": {
+          "Lines": {
+            "215": 0,
+            "216": 0,
+            "218": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(System.String)": {
+          "Lines": {
+            "220": 0,
+            "221": 0,
+            "223": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.StringArrayOption::.ctor(System.Object[])": {
+          "Lines": {
+            "225": 0,
+            "226": 0,
+            "228": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.ScriptBlockArrayOption": {
+        "Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock[])": {
+          "Lines": {
+            "275": 0,
+            "276": 0,
+            "277": 0
+          },
+          "Branches": []
+        },
+        "Pester.ScriptBlockArrayOption Pester.ScriptBlockArrayOption::op_Implicit(System.Management.Automation.ScriptBlock)": {
+          "Lines": {
+            "280": 0,
+            "281": 0,
+            "282": 0,
+            "283": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(Pester.ScriptBlockArrayOption,System.Management.Automation.ScriptBlock[])": {
+          "Lines": {
+            "244": 0,
+            "245": 0,
+            "247": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[])": {
+          "Lines": {
+            "249": 1,
+            "250": 1,
+            "252": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(System.String,System.Management.Automation.ScriptBlock[],System.Management.Automation.ScriptBlock[])": {
+          "Lines": {
+            "254": 0,
+            "255": 0,
+            "257": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(System.Object[])": {
+          "Lines": {
+            "259": 0,
+            "260": 0,
+            "262": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock[])": {
+          "Lines": {
+            "264": 0,
+            "265": 0,
+            "267": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ScriptBlockArrayOption::.ctor(System.Management.Automation.ScriptBlock)": {
+          "Lines": {
+            "269": 0,
+            "270": 0,
+            "272": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.ContainerInfoArrayOption": {
+        "Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo[])": {
+          "Lines": {
+            "329": 0,
+            "330": 0,
+            "331": 0
+          },
+          "Branches": []
+        },
+        "Pester.ContainerInfoArrayOption Pester.ContainerInfoArrayOption::op_Implicit(Pester.ContainerInfo)": {
+          "Lines": {
+            "334": 0,
+            "335": 0,
+            "336": 0,
+            "337": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfoArrayOption,Pester.ContainerInfo[])": {
+          "Lines": {
+            "288": 0,
+            "289": 0,
+            "291": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[])": {
+          "Lines": {
+            "293": 1,
+            "294": 1,
+            "296": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(System.String,Pester.ContainerInfo[],Pester.ContainerInfo[])": {
+          "Lines": {
+            "298": 0,
+            "299": 0,
+            "301": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(System.Object[])": {
+          "Lines": {
+            "303": 0,
+            "304": 0,
+            "306": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo[])": {
+          "Lines": {
+            "308": 0,
+            "309": 0,
+            "311": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<System.Object>)": {
+          "Lines": {
+            "313": 0,
+            "314": 0,
+            "316": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(System.Collections.Generic.List`1<Pester.ContainerInfo>)": {
+          "Lines": {
+            "318": 0,
+            "319": 0,
+            "321": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ContainerInfoArrayOption::.ctor(Pester.ContainerInfo)": {
+          "Lines": {
+            "323": 0,
+            "324": 0,
+            "326": 0
+          },
+          "Branches": []
+        }
+      },
+      "Pester.ConfigurationSection": {
+        "System.String Pester.ConfigurationSection::ToString()": {
+          "Lines": {
+            "349": 0,
+            "350": 0,
+            "351": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ConfigurationSection::.ctor(System.String)": {
+          "Lines": {
+            "343": 7,
+            "344": 7,
+            "345": 7,
+            "346": 7
+          },
+          "Branches": []
+        }
+      },
+      "Pester.DictionaryExtensions": {
+        "System.Nullable`1<T> Pester.DictionaryExtensions::GetValueOrNull(System.Collections.IDictionary,System.String)": {
+          "Lines": {
+            "358": 0,
+            "359": 0,
+            "360": 0
+          },
+          "Branches": [
+            {
+              "Line": 359,
+              "Offset": 8,
+              "EndOffset": 10,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 359,
+              "Offset": 8,
+              "EndOffset": 21,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "T Pester.DictionaryExtensions::GetObjectOrNull(System.Collections.IDictionary,System.String)": {
+          "Lines": {
+            "363": 0,
+            "364": 0,
+            "365": 0,
+            "367": 0,
+            "368": 0,
+            "369": 0,
+            "371": 0,
+            "372": 0
+          },
+          "Branches": [
+            {
+              "Line": 364,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 364,
+              "Offset": 13,
+              "EndOffset": 27,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 367,
+              "Offset": 54,
+              "EndOffset": 56,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 368,
+              "Offset": 79,
+              "EndOffset": 81,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 367,
+              "Offset": 54,
+              "EndOffset": 111,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 368,
+              "Offset": 79,
+              "EndOffset": 111,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Collections.IDictionary Pester.DictionaryExtensions::GetIDictionaryOrNull(System.Collections.IDictionary,System.String)": {
+          "Lines": {
+            "375": 0,
+            "376": 0,
+            "377": 0
+          },
+          "Branches": [
+            {
+              "Line": 376,
+              "Offset": 8,
+              "EndOffset": 10,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 376,
+              "Offset": 8,
+              "EndOffset": 13,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "T[] Pester.DictionaryExtensions::GetArrayOrNull(System.Collections.IDictionary,System.String)": {
+          "Lines": {
+            "380": 0,
+            "381": 0,
+            "382": 0,
+            "383": 0,
+            "385": 0,
+            "386": 0,
+            "387": 0,
+            "390": 0,
+            "391": 0,
+            "393": 0,
+            "394": 0,
+            "396": 0,
+            "397": 0,
+            "399": 0,
+            "400": 0,
+            "401": 0,
+            "404": 0,
+            "405": 0
+          },
+          "Branches": [
+            {
+              "Line": 381,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 381,
+              "Offset": 13,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 385,
+              "Offset": 53,
+              "EndOffset": 55,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 385,
+              "Offset": 53,
+              "EndOffset": 65,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 390,
+              "Offset": 90,
+              "EndOffset": 92,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 390,
+              "Offset": 90,
+              "EndOffset": 119,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 399,
+              "Offset": 144,
+              "EndOffset": 146,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 399,
+              "Offset": 144,
+              "EndOffset": 169,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.ShouldConfiguration": {
+        "Pester.ShouldConfiguration Pester.ShouldConfiguration::get_Default()": {
+          "Lines": {
+            "413": 0
+          },
+          "Branches": []
+        },
+        "Pester.ShouldConfiguration Pester.ShouldConfiguration::ShallowClone(Pester.ShouldConfiguration)": {
+          "Lines": {
+            "416": 0,
+            "417": 0,
+            "418": 0
+          },
+          "Branches": []
+        },
+        "Pester.StringOption Pester.ShouldConfiguration::get_ErrorAction()": {
+          "Lines": {
+            "435": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ShouldConfiguration::set_ErrorAction(Pester.StringOption)": {
+          "Lines": {
+            "437": 1,
+            "438": 1,
+            "439": 1,
+            "440": 1,
+            "441": 1,
+            "443": 0,
+            "444": 0,
+            "445": 0,
+            "446": 1
+          },
+          "Branches": [
+            {
+              "Line": 438,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 438,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 444,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 444,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.ShouldConfiguration::.ctor()": {
+          "Lines": {
+            "420": 1,
+            "421": 1,
+            "422": 1,
+            "423": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.ShouldConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "425": 0,
+            "426": 0,
+            "427": 0,
+            "428": 0,
+            "429": 0,
+            "430": 0,
+            "431": 0
+          },
+          "Branches": [
+            {
+              "Line": 427,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 429,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 429,
+              "Offset": 31,
+              "EndOffset": 41,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 427,
+              "Offset": 14,
+              "EndOffset": 54,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.DebugConfiguration": {
+        "Pester.DebugConfiguration Pester.DebugConfiguration::get_Default()": {
+          "Lines": {
+            "452": 0
+          },
+          "Branches": []
+        },
+        "Pester.DebugConfiguration Pester.DebugConfiguration::ShallowClone(Pester.DebugConfiguration)": {
+          "Lines": {
+            "455": 0,
+            "456": 0,
+            "457": 0
+          },
+          "Branches": []
+        },
+        "Pester.BoolOption Pester.DebugConfiguration::get_ShowFullErrors()": {
+          "Lines": {
+            "488": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::set_ShowFullErrors(Pester.BoolOption)": {
+          "Lines": {
+            "490": 1,
+            "491": 1,
+            "492": 1,
+            "493": 1,
+            "494": 1,
+            "496": 0,
+            "497": 0,
+            "498": 0,
+            "499": 1
+          },
+          "Branches": [
+            {
+              "Line": 491,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 491,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.DebugConfiguration::get_WriteDebugMessages()": {
+          "Lines": {
+            "504": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::set_WriteDebugMessages(Pester.BoolOption)": {
+          "Lines": {
+            "506": 1,
+            "507": 1,
+            "508": 1,
+            "509": 1,
+            "510": 1,
+            "512": 0,
+            "513": 0,
+            "514": 0,
+            "515": 1
+          },
+          "Branches": [
+            {
+              "Line": 507,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 507,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.DebugConfiguration::get_WriteDebugMessagesFrom()": {
+          "Lines": {
+            "520": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::set_WriteDebugMessagesFrom(Pester.StringArrayOption)": {
+          "Lines": {
+            "522": 1,
+            "523": 1,
+            "524": 1,
+            "525": 1,
+            "526": 1,
+            "528": 0,
+            "529": 0,
+            "530": 0,
+            "531": 1
+          },
+          "Branches": [
+            {
+              "Line": 523,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 523,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 529,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 529,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.DebugConfiguration::get_ShowNavigationMarkers()": {
+          "Lines": {
+            "536": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::set_ShowNavigationMarkers(Pester.BoolOption)": {
+          "Lines": {
+            "538": 1,
+            "539": 1,
+            "540": 1,
+            "541": 1,
+            "542": 1,
+            "544": 0,
+            "545": 0,
+            "546": 0,
+            "547": 1
+          },
+          "Branches": [
+            {
+              "Line": 539,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 539,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.DebugConfiguration::get_ReturnRawResultObject()": {
+          "Lines": {
+            "552": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::set_ReturnRawResultObject(Pester.BoolOption)": {
+          "Lines": {
+            "554": 1,
+            "555": 1,
+            "556": 1,
+            "557": 1,
+            "558": 1,
+            "560": 0,
+            "561": 0,
+            "562": 0,
+            "563": 1
+          },
+          "Branches": [
+            {
+              "Line": 555,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 555,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.DebugConfiguration::.ctor()": {
+          "Lines": {
+            "459": 1,
+            "460": 1,
+            "461": 1,
+            "462": 1,
+            "463": 1,
+            "464": 1,
+            "465": 1,
+            "466": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.DebugConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "468": 0,
+            "469": 0,
+            "470": 0,
+            "471": 0,
+            "472": 0,
+            "473": 0,
+            "474": 0,
+            "475": 0,
+            "476": 0,
+            "477": 0,
+            "478": 0
+          },
+          "Branches": [
+            {
+              "Line": 470,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 472,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 472,
+              "Offset": 40,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 473,
+              "Offset": 88,
+              "EndOffset": 90,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 473,
+              "Offset": 88,
+              "EndOffset": 98,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 474,
+              "Offset": 130,
+              "EndOffset": 132,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 474,
+              "Offset": 130,
+              "EndOffset": 140,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 475,
+              "Offset": 172,
+              "EndOffset": 174,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 475,
+              "Offset": 172,
+              "EndOffset": 182,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 476,
+              "Offset": 220,
+              "EndOffset": 222,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 476,
+              "Offset": 220,
+              "EndOffset": 230,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 470,
+              "Offset": 14,
+              "EndOffset": 249,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.CodeCoverageConfiguration": {
+        "Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::get_Default()": {
+          "Lines": {
+            "577": 0
+          },
+          "Branches": []
+        },
+        "Pester.CodeCoverageConfiguration Pester.CodeCoverageConfiguration::ShallowClone(Pester.CodeCoverageConfiguration)": {
+          "Lines": {
+            "580": 0,
+            "581": 0,
+            "582": 0
+          },
+          "Branches": []
+        },
+        "Pester.BoolOption Pester.CodeCoverageConfiguration::get_Enabled()": {
+          "Lines": {
+            "610": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_Enabled(Pester.BoolOption)": {
+          "Lines": {
+            "612": 1,
+            "613": 1,
+            "614": 1,
+            "615": 1,
+            "616": 1,
+            "618": 0,
+            "619": 0,
+            "620": 0,
+            "621": 1
+          },
+          "Branches": [
+            {
+              "Line": 613,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 613,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputFormat()": {
+          "Lines": {
+            "626": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_OutputFormat(Pester.StringOption)": {
+          "Lines": {
+            "628": 1,
+            "629": 1,
+            "630": 1,
+            "631": 1,
+            "632": 1,
+            "634": 0,
+            "635": 0,
+            "636": 0,
+            "637": 1
+          },
+          "Branches": [
+            {
+              "Line": 629,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 629,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 635,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 635,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputPath()": {
+          "Lines": {
+            "642": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_OutputPath(Pester.StringOption)": {
+          "Lines": {
+            "644": 1,
+            "645": 1,
+            "646": 1,
+            "647": 1,
+            "648": 1,
+            "650": 0,
+            "651": 0,
+            "652": 0,
+            "653": 1
+          },
+          "Branches": [
+            {
+              "Line": 645,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 645,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 651,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 651,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.CodeCoverageConfiguration::get_OutputEncoding()": {
+          "Lines": {
+            "658": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_OutputEncoding(Pester.StringOption)": {
+          "Lines": {
+            "660": 1,
+            "661": 1,
+            "662": 1,
+            "663": 1,
+            "664": 1,
+            "666": 0,
+            "667": 0,
+            "668": 0,
+            "669": 1
+          },
+          "Branches": [
+            {
+              "Line": 661,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 661,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 667,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 667,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.CodeCoverageConfiguration::get_Path()": {
+          "Lines": {
+            "674": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_Path(Pester.StringArrayOption)": {
+          "Lines": {
+            "676": 1,
+            "677": 1,
+            "678": 1,
+            "679": 1,
+            "680": 1,
+            "682": 0,
+            "683": 0,
+            "684": 0,
+            "685": 1
+          },
+          "Branches": [
+            {
+              "Line": 677,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 677,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 683,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 683,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.CodeCoverageConfiguration::get_ExcludeTests()": {
+          "Lines": {
+            "690": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_ExcludeTests(Pester.BoolOption)": {
+          "Lines": {
+            "692": 1,
+            "693": 1,
+            "694": 1,
+            "695": 1,
+            "696": 1,
+            "698": 0,
+            "699": 0,
+            "700": 0,
+            "701": 1
+          },
+          "Branches": [
+            {
+              "Line": 693,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 693,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.CodeCoverageConfiguration::get_RecursePaths()": {
+          "Lines": {
+            "706": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::set_RecursePaths(Pester.BoolOption)": {
+          "Lines": {
+            "708": 1,
+            "709": 1,
+            "710": 1,
+            "711": 1,
+            "712": 1,
+            "714": 0,
+            "715": 0,
+            "716": 0,
+            "717": 1
+          },
+          "Branches": [
+            {
+              "Line": 709,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 709,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.CodeCoverageConfiguration::.ctor()": {
+          "Lines": {
+            "583": 1,
+            "584": 1,
+            "585": 1,
+            "586": 1,
+            "587": 1,
+            "588": 1,
+            "589": 1,
+            "590": 1,
+            "591": 1,
+            "592": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.CodeCoverageConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "594": 0,
+            "595": 0,
+            "596": 0,
+            "597": 0,
+            "598": 0,
+            "599": 0,
+            "600": 0,
+            "601": 0,
+            "602": 0,
+            "603": 0,
+            "604": 0,
+            "605": 0,
+            "606": 0
+          },
+          "Branches": [
+            {
+              "Line": 596,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 598,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 598,
+              "Offset": 40,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 599,
+              "Offset": 82,
+              "EndOffset": 84,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 599,
+              "Offset": 82,
+              "EndOffset": 92,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 600,
+              "Offset": 118,
+              "EndOffset": 120,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 600,
+              "Offset": 118,
+              "EndOffset": 128,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 601,
+              "Offset": 154,
+              "EndOffset": 156,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 601,
+              "Offset": 154,
+              "EndOffset": 164,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 602,
+              "Offset": 190,
+              "EndOffset": 192,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 602,
+              "Offset": 190,
+              "EndOffset": 200,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 603,
+              "Offset": 232,
+              "EndOffset": 234,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 0
+            },
+            {
+              "Line": 603,
+              "Offset": 232,
+              "EndOffset": 242,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 0
+            },
+            {
+              "Line": 604,
+              "Offset": 280,
+              "EndOffset": 282,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 604,
+              "Offset": 280,
+              "EndOffset": 290,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 0
+            },
+            {
+              "Line": 596,
+              "Offset": 14,
+              "EndOffset": 309,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.TestResultConfiguration": {
+        "Pester.TestResultConfiguration Pester.TestResultConfiguration::get_Default()": {
+          "Lines": {
+            "729": 0
+          },
+          "Branches": []
+        },
+        "Pester.TestResultConfiguration Pester.TestResultConfiguration::ShallowClone(Pester.TestResultConfiguration)": {
+          "Lines": {
+            "732": 0,
+            "733": 0,
+            "734": 0
+          },
+          "Branches": []
+        },
+        "Pester.BoolOption Pester.TestResultConfiguration::get_Enabled()": {
+          "Lines": {
+            "759": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::set_Enabled(Pester.BoolOption)": {
+          "Lines": {
+            "761": 1,
+            "762": 1,
+            "763": 1,
+            "764": 1,
+            "765": 1,
+            "767": 0,
+            "768": 0,
+            "769": 0,
+            "770": 1
+          },
+          "Branches": [
+            {
+              "Line": 762,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 762,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.TestResultConfiguration::get_OutputFormat()": {
+          "Lines": {
+            "775": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::set_OutputFormat(Pester.StringOption)": {
+          "Lines": {
+            "777": 1,
+            "778": 1,
+            "779": 1,
+            "780": 1,
+            "781": 1,
+            "783": 0,
+            "784": 0,
+            "785": 0,
+            "786": 1
+          },
+          "Branches": [
+            {
+              "Line": 778,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 778,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 784,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 784,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.TestResultConfiguration::get_OutputPath()": {
+          "Lines": {
+            "791": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::set_OutputPath(Pester.StringOption)": {
+          "Lines": {
+            "793": 1,
+            "794": 1,
+            "795": 1,
+            "796": 1,
+            "797": 1,
+            "799": 0,
+            "800": 0,
+            "801": 0,
+            "802": 1
+          },
+          "Branches": [
+            {
+              "Line": 794,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 794,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 800,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 800,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.TestResultConfiguration::get_OutputEncoding()": {
+          "Lines": {
+            "807": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::set_OutputEncoding(Pester.StringOption)": {
+          "Lines": {
+            "809": 1,
+            "810": 1,
+            "811": 1,
+            "812": 1,
+            "813": 1,
+            "815": 0,
+            "816": 0,
+            "817": 0,
+            "818": 1
+          },
+          "Branches": [
+            {
+              "Line": 810,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 810,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 816,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 816,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.TestResultConfiguration::get_TestSuiteName()": {
+          "Lines": {
+            "823": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::set_TestSuiteName(Pester.StringOption)": {
+          "Lines": {
+            "825": 1,
+            "826": 1,
+            "827": 1,
+            "828": 1,
+            "829": 1,
+            "831": 0,
+            "832": 0,
+            "833": 0,
+            "834": 1
+          },
+          "Branches": [
+            {
+              "Line": 826,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 826,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 832,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 832,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.TestResultConfiguration::.ctor()": {
+          "Lines": {
+            "736": 1,
+            "737": 1,
+            "738": 1,
+            "739": 1,
+            "740": 1,
+            "741": 1,
+            "742": 1,
+            "743": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.TestResultConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "745": 0,
+            "746": 0,
+            "747": 0,
+            "748": 0,
+            "749": 0,
+            "750": 0,
+            "751": 0,
+            "752": 0,
+            "753": 0,
+            "754": 0,
+            "755": 0
+          },
+          "Branches": [
+            {
+              "Line": 747,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 749,
+              "Offset": 40,
+              "EndOffset": 42,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 749,
+              "Offset": 40,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 750,
+              "Offset": 82,
+              "EndOffset": 84,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 750,
+              "Offset": 82,
+              "EndOffset": 92,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 751,
+              "Offset": 118,
+              "EndOffset": 120,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 751,
+              "Offset": 118,
+              "EndOffset": 128,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 752,
+              "Offset": 154,
+              "EndOffset": 156,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 752,
+              "Offset": 154,
+              "EndOffset": 164,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 753,
+              "Offset": 190,
+              "EndOffset": 192,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 753,
+              "Offset": 190,
+              "EndOffset": 200,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 747,
+              "Offset": 14,
+              "EndOffset": 213,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        }
+      },
+      "Pester.RunConfiguration": {
+        "Pester.RunConfiguration Pester.RunConfiguration::get_Default()": {
+          "Lines": {
+            "848": 0
+          },
+          "Branches": []
+        },
+        "Pester.RunConfiguration Pester.RunConfiguration::ShallowClone(Pester.RunConfiguration)": {
+          "Lines": {
+            "850": 0,
+            "851": 0,
+            "852": 0
+          },
+          "Branches": []
+        },
+        "Pester.StringArrayOption Pester.RunConfiguration::get_Path()": {
+          "Lines": {
+            "881": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_Path(Pester.StringArrayOption)": {
+          "Lines": {
+            "883": 2,
+            "884": 2,
+            "885": 1,
+            "886": 1,
+            "887": 1,
+            "889": 1,
+            "890": 1,
+            "891": 1,
+            "892": 2
+          },
+          "Branches": [
+            {
+              "Line": 884,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 884,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 890,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 890,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.RunConfiguration::get_ExcludePath()": {
+          "Lines": {
+            "897": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_ExcludePath(Pester.StringArrayOption)": {
+          "Lines": {
+            "899": 1,
+            "900": 1,
+            "901": 1,
+            "902": 1,
+            "903": 1,
+            "905": 0,
+            "906": 0,
+            "907": 0,
+            "908": 1
+          },
+          "Branches": [
+            {
+              "Line": 900,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 900,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 906,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 906,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.ScriptBlockArrayOption Pester.RunConfiguration::get_ScriptBlock()": {
+          "Lines": {
+            "913": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_ScriptBlock(Pester.ScriptBlockArrayOption)": {
+          "Lines": {
+            "915": 1,
+            "916": 1,
+            "917": 1,
+            "918": 1,
+            "919": 1,
+            "921": 0,
+            "922": 0,
+            "923": 0,
+            "924": 1
+          },
+          "Branches": [
+            {
+              "Line": 916,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 916,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 922,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 922,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.ContainerInfoArrayOption Pester.RunConfiguration::get_Container()": {
+          "Lines": {
+            "929": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_Container(Pester.ContainerInfoArrayOption)": {
+          "Lines": {
+            "931": 1,
+            "932": 1,
+            "933": 1,
+            "934": 1,
+            "935": 1,
+            "937": 0,
+            "938": 0,
+            "939": 0,
+            "940": 1
+          },
+          "Branches": [
+            {
+              "Line": 932,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 932,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 938,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 938,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringOption Pester.RunConfiguration::get_TestExtension()": {
+          "Lines": {
+            "945": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_TestExtension(Pester.StringOption)": {
+          "Lines": {
+            "947": 1,
+            "948": 1,
+            "949": 1,
+            "950": 1,
+            "951": 1,
+            "953": 0,
+            "954": 0,
+            "955": 0,
+            "956": 1
+          },
+          "Branches": [
+            {
+              "Line": 948,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 948,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 954,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 954,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.RunConfiguration::get_Exit()": {
+          "Lines": {
+            "961": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_Exit(Pester.BoolOption)": {
+          "Lines": {
+            "963": 1,
+            "964": 1,
+            "965": 1,
+            "966": 1,
+            "967": 1,
+            "969": 0,
+            "970": 0,
+            "971": 0,
+            "972": 1
+          },
+          "Branches": [
+            {
+              "Line": 964,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 964,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.BoolOption Pester.RunConfiguration::get_PassThru()": {
+          "Lines": {
+            "977": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.RunConfiguration::set_PassThru(Pester.BoolOption)": {
+          "Lines": {
+            "979": 1,
+            "980": 1,
+            "981": 1,
+            "982": 1,
+            "983": 1,
+            "985": 0,
+            "986": 0,
+            "987": 0,
+            "988": 1
+          },
+          "Branches": [
+            {
+              "Line": 980,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 980,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.RunConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "854": 0,
+            "855": 0,
+            "856": 0,
+            "857": 0,
+            "858": 0,
+            "859": 0,
+            "860": 0,
+            "861": 0,
+            "862": 0,
+            "863": 0,
+            "864": 0,
+            "865": 0,
+            "866": 0
+          },
+          "Branches": [
+            {
+              "Line": 856,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 858,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 858,
+              "Offset": 34,
+              "EndOffset": 44,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 859,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 859,
+              "Offset": 70,
+              "EndOffset": 80,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 860,
+              "Offset": 106,
+              "EndOffset": 108,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 860,
+              "Offset": 106,
+              "EndOffset": 116,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 861,
+              "Offset": 142,
+              "EndOffset": 144,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 861,
+              "Offset": 142,
+              "EndOffset": 152,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 862,
+              "Offset": 180,
+              "EndOffset": 182,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 862,
+              "Offset": 180,
+              "EndOffset": 190,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            },
+            {
+              "Line": 863,
+              "Offset": 224,
+              "EndOffset": 226,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 0
+            },
+            {
+              "Line": 863,
+              "Offset": 224,
+              "EndOffset": 234,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 0
+            },
+            {
+              "Line": 864,
+              "Offset": 273,
+              "EndOffset": 275,
+              "Path": 0,
+              "Ordinal": 14,
+              "Hits": 0
+            },
+            {
+              "Line": 864,
+              "Offset": 273,
+              "EndOffset": 283,
+              "Path": 1,
+              "Ordinal": 15,
+              "Hits": 0
+            },
+            {
+              "Line": 856,
+              "Offset": 14,
+              "EndOffset": 302,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.RunConfiguration::.ctor()": {
+          "Lines": {
+            "868": 1,
+            "869": 1,
+            "870": 1,
+            "871": 1,
+            "872": 1,
+            "873": 1,
+            "874": 1,
+            "875": 1,
+            "876": 1,
+            "877": 1
+          },
+          "Branches": []
+        }
+      },
+      "Pester.FilterConfiguration": {
+        "Pester.FilterConfiguration Pester.FilterConfiguration::get_Default()": {
+          "Lines": {
+            "999": 0
+          },
+          "Branches": []
+        },
+        "Pester.FilterConfiguration Pester.FilterConfiguration::ShallowClone(Pester.FilterConfiguration)": {
+          "Lines": {
+            "1001": 0,
+            "1002": 0,
+            "1003": 0
+          },
+          "Branches": []
+        },
+        "Pester.StringArrayOption Pester.FilterConfiguration::get_Tag()": {
+          "Lines": {
+            "1025": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.FilterConfiguration::set_Tag(Pester.StringArrayOption)": {
+          "Lines": {
+            "1027": 1,
+            "1028": 1,
+            "1029": 1,
+            "1030": 1,
+            "1031": 1,
+            "1033": 0,
+            "1034": 0,
+            "1035": 0,
+            "1036": 1
+          },
+          "Branches": [
+            {
+              "Line": 1028,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 1028,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1034,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1034,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.FilterConfiguration::get_ExcludeTag()": {
+          "Lines": {
+            "1041": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.FilterConfiguration::set_ExcludeTag(Pester.StringArrayOption)": {
+          "Lines": {
+            "1043": 1,
+            "1044": 1,
+            "1045": 1,
+            "1046": 1,
+            "1047": 1,
+            "1049": 0,
+            "1050": 0,
+            "1051": 0,
+            "1052": 1
+          },
+          "Branches": [
+            {
+              "Line": 1044,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 1044,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1050,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1050,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.FilterConfiguration::get_Line()": {
+          "Lines": {
+            "1056": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.FilterConfiguration::set_Line(Pester.StringArrayOption)": {
+          "Lines": {
+            "1058": 1,
+            "1059": 1,
+            "1060": 1,
+            "1061": 1,
+            "1062": 1,
+            "1064": 0,
+            "1065": 0,
+            "1066": 0,
+            "1067": 1
+          },
+          "Branches": [
+            {
+              "Line": 1059,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 1059,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1065,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1065,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.StringArrayOption Pester.FilterConfiguration::get_FullName()": {
+          "Lines": {
+            "1072": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.FilterConfiguration::set_FullName(Pester.StringArrayOption)": {
+          "Lines": {
+            "1074": 2,
+            "1075": 2,
+            "1076": 1,
+            "1077": 1,
+            "1078": 1,
+            "1080": 1,
+            "1081": 1,
+            "1082": 1,
+            "1083": 2
+          },
+          "Branches": [
+            {
+              "Line": 1075,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 1075,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 1081,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 1081,
+              "Offset": 34,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.FilterConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "1005": 0,
+            "1006": 0,
+            "1007": 0,
+            "1008": 0,
+            "1009": 0,
+            "1010": 0,
+            "1011": 0,
+            "1012": 0,
+            "1013": 0,
+            "1014": 0
+          },
+          "Branches": [
+            {
+              "Line": 1007,
+              "Offset": 14,
+              "EndOffset": 19,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1009,
+              "Offset": 34,
+              "EndOffset": 36,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1009,
+              "Offset": 34,
+              "EndOffset": 44,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 1010,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 1010,
+              "Offset": 70,
+              "EndOffset": 80,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 1011,
+              "Offset": 106,
+              "EndOffset": 108,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 1011,
+              "Offset": 106,
+              "EndOffset": 116,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 1012,
+              "Offset": 142,
+              "EndOffset": 144,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 1012,
+              "Offset": 142,
+              "EndOffset": 152,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 1007,
+              "Offset": 14,
+              "EndOffset": 165,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.FilterConfiguration::.ctor()": {
+          "Lines": {
+            "1015": 1,
+            "1016": 1,
+            "1017": 1,
+            "1018": 1,
+            "1019": 1,
+            "1020": 1,
+            "1021": 1
+          },
+          "Branches": []
+        }
+      },
+      "Pester.OutputConfiguration": {
+        "Pester.OutputConfiguration Pester.OutputConfiguration::get_Default()": {
+          "Lines": {
+            "1091": 0
+          },
+          "Branches": []
+        },
+        "Pester.OutputConfiguration Pester.OutputConfiguration::ShallowClone(Pester.OutputConfiguration)": {
+          "Lines": {
+            "1093": 0,
+            "1094": 0,
+            "1095": 0
+          },
+          "Branches": []
+        },
+        "Pester.StringOption Pester.OutputConfiguration::get_Verbosity()": {
+          "Lines": {
+            "1112": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.OutputConfiguration::set_Verbosity(Pester.StringOption)": {
+          "Lines": {
+            "1114": 1,
+            "1115": 1,
+            "1116": 1,
+            "1117": 1,
+            "1118": 1,
+            "1120": 0,
+            "1121": 0,
+            "1122": 0,
+            "1123": 1
+          },
+          "Branches": [
+            {
+              "Line": 1115,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 1115,
+              "Offset": 12,
+              "EndOffset": 25,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 1121,
+              "Offset": 35,
+              "EndOffset": 37,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1121,
+              "Offset": 35,
+              "EndOffset": 40,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String Pester.OutputConfiguration::FixMinimal(System.String)": {
+          "Lines": {
+            "1127": 0,
+            "1128": 0,
+            "1129": 0
+          },
+          "Branches": [
+            {
+              "Line": 1128,
+              "Offset": 13,
+              "EndOffset": 15,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1128,
+              "Offset": 13,
+              "EndOffset": 18,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.OutputConfiguration::.ctor(System.Collections.IDictionary)": {
+          "Lines": {
+            "1097": 0,
+            "1098": 0,
+            "1099": 0,
+            "1100": 0,
+            "1101": 0,
+            "1102": 0,
+            "1103": 0
+          },
+          "Branches": [
+            {
+              "Line": 1099,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 1101,
+              "Offset": 31,
+              "EndOffset": 33,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 1101,
+              "Offset": 31,
+              "EndOffset": 41,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 1099,
+              "Offset": 14,
+              "EndOffset": 54,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void Pester.OutputConfiguration::.ctor()": {
+          "Lines": {
+            "1105": 1,
+            "1106": 1,
+            "1107": 1,
+            "1108": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Block.cs": {
+      "Pester.Block": {
+        "Pester.Block Pester.Block::Create()": {
+          "Lines": {
+            "11": 0,
+            "12": 0,
+            "13": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_Name()": {
+          "Lines": {
+            "26": 2
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.String> Pester.Block::get_Path()": {
+          "Lines": {
+            "27": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Block::get_Data()": {
+          "Lines": {
+            "28": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_ExpandedName()": {
+          "Lines": {
+            "29": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_ExpandedPath()": {
+          "Lines": {
+            "30": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Block> Pester.Block::get_Blocks()": {
+          "Lines": {
+            "31": 4
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Block::get_Tests()": {
+          "Lines": {
+            "32": 4
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_Result()": {
+          "Lines": {
+            "34": 4
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_FailedCount()": {
+          "Lines": {
+            "35": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_PassedCount()": {
+          "Lines": {
+            "36": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_SkippedCount()": {
+          "Lines": {
+            "37": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_NotRunCount()": {
+          "Lines": {
+            "38": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_TotalCount()": {
+          "Lines": {
+            "39": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Block::get_ErrorRecord()": {
+          "Lines": {
+            "40": 2
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Block::get_Duration()": {
+          "Lines": {
+            "41": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_Id()": {
+          "Lines": {
+            "43": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.String> Pester.Block::get_Tag()": {
+          "Lines": {
+            "44": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Focus()": {
+          "Lines": {
+            "45": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Skip()": {
+          "Lines": {
+            "46": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::get_ItemType()": {
+          "Lines": {
+            "48": 3
+          },
+          "Branches": []
+        },
+        "Pester.ContainerInfo Pester.Block::get_BlockContainer()": {
+          "Lines": {
+            "50": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Block::get_Root()": {
+          "Lines": {
+            "51": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_IsRoot()": {
+          "Lines": {
+            "52": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Block::get_Parent()": {
+          "Lines": {
+            "53": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_EachTestSetup()": {
+          "Lines": {
+            "54": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestSetup()": {
+          "Lines": {
+            "55": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_EachTestTeardown()": {
+          "Lines": {
+            "56": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeTestTeardown()": {
+          "Lines": {
+            "57": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockSetup()": {
+          "Lines": {
+            "58": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockSetup()": {
+          "Lines": {
+            "59": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_EachBlockTeardown()": {
+          "Lines": {
+            "60": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_OneTimeBlockTeardown()": {
+          "Lines": {
+            "61": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Block::get_Order()": {
+          "Lines": {
+            "62": 4
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Passed()": {
+          "Lines": {
+            "64": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_First()": {
+          "Lines": {
+            "65": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Last()": {
+          "Lines": {
+            "66": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Block::get_StandardOutput()": {
+          "Lines": {
+            "67": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_ShouldRun()": {
+          "Lines": {
+            "68": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Executed()": {
+          "Lines": {
+            "69": 0
+          },
+          "Branches": []
+        },
+        "System.DateTime Pester.Block::get_ExecutedAt()": {
+          "Lines": {
+            "70": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Exclude()": {
+          "Lines": {
+            "71": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Include()": {
+          "Lines": {
+            "72": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_Explicit()": {
+          "Lines": {
+            "73": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Block::get_DiscoveryDuration()": {
+          "Lines": {
+            "74": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Block::get_FrameworkDuration()": {
+          "Lines": {
+            "75": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Block::get_UserDuration()": {
+          "Lines": {
+            "76": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Block::get_OwnDuration()": {
+          "Lines": {
+            "77": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Block::get_ScriptBlock()": {
+          "Lines": {
+            "79": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_StartLine()": {
+          "Lines": {
+            "80": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Block::get_FrameworkData()": {
+          "Lines": {
+            "81": 4
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Block::get_PluginData()": {
+          "Lines": {
+            "82": 4
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_PendingCount()": {
+          "Lines": {
+            "84": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_InconclusiveCount()": {
+          "Lines": {
+            "85": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Block::get_OwnPassed()": {
+          "Lines": {
+            "87": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnTotalCount()": {
+          "Lines": {
+            "88": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnPassedCount()": {
+          "Lines": {
+            "89": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnFailedCount()": {
+          "Lines": {
+            "90": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnSkippedCount()": {
+          "Lines": {
+            "91": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnPendingCount()": {
+          "Lines": {
+            "92": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnNotRunCount()": {
+          "Lines": {
+            "93": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Block::get_OwnInconclusiveCount()": {
+          "Lines": {
+            "94": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Block::ToString()": {
+          "Lines": {
+            "97": 1,
+            "98": 1,
+            "99": 1
+          },
+          "Branches": []
+        },
+        "System.Void Pester.Block::.ctor()": {
+          "Lines": {
+            "15": 2,
+            "16": 2,
+            "17": 2,
+            "18": 2,
+            "19": 2,
+            "20": 2,
+            "21": 2,
+            "22": 2,
+            "23": 2,
+            "24": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Container.cs": {
+      "Pester.Container": {
+        "Pester.Container Pester.Container::Create()": {
+          "Lines": {
+            "10": 2,
+            "11": 2,
+            "12": 2
+          },
+          "Branches": []
+        },
+        "Pester.Container Pester.Container::CreateFromBlock(Pester.Block)": {
+          "Lines": {
+            "14": 0,
+            "15": 0,
+            "16": 0,
+            "17": 0,
+            "18": 0,
+            "19": 0,
+            "20": 0,
+            "21": 0,
+            "22": 0,
+            "23": 0,
+            "24": 0,
+            "25": 0,
+            "26": 0,
+            "27": 0,
+            "28": 0,
+            "29": 0,
+            "30": 0,
+            "31": 0,
+            "32": 0,
+            "33": 0,
+            "34": 0,
+            "35": 0,
+            "36": 0,
+            "37": 0,
+            "38": 0,
+            "39": 0
+          },
+          "Branches": [
+            {
+              "Line": 15,
+              "Offset": 92,
+              "EndOffset": 94,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 15,
+              "Offset": 92,
+              "EndOffset": 100,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "Pester.Container Pester.Container::CreateFromFile(System.IO.FileInfo)": {
+          "Lines": {
+            "42": 0,
+            "43": 0,
+            "44": 0,
+            "45": 0,
+            "46": 0,
+            "47": 0,
+            "48": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Container::get_Type()": {
+          "Lines": {
+            "50": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Container::get_Item()": {
+          "Lines": {
+            "51": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Container::get_Data()": {
+          "Lines": {
+            "52": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Block> Pester.Container::get_Blocks()": {
+          "Lines": {
+            "53": 3
+          },
+          "Branches": []
+        },
+        "System.String Pester.Container::get_Result()": {
+          "Lines": {
+            "54": 3
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Container::get_Duration()": {
+          "Lines": {
+            "55": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Container::get_FailedCount()": {
+          "Lines": {
+            "56": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Container::get_PassedCount()": {
+          "Lines": {
+            "57": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Container::get_SkippedCount()": {
+          "Lines": {
+            "58": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Container::get_NotRunCount()": {
+          "Lines": {
+            "59": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Container::get_TotalCount()": {
+          "Lines": {
+            "60": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Container::get_ErrorRecord()": {
+          "Lines": {
+            "61": 3
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Container::get_Passed()": {
+          "Lines": {
+            "62": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Container::get_OwnPassed()": {
+          "Lines": {
+            "63": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Container::get_Skip()": {
+          "Lines": {
+            "64": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Container::get_ShouldRun()": {
+          "Lines": {
+            "65": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Container::get_Executed()": {
+          "Lines": {
+            "66": 0
+          },
+          "Branches": []
+        },
+        "System.DateTime Pester.Container::get_ExecutedAt()": {
+          "Lines": {
+            "67": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Container::get_DiscoveryDuration()": {
+          "Lines": {
+            "69": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Container::get_UserDuration()": {
+          "Lines": {
+            "70": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Container::get_FrameworkDuration()": {
+          "Lines": {
+            "71": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Container::get_StandardOutput()": {
+          "Lines": {
+            "72": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Container::ToString()": {
+          "Lines": {
+            "75": 0,
+            "76": 0,
+            "77": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\ContainerInfo.cs": {
+      "Pester.ContainerInfo": {
+        "Pester.ContainerInfo Pester.ContainerInfo::Create()": {
+          "Lines": {
+            "10": 0,
+            "11": 0,
+            "12": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.ContainerInfo::get_Type()": {
+          "Lines": {
+            "14": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.ContainerInfo::get_Item()": {
+          "Lines": {
+            "15": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.ContainerInfo::get_Data()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Coverage.cs": {
+      "Pester.Coverage": {
+        "Pester.Coverage Pester.Coverage::Create()": {
+          "Lines": {
+            "8": 1,
+            "9": 1,
+            "10": 1
+          },
+          "Branches": []
+        },
+        "System.Decimal Pester.Coverage::get_CoveragePercent()": {
+          "Lines": {
+            "12": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Coverage::get_CoverageReport()": {
+          "Lines": {
+            "14": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 Pester.Coverage::get_CommandsAnalyzedCount()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 Pester.Coverage::get_CommandsExecutedCount()": {
+          "Lines": {
+            "17": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 Pester.Coverage::get_CommandsMissedCount()": {
+          "Lines": {
+            "18": 0
+          },
+          "Branches": []
+        },
+        "System.Int64 Pester.Coverage::get_FilesAnalyzedCount()": {
+          "Lines": {
+            "19": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Coverage::ToString()": {
+          "Lines": {
+            "26": 0,
+            "27": 0,
+            "28": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.Coverage::.ctor()": {
+          "Lines": {
+            "21": 2,
+            "22": 2,
+            "23": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Factory.cs": {
+      "Pester.Factory": {
+        "System.Management.Automation.PSNoteProperty Pester.Factory::CreateNoteProperty(System.String,System.Object)": {
+          "Lines": {
+            "13": 1,
+            "14": 1,
+            "15": 1
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.Dictionary`2<System.String,System.Object> Pester.Factory::CreateDictionary()": {
+          "Lines": {
+            "18": 0,
+            "19": 0,
+            "20": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.RuntimeDefinedParameterDictionary Pester.Factory::CreateRuntimeDefinedParameterDictionary()": {
+          "Lines": {
+            "22": 0,
+            "23": 0,
+            "24": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Factory::CreateCollection()": {
+          "Lines": {
+            "27": 0,
+            "28": 0,
+            "29": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ErrorRecord Pester.Factory::CreateShouldErrorRecord(System.String,System.String,System.String,System.String,System.Boolean)": {
+          "Lines": {
+            "32": 0,
+            "33": 0,
+            "34": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ErrorRecord Pester.Factory::CreateErrorRecord(System.String,System.String,System.String,System.String,System.String,System.Boolean)": {
+          "Lines": {
+            "37": 0,
+            "38": 0,
+            "39": 0,
+            "41": 0,
+            "42": 0,
+            "43": 0,
+            "44": 0,
+            "45": 0,
+            "46": 0,
+            "47": 0,
+            "48": 0,
+            "49": 0
+          },
+          "Branches": []
+        },
+        "System.Text.StringBuilder Pester.Factory::CreateStringBuilder()": {
+          "Lines": {
+            "52": 0,
+            "53": 0,
+            "54": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\InvocationResult.cs": {
+      "Pester.InvocationResult": {
+        "Pester.InvocationResult Pester.InvocationResult::Create(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)": {
+          "Lines": {
+            "9": 1,
+            "10": 1,
+            "11": 1
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.InvocationResult::get_Success()": {
+          "Lines": {
+            "20": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord> Pester.InvocationResult::get_ErrorRecord()": {
+          "Lines": {
+            "21": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.InvocationResult::get_StandardOutput()": {
+          "Lines": {
+            "22": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.InvocationResult::.ctor(System.Boolean,System.Collections.Generic.List`1<System.Management.Automation.ErrorRecord>,System.Object)": {
+          "Lines": {
+            "13": 2,
+            "14": 2,
+            "15": 2,
+            "16": 2,
+            "17": 2,
+            "18": 2
+          },
+          "Branches": [
+            {
+              "Line": 16,
+              "Offset": 18,
+              "EndOffset": 20,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 16,
+              "Offset": 18,
+              "EndOffset": 26,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            }
+          ]
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Run.cs": {
+      "Pester.Run": {
+        "Pester.Run Pester.Run::Create()": {
+          "Lines": {
+            "10": 0,
+            "11": 0,
+            "12": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_Containers()": {
+          "Lines": {
+            "14": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Run::get_Result()": {
+          "Lines": {
+            "16": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_FailedCount()": {
+          "Lines": {
+            "17": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_FailedBlocksCount()": {
+          "Lines": {
+            "18": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_FailedContainersCount()": {
+          "Lines": {
+            "19": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_PassedCount()": {
+          "Lines": {
+            "21": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_SkippedCount()": {
+          "Lines": {
+            "22": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_NotRunCount()": {
+          "Lines": {
+            "23": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Run::get_TotalCount()": {
+          "Lines": {
+            "24": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Run::get_Duration()": {
+          "Lines": {
+            "26": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Run::get_Executed()": {
+          "Lines": {
+            "28": 0
+          },
+          "Branches": []
+        },
+        "System.DateTime Pester.Run::get_ExecutedAt()": {
+          "Lines": {
+            "29": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Run::get_Version()": {
+          "Lines": {
+            "31": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Run::get_PSVersion()": {
+          "Lines": {
+            "32": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Run::get_PSBoundParameters()": {
+          "Lines": {
+            "34": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Run::get_Plugins()": {
+          "Lines": {
+            "35": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Run::get_PluginConfiguration()": {
+          "Lines": {
+            "36": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Run::get_PluginData()": {
+          "Lines": {
+            "37": 0
+          },
+          "Branches": []
+        },
+        "PesterConfiguration Pester.Run::get_Configuration()": {
+          "Lines": {
+            "38": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Run::get_DiscoveryDuration()": {
+          "Lines": {
+            "40": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Run::get_UserDuration()": {
+          "Lines": {
+            "41": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Run::get_FrameworkDuration()": {
+          "Lines": {
+            "42": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Failed()": {
+          "Lines": {
+            "44": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Block> Pester.Run::get_FailedBlocks()": {
+          "Lines": {
+            "45": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Container> Pester.Run::get_FailedContainers()": {
+          "Lines": {
+            "46": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Passed()": {
+          "Lines": {
+            "48": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Skipped()": {
+          "Lines": {
+            "49": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_NotRun()": {
+          "Lines": {
+            "50": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<Pester.Test> Pester.Run::get_Tests()": {
+          "Lines": {
+            "51": 0
+          },
+          "Branches": []
+        },
+        "Pester.Coverage Pester.Run::get_Coverage()": {
+          "Lines": {
+            "53": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Run::ToString()": {
+          "Lines": {
+            "56": 0,
+            "57": 0,
+            "58": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\Test.cs": {
+      "Pester.Test": {
+        "Pester.Test Pester.Test::Create()": {
+          "Lines": {
+            "11": 0,
+            "12": 0,
+            "13": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_Name()": {
+          "Lines": {
+            "28": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.String> Pester.Test::get_Path()": {
+          "Lines": {
+            "29": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Test::get_Data()": {
+          "Lines": {
+            "30": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_ExpandedName()": {
+          "Lines": {
+            "31": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_ExpandedPath()": {
+          "Lines": {
+            "32": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_Result()": {
+          "Lines": {
+            "34": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.Object> Pester.Test::get_ErrorRecord()": {
+          "Lines": {
+            "35": 1
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Test::get_StandardOutput()": {
+          "Lines": {
+            "36": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Test::get_Duration()": {
+          "Lines": {
+            "37": 0
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_ItemType()": {
+          "Lines": {
+            "39": 2
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::get_Id()": {
+          "Lines": {
+            "40": 0
+          },
+          "Branches": []
+        },
+        "System.Management.Automation.ScriptBlock Pester.Test::get_ScriptBlock()": {
+          "Lines": {
+            "41": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.List`1<System.String> Pester.Test::get_Tag()": {
+          "Lines": {
+            "42": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Focus()": {
+          "Lines": {
+            "43": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Skip()": {
+          "Lines": {
+            "44": 0
+          },
+          "Branches": []
+        },
+        "System.Object Pester.Test::get_Block()": {
+          "Lines": {
+            "47": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_First()": {
+          "Lines": {
+            "49": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Last()": {
+          "Lines": {
+            "50": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Include()": {
+          "Lines": {
+            "51": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Exclude()": {
+          "Lines": {
+            "52": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Explicit()": {
+          "Lines": {
+            "53": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_ShouldRun()": {
+          "Lines": {
+            "54": 0
+          },
+          "Branches": []
+        },
+        "System.Int32 Pester.Test::get_StartLine()": {
+          "Lines": {
+            "56": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Executed()": {
+          "Lines": {
+            "58": 0
+          },
+          "Branches": []
+        },
+        "System.Nullable`1<System.DateTime> Pester.Test::get_ExecutedAt()": {
+          "Lines": {
+            "59": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Passed()": {
+          "Lines": {
+            "60": 0
+          },
+          "Branches": []
+        },
+        "System.Boolean Pester.Test::get_Skipped()": {
+          "Lines": {
+            "61": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Test::get_UserDuration()": {
+          "Lines": {
+            "63": 0
+          },
+          "Branches": []
+        },
+        "System.TimeSpan Pester.Test::get_FrameworkDuration()": {
+          "Lines": {
+            "64": 0
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Test::get_PluginData()": {
+          "Lines": {
+            "65": 1
+          },
+          "Branches": []
+        },
+        "System.Collections.Hashtable Pester.Test::get_FrameworkData()": {
+          "Lines": {
+            "66": 2
+          },
+          "Branches": []
+        },
+        "System.String Pester.Test::ToString()": {
+          "Lines": {
+            "68": 0
+          },
+          "Branches": []
+        },
+        "System.Void Pester.Test::.ctor()": {
+          "Lines": {
+            "15": 1,
+            "16": 1,
+            "17": 1,
+            "18": 1,
+            "19": 1,
+            "21": 1,
+            "22": 1,
+            "23": 1,
+            "24": 1,
+            "25": 1,
+            "26": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "d:\\projects\\powershell\\Pester\\src\\csharp\\Pester\\ToStringConverter.cs": {
+      "Pester.ToStringConverter": {
+        "System.String Pester.ToStringConverter::ResultToString(System.String)": {
+          "Lines": {
+            "9": 1,
+            "10": 1,
+            "12": 0,
+            "14": 0,
+            "16": 0,
+            "18": 0,
+            "19": 1,
+            "21": 1
+          },
+          "Branches": [
+            {
+              "Line": 10,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 10,
+              "Offset": 19,
+              "EndOffset": 21,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 10,
+              "Offset": 32,
+              "EndOffset": 34,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 10,
+              "Offset": 45,
+              "EndOffset": 47,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 10,
+              "Offset": 19,
+              "EndOffset": 62,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 10,
+              "Offset": 32,
+              "EndOffset": 70,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 10,
+              "Offset": 45,
+              "EndOffset": 78,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 10,
+              "Offset": 58,
+              "EndOffset": 86,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 10,
+              "Offset": 6,
+              "EndOffset": 94,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 10,
+              "Offset": 58,
+              "EndOffset": 94,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String Pester.ToStringConverter::ContainerToString(Pester.Container)": {
+          "Lines": {
+            "24": 0,
+            "26": 0,
+            "29": 0,
+            "30": 0,
+            "32": 0,
+            "33": 0,
+            "34": 0,
+            "35": 0,
+            "36": 0,
+            "37": 0,
+            "38": 0,
+            "39": 0,
+            "41": 0,
+            "42": 0,
+            "45": 0,
+            "46": 0
+          },
+          "Branches": [
+            {
+              "Line": 26,
+              "Offset": 11,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 27,
+              "EndOffset": 29,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 27,
+              "EndOffset": 44,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 40,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 33,
+              "Offset": 84,
+              "EndOffset": 86,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 105,
+              "EndOffset": 107,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 34,
+              "Offset": 105,
+              "EndOffset": 148,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 11,
+              "EndOffset": 151,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 26,
+              "Offset": 40,
+              "EndOffset": 151,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 33,
+              "Offset": 84,
+              "EndOffset": 175,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String Pester.ToStringConverter::TestToString(Pester.Test)": {
+          "Lines": {
+            "49": 0,
+            "50": 0,
+            "51": 0
+          },
+          "Branches": [
+            {
+              "Line": 50,
+              "Offset": 24,
+              "EndOffset": 26,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 50,
+              "Offset": 24,
+              "EndOffset": 33,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String Pester.ToStringConverter::BlockToString(Pester.Block)": {
+          "Lines": {
+            "54": 1,
+            "55": 1,
+            "56": 1
+          },
+          "Branches": []
+        },
+        "System.String Pester.ToStringConverter::RunToString(Pester.Run)": {
+          "Lines": {
+            "59": 0,
+            "60": 0,
+            "61": 0
+          },
+          "Branches": []
+        }
+      }
+    }
+  }
+}

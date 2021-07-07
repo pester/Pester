@@ -1,12 +1,11 @@
-using System;
 using Xunit;
 
 namespace PesterTests
 {
-    public class UnitTest1
+    public class ConfigurationTests
     {
         [Fact]
-        public void Test1()
+        public void Test_Init_Configuration()
         {
             var c = PesterConfiguration.Default;
             c.Filter.FullName = null;
