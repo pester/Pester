@@ -6,7 +6,7 @@ function New-SkippedTestMessage {
         [Pester.Test]
         $Test
     )
-    "Skipped due to previous failure at path:line '$($Test.ExpandedPath):$($Test.StartLine)' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+    "Skipped due to previous failure at '$($Test.ExpandedPath)' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
 }
 
 function Get-SkipRemainingOnFailurePlugin {
