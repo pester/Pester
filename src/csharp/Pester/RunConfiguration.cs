@@ -31,6 +31,7 @@ namespace Pester
         private BoolOption _throw;
         private BoolOption _passThru;
         private BoolOption _skipRun;
+        private StringOption _skipRemainingOnFailure;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -51,6 +52,7 @@ namespace Pester
                 Throw = configuration.GetValueOrNull<bool>(nameof(Throw)) ?? Throw;
                 PassThru = configuration.GetValueOrNull<bool>(nameof(PassThru)) ?? PassThru;
                 SkipRun = configuration.GetValueOrNull<bool>(nameof(SkipRun)) ?? SkipRun;
+                SkipRemainingOnFailure = configuration.GetObjectOrNull<string>(nameof(SkipRemainingOnFailure)) ?? SkipRemainingOnFailure;
             }
         }
 
@@ -65,6 +67,7 @@ namespace Pester
             Throw = new BoolOption("Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
+            SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
         }
 
         public StringArrayOption Path
@@ -208,6 +211,22 @@ namespace Pester
                 else
                 {
                     _skipRun = new BoolOption(_skipRun, value.Value);
+                }
+            }
+        }
+
+        public StringOption SkipRemainingOnFailure
+        {
+            get { return _skipRemainingOnFailure; }
+            set
+            {
+                if (_skipRemainingOnFailure == null)
+                {
+                    _skipRemainingOnFailure = value;
+                }
+                else
+                {
+                    _skipRemainingOnFailure = new StringOption(_skipRemainingOnFailure, value?.Value);
                 }
             }
         }
