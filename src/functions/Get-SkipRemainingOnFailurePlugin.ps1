@@ -82,12 +82,12 @@ function Get-SkipRemainingOnFailurePlugin {
             # It test has failed at some point during the run
             # Skip the test before it runs
             # This handles skipping tests that failed from different containers in the same run
-            if ($script:failedTest) {
+            if ($Context.Configuration.SkipRemainingFailedTest) {
                 $Context.Test.Skip = $true
 
                 $errorRecord = [Pester.Factory]::CreateErrorRecord(
                     'PesterTestSkipped',
-                    (New-SkippedTestMessage -Test $script:failedTest),
+                    (New-SkippedTestMessage -Test $Context.Configuration.SkipRemainingFailedTest),
                     $null,
                     $null,
                     $null,
@@ -101,7 +101,7 @@ function Get-SkipRemainingOnFailurePlugin {
             param($Context)
 
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
-                $script:failedTest = $Context.Test
+                $Context.Configuration.SkipRemainingFailedTest = $Context.Test
             }
         }
     }
