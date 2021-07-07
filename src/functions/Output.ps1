@@ -647,7 +647,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
-            if ($_test.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+            if (-not $_test.Skip -and $_test.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
                 $skippedMessage = [String]$_Test.ErrorRecord
                 [String]$out += " $skippedMessage"
             }
