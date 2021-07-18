@@ -81,7 +81,7 @@ Function Measure-ObjectCmdlets {
     .SYNOPSIS
     Should avoid usage of New/Where/Foreach/Select-Object.
     .DESCRIPTION
-    The built-in *-Object-cmdlets are slow compared to alternatives in .NET. To fix a violation of this rule, consider using an alterantive like `foreach`-keyword etc.`.
+    The built-in *-Object-cmdlets are slow compared to alternatives in .NET. To fix a violation of this rule, consider using an alternative like `foreach`-keyword etc.`.
     .EXAMPLE
     Measure-ObjectCmdlets -CommandAst $CommandAst
     .INPUTS
