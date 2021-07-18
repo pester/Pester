@@ -363,3 +363,6 @@ MigrationBackup/
 
 tmp/
 
+# coverlet coverage
+lcov.info
+coverage.json
