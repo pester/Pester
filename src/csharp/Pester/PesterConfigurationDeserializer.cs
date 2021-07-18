@@ -3,7 +3,9 @@ using System.Collections;
 using System.Management.Automation;
 using System.Reflection;
 using Pester;
+using System.Diagnostics.CodeAnalysis;
 
+[SuppressMessage("Design", "RCS1110", Justification = "PesterConfiguration type is outside of any namespace on purpose")]
 public class PesterConfigurationDeserializer : PSTypeConverter
 {
     public override bool CanConvertFrom(object sourceValue, Type destinationType)

@@ -1,6 +1,6 @@
 using Pester;
 using System.Collections;
-
+using System.Diagnostics.CodeAnalysis;
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
 // - constructor taking IDictionary (most likely a hashtable) that will populate the object,
@@ -18,7 +18,7 @@ using System.Collections;
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
 
-// PesterConfiguration type is on purpose outside of any namespace
+[SuppressMessage("Design", "RCS1110", Justification = "PesterConfiguration type is outside of any namespace on purpose")]
 public class PesterConfiguration
 {
     public static PesterConfiguration Default { get { return new PesterConfiguration(); } }
