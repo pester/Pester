@@ -6,5 +6,6 @@
         'PSUseShouldProcessForStateChangingFunctions'
         'PSUseApprovedVerbs'
         'Measure-SafeCommands'
+        'PSAvoidUsingWriteHost'
     )
 }
