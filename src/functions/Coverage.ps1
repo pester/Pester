@@ -1,5 +1,6 @@
 ﻿function Enter-CoverageAnalysis {
     [CmdletBinding()]
+    [OutputType("System.Object[]")]
     param (
         [object[]] $CodeCoverage,
         [ScriptBlock] $Logger,
@@ -87,7 +88,7 @@ function Exit-CoverageAnalysis {
     # to only get those that are not $null
     # (like if we did $breakpoints | where {$_ -ne $null})
     # so DON'T change this.
-    $breakpoints = @($CommandCoverage.Breakpoint) -ne $null
+    $breakpoints = null -ne @($CommandCoverage.Breakpoint)
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
     }
@@ -1141,7 +1142,7 @@ function Get-TracerHitLocation ($command) {
         "`n`nCommand: $c" | Write-Host
         $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
                 $ast | select @{n = "type"; e = { $_.GetType().Name } } , @{n = "extent"; e = { $_.extent } }
-            } ) | ft type, extent | out-string | Write-Host
+            } ) | Format-Table type, extent | out-string | Write-Host
     }
 
     if ($env:PESTER_CC_DEBUG -eq 1) {
