@@ -23,6 +23,7 @@ namespace Pester
         public List<object> CommandsMissed = new List<object>();
         public List<object> CommandsExecuted = new List<object>();
         public List<object> FilesAnalyzed = new List<object>();
+        public List<object> FIlesExcluded = new List<object>();
 
         public override string ToString()
         {
