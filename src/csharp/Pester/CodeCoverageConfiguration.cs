@@ -26,6 +26,7 @@ namespace Pester
         private StringOption _outputPath;
         private StringOption _outputEncoding;
         private StringArrayOption _path;
+        private StringArrayOption _excludePaths;
         private BoolOption _excludeTests;
         private BoolOption _recursePaths;
         private BoolOption _useBps;
@@ -46,6 +47,7 @@ namespace Pester
             OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
+            ExcludePaths = new StringArrayOption("Directories or files to be excluded from codecoverage.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
             UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", true);
@@ -62,6 +64,7 @@ namespace Pester
                 OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
                 OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
                 Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
+                ExcludePaths = configuration.GetArrayOrNull<string>("ExcludePaths") ?? ExcludePaths;
                 ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
                 RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
                 CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
@@ -147,6 +150,22 @@ namespace Pester
                 else
                 {
                     _path = new StringArrayOption(_path, value?.Value);
+                }
+            }
+        }
+
+        public StringArrayOption ExcludePaths
+        {
+            get { return _excludePaths; }
+            set
+            {
+                if (_excludePaths == null)
+                {
+                    _excludePaths = value;
+                }
+                else
+                {
+                    _excludePaths = new StringArrayOption(_excludePaths, value?.Value);
                 }
             }
         }
