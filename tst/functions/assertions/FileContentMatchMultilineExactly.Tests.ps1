@@ -32,7 +32,7 @@ InPesterModuleScope {
         Context "When testing file contents using regular expressions" {
             BeforeAll {
                 $Content = "I am the first line.$([System.Environment]::NewLine)I am the second line."
-                Set-Content -Path TestDrive:\file.txt -Value $Content -NoNewline
+                Set-Content -Path TestDrive:\file.txt -Value $Content
             }
 
             It "returns true if the file case sensitively matches the specified RegEx pattern" {
@@ -40,7 +40,7 @@ InPesterModuleScope {
             }
 
             It "returns true if the file case sensitively matches the specified RegEx pattern using '^' and '$'" {
-                'TestDrive:\file.txt' | Should -FileContentMatchMultilineExactly '^I am the first.*\n.*second line\.$'
+                'TestDrive:\file.txt' | Should -FileContentMatchMultilineExactly "^I am the first.*\.\r?\n.*second line\.\r?\n$"
             }
 
             It "return false if the specified RegEx pattern uses '^' incorrecty to case sensitively match the start of the file" {
