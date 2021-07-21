@@ -299,7 +299,7 @@ function Write-NUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $xmlWriter.WriteStartElement('test-results')
 
     Write-NUnitTestResultAttributes @PSBoundParameters
-    Write-NUnitTestResultChildNodes @PSBoundParameters
+    Write-NUnitTestResultChildNodes -RunResult $Result -XmlWriter $XmlWriter
 
     $XmlWriter.WriteEndElement()
 }
@@ -325,6 +325,7 @@ function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $Xml
     Write-NUnitCultureInformation -Result $RunResult -XmlWriter $XmlWriter
 
     $suiteInfo = Get-TestSuiteInfo -TestSuite $Result -Path "Pester"
+    $suiteInfo.name = $RunResult.Configuration.TestResult.TestSuiteName.Value
 
     $XmlWriter.WriteStartElement('test-suite')
 
