@@ -14,6 +14,13 @@ function Get-SkipRemainingOnFailurePlugin {
         Name = "SkipRemainingOnFailure"
     }
 
+    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+        $p.Start = {
+            param ($Context)
+            $Context.Configuration.SkipRemainingOnFailureCount = 0
+        }
+    }
+
     if ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Block') {
         $p.EachTestTeardownEnd = {
             param($Context)
@@ -33,6 +40,7 @@ function Get-SkipRemainingOnFailurePlugin {
 
                 foreach ($test in $Context.Block.Tests) {
                     if (-not $test.Executed) {
+                        $Context.Configuration.SkipRemainingOnFailureCount += 1
                         $test.Skip = $true
                         $test.ErrorRecord.Add($errorRecord)
                     }
@@ -40,6 +48,7 @@ function Get-SkipRemainingOnFailurePlugin {
 
                 foreach ($test in ($Context.Block | View-Flat)) {
                     if (-not $test.Executed) {
+                        $Context.Configuration.SkipRemainingOnFailureCount += 1
                         $test.Skip = $true
                         $test.ErrorRecord.Add($errorRecord)
                     }
@@ -67,6 +76,7 @@ function Get-SkipRemainingOnFailurePlugin {
 
                 foreach ($test in ($Context.Block.Root | View-Flat)) {
                     if (-not $test.Executed) {
+                        $Context.Configuration.SkipRemainingOnFailureCount += 1
                         $test.Skip = $true
                         $test.ErrorRecord.Add($errorRecord)
                     }
@@ -79,10 +89,11 @@ function Get-SkipRemainingOnFailurePlugin {
         $p.EachTestSetupStart = {
             param($Context)
 
-            # It test has failed at some point during the run
+            # If a test has failed at some point during the run
             # Skip the test before it runs
             # This handles skipping tests that failed from different containers in the same run
             if ($Context.Configuration.SkipRemainingFailedTest) {
+                $Context.Configuration.SkipRemainingOnFailureCount += 1
                 $Context.Test.Skip = $true
 
                 $errorRecord = [Pester.Factory]::CreateErrorRecord(
@@ -102,6 +113,16 @@ function Get-SkipRemainingOnFailurePlugin {
 
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 $Context.Configuration.SkipRemainingFailedTest = $Context.Test
+            }
+        }
+    }
+
+    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+        $p.End = {
+            param($Context)
+
+            if ($Context.Configuration.SkipRemainingOnFailureCount -gt 0) {
+                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "Remaining tests skipped after first failure: $($Context.Configuration.SkipRemainingOnFailureCount)"
             }
         }
     }
