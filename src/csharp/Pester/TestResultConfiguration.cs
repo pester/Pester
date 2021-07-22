@@ -36,7 +36,7 @@ namespace Pester
 
         public TestResultConfiguration() : base("TestResult configuration.")
         {
-            Enabled = new BoolOption("Enable the exporting of TestResults to file specified in `OutputPath`.", false);
+            Enabled = new BoolOption("Enable the saving of TestResults to a file specified in `OutputPath`.", false);
             OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnitXml, NUnit2.5 or JUnitXml", "NUnitXml");
             OutputPath = new StringOption("Path relative to the current directory where test result report is saved.", "testResults.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
