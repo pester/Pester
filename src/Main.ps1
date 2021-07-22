@@ -1018,6 +1018,9 @@ function Invoke-Pester {
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
+            # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
+            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
+
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
                 -ExcludeTag $PesterPreference.Filter.ExcludeTag.Value `
