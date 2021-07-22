@@ -1011,7 +1011,7 @@ function Invoke-Pester {
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
-            if ($SCRIPT:additionalPlugins) {$plugins += $SCRIPT:additionalPlugins}
+            if (defined $script:additionalPlugins) {$plugins += $script:additionalPlugins}
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
