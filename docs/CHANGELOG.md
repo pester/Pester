@@ -1,3 +1,7 @@
+## 5.x.x
+
+Newer releases are tracked only in [GitHub releases](https://github.com/pester/Pester/releases).
+
 ## 4.10.1 (February 7, 2020)
 
 - Fix link in nuspec
