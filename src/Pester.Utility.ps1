@@ -261,7 +261,7 @@ function Write-PesterDebugMessage {
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet("Filter", "Skip", "Runtime", "RuntimeCore", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore", "CodeCoverage")]
+        [ValidateSet("Filter", "Skip", "Runtime", "RuntimeCore", "Mock", "MockCore", "Discovery", "DiscoveryCore", "SessionState", "Timing", "TimingCore", "Plugin", "PluginCore", "CodeCoverage", "CodeCoverageCore")]
         [String[]] $Scope,
         [Parameter(Mandatory = $true, Position = 1, ParameterSetName = "Default")]
         [String] $Message,
@@ -311,6 +311,7 @@ function Write-PesterDebugMessage {
             "PluginCore" { "Blue" }
             "Plugin" { "Blue" }
             "CodeCoverage" { "Yellow" }
+            "CodeCoverageCore" { "Yellow" }
             default { "Cyan" }
         }
     }

@@ -22,7 +22,7 @@ namespace Pester
 
         public static Dictionary<string, object> CreateDictionary()
         {
-            return new Dictionary<string, object>();
+            return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
 
         public static RuntimeDefinedParameterDictionary CreateRuntimeDefinedParameterDictionary() {

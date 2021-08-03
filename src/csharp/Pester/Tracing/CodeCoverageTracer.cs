@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 
@@ -24,7 +25,7 @@ namespace Pester.Tracing
                 var key = $"{point.Line}:{point.Column}";
                 if (!Hits.ContainsKey(point.Path))
                 {
-                    var lineColumn = new Dictionary<string, List<CodeCoveragePoint>> { [key] = new List<CodeCoveragePoint> { point } };
+                    var lineColumn = new Dictionary<string, List<CodeCoveragePoint>> (StringComparer.OrdinalIgnoreCase) { [key] = new List<CodeCoveragePoint> { point } };
                     Hits.Add(point.Path, lineColumn);
                     continue;
                 }
@@ -46,11 +47,11 @@ namespace Pester.Tracing
 
         // list of what Pester figures out from the AST that we care about for CC
         // keyed as path -> line:column -> CodeCoveragePoint
-        public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>();
+        public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>(StringComparer.OrdinalIgnoreCase);
 
         public void Trace(string message, IScriptExtent extent, ScriptBlock _, int __)
         {
-            if (_debug && (extent?.File?.Contains(_debugFile) ?? false))
+            if (_debug && extent?.File != null && CultureInfo.InvariantCulture.CompareInfo.IndexOf(extent.File, _debugFile, CompareOptions.OrdinalIgnoreCase) >= 0)
             {
                 var f = Console.ForegroundColor;
                 try
