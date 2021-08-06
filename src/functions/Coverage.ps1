@@ -38,16 +38,33 @@
         }
 
         $action = if ($UseSingleHitBreakpoints) {
-            # remove itself on hit
-            { & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id }
+            # remove itself on hit scriptblock
+            {
+
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    $bp = Get-PSBreakpoint -Id $_.Id
+                    & $SafeCommands["Write-PesterDebugMessage"] -Scope CodeCoverageCore -Message "Hit breakpoint $($bp.Id) on $($bp.Line):$($bp.Column) in $($bp.Script)."
+                }
+
+                & $SafeCommands['Remove-PSBreakpoint'] -Id $_.Id
+            }
         }
         else {
             if ($null -ne $logger) {
                 & $logger "Using normal breakpoints."
             }
 
-            # empty ScriptBlock
-            {}
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                # scriptblock with logging
+                {
+                    $bp = Get-PSBreakpoint -Id $_.Id
+                    & $SafeCommands["Write-PesterDebugMessage"] -Scope CodeCoverageCore -Message "Hit breakpoint $($bp.Id) on $($bp.Line):$($bp.Column) in $($bp.Script)."
+                }
+            }
+            else {
+                # empty ScriptBlock
+                {}
+            }
         }
 
         foreach ($breakpoint in $breakpoints) {

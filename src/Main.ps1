@@ -963,6 +963,13 @@ function Invoke-Pester {
 
             $plugins += @(Get-MockPlugin)
 
+            if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
+                throw "Unsupported Run.SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
+            }
+            else {
+                $plugins += @(Get-SkipRemainingOnFailurePlugin)
+            }
+
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
                         $PesterPreference.CodeCoverage.Path.Value
@@ -1010,6 +1017,9 @@ function Invoke-Pester {
                 $plugins += (Get-CoveragePlugin)
                 $pluginConfiguration["Coverage"] = $CodeCoverage
             }
+
+            # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
+            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `

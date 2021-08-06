@@ -2004,4 +2004,427 @@ i -PassThru:$PassThru {
             $err | Verify-Equal "Pester run failed, because 3 tests failed, 1 block failed and 2 containers failed"
         }
     }
+
+    b "Run.SkipRemainingOnFailure" {
+
+        t "Default behavior of running every test after a failure" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    It "d" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'None'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+
+            $r.Containers[0].Blocks[0].Tests[2].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[2].Passed | Verify-True
+        }
+
+        t "Test is skipped after first failure inside block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Block'"
+        }
+
+        t "Tests are skipped after first failure inside block for multiple scriptblocks" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "d" {
+                    It "e" {
+                        $false | Should -BeTrue
+                    }
+                    It "f" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Block'"
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'd.e' and Run.SkipRemainingOnFailure set to 'Block'"
+        }
+
+        t "Child tests are skipped after first failure inside parent block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Block'"
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Block'"
+        }
+
+        t "Tests outside of block are not skipped after first failure inside block" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Block'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+        }
+
+        t "Tests inside container are all skipped after first failure" {
+            $sb = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Container'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+        }
+
+        t "Tests inside container are all skipped after first failure for multiple scriptblocks" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "h" {
+                    It "i" {
+                        $false | Should -BeTrue
+                    }
+                    It "j" {
+                        $true | Should -BeTrue
+                    }
+                    Context "l" {
+                        It "m" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                Describe "n" {
+                    It "o" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Container'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[0].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[1].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'h.i' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'h.i' and Run.SkipRemainingOnFailure set to 'Container'"
+
+            $r.Containers[1].Blocks[1].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[1].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[1].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'h.i' and Run.SkipRemainingOnFailure set to 'Container'"
+        }
+
+        t "Tests inside run with multiple scriptblocks are all skipped after first failure" {
+            $sb1 = {
+                Describe "a" {
+                    It "b" {
+                        $false | Should -BeTrue
+                    }
+                    It "c" {
+                        $true | Should -BeTrue
+                    }
+                    Context "d" {
+                        It "e" {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+            }
+
+            $sb2 = {
+                Describe "f" {
+                    It "g" {
+                        $true | Should -BeTrue
+                    }
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock            = $sb1, $sb2
+                    PassThru               = $true
+                    SkipRemainingOnFailure = 'Run'
+                }
+                Output = @{
+                    CIFormat = 'None'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests[0].Skipped | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].Passed | Verify-False
+            $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterAssertionFailed'
+
+            $r.Containers[0].Blocks[0].Tests[1].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Tests[1].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Run'"
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Run'"
+
+            $r.Containers[1].Blocks[0].Tests[0].Skipped | Verify-True
+            $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-True
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
+            $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Run'"
+        }
+    }
 }
