@@ -47,7 +47,7 @@ namespace Pester
             OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
-            ExcludePaths = new StringArrayOption("Directories or files to be excluded from codecoverage.", new string[0]);
+            ExcludePaths = new StringArrayOption("Directories or files to be excluded from codecoverage.  Defaults to none.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
             UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", true);
