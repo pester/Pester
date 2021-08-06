@@ -88,7 +88,7 @@ function Exit-CoverageAnalysis {
     # to only get those that are not $null
     # (like if we did $breakpoints | where {$_ -ne $null})
     # so DON'T change this.
-    $breakpoints = null -ne @($CommandCoverage.Breakpoint)
+    $breakpoints = $null -ne @($CommandCoverage.Breakpoint)
     if ($breakpoints.Count -gt 0) {
         & $SafeCommands['Remove-PSBreakpoint'] -Breakpoint $breakpoints
     }
