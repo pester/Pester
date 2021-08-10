@@ -274,6 +274,31 @@ i -PassThru:$PassThru {
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
+
+        t 'should user TestResult.TestSuiteName configuration value as name-attribute for root test-suite' {
+            $sb = {
+                Describe 'Mocked Describe' {
+                    It 'Successful testcase' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $Name = 'MyTestRun'
+
+            $Configuration = New-PesterConfiguration
+            $Configuration.Run.ScriptBlock = $sb
+            $Configuration.Run.PassThru = $true
+            $Configuration.TestResult.TestSuiteName = $Name
+            $Configuration.Output.Verbosity = 'None'
+
+            $r = Invoke-Pester -Configuration $Configuration
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'
+            $xmlTestCase.name | Verify-Equal $Name
+            # Also used in name for test-results-node. Undocumented, but kept for back-compat.
+        }
     }
 
     b 'Exporting Parameterized Tests (Newer format)' {
@@ -497,48 +522,6 @@ i -PassThru:$PassThru {
                 $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
                 $xmlTestCase.result | Verify-Equal "Success"
                 $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
-            }
-            finally {
-                if (Test-Path $script) {
-                    Remove-Item $script -Force -ErrorAction Ignore
-                }
-
-                if (Test-Path $xml) {
-                    Remove-Item $xml -Force -ErrorAction Ignore
-                }
-            }
-        }
-
-        t 'NUnitXml report with custom value in first test-suite attribute name' {
-            $sb = {
-                Describe 'Mocked Describe' {
-                    It 'Successful testcase013' {
-                        $true | Should -Be $true
-                    }
-                }
-            }
-
-            $Name = 'MarvelIsBetterThanDC!'
-
-            try {
-                $script = Join-Path ([IO.Path]::GetTempPath()) "test$([Guid]::NewGuid()).Tests.ps1"
-                $sb | Set-Content -Path $script -Force
-
-                $xml = [IO.Path]::GetTempFileName()
-
-                $Configuration = New-PesterConfiguration
-                $Configuration.Run.Path = $script
-                $Configuration.TestResult.Enabled = $true
-                $Configuration.TestResult.OutputFormat = 'NUnitXml'
-                $Configuration.TestResult.OutputPath = $xml
-                $Configuration.TestResult.TestSuiteName = $Name
-                $Configuration.Output.Verbosity = 'None'
-
-                $r = Invoke-Pester -Configuration $Configuration
-
-                $xmlResult = [xml] (Get-Content $xml -Raw)
-                $xmlTestCase = $xmlResult.'test-results'.'test-suite'
-                $xmlTestCase.name | Verify-Equal $Name
             }
             finally {
                 if (Test-Path $script) {
