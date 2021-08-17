@@ -274,6 +274,31 @@ i -PassThru:$PassThru {
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
+
+        t 'should user TestResult.TestSuiteName configuration value as name-attribute for root test-suite' {
+            $sb = {
+                Describe 'Mocked Describe' {
+                    It 'Successful testcase' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $Name = 'MyTestRun'
+
+            $Configuration = New-PesterConfiguration
+            $Configuration.Run.ScriptBlock = $sb
+            $Configuration.Run.PassThru = $true
+            $Configuration.TestResult.TestSuiteName = $Name
+            $Configuration.Output.Verbosity = 'None'
+
+            $r = Invoke-Pester -Configuration $Configuration
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'
+            $xmlTestCase.name | Verify-Equal $Name
+            # Also used in name for test-results-node. Undocumented, but kept for back-compat.
+        }
     }
 
     b 'Exporting Parameterized Tests (Newer format)' {

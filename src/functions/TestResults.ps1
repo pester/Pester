@@ -320,11 +320,12 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('time', $Result.ExecutedAt.ToString('HH:mm:ss'))
 }
 
-function Write-NUnitTestResultChildNodes($RunResult, [System.Xml.XmlWriter] $XmlWriter) {
-    Write-NUnitEnvironmentInformation -Result $RunResult -XmlWriter $XmlWriter
-    Write-NUnitCultureInformation -Result $RunResult -XmlWriter $XmlWriter
+function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWriter) {
+    Write-NUnitEnvironmentInformation -Result $Result -XmlWriter $XmlWriter
+    Write-NUnitCultureInformation -Result $Result -XmlWriter $XmlWriter
 
     $suiteInfo = Get-TestSuiteInfo -TestSuite $Result -Path "Pester"
+    $suiteInfo.name = $Result.Configuration.TestResult.TestSuiteName.Value
 
     $XmlWriter.WriteStartElement('test-suite')
 
