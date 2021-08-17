@@ -672,7 +672,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
@@ -762,7 +762,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
