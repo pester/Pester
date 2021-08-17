@@ -143,7 +143,7 @@ function BeforeAll {
 
         BeforeAll and AfterAll are unique in that they apply to the entire container,
         Context or Describe block regardless of the order of the statements compared to
-        other Context or Describe blcoks at the same level.
+        other Context or Describe blocks at the same level.
 
     .PARAMETER ScriptBlock
         A scriptblock with steps to be executed during setup.
@@ -218,7 +218,7 @@ function AfterAll {
 
         BeforeAll and AfterAll are unique in that they apply to the entire container,
         Context or Describe block regardless of the order of the statements compared to
-        other Context or Describe blcoks at the same level.
+        other Context or Describe blocks at the same level.
 
     .PARAMETER ScriptBlock
         A scriptblock with steps to be executed during teardown.

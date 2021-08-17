@@ -186,7 +186,7 @@ function PostProcess-RspecTestRun ($TestRun) {
             "NotRun"
         }
 
-        ## sumamrize
+        ## summarize
 
         # a block that has errors would write into failed blocks so we can report them
         # later we can filter this to only report errors from AfterAll
@@ -261,7 +261,7 @@ function Get-RSpecObjectDecoratorPlugin () {
         Add-RSpecTestObjectProperties $Context.Test
     } -EachBlockTeardownEnd {
         param($Context)
-        #TODO: also this is a plugin because it needs to run before the error processing kicks in (to be able to report correctly formatted errors on scrren in case teardown failure), this mixes concerns here imho, and needs to be revisited, because the error writing logic is now dependent on this plugin
+        #TODO: also this is a plugin because it needs to run before the error processing kicks in (to be able to report correctly formatted errors on screen in case teardown failure), this mixes concerns here imho, and needs to be revisited, because the error writing logic is now dependent on this plugin
         Add-RSpecBlockObjectProperties $Context.Block
     }
 }
@@ -322,7 +322,7 @@ function New-PesterConfiguration {
       ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
       Default value: @()
 
-      Line: Filter by file and scriptblock start line, useful to run parsed tests programatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
+      Line: Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
       Default value: @()
 
       ExcludeLine: Exclude by file and scriptblock start line, takes precedence over Line.
@@ -344,7 +344,7 @@ function New-PesterConfiguration {
       OutputEncoding: Encoding of the output file.
       Default value: 'UTF8'
 
-      Path: Directories or files to be used for codecoverage, by default the Path(s) from general settings are used, unless overridden here.
+      Path: Directories or files to be used for code coverage, by default the Path(s) from general settings are used, unless overridden here.
       Default value: @()
 
       ExcludeTests: Exclude tests from code coverage. This uses the TestFilter from general configuration.
@@ -615,7 +615,7 @@ function New-PesterContainer {
     .DESCRIPTION
     Pester 5 supports running tests files and scriptblocks using parameter-input.
     To use this feature, Invoke-Pester expects one or more ContainerInfo-objects
-    created using this funciton, that specify test containers in the form of paths
+    created using this function, that specify test containers in the form of paths
     to the test files or scriptblocks containing the tests directly.
 
     A optional Data-dictionary can be provided to supply the containers with any
@@ -656,8 +656,8 @@ function New-PesterContainer {
     Invoke-Pester -Container $container
     ```
 
-    This example runs Pester agianst a scriptblock. New-PesterContainer is used to genreated
-    the requried ContainerInfo-object that enables us to do this directly.
+    This example runs Pester against a scriptblock. New-PesterContainer is used to generate
+    the required ContainerInfo-object that enables us to do this directly.
 
     .LINK
     https://pester.dev/docs/commands/New-PesterContainer
@@ -679,7 +679,7 @@ function New-PesterContainer {
         [Collections.IDictionary[]] $Data
     )
 
-    # it seems that when I don't assign $Data to $dt here the foreach does not always work in 5.1 :/ some vooodo
+    # it seems that when I don't assign $Data to $dt here the foreach does not always work in 5.1 :/ some voodoo
     $dt = $Data
     # expand to ContainerInfo user can provide multiple sets of data, but ContainerInfo can hold only one
     # to keep the internal logic simple.

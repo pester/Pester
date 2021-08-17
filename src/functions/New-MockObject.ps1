@@ -12,7 +12,7 @@ An .NET assembly for the particular type must be available in the system and loa
 The .NET type to create. This creates the object without calling any of its constructors or initializers. Use this to instantiate an object that does not have a public constructor. If your object has a constructor, or is giving you errors, try using the constructor and provide the object using the InputObject parameter to decorate it.
 
 .PARAMETER InputObject
-And already constucted object to decorate. Use New-Object or ::new to create it.
+An already constructed object to decorate. Use New-Object or ::new to create it.
 
 .PARAMETER Properties
 Properties to define, specified as a hashtable, in format @{ PropertyName = value }.
@@ -20,7 +20,7 @@ Properties to define, specified as a hashtable, in format @{ PropertyName = valu
 .PARAMETER Methods
 Methods to define, specified as a hashtable, in format @{ MethodName = scriptBlock }.
 
-ScriptBlock can define param block, and it will recieve arguments that were provided to the function call based on order.
+ScriptBlock can define param block, and it will receive arguments that were provided to the function call based on order.
 
 Method overloads are not supported because ScriptMethods are used to decorate the object, and ScriptMethods do not support method overloads.
 

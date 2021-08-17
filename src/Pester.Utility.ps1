@@ -272,7 +272,7 @@ function Write-PesterDebugMessage {
     )
 
     if (-not $PesterPreference.Debug.WriteDebugMessages.Value) {
-        throw "This should never happen. All calls to Write-PesterDebugMessage should be wrapped in `if` to avoid perfomace hit of allocating the message and calling the function. Inspect the call stack to know where this call came from. This can also happen if `$PesterPreference is different from the `$PesterPreference that utilities see because of incorrect scoping."
+        throw "This should never happen. All calls to Write-PesterDebugMessage should be wrapped in `if` to avoid the performance hit of allocating the message and calling the function. Inspect the call stack to know where this call came from. This can also happen if `$PesterPreference is different from the `$PesterPreference that utilities see because of incorrect scoping."
     }
 
     $messagePreference = $PesterPreference.Debug.WriteDebugMessagesFrom.Value
