@@ -146,7 +146,7 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
         $invokePester = {
             param($private:Path, $private:ScriptParameters, $private:Out_Null)
             $private:c = New-PesterContainer -Path $Path -Data $ScriptParameters
-            Invoke-Pester -Container $c Path | & $Out_Null
+            Invoke-Pester -Container $c | & $Out_Null
         }
 
         # get PSBoundParameters from caller script to allow interactive execution of parameterized tests.
