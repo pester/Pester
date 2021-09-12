@@ -114,6 +114,7 @@ finally {
     $aaa = $true
 }
 
+$findIf = $true
 while ($findIf) {
     [string]$PartialText = "AAA"
     $findIf = $false
