@@ -113,3 +113,8 @@ catch {
 finally {
     $aaa = $true
 }
+
+while ($findIf) {
+    [string]$PartialText = "AAA"
+    $findIf = $false
+}
