@@ -672,7 +672,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
@@ -762,7 +762,7 @@ function Invoke-Pester {
                 }
 
                 if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExludeTagFilter).Count) {
+                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
                         $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
                     }
 
@@ -1214,10 +1214,10 @@ function Invoke-Pester {
             }
         }
 
-        # exit with exit code if we fail and even if we succeed, othwerise we could inherit
+        # exit with exit code if we fail and even if we succeed, otherwise we could inherit
         # exit code of some other app end exit with it's exit code instead with ours
         $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
-        # alwaays set exit code. This both to:
+        # always set exit code. This both to:
         # - prevent previous commands failing with non-zero exit code from failing the run
         # - setting the exit code when there were some failed tests, blocks, or containers
         $global:LASTEXITCODE = $failedCount
@@ -1259,7 +1259,7 @@ function New-PesterOption {
     .PARAMETER Experimental
     Enables experimental features of Pester to be enabled.
     .PARAMETER ShowScopeHints
-    EXPERIMENTAL: Enables debugging output for debugging tranisition among scopes. (Experimental flag needs to be used to enable this.)
+    EXPERIMENTAL: Enables debugging output for debugging transitions among scopes. (Experimental flag needs to be used to enable this.)
 
     .INPUTS
     None
@@ -1476,7 +1476,7 @@ function ConvertTo-Pester4Result {
     versions of Pester. This function is provided as a way to convert the
     result-object into an object using the previous format. This can be
     useful as a temporary measure to easier migrate to Pester 5 without
-    having to redesign compelx CI/CD-pipelines.
+    having to redesign complex CI/CD-pipelines.
 
     .PARAMETER PesterResult
     Result object from a Pester 5-run. This can be retrieved using Invoke-Pester
@@ -1564,7 +1564,7 @@ function ConvertTo-Pester4Result {
         }
 
         # the counts here include failed blocks as tests, that's we don't use
-        # the normal properties on the reslt to count
+        # the normal properties on the result to count
 
         foreach ($r in $legacyResult.TestResult) {
             switch ($r.Result) {
@@ -1599,7 +1599,7 @@ function BeforeDiscovery {
     putting code directly inside of Describe / Context.
 
     .PARAMETER ScriptBlock
-    The ScritpBlock to run.
+    The ScriptBlock to run.
 
     .EXAMPLE
     ```powershell
