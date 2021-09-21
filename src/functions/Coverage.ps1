@@ -1204,8 +1204,7 @@ function Get-TracerHitLocation ($command) {
         # we also must avoid selecting a parent that is too high, otherwise we might mark code that was not covered as covered.
         if ($parent -is [System.Management.Automation.Language.IfStatementAst] -or
             $parent -is [System.Management.Automation.Language.ScriptBlockAst] -or
-            $parent -is [System.Management.Automation.Language.ForStatementAst] -or
-            $parent -is [System.Management.Automation.Language.ForEachStatementAst] -or
+            $parent -is [System.Management.Automation.Language.LoopStatementAst] -or
             $parent -is [System.Management.Automation.Language.SwitchStatementAst] -or
             $parent -is [System.Management.Automation.Language.TryStatementAst] -or
             $parent -is [System.Management.Automation.Language.CatchClauseAst]) {
