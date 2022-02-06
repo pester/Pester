@@ -396,8 +396,10 @@ function Should-InvokeInternal {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $preExistingFilterVariables = @{}
         foreach ($v in $filter.Ast.FindAll( { $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
-            if ($existingVar = $SessionState.PSVariable.Get($v.VariablePath.UserPath)) {
-                $preExistingFilterVariables.Add($v.VariablePath.UserPath, $existingVar.Value)
+            if (-not $preExistingFilterVariables.ContainsKey($v.VariablePath.UserPath)) {
+                if ($existingVar = $SessionState.PSVariable.Get($v.VariablePath.UserPath)) {
+                    $preExistingFilterVariables.Add($v.VariablePath.UserPath, $existingVar.Value)
+                }
             }
         }
 
