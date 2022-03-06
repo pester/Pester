@@ -13,8 +13,7 @@
 
     ```powershell
     function Clean {
-        #Do something
-        $true
+        throw [NotImplementedException]'Clean is not implemented.'
     }
     ```
 
@@ -28,7 +27,7 @@
     Describe "Clean" {
 
         It "Returns expected output" {
-            Clean | Should -Be $true
+            Clean | Should -Be "YOUR_EXPECTED_VALUE"
         }
     }
     ```
@@ -46,12 +45,12 @@
     Creates the scripts in the current directory.
 
     .EXAMPLE
-    New-Fixture C:\Projects\Cleaner Clean
+    New-Fixture Clean C:\Projects\Cleaner
 
     Creates the scripts in the C:\Projects\Cleaner directory.
 
     .EXAMPLE
-    New-Fixture Cleaner Clean
+    New-Fixture -Name Clean -Path Cleaner
 
     Creates a new folder named Cleaner in the current directory and creates the scripts in it.
 
