@@ -23,7 +23,7 @@
     Sets the test result to skipped. Cannot be used at the same time as -Inconclusive or -Pending
 
     .PARAMETER Because
-    Similarily to failing tests, skipped and inconclusive tests should have reason. It allows
+    Similarly to failing tests, skipped and inconclusive tests should have reason. It allows
     to provide information to the user why the test is neither successful nor failed.
 
     .EXAMPLE
