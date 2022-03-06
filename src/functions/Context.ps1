@@ -79,7 +79,7 @@ https://pester.dev/docs/usage/testdrive
         # [Switch] $Focus,
         [Switch] $Skip,
 
-        $Foreach
+        $ForEach
     )
 
     $Focus = $false
