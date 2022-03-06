@@ -84,7 +84,7 @@
             }
         }
 
-        It 'accessing whole testcase in module socpe' -TestCases @(
+        It 'accessing whole testcase in module scope' -TestCases @(
             @{ Name = 'Foo'; Bool = $true }
         ) {
             # Passes the whole testcase-dictionary available in $_ to InModuleScope
