@@ -30,7 +30,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
 Describe 'PesterConfiguration' {
     It 'should convert arraylists' {
         $expectedPaths = @('one', 'two', 'three')
-        $pathList = [Collections.ArrayList]::New($expectedPaths)
+        $pathList = [Collections.ArrayList]$expectedPaths
         $config = [PesterConfiguration]@{ Run = @{ Path = $pathList } }
         $config.Run.Path.Value | Should -Be $expectedPaths
     }
