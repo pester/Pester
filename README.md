@@ -63,7 +63,7 @@ Save this code example in a file named `Get-Planet.Tests.ps1`, and run `Invoke-P
 
 Learn how to [start quick with Pester](https://pester.dev/docs/quick-start) in our docs.
 
-The example above also has an [annotated and production ready version here](Examples/Planets).
+The example above also has an [annotated and production ready version here](docs/Examples/Planets).
 
 ## Installation
 
