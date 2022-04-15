@@ -61,7 +61,7 @@ https://pester.dev/docs/commands/New-MockObject
 https://pester.dev/docs/usage/mocking
 
 #>
-
+    [CmdletBinding(DefaultParameterSetName = "Type")]
     param (
         [Parameter(ParameterSetName = "Type", Mandatory)]
         [ValidateNotNullOrEmpty()]
