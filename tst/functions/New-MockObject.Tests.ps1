@@ -30,6 +30,11 @@ Describe 'New-MockObject' {
         $mockObject.GetName() | Should -Be 'Jakub'
     }
 
+    It 'Default parameter set is Type for backwards compatibility' {
+        $type = 'Microsoft.PowerShell.Commands.Language'
+        { New-MockObject $type } | Should -Not -Throw
+    }
+
     Context 'Methods' {
         It "Adds a method to the object" {
             $o = New-Object -TypeName 'System.Diagnostics.Process'
