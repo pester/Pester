@@ -56,6 +56,16 @@ Describe 'New-MockObject' {
             $mockObject._Kill[-1].Call | Should -Be 2
             $mockObject._Kill[-1].Arguments | Should -Be $true
         }
+
+        It "Adds 2 methods to the object" {
+            $mockObject = New-MockObject -Type 'Net.Sockets.TcpClient' -Methods @{
+                Connect = { param($Server, $Port)"connect" };
+                Close   = { param($Server, $Port)"close" }
+            }
+
+            $mockObject.Connect() | Should -Be "connect"
+            $mockObject.Close() | Should -Be "close"
+        }
     }
 
 

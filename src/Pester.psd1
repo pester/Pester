@@ -5,10 +5,6 @@
 
     # Version number of this module.
     ModuleVersion     = '5.3.2'
-
-    # ID used to uniquely identify this module
-    GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
-
     # Author of this module
     Author            = 'Pester Team'
 
@@ -129,6 +125,10 @@
     # HelpInfo URI of this module
     # HelpInfoURI = ''
 
+    # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
+    # DefaultCommandPrefix = ''
+
+}
     # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
     # DefaultCommandPrefix = ''
 

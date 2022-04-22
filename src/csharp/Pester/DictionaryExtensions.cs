@@ -76,11 +76,11 @@ namespace Pester
                 if (dictionary[key] is PSObject o)
                     return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
 
-            if (value is object[] v)
+            if (value is IList v)
             {
                 try
                 {
-                    var arr = new T[v.Length];
+                    var arr = new T[v.Count];
 
                     var i = 0;
                     foreach (var j in v)
