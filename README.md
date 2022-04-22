@@ -63,7 +63,7 @@ Save this code example in a file named `Get-Planet.Tests.ps1`, and run `Invoke-P
 
 Learn how to [start quick with Pester](https://pester.dev/docs/quick-start) in our docs.
 
-The example above also has an [annotated and production ready version here](Examples/Planets).
+The example above also has an [annotated and production ready version here](docs/Examples/Planets).
 
 ## Installation
 
@@ -99,7 +99,7 @@ Describe 'Notepad' {
 }
 ```
 
-Learn more about assertions in [our documentation](https://pester.dev/docs/usage/assertions).
+Learn more about assertions in [our documentation](https://pester.dev/docs/assertions/should-command).
 
 ### Mocking
 
@@ -164,7 +164,7 @@ Do you like what you see? Learn how to use Pester with our [quick start guide](h
 
 Got questions or you just want to get in touch? Use our issues page or one of these channels:
 
-[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester) [![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester) [![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS) or try github discussions <a href="https://github.com/pester/Pester/discussions"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub discussions" height="64"></a>.
+[![Pester Twitter](images/readme/twitter-64.PNG)](https://twitter.com/PSPester) [![Pester on StackOverflow](images/readme/stack-overflow-64.PNG)](https://stackoverflow.com/questions/tagged/pester) [![Testing channel on Powershell Slack](images/readme/slack-64.PNG)](https://powershell.slack.com/messages/C03QKTUCS) [![Testing channel on Powershell Discord](images/readme/discord-64.PNG)](https://discord.gg/powershell) or try github discussions <a href="https://github.com/pester/Pester/discussions"><img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub discussions" height="64"></a>.
 
 ## Sponsored by
 
