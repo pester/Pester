@@ -99,11 +99,11 @@ https://pester.dev/docs/usage/mocking
             $historyName = "$($MethodHistoryPrefix)$($method.Key)"
             $mockState = $mock.PSObject.Properties.Item("__mock")
             if (-not $mockState) {
-                $mockState = @{}
-                $mock.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("__mock", $mockState))
+                $mockState = [Pester.Factory]::CreateNoteProperty("__mock", @{});
+                $mock.PSObject.Properties.Add($mockState)
             }
 
-            $mockState[$historyName] = @{
+            $mockState.Value[$historyName] = @{
                 Count  = 0
                 Method = $method.Value
             }
