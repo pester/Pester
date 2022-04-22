@@ -44,21 +44,12 @@ stages:
             PS7_macOS_11:
               vmImage: macOS-11
               pwsh: true
-            PS7_Windows_Server2016:
-              vmImage: vs2017-win2016
-              pwsh: true
             PS7_Windows_Server2019:
               vmImage: windows-2019
               pwsh: true
             PS7_Windows_Server2022:
               vmImage: windows-2022
               pwsh: true
-            PS_5_1_Windows_Server2016:
-              vmImage: vs2017-win2016
-              pwsh: false
-            PS_5_1_Windows_Server2019:
-              vmImage: windows-2019
-              pwsh: false
             PS_5_1_Windows_Server2022:
               vmImage: windows-2022
               pwsh: false
