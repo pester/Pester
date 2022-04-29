@@ -599,7 +599,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
             else {
                 & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
-                Write-ErrorToScreen $formatErrorParams
+                Write-ErrorToScreen @formatErrorParams
             }
         }
 
@@ -840,9 +840,13 @@ function Format-CIErrorMessage {
         [Parameter(Mandatory)]
         [string] $Header,
 
-        [Parameter(Mandatory)]
+        # [Parameter(Mandatory)]
+        # Do not make this mandatory, just providing a string array is not enough for the
+        # mandatory check to pass, it also throws when any item in the array is empty or null.
         [string[]] $Message
     )
+
+    $Message = if ($null -eq $Message) { @() } else { $Message }
 
     $lines = [System.Collections.Generic.List[string]]@()
 
@@ -889,9 +893,13 @@ function Write-CIErrorToScreen {
         [Parameter(Mandatory)]
         [string] $Header,
 
-        [Parameter(Mandatory)]
+        # [Parameter(Mandatory)]
+        # Do not make this mandatory, just providing a string array is not enough,
+        # for the mandatory check to pass, it also throws when any item in the array is empty or null.
         [string[]] $Message
     )
+
+    $PSBoundParameters.Message = if ($null -eq $Message) { @() } else { $Message }
 
     $errorMessage = Format-CIErrorMessage @PSBoundParameters
 
@@ -944,7 +952,8 @@ function Format-ErrorMessage {
         if ($null -ne $Err.DisplayErrorMessage) {
             [void]$errorMessageSb.Append($Err.DisplayErrorMessage)
 
-            if ($null -ne $Err.DisplayStackTrace -and $StackTraceVerbosity -ne 'None') {
+            # Don't try to append the stack trace when we don't have it or when we don't want it
+            if ($null -ne $Err.DisplayStackTrace -and [string]::empty -ne $Err.DisplayStackTrace.Trim() -and $StackTraceVerbosity -ne 'None') {
                 $stackTraceLines = $Err.DisplayStackTrace -split [Environment]::NewLine
 
                 if ($StackTraceVerbosity -eq 'FirstLine') {
