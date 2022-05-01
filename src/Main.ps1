@@ -157,9 +157,12 @@ function Add-AssertionDynamicParameterSet {
     ${function:__AssertionTest__} = $AssertionEntry.Test
     $commandInfo = & $SafeCommands['Get-Command'] __AssertionTest__ -CommandType Function
     $metadata = [System.Management.Automation.CommandMetadata]$commandInfo
+    $assertHelp = & $SafeCommands['Get-Help'] -Name $AssertionEntry.InternalName
 
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
+    # Add synopsis as HelpMessage to show in online help for Should parameters.
+    $attribute.HelpMessage = $assertHelp.Synopsis
 
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
@@ -169,9 +172,11 @@ function Add-AssertionDynamicParameterSet {
         $attributeCollection.Add($attribute)
     }
 
+    # Register assertion
     $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
+    # Register -Not in the assertion's parameter set. Create parameter if not already present (first assertion).
     if ($script:AssertionDynamicParams.ContainsKey('Not')) {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
@@ -185,6 +190,7 @@ function Add-AssertionDynamicParameterSet {
     $attribute.Mandatory = $false
     $null = $dynamic.Attributes.Add($attribute)
 
+    # Register required parameters in the assertion's parameter set. Create parameter if not already present.
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values) {
         # common parameters that are already defined
