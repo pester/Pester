@@ -188,6 +188,7 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
+    $attribute.HelpMessage = 'Reverse the assertion'
     $null = $dynamic.Attributes.Add($attribute)
 
     # Register required parameters in the assertion's parameter set. Create parameter if not already present.
@@ -234,6 +235,7 @@ function Add-AssertionDynamicParameterSet {
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }
