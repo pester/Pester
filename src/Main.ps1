@@ -157,12 +157,15 @@ function Add-AssertionDynamicParameterSet {
     ${function:__AssertionTest__} = $AssertionEntry.Test
     $commandInfo = & $SafeCommands['Get-Command'] __AssertionTest__ -CommandType Function
     $metadata = [System.Management.Automation.CommandMetadata]$commandInfo
-    $assertHelp = & $SafeCommands['Get-Help'] -Name $AssertionEntry.InternalName
 
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
+
     # Add synopsis as HelpMessage to show in online help for Should parameters.
-    $attribute.HelpMessage = $assertHelp.Synopsis
+    $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
+    if ($assertHelp.Synopsis.Trim() -ne $commandInfo.Name) {
+        $attribute.HelpMessage = $assertHelp.Synopsis
+    }
 
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
