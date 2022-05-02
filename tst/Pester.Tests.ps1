@@ -398,6 +398,41 @@ Describe 'Assertion operators' {
         { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
     }
 
+    It 'Allows an operator to be defined using a scriptblock' {
+        $sb = {
+            [PSCustomObject] @{
+                Succeeded = $true
+            }
+        }
+
+        { Add-ShouldOperator -Name ScriptblockOnlyOperator -Test $sb } | Should -Not -Throw
+        1 | Should -ScriptblockOnlyOperator
+    }
+
+    It 'Adds HelpMessage for Should operator with synopsis' {
+        function WithSynopsis {
+            <#
+            .SYNOPSIS
+                Here I am
+            .DESCRIPTION
+                Longer description
+            #>
+            $true
+        }
+
+        { Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis } | Should -Not -Throw
+        (Get-Command -Name Should).parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Should -Be "Here I am"
+    }
+
+    It 'Adds empty HelpMessage for Should operator without synopsis' {
+        function WithoutSynopsis {
+            $true
+        }
+
+        { Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis } | Should -Not -Throw
+        (Get-Command -Name Should).parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Should -BeNullOrEmpty
+    }
+
     AfterAll {
         $operators = &(Get-Module Pester) { $script:AssertionOperators }
         # enumerate to avoid modifying the collection
