@@ -137,7 +137,7 @@ else {
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
-$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
+$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
 
 if ($CI) {
     $configuration.Run.Exit = $true
