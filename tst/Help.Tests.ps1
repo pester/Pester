@@ -20,7 +20,7 @@ Describe "Testing module help" -ForEach @{ exportedFunctions = $exportedFunction
         It "Synopsis is defined" {
             $help.Synopsis | Should -Not -BeNullOrEmpty
             # Missing synopsis causes syntax to be shown. Verify it doesn't happen
-            $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[?-\w+)|$)"
+            $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
         }
 
         It "Has link sections" {
