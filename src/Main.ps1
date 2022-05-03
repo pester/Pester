@@ -163,7 +163,8 @@ function Add-AssertionDynamicParameterSet {
 
     # Add synopsis as HelpMessage to show in online help for Should parameters.
     $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
-    if ($assertHelp.Synopsis.Trim() -ne $commandInfo.Name) {
+    # Ignore functions without synopsis defined (they show syntax)
+    if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
         $attribute.HelpMessage = $assertHelp.Synopsis
     }
 

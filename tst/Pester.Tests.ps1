@@ -426,6 +426,7 @@ Describe 'Assertion operators' {
 
     It 'Adds empty HelpMessage for Should operator without synopsis' {
         function WithoutSynopsis {
+            param($Param1)
             $true
         }
 
