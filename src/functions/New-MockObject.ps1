@@ -26,6 +26,9 @@ Method overloads are not supported because ScriptMethods are used to decorate th
 
 For each method a property named _MethodName is defined which holds history of the invocations of the method and the arguments that were provided.
 
+.PARAMETER MethodHistoryPrefix
+Prefix for the history-property created for each mocked method. Default is '_' which would create the property ' _MethodName'.
+
 .EXAMPLE
 ```powershell
 $obj = New-MockObject -Type 'System.Diagnostics.Process'
