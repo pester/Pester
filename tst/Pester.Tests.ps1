@@ -349,6 +349,32 @@ Describe 'Assertion operators' {
         $builtInOperators = $operators.Keys | Foreach-Object { $_ }
     }
 
+    # Has to be first because parameter in operator function corrupts Should due to 32+ parameter sets
+    It 'Adds empty HelpMessage for Should operator without synopsis' {
+        function WithoutSynopsis {
+            param($ActualValue, $Param1)
+            $true
+        }
+
+        { Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis } | Should -Not -Throw
+        (Get-Command -Name Should).parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Should -BeNullOrEmpty
+    }
+
+    It 'Adds HelpMessage for Should operator with synopsis' {
+        function WithSynopsis {
+            <#
+            .SYNOPSIS
+                Here I am
+            .DESCRIPTION
+                Longer description
+            #>
+            $true
+        }
+
+        { Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis } | Should -Not -Throw
+        (Get-Command -Name Should).parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Should -Be "Here I am"
+    }
+
     It 'Allows an operator with an identical name and test to be re-registered' {
         function SameNameAndScript {
             $true
@@ -396,42 +422,6 @@ Describe 'Assertion operators' {
         Add-ShouldOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
         { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
-    }
-
-    It 'Allows an operator to be defined using a scriptblock' {
-        $sb = {
-            [PSCustomObject] @{
-                Succeeded = $true
-            }
-        }
-
-        { Add-ShouldOperator -Name ScriptblockOnlyOperator -Test $sb } | Should -Not -Throw
-        1 | Should -ScriptblockOnlyOperator
-    }
-
-    It 'Adds HelpMessage for Should operator with synopsis' {
-        function WithSynopsis {
-            <#
-            .SYNOPSIS
-                Here I am
-            .DESCRIPTION
-                Longer description
-            #>
-            $true
-        }
-
-        { Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis } | Should -Not -Throw
-        (Get-Command -Name Should).parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Should -Be "Here I am"
-    }
-
-    It 'Adds empty HelpMessage for Should operator without synopsis' {
-        function WithoutSynopsis {
-            param($Param1)
-            $true
-        }
-
-        { Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis } | Should -Not -Throw
-        (Get-Command -Name Should).parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Should -BeNullOrEmpty
     }
 
     AfterAll {
