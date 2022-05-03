@@ -103,6 +103,15 @@ function Should {
 
     .EXAMPLE
     $planets.Name | Should -Be $Expected
+
+    .EXAMPLE
+    ```powershell
+    Context "We want to ensure an exception is thrown when expected" {
+        It "Throws the exception" {
+            { Get-Application -Name Blarg } | Should -Throw "Application 'Blarg' not found"
+        }
+    }
+    ```
 #>
 
     [CmdletBinding()]
