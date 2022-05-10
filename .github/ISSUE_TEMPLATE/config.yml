@@ -1,3 +1,4 @@
+blank_issues_enabled: false
 contact_links:
   - name: Need help?
     url: https://pester.dev/docs/contributing/introduction#where-to-get-support
