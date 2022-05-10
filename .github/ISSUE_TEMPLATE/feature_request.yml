@@ -1,0 +1,32 @@
+name: 💡 Feature Request/Idea
+description: Got a great idea to make Pester better? Submit a suggestion
+labels: Feature
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thank you for using Pester!
+      Good ideas are always welcome and there's no commitment to implement it yourself, but feel free to contribute after an initial discussion.
+      
+      Remember to try out the latest version of Pester - maybe your request is already available. See [README](https://github.com/pester/Pester) and [Releases](https://github.com/pester/Pester/releases) for the latest updates and newest features.
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+    - label: "Feature request has a meaningful title"
+      required: true
+    - label: "I have searched the existing issues. See [all issues](https://github.com/pester/Pester/issues?q=is%3Aissue)"
+    - label: "I have tested using the latest version of Pester. See [Installation and update guide](https://pester.dev/docs/introduction/installation)."
+- type: textarea
+  attributes:
+    label: Summary of the feature request
+    description: "A clear and concise description of your idea. What problem do you want to solve?"
+    placeholder: "As a user I'd like to be able to get X by doing Y. This would be very useful in situations like Z."
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: How should it work?
+    description: |
+      Do you already have an idea of how this experience should be?
+      Feel free to provide a short demo of usage and expected results.

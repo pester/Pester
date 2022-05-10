@@ -1,0 +1,68 @@
+name: 🐛 Bug Report
+description: Report errors or unexpected behavior
+labels: []
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thank you for using Pester and taking the time to report this issue!
+      Only Pester 4.10.x and 5.x.x are supported.
+      
+      Pester 5 introduced breaking changes and some features were removed or are not yet migrated. See [Breaking changes in v5](https://pester.dev/docs/migrations/breaking-changes-in-v5)
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+    - label: "Issue has a meaningful title"
+      required: true
+    - label: "I have searched the existing issues. See [all issues](https://github.com/pester/Pester/issues?q=is%3Aissue)"
+    - label: "I have tested using the latest version of Pester. See [Installation and update guide](https://pester.dev/docs/introduction/installation)."
+- type: textarea
+  attributes:
+    label: General summary of the issue
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Describe your environment
+    description: |
+      Please provide the output of the script below. The script collects Operating System, Pester version and PowerShell version.
+      You can [open the URL](https://git.io/JTinj) in a browser to view the code before running it.
+      ```powershell
+      (Invoke-WebRequest -Uri "https://git.io/JTinj" -UseBasicParsing).Content | Invoke-Expression
+      ```
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps To Reproduce
+    description: |
+      Provide steps and/or sample code to reproduce the issue.
+      Try to make it as concise as possible, removing irrelevant steps/code and providing sample data where possible. This will enable us to help you faster.
+    placeholder: |
+      Tip: Placing Powershell code in codeblocks makes it easier to read.
+      ```powershell
+      # your code
+      ```
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Expected Behavior
+    description: A clear and concise description of what you expected to happen.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Current Behavior
+    description: What happens instead of the expected behavior.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Possible Solution?
+    description: |
+      Have a solution in mind?
+      Bug fix pull requests are always welcome. See https://pester.dev/docs/contributing/introduction for detailed instructions on how to contribute.
+  validations:
+    required: false
