@@ -15,6 +15,7 @@ body:
     - label: "Issue has a meaningful title"
       required: true
     - label: "I have searched the existing issues. See [open documentation issues](https://github.com/pester/Pester/issues?q=is%3Aissue+label%3ADocumentation+is%3Aopen)"
+      required: true
 - type: textarea
   attributes:
     label: Location

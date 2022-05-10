@@ -16,7 +16,9 @@ body:
     - label: "Feature request has a meaningful title"
       required: true
     - label: "I have searched the existing issues. See [all issues](https://github.com/pester/Pester/issues?q=is%3Aissue)"
+      required: true
     - label: "I have tested using the latest version of Pester. See [Installation and update guide](https://pester.dev/docs/introduction/installation)."
+      required: true
 - type: textarea
   attributes:
     label: Summary of the feature request
