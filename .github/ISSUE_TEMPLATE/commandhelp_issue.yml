@@ -16,15 +16,25 @@ body:
       required: true
     - label: "I have searched the existing issues. See [open documentation issues](https://github.com/pester/Pester/issues?q=is%3Aissue+label%3ADocumentation+is%3Aopen)"
       required: true
+- type: dropdown
+  attributes:
+    label: Where did you see it?
+    description: Did you find the issue in PowerShell using module help? On the website? Other?
+    options:
+      - Pester (latest)
+      - Web (https://pester.dev)
+      - Both
+      - Other
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: Function name
+    placeholder: "Invoke-Pester"
+  validations:
+    required: true
 - type: textarea
   attributes:
-    label: Location
-    description: "Help us identify which documentation to update"
-    value: |
-      - Pester version: 
-      - Function: 
-- type: textarea
-  attributes:
-    label: General summary of the issue
+    label: What is the issue?
   validations:
     required: true
