@@ -21,18 +21,13 @@ body:
       required: true
 - type: textarea
   attributes:
-    label: General summary of the issue
+    label: What is the issue?
   validations:
     required: true
 - type: textarea
   attributes:
-    label: Describe your environment
-    description: |
-      Please provide the output of the script below. The script collects Operating System, Pester version and PowerShell version.
-      You can [open the URL](https://git.io/JTinj) in a browser to view the code before running it.
-      ```powershell
-      (Invoke-WebRequest -Uri "https://git.io/JTinj" -UseBasicParsing).Content | Invoke-Expression
-      ```
+    label: Expected Behavior
+    description: A clear and concise description of what you expected to happen.
   validations:
     required: true
 - type: textarea
@@ -47,17 +42,16 @@ body:
       # your code
       ```
   validations:
-    required: true
+    required: false
 - type: textarea
   attributes:
-    label: Expected Behavior
-    description: A clear and concise description of what you expected to happen.
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: Current Behavior
-    description: What happens instead of the expected behavior.
+    label: Describe your environment
+    description: |
+      Please provide the output of the script below. The script collects Operating System, Pester version and PowerShell version.
+      You can [open the URL](https://git.io/JTinj) in a browser to view the code before running it.
+      ```powershell
+      (Invoke-WebRequest -Uri "https://git.io/JTinj" -UseBasicParsing).Content | Invoke-Expression
+      ```
   validations:
     required: true
 - type: textarea
