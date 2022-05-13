@@ -1,0 +1,40 @@
+name: 📖 Problem with Command Reference documentation?
+description: Outdated docs in function help or Command Reference on https://pester.dev? Report them here
+labels: Documentation
+body:
+- type: markdown
+  attributes:
+    value: |
+      Thank you for using Pester and taking the time to report this issue!
+      
+      Command Reference-documentation on the website are generated from comment-based help in the functions and should be reported here. All other documentation issues on https://pester.dev should be reported in the [docs-repo](https://github.com/pester/docs).
+- type: checkboxes
+  attributes:
+    label: Checklist
+    options:
+    - label: "Issue has a meaningful title"
+      required: true
+    - label: "I have searched the existing issues. See [open documentation issues](https://github.com/pester/Pester/issues?q=is%3Aissue+label%3ADocumentation+is%3Aopen)"
+      required: true
+- type: dropdown
+  attributes:
+    label: Where did you see it?
+    description: Did you find the issue in PowerShell using module help? On the website? Other?
+    options:
+      - Pester (latest)
+      - Web (https://pester.dev)
+      - Both
+      - Other
+  validations:
+    required: true
+- type: input
+  attributes:
+    label: Function name
+    placeholder: "Invoke-Pester"
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: What is the issue?
+  validations:
+    required: true
