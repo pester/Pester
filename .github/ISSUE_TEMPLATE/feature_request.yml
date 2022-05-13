@@ -7,7 +7,7 @@ body:
     value: |
       Thank you for using Pester!
       Good ideas are always welcome and there's no commitment to implement it yourself, but feel free to contribute after an initial discussion.
-      
+
       Remember to try out the latest version of Pester - maybe your request is already available. See [README](https://github.com/pester/Pester) and [Releases](https://github.com/pester/Pester/releases) for the latest updates and newest features.
 - type: checkboxes
   attributes:
