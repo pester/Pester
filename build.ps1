@@ -1,4 +1,4 @@
-﻿#! /usr/bin/pwsh
+#! /usr/bin/pwsh
 
 <#
     .SYNOPSIS
@@ -48,7 +48,8 @@
 param (
     [switch] $Load,
     [switch] $Clean,
-    [switch] $Inline
+    [switch] $Inline,
+    [switch] $Import
 )
 
 $ErrorActionPreference = 'Stop'
@@ -311,3 +312,5 @@ if ($Load) {
         throw "load failed!"
     }
 }
+
+if ($Import) { Import-Module "$PSScriptRoot/bin/Pester.psd1" -Force }
