@@ -267,9 +267,9 @@ if (-not $inline) {
 }
 
 foreach ($f in $files) {
-    $lines = Get-Content $f
-
     if ($inline) {
+        $lines = Get-Content $f
+
         $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
         $null = $sb.AppendLine("# file $relativePath")
         $noBuild = $false
