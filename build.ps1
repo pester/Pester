@@ -307,7 +307,7 @@ $sb.ToString() | Set-Content "$PSScriptRoot/bin/Pester.psm1" -Encoding UTF8
 $powershell = Get-Process -Id $PID | Select-Object -ExpandProperty Path
 
 if ($Load) {
-    & $powershell -c "'Load: ' + (Measure-Command { Import-Module `"$PSScriptRoot/bin/Pester.psd1`" -ErrorAction Stop}).TotalMilliseconds + 'ms'"
+    & $powershell -c "'Load: ' + (Measure-Command { Import-Module '$PSScriptRoot/bin/Pester.psd1' -ErrorAction Stop}).TotalMilliseconds + 'ms'"
     if (0 -ne $LASTEXITCODE) {
         throw "load failed!"
     }
