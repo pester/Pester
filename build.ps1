@@ -48,7 +48,8 @@
 param (
     [switch] $Load,
     [switch] $Clean,
-    [switch] $Inline
+    [switch] $Inline,
+    [switch] $Import
 )
 
 $ErrorActionPreference = 'Stop'
@@ -267,9 +268,9 @@ if (-not $inline) {
 }
 
 foreach ($f in $files) {
-    $lines = Get-Content $f
-
     if ($inline) {
+        $lines = Get-Content $f
+
         $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
         $null = $sb.AppendLine("# file $relativePath")
         $noBuild = $false
@@ -301,13 +302,15 @@ foreach ($f in $files) {
     }
 }
 
-$sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
+$sb.ToString() | Set-Content "$PSScriptRoot/bin/Pester.psm1" -Encoding UTF8
 
 $powershell = Get-Process -Id $PID | Select-Object -ExpandProperty Path
 
 if ($Load) {
-    & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
+    & $powershell -c "'Load: ' + (Measure-Command { Import-Module '$PSScriptRoot/bin/Pester.psd1' -ErrorAction Stop}).TotalMilliseconds + 'ms'"
     if (0 -ne $LASTEXITCODE) {
         throw "load failed!"
     }
 }
+
+if ($Import) { Import-Module "$PSScriptRoot/bin/Pester.psd1" -Force }
