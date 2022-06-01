@@ -26,7 +26,20 @@ namespace Pester
     {
         public static T? GetValueOrNull<T>(this IDictionary dictionary, string key) where T : struct
         {
-            return dictionary.Contains(key) ? dictionary[key] as T? : null;
+            if (!dictionary.Contains(key))
+                return null;
+
+            var value = dictionary[key];
+
+            if (typeof(T) == typeof(decimal))
+                if (value is int o)
+                    return (T)Convert.ChangeType(o, typeof(decimal));
+
+            if (typeof(T) == typeof(decimal))
+                if (value is double o)
+                    return (T)Convert.ChangeType(o, typeof(decimal));
+
+            return value as T?;
         }
 
         public static T GetObjectOrNull<T>(this IDictionary dictionary, string key) where T : class
@@ -73,7 +86,7 @@ namespace Pester
                     return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
 
             if (typeof(T) == typeof(string))
-                if (dictionary[key] is PSObject o)
+                if (value is PSObject o)
                     return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
 
             if (value is IList v)

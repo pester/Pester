@@ -252,6 +252,16 @@ i -PassThru:$PassThru {
             Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
         }
 
+        t "DecimalOption can be assigned an int from hashtable" {
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = 90 } }
+            $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 90
+        }
+
+        t "DecimalOption can be assigned an double from hashtable" {
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = 12.34 } }
+            $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 12.34
+        }
+
         t "Modifying the private Default property of an option throws" {
             $config = [PesterConfiguration]::Default
             { $config.Run.Path.Default = 'invalid' } | Verify-Throw
