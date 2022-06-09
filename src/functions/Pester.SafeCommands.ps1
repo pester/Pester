@@ -78,11 +78,15 @@ $script:SafeCommands = @{
     'Write-Warning'        = & $Get_Command -Name Write-Warning        -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
 }
 
-# Not all platforms have Get-WmiObject (Nano or PSCore 6.0.0-beta.x on Linux)
-# Get-CimInstance is preferred, but we can use Get-WmiObject if it exists
-# Moreover, it shouldn't really be fatal if neither of those cmdlets
-# exist
-if (($cim = & $Get_Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Ignore)) {
+# Not all platforms have Get-CimInstance (preferred) or Get-WmiObject.
+# It shouldn't be fatal if neither of those cmdlets exists, however
+# some NanoServer/PS images contain a non-functioning version of Get-CimInstance
+# so don't even try it if we're on one of those images.
+
+$NanoServerRegistryKey = 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels'
+$NanoServer = (Get-ItemPropertyValue  $NanoServerRegistryKey -Name NanoServer -ErrorAction Ignore) -eq 1
+
+if (-not $NanoServer -and ($cim = & $Get_Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Ignore)) {
     $script:SafeCommands['Get-CimInstance'] = $cim
 }
 elseif (($wmi = & $Get_Command -Name Get-WmiObject -Module Microsoft.PowerShell.Management -CommandType Cmdlet -ErrorAction Ignore)) {
