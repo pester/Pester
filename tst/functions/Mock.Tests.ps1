@@ -2753,6 +2753,7 @@ Describe 'RemoveParameterValidation' {
 
 Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
     # https://github.com/pester/Pester/issues/1496
+    # https://github.com/PowerShell/PowerShell/issues/17546
     # Bug in PowerShell. ProxyCommand-generation breaks ValidateRange-attributes for enum-parameters
 
     BeforeAll {
@@ -2763,7 +2764,11 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
 
                 [Parameter(ParameterSetName = 'SomeSet')]
                 [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$MyParam2
+                [Microsoft.PowerShell.ExecutionPolicy]$MyParam2,
+
+                [Parameter(ParameterSetName = 'SomeSetAgain')]
+                [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
+                [Microsoft.PowerShell.ExecutionPolicy]$MyParam3
             )
         }
 

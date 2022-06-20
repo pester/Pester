@@ -1816,6 +1816,7 @@ function Repair-BrokenParamBlock {
     # proxycommand breaks ValidateRange for enum-parameters
     # broken arguments (unquoted strings) will show as NamedArguments in ast, while valid arguments are PositionalArguments.
     # https://github.com/pester/Pester/issues/1496
+    # https://github.com/PowerShell/PowerShell/issues/17546
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
     $brokenEnumValidations = $ast.FindAll({
             $args[0] -is [System.Management.Automation.Language.AttributeAst] -and
