@@ -1,4 +1,4 @@
-﻿function Assert-ValidAssertionName {
+function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -633,6 +633,9 @@ function Invoke-Pester {
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
         Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
+
+        # store CWD so we can revert any changes at the end
+        & $SafeCommands['Push-Location'] -StackName 'Pester'
     }
 
     end {
@@ -1213,6 +1216,9 @@ function Invoke-Pester {
                 exit -1
             }
         }
+
+        # go back to original CWD
+        & $SafeCommands['Pop-Location'] -StackName 'Pester'
 
         # exit with exit code if we fail and even if we succeed, otherwise we could inherit
         # exit code of some other app end exit with it's exit code instead with ours

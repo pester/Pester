@@ -1,4 +1,4 @@
-﻿param ([switch] $PassThru)
+param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -2425,6 +2425,25 @@ i -PassThru:$PassThru {
             $r.Containers[1].Blocks[0].Tests[0].Passed | Verify-True
             $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
             $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Run'"
+        }
+    }
+
+    b 'Changes to CWD are reverted on exit' {
+        t 'when executed normally' {
+            $beforePWD = $pwd.Path
+
+            $sb = {
+                Describe 'd' {
+                    It 'i' {
+                        Set-Location '../'
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            Invoke-Pester -Container $container -Output None
+            $pwd.Path | Verify-Equal $beforePWD
         }
     }
 }
