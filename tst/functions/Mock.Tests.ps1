@@ -2756,7 +2756,7 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
     # https://github.com/PowerShell/PowerShell/issues/17546
     # Bug in PowerShell. ProxyCommand-generation breaks ValidateRange-attributes for enum-parameters
 
-    It 'excutes sucessfully' {
+    It 'fixed function executes sucessfully' {
         function Test-EnumValidation {
             param(
                 [ValidateSet([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
@@ -2774,6 +2774,15 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
 
         Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
         Test-EnumValidation | Should -Be 'mock'
+    }
+
+    if ((InPesterModuleScope { GetPesterOs }) -eq 'Windows') {
+        It 'fixed cmdlet executes sucessfully' {
+            # Only built-in cmdlet with affected parameters are Start/Set-BitsTransfer. Only available on Windows
+
+            Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }
+            Start-BitsTransfer -Source "/nonexistingpath" | Should -Be 'mock'
+        }
     }
 }
 
