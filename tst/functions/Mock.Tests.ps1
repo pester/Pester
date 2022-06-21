@@ -2760,15 +2760,15 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
         function Test-EnumValidation {
             param(
                 [ValidateSet([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$MyParam1,
+                [Microsoft.PowerShell.ExecutionPolicy]$ValidateSetIsValid,
 
                 [Parameter(ParameterSetName = 'SomeSet')]
                 [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$MyParam2,
+                [Microsoft.PowerShell.ExecutionPolicy]$Broken,
 
                 [Parameter()]
                 [ValidateRange([System.ConsoleKey]::Clear, [System.ConsoleKey]::OemClear)]
-                [System.ConsoleKey]$MyParam3
+                [System.ConsoleKey]$BrokenWithSimilarNames
             )
         }
 

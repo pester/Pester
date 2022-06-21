@@ -1819,9 +1819,13 @@ function Repair-EnumParameters {
     # https://github.com/PowerShell/PowerShell/issues/17546
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
     $brokenEnumValidations = $ast.FindAll({
-            $args[0] -is [System.Management.Automation.Language.AttributeAst] -and
-            $args[0].TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
-            $args[0].NamedArguments.Count -gt 0
+        param($node)
+            $node -is [System.Management.Automation.Language.AttributeAst] -and
+            $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
+            $node.Parent.StaticType.IsEnum -and
+            $node.NamedArguments.Count -gt 0 -and
+            # triple checking for broken argument - it won't have a value/expression
+            $node.NamedArguments.ExpressionOmitted -notcontains $false
         }, $false)
 
     if ($brokenEnumValidations.Count -eq 0) {
@@ -1832,19 +1836,17 @@ function Repair-EnumParameters {
     $sb = & $SafeCommands['New-Object'] System.Text.StringBuilder($ParamBlock)
 
     foreach ($attr in $brokenEnumValidations) {
-        $enumType = $attr.Parent.StaticType.FullName
-
-        $fixedValidation = $attr.Extent.Text
-        foreach ($invalidArg in $attr.NamedArguments.ArgumentName) {
-            $fixedValidation = $fixedValidation.Replace($invalidArg, "[$enumType]::$invalidArg")
-        }
-
-        $orgParameter = $attr.Parent.Extent.Text
-        $fixedParameter = $orgParameter.Replace($attr.Extent.Text, $fixedValidation)
+        # prefix arguments with [My.Enum.Type]::
+        $enumPrefix = "[$($attr.Parent.StaticType.FullName)]::"
+        $fixedValidation = $attr.Extent.Text -replace '(\w+)(?=,\s|\)\])', "$enumPrefix`$1"
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Fixed ValidateRange-attribute for enum-parameter from '$($attr.Extent.Text)' to '$fixedValidation'"
         }
+
+        # make sure we modify the correct parameter by modifying the whole thing
+        $orgParameter = $attr.Parent.Extent.Text
+        $fixedParameter = $orgParameter.Replace($attr.Extent.Text, $fixedValidation)
         $null = $sb.Replace($orgParameter, $fixedParameter)
     }
 
