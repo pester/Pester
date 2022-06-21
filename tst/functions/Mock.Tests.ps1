@@ -2766,7 +2766,7 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
                 [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
                 [Microsoft.PowerShell.ExecutionPolicy]$MyParam2,
 
-                [Parameter(ParameterSetName = 'SomeSetAgain')]
+                [Parameter()]
                 [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
                 [Microsoft.PowerShell.ExecutionPolicy]$MyParam3
             )
@@ -2775,7 +2775,7 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
         Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
     }
 
-    It 'Should execute the mocked command successfully' {
+    It 'excutes sucessfully' {
         Test-EnumValidation | Should -Be 'mock'
     }
 }

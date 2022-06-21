@@ -92,7 +92,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
         $orgParamBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
-        $paramBlock = Repair-BrokenParamBlock -ParamBlock $orgParamBlock
+        $paramBlock = Repair-EnumParameters -ParamBlock $orgParamBlock
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
             $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
@@ -1807,7 +1807,7 @@ function New-BlockWithoutParameterAliases {
     }
 }
 
-function Repair-BrokenParamBlock {
+function Repair-EnumParameters {
     param (
         [string]
         $ParamBlock
