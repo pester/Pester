@@ -2756,7 +2756,7 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
     # https://github.com/PowerShell/PowerShell/issues/17546
     # Bug in PowerShell. ProxyCommand-generation breaks ValidateRange-attributes for enum-parameters
 
-    BeforeAll {
+    It 'excutes sucessfully' {
         function Test-EnumValidation {
             param(
                 [ValidateSet([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
@@ -2767,15 +2767,12 @@ Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
                 [Microsoft.PowerShell.ExecutionPolicy]$MyParam2,
 
                 [Parameter()]
-                [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$MyParam3
+                [ValidateRange([System.ConsoleKey]::Clear, [System.ConsoleKey]::OemClear)]
+                [System.ConsoleKey]$MyParam3
             )
         }
 
         Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
-    }
-
-    It 'excutes sucessfully' {
         Test-EnumValidation | Should -Be 'mock'
     }
 }
