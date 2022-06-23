@@ -82,8 +82,8 @@ $script:SafeCommands = @{
 # It shouldn't be fatal if neither of those cmdlets exists, however
 # some NanoServer/PS images contain a non-functioning version of Get-CimInstance
 # so don't even try it if we're on one of those images.
-$NanoServerRegistryKey = 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels'
-$NanoServerRegistryKeyValue = (Get-ItemPropertyValue $NanoServerRegistryKey -Name NanoServer -ErrorAction Ignore)
+$NanoServerRegistryKey = & $SafeCommands['Get-ItemProperty'] -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Server\ServerLevels' -ErrorAction Ignore
+$NanoServerRegistryKeyValue = $NanoServerRegistryKey | & $SafeCommands['ForEach-Object'] -MemberName NanoServer
 $NanoServer = $NanoServerRegistryKeyValue -eq 1
 
 if (-not $NanoServer -and ($cim = & $Get_Command -Name Get-CimInstance -Module CimCmdlets -CommandType Cmdlet -ErrorAction Ignore)) {
