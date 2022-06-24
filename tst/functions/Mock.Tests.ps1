@@ -2751,33 +2751,51 @@ Describe 'RemoveParameterValidation' {
     }
 }
 
-Describe 'Mocking function with enum parameters and ValidateRange-attributes' {
+Describe 'Mocking command with ValidateRange-attributes' {
     # https://github.com/pester/Pester/issues/1496
     # https://github.com/PowerShell/PowerShell/issues/17546
     # Bug in PowerShell. ProxyCommand-generation breaks ValidateRange-attributes for enum-parameters
 
-    It 'fixed function executes sucessfully' {
-        function Test-EnumValidation {
-            param(
-                [ValidateSet([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$ValidateSetIsValid,
-
-                [Parameter(ParameterSetName = 'SomeSet')]
-                [ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]
-                [Microsoft.PowerShell.ExecutionPolicy]$Broken,
-
-                [Parameter()]
-                [ValidateRange([System.ConsoleKey]::Clear, [System.ConsoleKey]::OemClear)]
-                [System.ConsoleKey]$BrokenWithSimilarNames
-            )
+    It 'mocked function does not throw when param is <Name>' -TestCases @(
+        @{
+            # min and max are enum-values -> affected by bug, needs Repair-EnumParameters
+            Name      = 'typed using enum min max'
+            Attribute = '[ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]'
+            Parameter = '[Microsoft.PowerShell.ExecutionPolicy]$TypedBroken'
+        },
+        @{
+            # min and max are enum-values -> affected by bug, needs Repair-EnumParameters
+            Name      = 'untyped using enum min max'
+            Attribute = '[ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]'
+            Parameter = '$UntypedBroken'
+        },
+        @{
+            # min and max are enum-values -> affected by bug, needs Repair-EnumParameters. make sure regex didn't match partial (Clear)
+            Name      = 'untyped using enum min max with similar valuenames'
+            Attribute = '[ValidateRange([System.ConsoleKey]::Clear, [System.ConsoleKey]::OemClear)]'
+            Parameter = '[Parameter()][System.ConsoleKey]$TypedBrokenWithSimilarAttributeArgNames'
+        },
+        @{
+            # int Min, enum Max -> Both are set as int in command metadata -> unaffected by bug
+            Name      = 'untyped using int min enum max'
+            Attribute = '[ValidateRange(0, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]'
+            Parameter = '[Microsoft.PowerShell.ExecutionPolicy]$Works'
+        },
+        @{
+            # enum Min, int Max -> Both are set as int in command metadata -> unaffected by bug
+            Name      = 'untyped using enum min max'
+            Attribute = '[ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, 0)]'
+            Parameter = '[Microsoft.PowerShell.ExecutionPolicy]$Works2'
         }
+    ) {
+        Set-Item -Path 'function:Test-EnumValidation' -Value ('param ( {0}{1} )' -f $Attribute, $Parameter)
 
         Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
         Test-EnumValidation | Should -Be 'mock'
     }
 
     if ((InPesterModuleScope { GetPesterOs }) -eq 'Windows') {
-        It 'fixed cmdlet executes sucessfully' {
+        It 'mocked cmdlet does not throw' {
             # Only built-in cmdlet with affected parameters are Start/Set-BitsTransfer. Only available on Windows
 
             Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }

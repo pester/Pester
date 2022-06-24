@@ -91,8 +91,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
 
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
-        $orgParamBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
-        $paramBlock = Repair-EnumParameters -ParamBlock $orgParamBlock
+        $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+        $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
             $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
@@ -1810,7 +1810,9 @@ function New-BlockWithoutParameterAliases {
 function Repair-EnumParameters {
     param (
         [string]
-        $ParamBlock
+        $ParamBlock,
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
     )
 
     # proxycommand breaks ValidateRange for enum-parameters
@@ -1818,30 +1820,32 @@ function Repair-EnumParameters {
     # https://github.com/pester/Pester/issues/1496
     # https://github.com/PowerShell/PowerShell/issues/17546
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
-    $brokenEnumValidations = $ast.FindAll({
+    $brokenValidateRange = $ast.FindAll({
         param($node)
-            $node -is [System.Management.Automation.Language.AttributeAst] -and
-            $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
-            $node.Parent.StaticType.IsEnum -and
-            $node.NamedArguments.Count -gt 0 -and
-            # triple checking for broken argument - it won't have a value/expression
-            $node.NamedArguments.ExpressionOmitted -notcontains $false
-        }, $false)
+        $node -is [System.Management.Automation.Language.AttributeAst] -and
+        $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
+        $node.NamedArguments.Count -gt 0 -and
+        # triple checking for broken argument - it won't have a value/expression
+        $node.NamedArguments.ExpressionOmitted -notcontains $false
+    }, $false)
 
-    if ($brokenEnumValidations.Count -eq 0) {
+    if ($brokenValidateRange.Count -eq 0) {
         # No errors found. Return original string
         return $ParamBlock
     }
 
     $sb = & $SafeCommands['New-Object'] System.Text.StringBuilder($ParamBlock)
 
-    foreach ($attr in $brokenEnumValidations) {
+    foreach ($attr in $brokenValidateRange) {
+        $paramName = $attr.Parent.Name.VariablePath.UserPath
+        $originalAttribute = $Metadata.Parameters[$paramName].Attributes | & $SafeCommands['Where-Object'] { $_ -is [ValidateRange] }
+        $enumType = @($originalAttribute)[0].MinRange.GetType().FullName
         # prefix arguments with [My.Enum.Type]::
-        $enumPrefix = "[$($attr.Parent.StaticType.FullName)]::"
+        $enumPrefix = "[$enumType]::"
         $fixedValidation = $attr.Extent.Text -replace '(\w+)(?=,\s|\)\])', "$enumPrefix`$1"
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock -Message "Fixed ValidateRange-attribute for enum-parameter from '$($attr.Extent.Text)' to '$fixedValidation'"
+            Write-PesterDebugMessage -Scope Mock -Message "Fixed ValidateRange-attribute parameter '$paramName' from '$($attr.Extent.Text)' to '$fixedValidation'"
         }
 
         # make sure we modify the correct parameter by modifying the whole thing
