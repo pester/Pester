@@ -46,9 +46,9 @@ function Should {
             Should -Invoke Get-Command -Times 1 -Exactly
         }
     }
+    ```
 
     Example of creating a mock for `Get-Command` and asserting that it was called exactly one time.
-    ```
 
     .EXAMPLE
     $true | Should -BeFalse
@@ -82,9 +82,9 @@ function Should {
             { Get-Application -Name Blarg } | Should -Throw -ExpectedMessage "Application 'Blarg' not found"
         }
     }
+    ```
 
     Asserting that `Get-Application -Name Blarg` will throw an exception with a specific message.
-    ```
 
     .LINK
     https://pester.dev/docs/commands/Should
