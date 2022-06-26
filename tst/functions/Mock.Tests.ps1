@@ -2777,15 +2777,21 @@ Describe 'Mocking command with ValidateRange-attributes' {
         },
         @{
             # int Min, enum Max -> Both are set as int in command metadata -> unaffected by bug
-            Name      = 'untyped using int min enum max'
+            Name      = 'typed using int min enum max'
             Attribute = '[ValidateRange(0, [Microsoft.PowerShell.ExecutionPolicy]::Undefined)]'
             Parameter = '[Microsoft.PowerShell.ExecutionPolicy]$Works'
         },
         @{
             # enum Min, int Max -> Both are set as int in command metadata -> unaffected by bug
-            Name      = 'untyped using enum min max'
+            Name      = 'typed using enum min max'
             Attribute = '[ValidateRange([Microsoft.PowerShell.ExecutionPolicy]::Unrestricted, 0)]'
             Parameter = '[Microsoft.PowerShell.ExecutionPolicy]$Works2'
+        },
+        @{
+            # ValidateRangeKind -> unaffected by bug
+            Name      = 'typed using RangeKind'
+            Attribute = '[ValidateRange([System.Management.Automation.ValidateRangeKind]::Positive)]'
+            Parameter = '[int]$Works2'
         }
     ) {
         Set-Item -Path 'function:Test-EnumValidation' -Value ('param ( {0}{1} )' -f $Attribute, $Parameter)
@@ -2794,10 +2800,9 @@ Describe 'Mocking command with ValidateRange-attributes' {
         Test-EnumValidation | Should -Be 'mock'
     }
 
-    if ((InPesterModuleScope { GetPesterOs }) -eq 'Windows') {
+    # Only built-in cmdlet with affected parameters are Start/Set-BitsTransfer. Only available on Windows 
+    if ((Get-Module BitsTransfer -ErrorAction SilentlyContinue)) {
         It 'mocked cmdlet does not throw' {
-            # Only built-in cmdlet with affected parameters are Start/Set-BitsTransfer. Only available on Windows
-
             Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }
             Start-BitsTransfer -Source "/nonexistingpath" | Should -Be 'mock'
         }

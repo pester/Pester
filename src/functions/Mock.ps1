@@ -1839,9 +1839,11 @@ function Repair-EnumParameters {
     foreach ($attr in $brokenValidateRange) {
         $paramName = $attr.Parent.Name.VariablePath.UserPath
         $originalAttribute = $Metadata.Parameters[$paramName].Attributes | & $SafeCommands['Where-Object'] { $_ -is [ValidateRange] }
-        $enumType = @($originalAttribute)[0].MinRange.GetType().FullName
+        $enumType = @($originalAttribute)[0].MinRange.GetType()
+        if (-not $enumType.IsEnum) { continue }
+
         # prefix arguments with [My.Enum.Type]::
-        $enumPrefix = "[$enumType]::"
+        $enumPrefix = "[$($enumType.FullName)]::"
         $fixedValidation = $attr.Extent.Text -replace '(\w+)(?=,\s|\)\])', "$enumPrefix`$1"
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
