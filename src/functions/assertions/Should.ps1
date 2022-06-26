@@ -51,17 +51,6 @@ function Should {
     ```
 
     .EXAMPLE
-    ```powershell
-    Describe "d1" {
-        It "i1" {
-            Mock Get-Command { }
-            Get-Command -CommandName abc
-            Should -Invoke Get-Command -Times 1 -Exactly
-        }
-    }
-    ```
-
-    .EXAMPLE
     $true | Should -BeFalse
 
     Asserting that the input value is false. This would fail the test by throwing an error.
