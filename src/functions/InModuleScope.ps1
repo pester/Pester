@@ -1,37 +1,36 @@
 ﻿function InModuleScope {
     <#
-.SYNOPSIS
-   Allows you to execute parts of a test script within the
-   scope of a PowerShell script module.
-.DESCRIPTION
-   By injecting some test code into the scope of a PowerShell
-   script module, you can use non-exported functions, aliases
-   and variables inside that module, to perform unit tests on
-   its internal implementation.
+    .SYNOPSIS
+    Allows you to execute parts of a test script within the
+    scope of a PowerShell script module.
+    .DESCRIPTION
+    By injecting some test code into the scope of a PowerShell
+    script module, you can use non-exported functions, aliases
+    and variables inside that module, to perform unit tests on
+    its internal implementation.
 
-   InModuleScope may be used anywhere inside a Pester script,
-   either inside or outside a Describe block.
-.PARAMETER ModuleName
-   The name of the module into which the test code should be
-   injected. This module must already be loaded into the current
-   PowerShell session.
-.PARAMETER ScriptBlock
-   The code to be executed within the script module.
-.PARAMETER Parameters
-   A optional hashtable of parameters to be passed to the scriptblock.
-   Parameters are automatically made available as variables in the scriptblock.
-.PARAMETER ArgumentList
-   A optional list of arguments to be passed to the scriptblock.
-.EXAMPLE
+    InModuleScope may be used anywhere inside a Pester script,
+    either inside or outside a Describe block.
+    .PARAMETER ModuleName
+    The name of the module into which the test code should be
+    injected. This module must already be loaded into the current
+    PowerShell session.
+    .PARAMETER ScriptBlock
+    The code to be executed within the script module.
+    .PARAMETER Parameters
+    A optional hashtable of parameters to be passed to the scriptblock.
+    Parameters are automatically made available as variables in the scriptblock.
+    .PARAMETER ArgumentList
+    A optional list of arguments to be passed to the scriptblock.
+
+    .EXAMPLE
     ```powershell
     # The script module:
-    function PublicFunction
-    {
+    function PublicFunction {
         # Does something
     }
 
-    function PrivateFunction
-    {
+    function PrivateFunction {
         return $true
     }
 
@@ -55,16 +54,14 @@
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
 
-.EXAMPLE
+    .EXAMPLE
     ```powershell
     # The script module:
-    function PublicFunction
-    {
+    function PublicFunction {
         # Does something
     }
 
-    function PrivateFunction ($MyParam)
-    {
+    function PrivateFunction ($MyParam) {
         return $MyParam
     }
 
@@ -101,10 +98,9 @@
     No variables from the outside are available inside the scriptblock without explicitly passing
     them in using `-Parameters` or `-ArgumentList`.
 
-.LINK
+    .LINK
     https://pester.dev/docs/commands/InModuleScope
-#>
-
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]

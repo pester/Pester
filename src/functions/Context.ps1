@@ -1,70 +1,73 @@
 ﻿function Context {
     <#
-.SYNOPSIS
-Provides logical grouping of It blocks within a single Describe block.
+    .SYNOPSIS
+    Provides logical grouping of It blocks within a single Describe block.
 
-.DESCRIPTION
-Provides logical grouping of It blocks within a single Describe block.
-Any Mocks defined inside a Context are removed at the end of the Context scope,
-as are any files or folders added to the TestDrive during the Context block's
-execution. Any BeforeEach or AfterEach blocks defined inside a Context also only
-apply to tests within that Context .
+    .DESCRIPTION
+    Provides logical grouping of It blocks within a single Describe block.
+    Any Mocks defined inside a Context are removed at the end of the Context scope,
+    as are any files or folders added to the TestDrive during the Context block's
+    execution. Any BeforeEach or AfterEach blocks defined inside a Context also only
+    apply to tests within that Context .
 
-.PARAMETER Name
-The name of the Context. This is a phrase describing a set of tests within a describe.
+    .PARAMETER Name
+    The name of the Context. This is a phrase describing a set of tests within a describe.
 
-.PARAMETER Tag
-Optional parameter containing an array of strings. When calling Invoke-Pester,
-it is possible to specify a -Tag parameter which will only execute Context blocks
-containing the same Tag.
+    .PARAMETER Tag
+    Optional parameter containing an array of strings. When calling Invoke-Pester,
+    it is possible to specify a -Tag parameter which will only execute Context blocks
+    containing the same Tag.
 
-.PARAMETER Fixture
-Script that is executed. This may include setup specific to the context
-and one or more It blocks that validate the expected outcomes.
+    .PARAMETER Fixture
+    Script that is executed. This may include setup specific to the context
+    and one or more It blocks that validate the expected outcomes.
 
-.PARAMETER ForEach
-Allows data driven tests to be written.
-Takes an array of data and generates one block for each item in the array, and makes the item
-available as $_ in all child blocks. When the array is an array of hashtables, it additionally
-defines each key in the hashatble as variable.
+    .PARAMETER ForEach
+    Allows data driven tests to be written.
+    Takes an array of data and generates one block for each item in the array, and makes the item
+    available as $_ in all child blocks. When the array is an array of hashtables, it additionally
+    defines each key in the hashatble as variable.
 
-.EXAMPLE
-```powershell
-function Add-Numbers($a, $b) {
-    return $a + $b
-}
-
-Describe "Add-Numbers" {
-    Context "when root does not exist" {
-        It "..." {
-            # ...
+    .EXAMPLE
+    ```powershell
+    BeforeAll {
+        function Add-Numbers($a, $b) {
+            return $a + $b
         }
     }
 
-    Context "when root does exist" {
-        It "..." {
-            # ...
+    Describe 'Add-Numbers' {
+        Context 'when adding positive values' {
+            It '...' {
+                # ...
+            }
         }
-        It "..." {
-            # ...
+
+        Context 'when adding negative values' {
+            It '...' {
+                # ...
+            }
+            It '...' {
+                # ...
+            }
         }
     }
-}
-```
+    ```
 
-.LINK
-https://pester.dev/docs/commands/Context
+    Example of how to use Context for grouping different tests
 
-.LINK
-https://pester.dev/docs/usage/test-file-structure
+    .LINK
+    https://pester.dev/docs/commands/Context
 
-.LINK
-https://pester.dev/docs/usage/mocking
+    .LINK
+    https://pester.dev/docs/usage/test-file-structure
 
-.LINK
-https://pester.dev/docs/usage/testdrive
+    .LINK
+    https://pester.dev/docs/usage/mocking
 
-#>
+    .LINK
+    https://pester.dev/docs/usage/testdrive
+    #>
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [string] $Name,

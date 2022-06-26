@@ -1,21 +1,21 @@
 ﻿function Should-FileContentMatchExactly($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     <#
-.SYNOPSIS
-Checks to see if a file contains the specified text.
-This search is case sensitive and uses regular expressions to match the text.
+    .SYNOPSIS
+    Checks to see if a file contains the specified text.
+    This search is case sensitive and uses regular expressions to match the text.
 
-.EXAMPLE
-Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
-'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I am'
+    .EXAMPLE
+    Set-Content -Path TestDrive:\file.txt -Value 'I am a file.'
+    'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I am'
 
-Create a new file and verify its content. This test passes.
-The 'I am' regular expression (RegEx) pattern matches against the txt file contents.
+    Create a new file and verify its content. This test passes.
+    The 'I am' regular expression (RegEx) pattern matches against the txt file contents.
 
-.EXAMPLE
-'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I Am'
+    .EXAMPLE
+    'TestDrive:\file.txt' | Should -FileContentMatchExactly 'I Am'
 
-This test checks a case-sensitive pattern against the "I am a file." string from Example 1.
-Because the RegEx pattern fails to match, this test fails.
+    This test checks a case-sensitive pattern against the "I am a file." string from Example 1.
+    Because the RegEx pattern fails to match, this test fails.
 #>
     $succeeded = (@(& $SafeCommands['Get-Content'] -Encoding UTF8 $ActualValue) -cmatch $ExpectedContent).Count -gt 0
 

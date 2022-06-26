@@ -1,4 +1,4 @@
-﻿# session state bound functions that act as endpoints,
+# session state bound functions that act as endpoints,
 # so the internal funtions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
@@ -50,178 +50,175 @@ function Get-MockPlugin () {
 
 function Mock {
     <#
-.SYNOPSIS
-Mocks the behavior of an existing command with an alternate
-implementation.
+    .SYNOPSIS
+    Mocks the behavior of an existing command with an alternate
+    implementation.
 
-.DESCRIPTION
-This creates new behavior for any existing command within the scope of a
-Describe or Context block. The function allows you to specify a script block
-that will become the command's new behavior.
+    .DESCRIPTION
+    This creates new behavior for any existing command within the scope of a
+    Describe or Context block. The function allows you to specify a script block
+    that will become the command's new behavior.
 
-Optionally, you may create a Parameter Filter which will examine the
-parameters passed to the mocked command and will invoke the mocked
-behavior only if the values of the parameter values pass the filter. If
-they do not, the original command implementation will be invoked instead
-of a mock.
+    Optionally, you may create a Parameter Filter which will examine the
+    parameters passed to the mocked command and will invoke the mocked
+    behavior only if the values of the parameter values pass the filter. If
+    they do not, the original command implementation will be invoked instead
+    of a mock.
 
-You may create multiple mocks for the same command, each using a different
-ParameterFilter. ParameterFilters will be evaluated in reverse order of
-their creation. The last one created will be the first to be evaluated.
-The mock of the first filter to pass will be used. The exception to this
-rule are Mocks with no filters. They will always be evaluated last since
-they will act as a "catch all" mock.
+    You may create multiple mocks for the same command, each using a different
+    ParameterFilter. ParameterFilters will be evaluated in reverse order of
+    their creation. The last one created will be the first to be evaluated.
+    The mock of the first filter to pass will be used. The exception to this
+    rule are Mocks with no filters. They will always be evaluated last since
+    they will act as a "catch all" mock.
 
-Mocks can be marked Verifiable. If so, the Should -InvokeVerifiable command
-can be used to check if all Verifiable mocks were actually called. If any
-verifiable mock is not called, Should -InvokeVerifiable will throw an
-exception and indicate all mocks not called.
+    Mocks can be marked Verifiable. If so, the Should -InvokeVerifiable command
+    can be used to check if all Verifiable mocks were actually called. If any
+    verifiable mock is not called, Should -InvokeVerifiable will throw an
+    exception and indicate all mocks not called.
 
-If you wish to mock commands that are called from inside a script module,
-you can do so by using the -ModuleName parameter to the Mock command. This
-injects the mock into the specified module. If you do not specify a
-module name, the mock will be created in the same scope as the test script.
-You may mock the same command multiple times, in different scopes, as needed.
-Each module's mock maintains a separate call history and verified status.
+    If you wish to mock commands that are called from inside a script module,
+    you can do so by using the -ModuleName parameter to the Mock command. This
+    injects the mock into the specified module. If you do not specify a
+    module name, the mock will be created in the same scope as the test script.
+    You may mock the same command multiple times, in different scopes, as needed.
+    Each module's mock maintains a separate call history and verified status.
 
-.PARAMETER CommandName
-The name of the command to be mocked.
+    .PARAMETER CommandName
+    The name of the command to be mocked.
 
-.PARAMETER MockWith
-A ScriptBlock specifying the behavior that will be used to mock CommandName.
-The default is an empty ScriptBlock.
-NOTE: Do not specify param or dynamicparam blocks in this script block.
-These will be injected automatically based on the signature of the command
-being mocked, and the MockWith script block can contain references to the
-mocked commands parameter variables.
+    .PARAMETER MockWith
+    A ScriptBlock specifying the behavior that will be used to mock CommandName.
+    The default is an empty ScriptBlock.
+    NOTE: Do not specify param or dynamicparam blocks in this script block.
+    These will be injected automatically based on the signature of the command
+    being mocked, and the MockWith script block can contain references to the
+    mocked commands parameter variables.
 
-.PARAMETER Verifiable
-When this is set, the mock will be checked when Should -InvokeVerifiable is
-called.
+    .PARAMETER Verifiable
+    When this is set, the mock will be checked when Should -InvokeVerifiable is
+    called.
 
-.PARAMETER ParameterFilter
-An optional filter to limit mocking behavior only to usages of
-CommandName where the values of the parameters passed to the command
-pass the filter.
+    .PARAMETER ParameterFilter
+    An optional filter to limit mocking behavior only to usages of
+    CommandName where the values of the parameters passed to the command
+    pass the filter.
 
-This ScriptBlock must return a boolean value. See examples for usage.
+    This ScriptBlock must return a boolean value. See examples for usage.
 
-.PARAMETER ModuleName
-Optional string specifying the name of the module where this command
-is to be mocked.  This should be a module that _calls_ the mocked
-command; it doesn't necessarily have to be the same module which
-originally implemented the command.
+    .PARAMETER ModuleName
+    Optional string specifying the name of the module where this command
+    is to be mocked.  This should be a module that _calls_ the mocked
+    command; it doesn't necessarily have to be the same module which
+    originally implemented the command.
 
-.PARAMETER RemoveParameterType
-Optional list of parameter names that should use Object as the parameter
-type instead of the parameter type defined by the function. This relaxes the
-type requirements and allows some strongly typed functions to be mocked
-more easily.
+    .PARAMETER RemoveParameterType
+    Optional list of parameter names that should use Object as the parameter
+    type instead of the parameter type defined by the function. This relaxes the
+    type requirements and allows some strongly typed functions to be mocked
+    more easily.
 
-.PARAMETER RemoveParameterValidation
-Optional list of parameter names in the original command
-that should not have any validation rules applied. This relaxes the
-validation requirements, and allows functions that are strict about their
-parameter validation to be mocked more easily.
+    .PARAMETER RemoveParameterValidation
+    Optional list of parameter names in the original command
+    that should not have any validation rules applied. This relaxes the
+    validation requirements, and allows functions that are strict about their
+    parameter validation to be mocked more easily.
 
-.EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
+    .EXAMPLE
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Using this Mock, all calls to Get-ChildItem will return a hashtable with a FullName property returning "A_File.TXT"
+    Using this Mock, all calls to Get-ChildItem will return a hashtable with a FullName property returning "A_File.TXT"
 
-.EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
+    .EXAMPLE
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
-This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
+    This Mock will only be applied to Get-ChildItem calls within the user's temp directory.
 
-.EXAMPLE
-Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
+    .EXAMPLE
+    Mock Set-Content {} -Verifiable -ParameterFilter { $Path -eq "some_path" -and $Value -eq "Expected Value" }
 
-When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
+    When this mock is used, if the Mock is never invoked and Should -InvokeVerifiable is called, an exception will be thrown. The command behavior will do nothing since the ScriptBlock is empty.
 
-.EXAMPLE
-```powershell
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
-Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
-Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
-```
+    .EXAMPLE
+    ```powershell
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\1) }
+    Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\2) }
+    Mock Get-ChildItem { return @{FullName = "C_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp\3) }
+    ```
 
-Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
+    Multiple mocks of the same command may be used. The parameter filter determines which is invoked. Here, if Get-ChildItem is called on the "2" directory of the temp folder, then B_File.txt will be returned.
 
-.EXAMPLE
-```powershell
-Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
-Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
+    .EXAMPLE
+    ```powershell
+    Mock Get-ChildItem { return @{FullName="B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+    Mock Get-ChildItem { return @{FullName="A_File.TXT"} } -ParameterFilter { $Path -and $Path.StartsWith($env:temp) }
 
-Get-ChildItem $env:temp\me
-```
+    Get-ChildItem $env:temp\me
+    ```
 
-Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the most recent Mock created.
+    Here, both mocks could apply since both filters will pass. A_File.TXT will be returned because it was the most recent Mock created.
 
-.EXAMPLE
-```powershell
-Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
+    .EXAMPLE
+    ```powershell
+    Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Get-ChildItem c:\windows
-```
+    Get-ChildItem c:\windows
+    ```
 
-Here, A_File.TXT will be returned. Since no filter was specified, it will apply to any call to Get-ChildItem that does not pass another filter.
+    Here, A_File.TXT will be returned. Since no filter was specified, it will apply to any call to Get-ChildItem that does not pass another filter.
 
-.EXAMPLE
-```powershell
-Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
+    .EXAMPLE
+    ```powershell
+    Mock Get-ChildItem { return @{FullName = "B_File.TXT"} } -ParameterFilter { $Path -eq "$env:temp\me" }
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
-Get-ChildItem $env:temp\me
-```
+    Get-ChildItem $env:temp\me
+    ```
 
-Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
+    Here, B_File.TXT will be returned. Even though the filterless mock was created more recently. This illustrates that filterless Mocks are always evaluated last regardless of their creation order.
 
-.EXAMPLE
-Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule
+    .EXAMPLE
+    Mock Get-ChildItem { return @{FullName = "A_File.TXT"} } -ModuleName MyTestModule
 
-Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
-will return a hashtable with a FullName property returning "A_File.TXT"
+    Using this Mock, all calls to Get-ChildItem from within the MyTestModule module
+    will return a hashtable with a FullName property returning "A_File.TXT"
 
-.EXAMPLE
-```powershell
-Get-Module -Name ModuleMockExample | Remove-Module
-New-Module -Name ModuleMockExample  -ScriptBlock {
-    function Hidden { "Internal Module Function" }
-    function Exported { Hidden }
+    .EXAMPLE
+    ```powershell
+    Get-Module -Name ModuleMockExample | Remove-Module
+    New-Module -Name ModuleMockExample  -ScriptBlock {
+        function Hidden { "Internal Module Function" }
+        function Exported { Hidden }
 
-    Export-ModuleMember -Function Exported
-} | Import-Module -Force
+        Export-ModuleMember -Function Exported
+    } | Import-Module -Force
 
-Describe "ModuleMockExample" {
+    Describe "ModuleMockExample" {
+        It "Hidden function is not directly accessible outside the module" {
+            { Hidden } | Should -Throw
+        }
 
-    It "Hidden function is not directly accessible outside the module" {
-        { Hidden } | Should -Throw
+        It "Original Hidden function is called" {
+            Exported | Should -Be "Internal Module Function"
+        }
+
+        It "Hidden is replaced with our implementation" {
+            Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
+            Exported | Should -Be "Mocked"
+        }
     }
+    ```
 
-    It "Original Hidden function is called" {
-        Exported | Should -Be "Internal Module Function"
-    }
+    This example shows how calls to commands made from inside a module can be
+    mocked by using the -ModuleName parameter.
 
-    It "Hidden is replaced with our implementation" {
-        Mock Hidden { "Mocked" } -ModuleName ModuleMockExample
-        Exported | Should -Be "Mocked"
-    }
-}
-```
+    .LINK
+    https://pester.dev/docs/commands/Mock
 
-This example shows how calls to commands made from inside a module can be
-mocked by using the -ModuleName parameter.
-
-.LINK
-https://pester.dev/docs/commands/Mock
-
-.LINK
-https://pester.dev/docs/usage/mocking
-
-#>
-    # Mock
+    .LINK
+    https://pester.dev/docs/usage/mocking
+    #>
     [CmdletBinding()]
     param(
         [string]$CommandName,
@@ -611,15 +608,15 @@ function Get-MockDataForCurrentScope {
 
 function Assert-VerifiableMock {
     <#
-.SYNOPSIS
-Checks if all verifiable Mocks has been called at least once.
+    .SYNOPSIS
+    Checks if all verifiable Mocks has been called at least once.
 
-THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-USE Should -InvokeVerifiable INSTEAD.
+    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
+    USE Should -InvokeVerifiable INSTEAD.
 
-.LINK
-https://pester.dev/docs/commands/Assert-VerifiableMock
-#>
+    .LINK
+    https://pester.dev/docs/commands/Assert-VerifiableMock
+    #>
 
     # Should does not accept a session state, so invoking it directly would
     # make the assertion run from inside of Pester module, we move it to the
@@ -635,36 +632,35 @@ https://pester.dev/docs/commands/Assert-VerifiableMock
 }
 function Should-InvokeVerifiable ([switch]$Negate) {
     <#
-.SYNOPSIS
-Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
+    .SYNOPSIS
+    Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
 
-.DESCRIPTION
-This can be used in tandem with the -Verifiable switch of the Mock
-function. Mock can be used to mock the behavior of an existing command
-and optionally take a -Verifiable switch. When Should -InvokeVerifiable
-is called, it checks to see if any Mock marked Verifiable has not been
-invoked. If any mocks have been found that specified -Verifiable and
-have not been invoked, an exception will be thrown.
+    .DESCRIPTION
+    This can be used in tandem with the -Verifiable switch of the Mock
+    function. Mock can be used to mock the behavior of an existing command
+    and optionally take a -Verifiable switch. When Should -InvokeVerifiable
+    is called, it checks to see if any Mock marked Verifiable has not been
+    invoked. If any mocks have been found that specified -Verifiable and
+    have not been invoked, an exception will be thrown.
 
-.EXAMPLE
-Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
+    .EXAMPLE
+    Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
 
-{ ...some code that never calls Set-Content some_path -Value "Expected Value"... }
+    { ...some code that never calls Set-Content some_path -Value "Expected Value"... }
 
-Should -InvokeVerifiable
+    Should -InvokeVerifiable
 
-This will throw an exception and cause the test to fail.
+    This will throw an exception and cause the test to fail.
 
-.EXAMPLE
-Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
+    .EXAMPLE
+    Mock Set-Content {} -Verifiable -ParameterFilter {$Path -eq "some_path" -and $Value -eq "Expected Value"}
 
-Set-Content some_path -Value "Expected Value"
+    Set-Content some_path -Value "Expected Value"
 
-Should -InvokeVerifiable
+    Should -InvokeVerifiable
 
-This will not throw an exception because the mock was invoked.
-
-#>
+    This will not throw an exception because the mock was invoked.
+    #>
     $behaviors = @(Get-VerifiableBehaviors)
     Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
 }
@@ -675,16 +671,16 @@ This will not throw an exception because the mock was invoked.
 
 function Assert-MockCalled {
     <#
-.SYNOPSIS
-Checks if a Mocked command has been called a certain number of times
-and throws an exception if it has not.
+    .SYNOPSIS
+    Checks if a Mocked command has been called a certain number of times
+    and throws an exception if it has not.
 
-THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-USE Should -Invoke INSTEAD.
+    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
+    USE Should -Invoke INSTEAD.
 
-.LINK
-https://pester.dev/docs/commands/Assert-MockCalled
-#>
+    .LINK
+    https://pester.dev/docs/commands/Assert-MockCalled
+    #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]
@@ -720,136 +716,134 @@ https://pester.dev/docs/commands/Assert-MockCalled
 
 function Should-Invoke {
     <#
-.SYNOPSIS
-Checks if a Mocked command has been called a certain number of times
-and throws an exception if it has not.
+    .SYNOPSIS
+    Checks if a Mocked command has been called a certain number of times
+    and throws an exception if it has not.
 
-.DESCRIPTION
-This command verifies that a mocked command has been called a certain number
-of times.  If the call history of the mocked command does not match the parameters
-passed to Should -Invoke, Should -Invoke will throw an exception.
+    .DESCRIPTION
+    This command verifies that a mocked command has been called a certain number
+    of times.  If the call history of the mocked command does not match the parameters
+    passed to Should -Invoke, Should -Invoke will throw an exception.
 
-.PARAMETER CommandName
-The mocked command whose call history should be checked.
+    .PARAMETER CommandName
+    The mocked command whose call history should be checked.
 
-.PARAMETER ModuleName
-The module where the mock being checked was injected.  This is optional,
-and must match the ModuleName that was used when setting up the Mock.
+    .PARAMETER ModuleName
+    The module where the mock being checked was injected.  This is optional,
+    and must match the ModuleName that was used when setting up the Mock.
 
-.PARAMETER Times
-The number of times that the mock must be called to avoid an exception
-from throwing.
+    .PARAMETER Times
+    The number of times that the mock must be called to avoid an exception
+    from throwing.
 
-.PARAMETER Exactly
-If this switch is present, the number specified in Times must match
-exactly the number of times the mock has been called. Otherwise it
-must match "at least" the number of times specified.  If the value
-passed to the Times parameter is zero, the Exactly switch is implied.
+    .PARAMETER Exactly
+    If this switch is present, the number specified in Times must match
+    exactly the number of times the mock has been called. Otherwise it
+    must match "at least" the number of times specified.  If the value
+    passed to the Times parameter is zero, the Exactly switch is implied.
 
-.PARAMETER ParameterFilter
-An optional filter to qualify which calls should be counted. Only those
-calls to the mock whose parameters cause this filter to return true
-will be counted.
+    .PARAMETER ParameterFilter
+    An optional filter to qualify which calls should be counted. Only those
+    calls to the mock whose parameters cause this filter to return true
+    will be counted.
 
-.PARAMETER ExclusiveFilter
-Like ParameterFilter, except when you use ExclusiveFilter, and there
-were any calls to the mocked command which do not match the filter,
-an exception will be thrown.  This is a convenient way to avoid needing
-to have two calls to Should -Invoke like this:
+    .PARAMETER ExclusiveFilter
+    Like ParameterFilter, except when you use ExclusiveFilter, and there
+    were any calls to the mocked command which do not match the filter,
+    an exception will be thrown.  This is a convenient way to avoid needing
+    to have two calls to Should -Invoke like this:
 
-Should -Invoke SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
-Should -Invoke SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
+    Should -Invoke SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
+    Should -Invoke SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
-.PARAMETER Scope
-An optional parameter specifying the Pester scope in which to check for
-calls to the mocked command. For RSpec style tests, Should -Invoke will find
-all calls to the mocked command in the current Context block (if present),
-or the current Describe block (if there is no active Context), by default. Valid
-values are Describe, Context and It. If you use a scope of Describe or
-Context, the command will identify all calls to the mocked command in the
-current Describe / Context block, as well as all child scopes of that block.
+    .PARAMETER Scope
+    An optional parameter specifying the Pester scope in which to check for
+    calls to the mocked command. For RSpec style tests, Should -Invoke will find
+    all calls to the mocked command in the current Context block (if present),
+    or the current Describe block (if there is no active Context), by default. Valid
+    values are Describe, Context and It. If you use a scope of Describe or
+    Context, the command will identify all calls to the mocked command in the
+    current Describe / Context block, as well as all child scopes of that block.
 
-.EXAMPLE
-Mock Set-Content {}
-
-{... Some Code ...}
-
-Should -Invoke Set-Content
-
-This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
-
-.EXAMPLE
-Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
-
-{... Some Code ...}
-
-Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
-
-This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
-
-.EXAMPLE
-Mock Set-Content {}
-
-{... Some Code ...}
-
-Should -Invoke Set-Content 0
-
-This will throw an exception if some code calls Set-Content at all
-
-.EXAMPLE
-Mock Set-Content {}
-
-{... Some Code ...}
-
-Should -Invoke Set-Content -Exactly 2
-
-This will throw an exception if some code does not call Set-Content Exactly two times.
-
-.EXAMPLE
-Describe 'Should -Invoke Scope behavior' {
-    Mock Set-Content { }
-
-    It 'Calls Set-Content at least once in the It block' {
-        {... Some Code ...}
-
-        Should -Invoke Set-Content -Exactly 0 -Scope It
-    }
-}
-
-Checks for calls only within the current It block.
-
-.EXAMPLE
-Describe 'Describe' {
-    Mock -ModuleName SomeModule Set-Content { }
+    .EXAMPLE
+    Mock Set-Content {}
 
     {... Some Code ...}
 
-    It 'Calls Set-Content at least once in the Describe block' {
-        Should -Invoke -ModuleName SomeModule Set-Content
+    Should -Invoke Set-Content
+
+    This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
+
+    .EXAMPLE
+    Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
+
+    {... Some Code ...}
+
+    Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
+
+    This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
+
+    .EXAMPLE
+    Mock Set-Content {}
+
+    {... Some Code ...}
+
+    Should -Invoke Set-Content 0
+
+    This will throw an exception if some code calls Set-Content at all
+
+    .EXAMPLE
+    Mock Set-Content {}
+
+    {... Some Code ...}
+
+    Should -Invoke Set-Content -Exactly 2
+
+    This will throw an exception if some code does not call Set-Content Exactly two times.
+
+    .EXAMPLE
+    Describe 'Should -Invoke Scope behavior' {
+        Mock Set-Content { }
+
+        It 'Calls Set-Content at least once in the It block' {
+            {... Some Code ...}
+
+            Should -Invoke Set-Content -Exactly 0 -Scope It
+        }
     }
-}
 
-Checks for calls to the mock within the SomeModule module.  Note that both the Mock
-and Should -Invoke commands use the same module name.
+    Checks for calls only within the current It block.
 
-.EXAMPLE
-Should -Invoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+    .EXAMPLE
+    Describe 'Describe' {
+        Mock -ModuleName SomeModule Set-Content { }
 
-Checks to make sure that Get-ChildItem was called at least one time with
-the -Path parameter set to 'C:\', and that it was not called at all with
-the -Path parameter set to any other value.
+        {... Some Code ...}
 
-.NOTES
-The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
-(if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
-which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
-mocked command are made which did not match any mock's parameter filter (resulting in the original command
-being executed instead of a mock), these calls to the original command are not tracked in the call history.
-In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
-to the original.
+        It 'Calls Set-Content at least once in the Describe block' {
+            Should -Invoke -ModuleName SomeModule Set-Content
+        }
+    }
 
-#>
-    # Should -Invoke
+    Checks for calls to the mock within the SomeModule module.  Note that both the Mock
+    and Should -Invoke commands use the same module name.
+
+    .EXAMPLE
+    Should -Invoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+
+    Checks to make sure that Get-ChildItem was called at least one time with
+    the -Path parameter set to 'C:\', and that it was not called at all with
+    the -Path parameter set to any other value.
+
+    .NOTES
+    The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
+    (if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
+    which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
+    mocked command are made which did not match any mock's parameter filter (resulting in the original command
+    being executed instead of a mock), these calls to the original command are not tracked in the call history.
+    In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
+    to the original.
+    #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
         [Parameter(Mandatory = $true, Position = 0)]

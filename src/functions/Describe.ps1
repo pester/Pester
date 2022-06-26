@@ -1,76 +1,80 @@
 ﻿function Describe {
     <#
-.SYNOPSIS
-Creates a logical group of tests.
+    .SYNOPSIS
+    Creates a logical group of tests.
 
-.DESCRIPTION
-Creates a logical group of tests. All Mocks, TestDrive and TestRegistry contents
-defined within a Describe block are scoped to that Describe; they
-will no longer be present when the Describe block exits.  A Describe
-block may contain any number of Context and It blocks.
+    .DESCRIPTION
+    Creates a logical group of tests. All Mocks, TestDrive and TestRegistry contents
+    defined within a Describe block are scoped to that Describe; they
+    will no longer be present when the Describe block exits.  A Describe
+    block may contain any number of Context and It blocks.
 
-.PARAMETER Name
-The name of the test group. This is often an expressive phrase describing
-the scenario being tested.
+    .PARAMETER Name
+    The name of the test group. This is often an expressive phrase describing
+    the scenario being tested.
 
-.PARAMETER Fixture
-The actual test script. If you are following the AAA pattern (Arrange-Act-Assert),
-this typically holds the arrange and act sections. The Asserts will also lie
-in this block but are typically nested each in its own It block. Assertions are
-typically performed by the Should command within the It blocks.
+    .PARAMETER Fixture
+    The actual test script. If you are following the AAA pattern (Arrange-Act-Assert),
+    this typically holds the arrange and act sections. The Asserts will also lie
+    in this block but are typically nested each in its own It block. Assertions are
+    typically performed by the Should command within the It blocks.
 
-.PARAMETER Tag
-Optional parameter containing an array of strings. When calling Invoke-Pester,
-it is possible to specify a -Tag parameter which will only execute Describe blocks
-containing the same Tag.
+    .PARAMETER Tag
+    Optional parameter containing an array of strings. When calling Invoke-Pester,
+    it is possible to specify a -Tag parameter which will only execute Describe blocks
+    containing the same Tag.
 
-.PARAMETER ForEach
-Allows data driven tests to be written.
-Takes an array of data and generates one block for each item in the array, and makes the item
-available as $_ in all child blocks. When the array is an array of hashtables, it additionally
-defines each key in the hashatble as variable.
+    .PARAMETER ForEach
+    Allows data driven tests to be written.
+    Takes an array of data and generates one block for each item in the array, and makes the item
+    available as $_ in all child blocks. When the array is an array of hashtables, it additionally
+    defines each key in the hashatble as variable.
 
-.EXAMPLE
-```powershell
-function Add-Numbers($a, $b) {
-    return $a + $b
-}
-
-Describe "Add-Numbers" {
-    It "adds positive numbers" {
-        $sum = Add-Numbers 2 3
-        $sum | Should -Be 5
+    .EXAMPLE
+    ```powershell
+    BeforeAll {
+        function Add-Numbers($a, $b) {
+            return $a + $b
+        }
     }
 
-    It "adds negative numbers" {
-        $sum = Add-Numbers (-2) (-2)
-        $sum | Should -Be (-4)
+    Describe "Add-Numbers" {
+        It "adds positive numbers" {
+            $sum = Add-Numbers 2 3
+            $sum | Should -Be 5
+        }
+
+        It "adds negative numbers" {
+            $sum = Add-Numbers (-2) (-2)
+            $sum | Should -Be (-4)
+        }
+
+        It "adds one negative number to positive number" {
+            $sum = Add-Numbers (-2) 2
+            $sum | Should -Be 0
+        }
+
+        It "concatenates strings if given strings" {
+            $sum = Add-Numbers two three
+            $sum | Should -Be "twothree"
+        }
     }
+    ```
 
-    It "adds one negative number to positive number" {
-        $sum = Add-Numbers (-2) 2
-        $sum | Should -Be 0
-    }
+    Using Describe to group tests logically at the root of the script/container
 
-    It "concatenates strings if given strings" {
-        $sum = Add-Numbers two three
-        $sum | Should -Be "twothree"
-    }
-}
-```
+    .LINK
+    https://pester.dev/docs/commands/Describe
 
-.LINK
-https://pester.dev/docs/commands/Describe
+    .LINK
+    https://pester.dev/docs/usage/test-file-structure
 
-.LINK
-https://pester.dev/docs/usage/test-file-structure
+    .LINK
+    https://pester.dev/docs/usage/mocking
 
-.LINK
-https://pester.dev/docs/usage/mocking
-
-.LINK
-https://pester.dev/docs/usage/testdrive
-#>
+    .LINK
+    https://pester.dev/docs/usage/testdrive
+    #>
 
     param(
         [Parameter(Mandatory = $true, Position = 0)]

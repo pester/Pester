@@ -12,12 +12,11 @@
     .PARAMETER Path
     The path that the execute block will be executed in.
 
-    .PARAMETER execute
+    .PARAMETER ScriptBlock
     The script to be executed in the path provided.
 
     .LINK
     https://github.com/pester/Pester/wiki/In
-
     #>
     [CmdletBinding(DefaultParameterSetName = "Default")]
     param(
