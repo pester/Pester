@@ -1,4 +1,4 @@
-﻿function Assert-ValidAssertionName {
+function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -942,6 +942,16 @@ function Invoke-Pester {
 
             if ($PesterPreference.Debug.ShowFullErrors.Value) {
                 $PesterPreference.Output.StackTraceVerbosity = "Full"
+            }
+
+            # Auto-detect ANSI-formatted host output if not specified
+            if ($PesterPreference.Output.UseANSI.IsOriginalValue()) {
+                if ($host.UI.SupportsVirtualTerminal) {
+                    $PesterPreference.Output.UseANSI = $true
+                }
+                else {
+                    $PesterPreference.Output.UseANSI = $false
+                }
             }
 
             $plugins +=
