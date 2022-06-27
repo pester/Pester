@@ -584,6 +584,23 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
 
+        t 'IsOriginalValue is only False on modified properties after merging Hashtable' {
+            $MyOptions = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = 'Core'
+                }
+            }
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsOriginalValue() | Verify-False
+            $config.Run.SkipRun.IsOriginalValue() | Verify-True
+        }
+
         t "Merges configuration when a hashtable has been serialized" {
             $BeforeSerialization = @{
                 Run    = @{
@@ -600,6 +617,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsOriginalValue() | Verify-False
+            $config.Run.SkipRun.IsOriginalValue() | Verify-True
+            $config.Output.Verbosity.IsOriginalValue() | Verify-True
         }
 
         t "Merges configuration when a PesterConfiguration object has been serialized" {
@@ -619,6 +639,11 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsOriginalValue() | Verify-False
+            # When serializing PesterConfiguration all properties are set and there's no way to check IsOriginalValue
+            # As a result, all options in a section is modified during deserialization when one is modified
+            # $config.Run.SkipRun.IsOriginalValue() | Verify-True
+            $config.Output.Verbosity.IsOriginalValue() | Verify-True
         }
 
         t "Merges configuration when a PesterConfiguration object includes an array of values" {

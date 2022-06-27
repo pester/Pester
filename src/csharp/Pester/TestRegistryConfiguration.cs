@@ -21,7 +21,7 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>(nameof(Enabled)) ?? Enabled;
+                if (configuration.GetValueOrNull<bool>(nameof(Enabled)) is bool enabled) { Enabled = enabled; };
             }
         }
 

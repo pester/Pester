@@ -36,9 +36,9 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
-                StackTraceVerbosity = configuration.GetObjectOrNull<string>("StackTraceVerbosity") ?? StackTraceVerbosity;
-                CIFormat = configuration.GetObjectOrNull<string>("CIFormat") ?? CIFormat;
+                if (configuration.GetObjectOrNull<string>(nameof(Verbosity)) is string verbosity) { Verbosity = verbosity; };
+                if (configuration.GetObjectOrNull<string>(nameof(StackTraceVerbosity)) is string stackTraceVerbosity) { StackTraceVerbosity = stackTraceVerbosity; };
+                if (configuration.GetObjectOrNull<string>(nameof(CIFormat)) is string cIFormat) { CIFormat = cIFormat; };
             }
         }
 

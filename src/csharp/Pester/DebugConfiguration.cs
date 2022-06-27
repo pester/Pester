@@ -41,11 +41,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                ShowFullErrors = configuration.GetValueOrNull<bool>("ShowFullErrors") ?? ShowFullErrors;
-                WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
-                WriteDebugMessagesFrom = configuration.GetArrayOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
-                ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
-                ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
+                if (configuration.GetValueOrNull<bool>(nameof(ShowFullErrors)) is bool showFullErrors) { ShowFullErrors = showFullErrors; };
+                if (configuration.GetValueOrNull<bool>(nameof(WriteDebugMessages)) is bool writeDebugMessages) { WriteDebugMessages = writeDebugMessages; };
+                if (configuration.GetArrayOrNull<string>(nameof(WriteDebugMessagesFrom)) is string[] writeDebugMessagesFrom) { WriteDebugMessagesFrom = writeDebugMessagesFrom; };
+                if (configuration.GetValueOrNull<bool>(nameof(ShowNavigationMarkers)) is bool showNavigationMarkers) { ShowNavigationMarkers = showNavigationMarkers; };
+                if (configuration.GetValueOrNull<bool>(nameof(ReturnRawResultObject)) is bool returnRawResultObject) { ReturnRawResultObject = returnRawResultObject; };
             }
         }
 

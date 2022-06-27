@@ -57,17 +57,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
-                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
-                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
-                OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
-                Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
-                ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
-                RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
-                CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
-
-                SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
-                UseBreakpoints = configuration.GetValueOrNull<bool>("UseBreakpoints") ?? UseBreakpoints;
+                if (configuration.GetValueOrNull<bool>(nameof(Enabled)) is bool enabled) { Enabled = enabled; };
+                if (configuration.GetObjectOrNull<string>(nameof(OutputFormat)) is string outputFormat) { OutputFormat = outputFormat; };
+                if (configuration.GetObjectOrNull<string>(nameof(OutputPath)) is string outputPath) { OutputPath = outputPath; };
+                if (configuration.GetObjectOrNull<string>(nameof(OutputEncoding)) is string outputEncoding) { OutputEncoding = outputEncoding; };
+                if (configuration.GetArrayOrNull<string>(nameof(Path)) is string[] path) { Path = path; };
+                if (configuration.GetValueOrNull<bool>(nameof(ExcludeTests)) is bool excludeTests) { ExcludeTests = excludeTests; };
+                if (configuration.GetValueOrNull<bool>(nameof(RecursePaths)) is bool recursePaths) { RecursePaths = recursePaths; };
+                if (configuration.GetValueOrNull<bool>(nameof(UseBreakpoints)) is bool useBreakpoints) { UseBreakpoints = useBreakpoints; };
+                if (configuration.GetValueOrNull<decimal>(nameof(CoveragePercentTarget)) is decimal coveragePercentTarget) { CoveragePercentTarget = coveragePercentTarget; };
+                if (configuration.GetValueOrNull<bool>(nameof(SingleHitBreakpoints)) is bool singleHitBreakpoints) { SingleHitBreakpoints = singleHitBreakpoints; };
             }
         }
 

@@ -43,16 +43,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Path = configuration.GetArrayOrNull<string>(nameof(Path)) ?? Path;
-                ExcludePath = configuration.GetArrayOrNull<string>(nameof(ExcludePath)) ?? ExcludePath;
-                ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>(nameof(ScriptBlock)) ?? ScriptBlock;
-                Container = configuration.GetArrayOrNull<ContainerInfo>(nameof(Container)) ?? Container;
-                TestExtension = configuration.GetObjectOrNull<string>(nameof(TestExtension)) ?? TestExtension;
-                Exit = configuration.GetValueOrNull<bool>(nameof(Exit)) ?? Exit;
-                Throw = configuration.GetValueOrNull<bool>(nameof(Throw)) ?? Throw;
-                PassThru = configuration.GetValueOrNull<bool>(nameof(PassThru)) ?? PassThru;
-                SkipRun = configuration.GetValueOrNull<bool>(nameof(SkipRun)) ?? SkipRun;
-                SkipRemainingOnFailure = configuration.GetObjectOrNull<string>(nameof(SkipRemainingOnFailure)) ?? SkipRemainingOnFailure;
+                if (configuration.GetArrayOrNull<string>(nameof(Path)) is string[] path) { Path = path; };
+                if (configuration.GetArrayOrNull<string>(nameof(ExcludePath)) is string[] excludePath) { ExcludePath = excludePath; };
+                if (configuration.GetArrayOrNull<ScriptBlock>(nameof(ScriptBlock)) is ScriptBlock[] scriptBlock) { ScriptBlock = scriptBlock; };
+                if (configuration.GetArrayOrNull<ContainerInfo>(nameof(Container)) is ContainerInfo[] containerInfo ) { Container = containerInfo; };
+                if (configuration.GetObjectOrNull<string>(nameof(TestExtension)) is string testExtension) { TestExtension = testExtension; };
+                if (configuration.GetValueOrNull<bool>(nameof(Exit)) is bool exit) { Exit = exit; };
+                if (configuration.GetValueOrNull<bool>(nameof(Throw)) is bool throwValue) { Throw = throwValue; };
+                if (configuration.GetValueOrNull<bool>(nameof(PassThru)) is bool passThru) { PassThru = passThru; };
+                if (configuration.GetValueOrNull<bool>(nameof(SkipRun)) is bool skipRun) { SkipRun = skipRun; };
+                if (configuration.GetObjectOrNull<string>(nameof(SkipRemainingOnFailure)) is string skipRemainingOnFailure) { SkipRemainingOnFailure = skipRemainingOnFailure; };
             }
         }
 
