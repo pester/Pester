@@ -1297,7 +1297,7 @@ function Assert-Success {
 
     if ($anyFailed) {
         $Message = $Message + ":`n$err"
-        & $SafeCommands["Write-Host"] -ForegroundColor Red $Message
+        Write-PesterHostMessage -ForegroundColor Red $Message
         throw $Message
     }
 }

@@ -17,7 +17,7 @@
         }
 
         if ($PesterPreference.Output.Verbosity.Value -ne "None") {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Starting code coverage."
+            Write-PesterHostMessage -ForegroundColor Magenta "Starting code coverage."
         }
 
         $config = $Context.Configuration['Coverage']
@@ -45,7 +45,7 @@
             })
 
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-            & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
+            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
         }
     } -End {
         param($Context)

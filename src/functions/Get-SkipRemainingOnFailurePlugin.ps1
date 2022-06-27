@@ -122,7 +122,7 @@ function Get-SkipRemainingOnFailurePlugin {
             param($Context)
 
             if ($Context.Configuration.SkipRemainingOnFailureCount -gt 0) {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "Remaining tests skipped after first failure: $($Context.Configuration.SkipRemainingOnFailureCount)"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "Remaining tests skipped after first failure: $($Context.Configuration.SkipRemainingOnFailureCount)"
             }
         }
     }

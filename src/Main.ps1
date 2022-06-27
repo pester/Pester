@@ -1,4 +1,4 @@
-function Assert-ValidAssertionName {
+﻿function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -1118,7 +1118,7 @@ function Invoke-Pester {
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 if ($PesterPreference.Output.Verbosity.Value -ne "None") {
                     $sw = [Diagnostics.Stopwatch]::StartNew()
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $measure = if (-not $PesterPreference.CodeCoverage.UseBreakpoints.Value) { @($run.PluginData.Coverage.Tracer.Hits) }
@@ -1176,7 +1176,7 @@ function Invoke-Pester {
 
                 $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }
                 $reportText = Write-CoverageReport $coverageReport
 
