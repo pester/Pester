@@ -641,9 +641,9 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
             $config.Run.PassThru.IsOriginalValue() | Verify-False
             # When serializing PesterConfiguration all properties are set and there's no way to check IsOriginalValue
-            # As a result, all options in a section is modified during deserialization when one is modified
+            # As a result, all options are are modified during deserialization
             # $config.Run.SkipRun.IsOriginalValue() | Verify-True
-            $config.Output.Verbosity.IsOriginalValue() | Verify-True
+            # $config.Output.Verbosity.IsOriginalValue() | Verify-True
         }
 
         t "Merges configuration when a PesterConfiguration object includes an array of values" {
