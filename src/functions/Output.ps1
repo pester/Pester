@@ -1,4 +1,4 @@
-﻿$script:ReportStrings = DATA {
+$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -61,6 +61,107 @@ $script:ReportTheme = DATA {
         Discovery        = 'Magenta'
         Container        = 'Magenta'
         BlockFail        = 'Red'
+    }
+}
+
+function Write-PesterHostMessage {
+    param(
+        [Parameter(Position = 0, ValueFromPipeline = $true)]
+        [Alias('Message', 'Msg')]
+        $Object,
+
+        [System.ConsoleColor]
+        $ForegroundColor = [System.Console]::ForegroundColor,
+
+        [System.ConsoleColor]
+        $BackgroundColor = [System.Console]::BackgroundColor,
+
+        [switch]
+        $NoNewLine,
+
+        [string]
+        $Separator = ' ',
+
+        [switch]
+        $UseANSI = $PesterPreference.Output.UseANSI.Value
+    )
+
+    begin {
+        # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
+        $esc = [char]27
+        $ANSIcodes = @{
+            ResetAll        = "$esc[0m"
+
+            ForegroundColor = @{
+                Black       = "$esc[30m"
+                DarkBlue    = "$esc[34m"
+                DarkGreen   = "$esc[32m"
+                DarkCyan    = "$esc[36m"
+                DarkRed     = "$esc[31m"
+                DarkMagenta = "$esc[35m"
+                DarkYellow  = "$esc[33m"
+                Gray        = "$esc[37m"
+
+                DarkGray    = "$esc[90m"
+                Blue        = "$esc[94m"
+                Green       = "$esc[92m"
+                Cyan        = "$esc[96m"
+                Red         = "$esc[91m"
+                Magenta     = "$esc[95m"
+                Yellow      = "$esc[93m"
+                White       = "$esc[97m"
+            }
+
+            BackgroundColor = @{
+                Black       = "$esc[40m"
+                DarkBlue    = "$esc[44m"
+                DarkGreen   = "$esc[42m"
+                DarkCyan    = "$esc[46m"
+                DarkRed     = "$esc[41m"
+                DarkMagenta = "$esc[45m"
+                DarkYellow  = "$esc[43m"
+                Gray        = "$esc[47m"
+
+                DarkGray    = "$esc[100m"
+                Blue        = "$esc[104m"
+                Green       = "$esc[102m"
+                Cyan        = "$esc[106m"
+                Red         = "$esc[101m"
+                Magenta     = "$esc[105m"
+                Yellow      = "$esc[103m"
+                White       = "$esc[107m"
+            }
+        }
+    }
+
+    process {
+        $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
+
+        if ($UseANSI) {
+            $fg = $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()]
+            $bg = $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()]
+            $message = "$($fg)$($bg)$message$($ANSIcodes.ResetAll)"
+        }
+        else {
+            $oldFg = [System.Console]::ForegroundColor
+            $oldBg = [System.Console]::BackgroundColor
+
+            [System.Console]::ForegroundColor = $ForegroundColor
+            [System.Console]::BackgroundColor = $BackgroundColor
+        }
+
+        if ($NoNewLine) {
+            [System.Console]::Write($message)
+        }
+        else {
+            [System.Console]::WriteLine($message)
+        }
+
+        if (-not $UseANSI) {
+            # Revert console-colors
+            [System.Console]::ForegroundColor = $oldFg
+            [System.Console]::BackgroundColor = $oldBg
+        }
     }
 }
 
