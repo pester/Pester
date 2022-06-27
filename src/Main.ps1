@@ -953,6 +953,8 @@ function Invoke-Pester {
                     $PesterPreference.Output.UseANSI = $false
                 }
             }
+            # using for demo in CI - will remove before release
+            Write-PesterHostMessage "Using ANSI? $($PesterPreference.Output.UseANSI.Value)"
 
             $plugins +=
             @(

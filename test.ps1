@@ -48,6 +48,11 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
+# using for demo in CI - will remove before release
+Write-Host "SupportsVirtualTerminal? $($host.UI.SupportsVirtualTerminal)"
+Write-Host "ForegroundColor: $([System.Console]::ForegroundColor)"
+Write-Host "BackgroundColor: $([System.Console]::BackgroundColor)"
+
 if (-not $NoBuild) {
     if ($CI) {
         & "$PSScriptRoot/build.ps1" -Inline
