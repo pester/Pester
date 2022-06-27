@@ -63,7 +63,7 @@ Get-Module Pester | Remove-Module
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
             foreach {
-                $r = & $_.FullName -PassThru
+                $r = & $_.FullName -PassThru -NoBuild:$NoBuild
                 if ($r.Failed -gt 0) {
                     [PSCustomObject]@{
                         FullName = $_.FullName
