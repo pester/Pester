@@ -342,6 +342,16 @@ i -PassThru:$PassThru {
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
+
+        t 'IsOriginalValue returns True after merging two original values' {
+            $one = [PesterConfiguration]::Default
+            $two = [PesterConfiguration]::Default
+            $result = [PesterConfiguration]::Merge($one, $two)
+
+            # has the same value as default but was written so it will override
+            $result.Output.Verbosity.Value | Verify-Equal $one.Output.Verbosity.Value
+            $result.Output.Verbosity.IsOriginalValue() | Verify-True
+        }
     }
 
     b "Advanced interface - Run paths" {
