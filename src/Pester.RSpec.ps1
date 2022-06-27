@@ -408,6 +408,9 @@ function New-PesterConfiguration {
       CIFormat: The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.
       Default value: 'Auto'
 
+      UseANSI: Prints messages with ANSI escaped sequences for formatting. If not set explicitly, ANSI will be enabled if supported.
+      Default value: $true
+
     TestDrive:
       Enabled: Enable TestDrive.
       Default value: $true
