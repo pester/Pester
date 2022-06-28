@@ -21,9 +21,9 @@ namespace Pester
     {
         protected bool _isOriginalValue;
 
-        public bool IsOriginalValue()
+        public bool IsOriginalValue
         {
-            return _isOriginalValue;
+            get { return _isOriginalValue; }
         }
     }
 }

@@ -32,13 +32,13 @@ namespace Pester
                 var configurationValue = p.GetValue(configuration);
                 var overrideValue = p.GetValue(@override);
 
-                if (!((Option)overrideValue).IsOriginalValue())
+                if (!((Option)overrideValue).IsOriginalValue)
                 {
                     value = overrideValue;
                 }
                 else
                 {
-                    if(((Option)configurationValue).IsOriginalValue())
+                    if(((Option)configurationValue).IsOriginalValue)
                     {
                         continue;
                     }

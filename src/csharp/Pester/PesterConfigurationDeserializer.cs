@@ -61,6 +61,12 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         foreach (var property in sourceSection.Properties)
         {
+            var IsOriginalValue = ((PSObject)property.Value).Properties["IsOriginalValue"];
+            
+            if (IsOriginalValue != null && (bool)IsOriginalValue.Value) {
+                continue;
+            }
+            
             configurationSection.Add(
                 property.Name,
                 GetPropertyValue(
