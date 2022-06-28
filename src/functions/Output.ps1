@@ -1,4 +1,4 @@
-$script:ReportStrings = DATA {
+﻿$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -140,7 +140,9 @@ function Write-PesterHostMessage {
         if ($UseANSI) {
             $fg = $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()]
             $bg = $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()]
-            $message = "$($fg)$($bg)$message$($ANSIcodes.ResetAll)"
+
+            # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
+            $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
         }
         else {
             $oldFg = $host.UI.RawUI.ForegroundColor
