@@ -215,8 +215,19 @@ if ($Clean) {
         $ViewDef = $formatViewCtor.Invoke(($section.FullName, $listControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
         New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
     }
-    Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
 
+    # Create view for Option (IsOriginalValue in non-generic Pester.Option is intentionally hidden)
+    $builder = [System.Management.Automation.TableControl]::Create().StartRowDefinition()
+    [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsOriginalValue' | ForEach-Object {
+        $builder.AddPropertyColumn($_.Name, [System.Management.Automation.Alignment]::Undefined, $null) > $null
+    }
+    $tableControl = $builder.EndRowDefinition().EndTable()
+
+    $ViewDef = $formatViewCtor.Invoke(('Pester.Option', $tableControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
+    $typeDefs += New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' 'Pester.Option', $ViewDef
+
+    # Export all formatdata
+    Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
 }
 
 if (-not $PSBoundParameters.ContainsKey("Inline")) {
