@@ -1,4 +1,4 @@
-﻿$script:ReportStrings = DATA {
+$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -71,10 +71,10 @@ function Write-PesterHostMessage {
         $Object,
 
         [System.ConsoleColor]
-        $ForegroundColor = [System.Console]::ForegroundColor,
+        $ForegroundColor = $host.UI.RawUI.ForegroundColor,
 
         [System.ConsoleColor]
-        $BackgroundColor = [System.Console]::BackgroundColor,
+        $BackgroundColor = $host.UI.RawUI.BackgroundColor,
 
         [switch]
         $NoNewLine,
@@ -143,24 +143,24 @@ function Write-PesterHostMessage {
             $message = "$($fg)$($bg)$message$($ANSIcodes.ResetAll)"
         }
         else {
-            $oldFg = [System.Console]::ForegroundColor
-            $oldBg = [System.Console]::BackgroundColor
+            $oldFg = $host.UI.RawUI.ForegroundColor
+            $oldBg = $host.UI.RawUI.BackgroundColor
 
-            [System.Console]::ForegroundColor = $ForegroundColor
-            [System.Console]::BackgroundColor = $BackgroundColor
+            $host.UI.RawUI.ForegroundColor = $ForegroundColor
+            $host.UI.RawUI.BackgroundColor = $BackgroundColor
         }
 
         if ($NoNewLine) {
-            [System.Console]::Write($message)
+            $host.UI.Write($message)
         }
         else {
-            [System.Console]::WriteLine($message)
+            $host.UI.WriteLine($message)
         }
 
         if (-not $UseANSI) {
             # Revert console-colors
-            [System.Console]::ForegroundColor = $oldFg
-            [System.Console]::BackgroundColor = $oldBg
+            $host.UI.RawUI.ForegroundColor = $oldFg
+            $host.UI.RawUI.BackgroundColor = $oldBg
         }
     }
 }
