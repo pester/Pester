@@ -49,9 +49,9 @@ $ErrorView = "NormalView"
 "In path: $($pwd.Path)"
 
 # using for demo in CI - will remove before release
-Write-Host "SupportsVirtualTerminal? $($host.UI.SupportsVirtualTerminal)"
-Write-Host "ForegroundColor: $([System.Console]::ForegroundColor)"
-Write-Host "BackgroundColor: $([System.Console]::BackgroundColor)"
+if($PsVersionTable.PSVersion.Major -ge 5) { Write-Host "SupportsVirtualTerminal? $($host.UI.SupportsVirtualTerminal)" }
+Write-Host "ForegroundColor: $($host.UI.RawUI.ForegroundColor)"
+Write-Host "BackgroundColor: $($host.UI.RawUI.BackgroundColor)"
 
 if (-not $NoBuild) {
     if ($CI) {
