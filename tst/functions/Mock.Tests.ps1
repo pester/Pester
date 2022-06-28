@@ -2794,7 +2794,7 @@ Describe 'Mocking command with ValidateRange-attributes' {
         Test-EnumValidation | Should -Be 'mock'
     }
 
-    if ($PSVersionTable.PSVersion -ge '6.2') {
+    if ($PSVersionTable.PSVersion.Major -ge '7') {
         # ValidateRangeKind -> unaffected by bug but verify nothing broke
         It 'mocked function does not throw when param is type using ValidateRangeKind' {
             $Name = 'typed using RangeKind'
