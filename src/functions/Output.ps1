@@ -138,8 +138,8 @@ function Write-PesterHostMessage {
         $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
 
         if ($UseANSI) {
-            $fg = $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()]
-            $bg = $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()]
+            $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()] } else { '' }
+            $bg = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()] } else { '' }
 
             # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
