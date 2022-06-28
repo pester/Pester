@@ -946,7 +946,7 @@ function Invoke-Pester {
 
             # Auto-detect ANSI-formatted host output if not specified
             if ($PesterPreference.Output.UseANSI.IsOriginalValue()) {
-                if ($host.UI.SupportsVirtualTerminal) {
+                if (($suppVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $suppVT.Value) {
                     $PesterPreference.Output.UseANSI = $true
                 }
                 else {
