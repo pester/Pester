@@ -669,4 +669,19 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
         }
     }
+
+    Describe 'Write-PesterHostMessage' {
+        Context 'Is syntax-compatible with Write-Host' {
+            BeforeAll {
+                $WritePesterHostMessageParam = (Get-Command 'Write-PesterHostMessage' -Module Pester).Parameters
+                $WriteHostParam = (Get-Command 'Write-Host' -Module 'Microsoft.PowerShell.Utility' -CommandType Cmdlet).Parameters.Values
+            }
+            It 'parameter <_> is equal' -TestCases @('NoNewLine', 'Object', 'Separator', 'ForegroundColor', 'BackgroundColor') {
+                $param = $WritePesterHostMessageParam["$_"]
+                $param.Name | Should -BeIn $WritePesterHostMessageParam.Values.Name
+                $param.ParameterType | Should -Be $WritePesterHostMessageParam[$param.Name].ParameterType
+                if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
+            }
+        }
+    }
 }

@@ -1,4 +1,4 @@
-param ([switch] $PassThru)
+﻿param ([switch] $PassThru)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
@@ -195,6 +195,98 @@ i -PassThru:$PassThru {
             $describe2 = $output | Select-String -Pattern 'Describing d1 def\s*$'
             @($describe1).Count | Verify-Equal 1
             @($describe2).Count | Verify-Equal 1
+        }
+    }
+
+    b 'Write-PesterHostMessage' {
+        t 'Ansi output includes colors when set and always reset' {
+            $sb = {
+                $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
+
+                'Hello','both' | & $cmd -UseAnsi -ForegroundColor Green -BackgroundColor Blue
+                'green' | & $cmd -UseAnsi -ForegroundColor Green
+                'blue' | & $cmd -UseAnsi  -BackgroundColor Blue
+                & $cmd 'NoColorsOnlyReset' -UseAnsi
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+            $esc = [char]27
+            $expected = @(
+                "$esc[92m$esc[104mHello$esc[0m",
+                "$esc[92m$esc[104mboth$esc[0m",
+                "$esc[92mgreen$esc[0m"
+                "$esc[104mblue$esc[0m"
+                "NoColorsOnlyReset$esc[0m"
+            )
+
+            $output -join "`n" | Verify-Equal ($expected -join "`n")
+        }
+
+        t 'Multiline string has ansi style at start of every line and reset at end of last line' {
+            $sb = {
+                $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
+
+                "Hello`nWorld" | & $cmd -UseAnsi -ForegroundColor Green -BackgroundColor Blue
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+            $esc = [char]27
+            $expected = @(
+                "$esc[92m$esc[104mHello",
+                "$esc[92m$esc[104mWorld$esc[0m"
+            )
+
+            $output -join "`n" | Verify-Equal ($expected -join "`n")
+        }
+
+        t 'Ansi and Console output are equal' {
+            $sb = {
+                $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
+
+                'Hello','world' | & $cmd -UseAnsi
+                'No','NewLine' | & $cmd -UseAnsi -NoNewLine
+                'hello',('foo','bar') | & $cmd -UseAnsi
+                'hello',('no','newline') | & $cmd -UseAnsi -NoNewline
+                & $cmd -Object 'foo','bar' -UseAnsi -Separator ';'
+
+                'Hello','world' | & $cmd -UseAnsi:$false
+                'No','NewLine' | & $cmd -UseAnsi:$false -NoNewLine
+                'hello',('foo','bar') | & $cmd -UseAnsi:$false
+                'hello',('no','newline') | & $cmd -UseAnsi:$false -NoNewline
+                & $cmd -Object 'foo','bar' -UseAnsi:$false -Separator ';'
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+
+            # Output should be same without ANSI escaped sequences
+            $ansiOutput = $output[0..4] -replace '\x1b\[[0-9;]*?m' -join "`n"
+            $normalOutput = $output[5..9] -join "`n"
+            $ansiOutput | Verify-Equal $normalOutput
+        }
+
+        t 'Output is equal to Write-Host' {
+            $sb = {
+                $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
+
+                'Hello','world' | Write-Host
+                'No','NewLine' | Write-Host -NoNewLine
+                'hello',('foo','bar') | Write-Host
+                'hello',('no','newline') | Write-Host -NoNewLine
+                Write-Host -Object 'foo','bar' -Separator ';'
+
+                'Hello','world' | & $cmd -UseAnsi:$false
+                'No','NewLine' | & $cmd -UseAnsi:$false -NoNewLine
+                'hello',('foo','bar') | & $cmd -UseAnsi:$false
+                'hello',('no','newline') | & $cmd -UseAnsi:$false -NoNewline
+                & $cmd -Object 'foo','bar' -UseAnsi:$false -Separator ';'
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+
+            # Output should be same without ANSI escaped sequences
+            $writehostOutput = $output[0..4] -join "`n"
+            $normalOutput = $output[5..9] -join "`n"
+            $normalOutput | Verify-Equal $writehostOutput
         }
     }
 }
