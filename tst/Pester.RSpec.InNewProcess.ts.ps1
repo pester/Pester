@@ -225,4 +225,22 @@ i -PassThru:$PassThru {
             }
         }
     }
+
+    b 'Hostless PowerShell' {
+        t 'Executes successfully without errors' {
+            $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
+            try {
+                $ps = [PowerShell]::Create()
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest')
+                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force")
+                $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru")
+                $res = $ps.Invoke()
+
+                $ps.HadErrors | Verify-False
+                $res.PassedCount | Verify-Equal 1
+            } finally {
+                $ps.Dispose()
+            }
+        }
+    }
 }

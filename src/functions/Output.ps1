@@ -71,10 +71,10 @@ function Write-PesterHostMessage {
         $Object,
 
         [System.ConsoleColor]
-        $ForegroundColor = $host.UI.RawUI.ForegroundColor,
+        $ForegroundColor,
 
         [System.ConsoleColor]
-        $BackgroundColor = $host.UI.RawUI.BackgroundColor,
+        $BackgroundColor,
 
         [switch]
         $NoNewLine,
@@ -87,6 +87,9 @@ function Write-PesterHostMessage {
     )
 
     begin {
+        $HostSupportsOutput = $null -ne $host.UI.RawUI.ForegroundColor
+        if (-not $HostSupportsOutput) { return }
+
         # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
         $esc = [char]27
         $ANSIcodes = @{
@@ -135,6 +138,8 @@ function Write-PesterHostMessage {
     }
 
     process {
+        if (-not $HostSupportsOutput) { return }
+
         $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
 
         if ($UseANSI) {
@@ -143,13 +148,15 @@ function Write-PesterHostMessage {
 
             # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
-        }
-        else {
-            $oldFg = $host.UI.RawUI.ForegroundColor
-            $oldBg = $host.UI.RawUI.BackgroundColor
-
-            $host.UI.RawUI.ForegroundColor = $ForegroundColor
-            $host.UI.RawUI.BackgroundColor = $BackgroundColor
+        } else {
+            if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
+                $oldFg = $host.UI.RawUI.ForegroundColor
+                $host.UI.RawUI.ForegroundColor = $ForegroundColor
+            }
+            if ($PSBoundParameters.ContainsKey('BackgroundColor')) {
+                $oldBg = $host.UI.RawUI.BackgroundColor
+                $host.UI.RawUI.BackgroundColor = $BackgroundColor
+            }
         }
 
         if ($NoNewLine) {
@@ -159,11 +166,9 @@ function Write-PesterHostMessage {
             $host.UI.WriteLine($message)
         }
 
-        if (-not $UseANSI) {
-            # Revert console-colors
-            $host.UI.RawUI.ForegroundColor = $oldFg
-            $host.UI.RawUI.BackgroundColor = $oldBg
-        }
+        # Revert console-colors if needed
+        if ($oldFg) { $host.UI.RawUI.ForegroundColor = $oldFg }
+        if ($oldBg) { $host.UI.RawUI.BackgroundColor = $oldBg }
     }
 }
 
