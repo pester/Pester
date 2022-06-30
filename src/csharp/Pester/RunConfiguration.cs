@@ -43,16 +43,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                if (configuration.GetArrayOrNull<string>(nameof(Path)) is string[] path) { Path = path; };
-                if (configuration.GetArrayOrNull<string>(nameof(ExcludePath)) is string[] excludePath) { ExcludePath = excludePath; };
-                if (configuration.GetArrayOrNull<ScriptBlock>(nameof(ScriptBlock)) is ScriptBlock[] scriptBlock) { ScriptBlock = scriptBlock; };
-                if (configuration.GetArrayOrNull<ContainerInfo>(nameof(Container)) is ContainerInfo[] containerInfo ) { Container = containerInfo; };
-                if (configuration.GetObjectOrNull<string>(nameof(TestExtension)) is string testExtension) { TestExtension = testExtension; };
-                if (configuration.GetValueOrNull<bool>(nameof(Exit)) is bool exit) { Exit = exit; };
-                if (configuration.GetValueOrNull<bool>(nameof(Throw)) is bool throwValue) { Throw = throwValue; };
-                if (configuration.GetValueOrNull<bool>(nameof(PassThru)) is bool passThru) { PassThru = passThru; };
-                if (configuration.GetValueOrNull<bool>(nameof(SkipRun)) is bool skipRun) { SkipRun = skipRun; };
-                if (configuration.GetObjectOrNull<string>(nameof(SkipRemainingOnFailure)) is string skipRemainingOnFailure) { SkipRemainingOnFailure = skipRemainingOnFailure; };
+                configuration.AssignArrayIfNotNull<string>(nameof(Path), v => Path = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(ExcludePath), v => ExcludePath = v);
+                configuration.AssignArrayIfNotNull<ScriptBlock>(nameof(ScriptBlock), v => ScriptBlock = v);
+                configuration.AssignArrayIfNotNull<ContainerInfo>(nameof(Container), v => Container = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(TestExtension), v => TestExtension = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Exit), v => Exit = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Throw), v => Throw = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
             }
         }
 

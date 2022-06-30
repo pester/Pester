@@ -57,16 +57,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                if (configuration.GetValueOrNull<bool>(nameof(Enabled)) is bool enabled) { Enabled = enabled; };
-                if (configuration.GetObjectOrNull<string>(nameof(OutputFormat)) is string outputFormat) { OutputFormat = outputFormat; };
-                if (configuration.GetObjectOrNull<string>(nameof(OutputPath)) is string outputPath) { OutputPath = outputPath; };
-                if (configuration.GetObjectOrNull<string>(nameof(OutputEncoding)) is string outputEncoding) { OutputEncoding = outputEncoding; };
-                if (configuration.GetArrayOrNull<string>(nameof(Path)) is string[] path) { Path = path; };
-                if (configuration.GetValueOrNull<bool>(nameof(ExcludeTests)) is bool excludeTests) { ExcludeTests = excludeTests; };
-                if (configuration.GetValueOrNull<bool>(nameof(RecursePaths)) is bool recursePaths) { RecursePaths = recursePaths; };
-                if (configuration.GetValueOrNull<bool>(nameof(UseBreakpoints)) is bool useBreakpoints) { UseBreakpoints = useBreakpoints; };
-                if (configuration.GetValueOrNull<decimal>(nameof(CoveragePercentTarget)) is decimal coveragePercentTarget) { CoveragePercentTarget = coveragePercentTarget; };
-                if (configuration.GetValueOrNull<bool>(nameof(SingleHitBreakpoints)) is bool singleHitBreakpoints) { SingleHitBreakpoints = singleHitBreakpoints; };
+                configuration.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputFormat), v => OutputFormat = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputPath), v => OutputPath = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputEncoding), v => OutputEncoding = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(Path), v => Path = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ExcludeTests), v => ExcludeTests = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(RecursePaths), v => RecursePaths = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(UseBreakpoints), v => UseBreakpoints = v);
+                configuration.AssignValueIfNotNull<decimal>(nameof(CoveragePercentTarget), v => CoveragePercentTarget = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(SingleHitBreakpoints), v => SingleHitBreakpoints = v);
             }
         }
 
