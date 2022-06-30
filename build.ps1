@@ -216,7 +216,7 @@ if ($Clean) {
         New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
     }
 
-    # Create view for Option (IsOriginalValue in non-generic Pester.Option is intentionally hidden)
+    # Create view for Option to ensure Table and hide IsOriginalValue
     $builder = [System.Management.Automation.TableControl]::Create().StartRowDefinition()
     [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsOriginalValue' | ForEach-Object {
         $builder.AddPropertyColumn($_.Name, [System.Management.Automation.Alignment]::Undefined, $null) > $null
