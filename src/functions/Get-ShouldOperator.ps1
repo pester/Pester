@@ -32,7 +32,6 @@
 
     .LINK
     https://pester.dev/docs/commands/Should
-
     #>
     [CmdletBinding()]
     param ()

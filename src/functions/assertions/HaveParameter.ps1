@@ -22,7 +22,6 @@
         assertion will not be able to use the -HasArgumentCompleter parameter
         if the attribute does not exist.
     #>
-
     if ($null -eq $ActualValue -or $ActualValue -isnot [Management.Automation.CommandInfo]) {
         throw "Input value must be non-null CommandInfo object. You can get one by calling Get-Command."
     }
@@ -131,7 +130,6 @@
         .NOTES
             Author: Chris Dent
         #>
-
         [CmdletBinding()]
         param (
             # Filter results by command name.
