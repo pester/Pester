@@ -67,7 +67,8 @@ if ($Clean) {
     # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
     # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
     $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/src"
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
     }
