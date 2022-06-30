@@ -226,7 +226,9 @@ i -PassThru:$PassThru {
         }
     }
 
-    b 'Hostless PowerShell' {
+    b 'Running in PSHost without UI' {
+        # Making sure Pester works in a custom host. 
+        # Ex. Write-PesterHostMessage depends on $host.UI.Write* methods and should not throw exceptions here.
         t 'Executes successfully without errors' {
             $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
             try {
