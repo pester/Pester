@@ -90,7 +90,7 @@ function Should {
     https://pester.dev/docs/commands/Should
 
     .LINK
-    https://pester.dev/docs/assertions/assertions
+    https://pester.dev/docs/assertions
     #>
     [CmdletBinding()]
     param (
