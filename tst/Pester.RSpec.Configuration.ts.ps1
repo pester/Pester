@@ -1127,9 +1127,10 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Output = @{
+                    CIFormat   = 'None'
                     RenderMode = 'Something'
                 }
             }
@@ -1137,7 +1138,7 @@ i -PassThru:$PassThru {
             try {
                 Invoke-Pester -Configuration $c
             } catch {
-                $_.Exception.Message | Verify-Equal "Unsupported Output.RenderMode option 'Something'"
+                $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
             }
         }
     }
