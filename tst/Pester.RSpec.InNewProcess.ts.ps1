@@ -227,8 +227,7 @@ i -PassThru:$PassThru {
     }
 
     b 'Running in PSHost without UI' {
-        # Making sure Pester works in a custom host. 
-        # Ex. Write-PesterHostMessage depends on $host.UI.Write* methods and should not throw exceptions here.
+        # Making sure Pester works in a custom host
         t 'Executes successfully without errors' {
             $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
             try {
@@ -238,6 +237,7 @@ i -PassThru:$PassThru {
                 $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
                 $res = $ps.Invoke()
 
+                "$($ps.Streams.Error)" | Verify-Equal ''
                 $ps.HadErrors | Verify-False
                 $res.PassedCount | Verify-Equal 1
                 $ps.Streams.Information -match 'Describe' | Verify-NotNull

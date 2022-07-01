@@ -943,8 +943,6 @@ function Invoke-Pester {
                     $PesterPreference.Output.RenderMode = 'Legacy'
                 }
             }
-            # using for demo in CI - will remove before release
-            Write-PesterHostMessage "Using RenderMode: $($PesterPreference.Output.RenderMode.Value)"
 
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
