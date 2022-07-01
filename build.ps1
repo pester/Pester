@@ -75,6 +75,9 @@ if ($Clean) {
     if (-not $NoRestore) {
         dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
     }
+    else { 
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln" --locked-mode
+    }
     dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
