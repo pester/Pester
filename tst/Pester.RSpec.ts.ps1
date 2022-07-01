@@ -2429,7 +2429,7 @@ i -PassThru:$PassThru {
     }
 
     b 'Changes to CWD are reverted on exit' {
-        t 'when executed normally' {
+        t 'PWD is equal before and after running Invoke-Pester' {
             $beforePWD = $pwd.Path
 
             $sb = {

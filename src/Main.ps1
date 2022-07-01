@@ -635,7 +635,7 @@ function Invoke-Pester {
         Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
 
         # store CWD so we can revert any changes at the end
-        & $SafeCommands['Push-Location'] -StackName 'Pester'
+        $initialPWD = $pwd.Path
     }
 
     end {
@@ -1218,7 +1218,7 @@ function Invoke-Pester {
         }
 
         # go back to original CWD
-        & $SafeCommands['Pop-Location'] -StackName 'Pester'
+        if ($null -ne $initialPWD) { & $SafeCommands['Set-Location'] -Path $initialPWD }
 
         # exit with exit code if we fail and even if we succeed, otherwise we could inherit
         # exit code of some other app end exit with it's exit code instead with ours
