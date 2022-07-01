@@ -52,7 +52,7 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -CI
+          - powershell: ./build.ps1 -CI -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
