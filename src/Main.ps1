@@ -932,8 +932,8 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
-                if (($null -ne $env:NO_COLOR) -or ($null -ne $host.UI.RawUI.ForegroundColor)) {
-                    # https://no-color.org/) OR running in host without UI
+                if ($null -ne $env:NO_COLOR) {
+                    # https://no-color.org/)
                     $PesterPreference.Output.RenderMode = 'Plaintext'
                 }
                 elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {

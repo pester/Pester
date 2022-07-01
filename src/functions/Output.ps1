@@ -88,6 +88,10 @@ function Write-PesterHostMessage {
     )
 
     begin {
+        # Custom PSHosts without UI will fail with Write-Host. Works in PS5+ due to use of InformationRecords
+        $HostSupportsOutput = $null -ne $host.UI.RawUI.ForegroundColor -or $PSVersionTable.PSVersion.Major -ge 5
+        if (-not $HostSupportsOutput) { return }
+
         # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
         $esc = [char]27
         $ANSIcodes = @{
@@ -136,6 +140,8 @@ function Write-PesterHostMessage {
     }
 
     process {
+        if (-not $HostSupportsOutput) { return }
+
         if ($RenderMode -eq 'Ansi') {
             $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
             $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()] } else { '' }

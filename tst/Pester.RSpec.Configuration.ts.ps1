@@ -1093,6 +1093,7 @@ i -PassThru:$PassThru {
                 $ps.AddStatement().AddScript('Invoke-Pester -Configuration $c') > $null
                 $r = $ps.Invoke()
 
+                "$($ps.Streams.Error)" | Verify-Equal ''
                 $ps.HadErrors | Verify-False
                 $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Legacy'
             }
