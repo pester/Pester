@@ -1011,6 +1011,137 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'Output.RenderMode' {
+        t 'Output.RenderMode is Plaintext when set to Auto (default) and env:NO_COLOR is set' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            $previousValue = $env:NO_COLOR
+            $env:NO_COLOR = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Plaintext'
+            }
+            finally {
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue } else { Remove-Item Env:\NO_COLOR }
+            }
+        }
+
+        t 'Output.RenderMode is Plaintext when set to Plaintext and env:NO_COLOR is not set' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    RenderMode = 'Plaintext'
+                }
+            }
+
+            $previousValue = $env:NO_COLOR
+            Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Plaintext'
+            }
+            finally {
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+            }
+        }
+
+        if ($($VT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $VT.Value) {
+            t 'Output.RenderMode is Ansi when set to Auto and virtual terminal is supported and env:NO_COLOR is not set' {
+                $c = [PesterConfiguration] @{
+                    Run    = @{
+                        ScriptBlock = { }
+                        PassThru    = $true
+                    }
+                    Output = @{
+                        RenderMode = 'Auto'
+                    }
+                }
+
+                $previousValue = $env:NO_COLOR
+                Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+                try {
+                    $r = Invoke-Pester -Configuration $c
+                    $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Ansi'
+                }
+                finally {
+                    if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+                }
+            }
+        }
+
+        t 'Output.RenderMode is Legacy when set to Auto and virtual terminal is not supported and env:NO_COLOR is not set' {
+            $previousValue = $env:NO_COLOR
+            Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+            $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
+            try {
+                $ps = [PowerShell]::Create()
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
+                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
+                $ps.AddStatement().AddScript('$c = [PesterConfiguration]@{Run = @{ScriptBlock={ describe "d1" { it "i1" { } } };PassThru=$true};Output=@{RenderMode="Auto"}}') > $null
+                $ps.AddStatement().AddScript('Invoke-Pester -Configuration $c') > $null
+                $r = $ps.Invoke()
+
+                $ps.HadErrors | Verify-False
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Legacy'
+            }
+            finally {
+                $ps.Dispose()
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+            }
+        }
+
+        t 'Each non-Auto option can be set and updated' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in 'Ansi', 'Legacy', 'Plaintext') {
+                $c.Output.RenderMode = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal $option
+            }
+        }
+
+        t 'Exception is thrown when incorrect option is set' {
+            $sb = {
+                Describe 'a' {
+                    It 'b' {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    RenderMode = 'Something'
+                }
+            }
+
+            try {
+                Invoke-Pester -Configuration $c
+            } catch [System.Management.Automation.RuntimeException] {
+                $_.Exception.Message | Verify-Equal "Unsupported Output.RenderMode option 'Something'"
+            }
+        }
+    }
+
     b "Run.SkipRemainingOnFailure" {
         t "Each option can be set and updated" {
             $c = [PesterConfiguration] @{
