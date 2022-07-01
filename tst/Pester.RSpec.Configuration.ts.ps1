@@ -1136,7 +1136,7 @@ i -PassThru:$PassThru {
 
             try {
                 Invoke-Pester -Configuration $c
-            } catch [System.Management.Automation.RuntimeException] {
+            } catch {
                 $_.Exception.Message | Verify-Equal "Unsupported Output.RenderMode option 'Something'"
             }
         }
