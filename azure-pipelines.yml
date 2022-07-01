@@ -56,6 +56,7 @@ stages:
           - task: Cache@2
             displayName: Cache
             inputs:
+              # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/caching-nuget?view=azure-devops
               key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
               path: '$(NUGET_PACKAGES)'
               cacheHitVar: 'CACHE_RESTORED'
