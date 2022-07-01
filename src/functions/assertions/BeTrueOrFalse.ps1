@@ -1,24 +1,24 @@
 ﻿function Should-BeTrue($ActualValue, [switch] $Negate, [string] $Because) {
     <#
-.SYNOPSIS
-Asserts that the value is true, or truthy.
+    .SYNOPSIS
+    Asserts that the value is true, or truthy.
 
-.EXAMPLE
-$true | Should -BeTrue
+    .EXAMPLE
+    $true | Should -BeTrue
 
-This test passes. $true is true.
+    This test passes. $true is true.
 
-.EXAMPLE
-1 | Should -BeTrue
+    .EXAMPLE
+    1 | Should -BeTrue
 
-This test passes. 1 is true.
+    This test passes. 1 is true.
 
-.EXAMPLE
-1,2,3 | Should -BeTrue
+    .EXAMPLE
+    1,2,3 | Should -BeTrue
 
-PowerShell does not enter a `If (-not @(1,2,3)) {}` block.
-This test passes as a "truthy" result.
-#>
+    PowerShell does not enter a `If (-not @(1,2,3)) {}` block.
+    This test passes as a "truthy" result.
+    #>
     if ($Negate) {
         return Should-BeFalse -ActualValue $ActualValue -Negate:$false -Because $Because
     }
@@ -38,25 +38,25 @@ This test passes as a "truthy" result.
 
 function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
     <#
-.SYNOPSIS
-Asserts that the value is false, or falsy.
+    .SYNOPSIS
+    Asserts that the value is false, or falsy.
 
-.EXAMPLE
-$false | Should -BeFalse
+    .EXAMPLE
+    $false | Should -BeFalse
 
-This test passes. $false is false.
+    This test passes. $false is false.
 
-.EXAMPLE
-0 | Should -BeFalse
+    .EXAMPLE
+    0 | Should -BeFalse
 
-This test passes. 0 is false.
+    This test passes. 0 is false.
 
-.EXAMPLE
-$null | Should -BeFalse
+    .EXAMPLE
+    $null | Should -BeFalse
 
-PowerShell does not enter a `If ($null) {}` block.
-This test passes as a "falsy" result.
-#>
+    PowerShell does not enter a `If ($null) {}` block.
+    This test passes as a "falsy" result.
+    #>
     if ($Negate) {
         return Should-BeTrue -ActualValue $ActualValue -Negate:$false -Because $Because
     }

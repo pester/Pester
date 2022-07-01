@@ -63,7 +63,7 @@ Get-Module Pester | Remove-Module
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
             foreach {
-                $r = & $_.FullName -PassThru
+                $r = & $_.FullName -PassThru -NoBuild:$NoBuild
                 if ($r.Failed -gt 0) {
                     [PSCustomObject]@{
                         FullName = $_.FullName
@@ -137,7 +137,7 @@ else {
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
-$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules', 'Help'
+$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
 
 if ($CI) {
     $configuration.Run.Exit = $true

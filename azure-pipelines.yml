@@ -1,9 +1,39 @@
 trigger:
-  - main
-  - rel/*
+  branches:
+    include:
+      - main
+      - rel/*
+  paths:
+    exclude:
+      - .devcontainer
+      - .github
+      - .vscode
+      - docs
+      - images
+      - BACKERS.md
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - SUPPORT.md
 pr:
-  - main
-  - rel/*
+  branches:
+    include:
+      - main
+      - rel/*
+  paths:
+    exclude:
+      - .devcontainer
+      - .github
+      - .vscode
+      - docs
+      - images
+      - BACKERS.md
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - README.md
+      - SECURITY.md
+      - SUPPORT.md
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1

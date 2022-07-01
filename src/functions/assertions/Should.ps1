@@ -37,74 +37,61 @@ function Should {
     The actual value that was obtained in the test which should be verified against
     a expected value.
 
+    .EXAMPLE
+    ```powershell
+    Describe "d1" {
+        It "i1" {
+            Mock Get-Command { }
+            Get-Command -CommandName abc
+            Should -Invoke Get-Command -Times 1 -Exactly
+        }
+    }
+    ```
+
+    Example of creating a mock for `Get-Command` and asserting that it was called exactly one time.
+
+    .EXAMPLE
+    $true | Should -BeFalse
+
+    Asserting that the input value is false. This would fail the test by throwing an error.
+
+    .EXAMPLE
+    $a | Should -Be 10
+
+    Asserting that the input value defined in $a is equal to 10.
+
+    .EXAMPLE
+    Should -Invoke Get-Command -Times 1 -Exactly
+
+    Asserting that the mocked `Get-Command` was called exactly one time.
+
+    .EXAMPLE
+    $user | Should -Not -BeNullOrEmpty
+
+    Asserting that the input value from $user is not null or empty.
+
+    .EXAMPLE
+    $planets.Name | Should -Be $Expected
+
+    Asserting that the value of `$planets.Name` is equal to the value defined in `$Expected`.
+
+    .EXAMPLE
+    ```powershell
+    Context "We want to ensure an exception is thrown when expected" {
+        It "Throws the exception" {
+            { Get-Application -Name Blarg } | Should -Throw -ExpectedMessage "Application 'Blarg' not found"
+        }
+    }
+    ```
+
+    Asserting that `Get-Application -Name Blarg` will throw an exception with a specific message.
+
     .LINK
     https://pester.dev/docs/commands/Should
 
     .LINK
     https://pester.dev/docs/assertions/assertions
-
-    .EXAMPLE
-    ```powershell
-    Describe "d1" {
-        BeforeEach { $be = 1 }
-        It "i1" {
-            $be = 2
-        }
-        AfterEach { Write-Host "AfterEach: $be" }
-    }
-    ```
-
-    .EXAMPLE
-    ```powershell
-    Describe "d1" {
-        It "i1" {
-            $user = Get-User
-            $user | Should -NotBeNullOrEmpty -ErrorAction Stop
-            $user |
-                Should -HaveProperty Name -Value "Jakub" |
-                Should -HaveProperty Age  -Value 30
-        }
-    }
-    ```
-
-    .EXAMPLE
-    ```powershell
-    Describe "d1" {
-        It "i1" {
-            Mock Get-Command { }
-            Get-Command -CommandName abc
-            Should -Invoke Get-Command -Times 1 -Exactly
-        }
-    }
-    ```
-
-    .EXAMPLE
-    ```powershell
-    Describe "d1" {
-        It "i1" {
-            Mock Get-Command { }
-            Get-Command -CommandName abc
-            Should -Invoke Get-Command -Times 1 -Exactly
-        }
-    }
-    ```
-
-    .EXAMPLE
-    $true | Should -BeFalse
-
-    .EXAMPLE
-    $a | Should -Be 10
-
-    .EXAMPLE
-    Should -Invoke Get-Command -Times 1 -Exactly
-
-    .EXAMPLE
-    $user | Should -NotBeNullOrEmpty -ErrorAction Stop
-
-    .EXAMPLE
-    $planets.Name | Should -Be $Expected
-#>
-
+    #>
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]

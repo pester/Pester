@@ -463,8 +463,6 @@ function New-PesterConfiguration {
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
-
-
     #>
     [CmdletBinding()]
     param(

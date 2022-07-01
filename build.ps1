@@ -53,6 +53,7 @@ param (
     [switch] $CI,
     [switch] $Clean,
     [switch] $Inline,
+    [switch] $Import
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,7 +82,7 @@ if ($Clean) {
     if ($lockedRestore) {
         dotnet restore "$PSScriptRoot/src/csharp/Pester.sln" --locked-mode
     }
-    else { 
+    else {
         dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
     }
     dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
@@ -284,9 +285,9 @@ if (-not $inline) {
 }
 
 foreach ($f in $files) {
-    $lines = Get-Content $f
-
     if ($inline) {
+        $lines = Get-Content $f
+
         $relativePath = ($f.FullName -replace ([regex]::Escape($PSScriptRoot))).TrimStart('\').TrimStart('/')
         $null = $sb.AppendLine("# file $relativePath")
         $noBuild = $false
@@ -318,13 +319,15 @@ foreach ($f in $files) {
     }
 }
 
-$sb.ToString() | Set-Content $PSScriptRoot/bin/Pester.psm1 -Encoding UTF8
+$sb.ToString() | Set-Content "$PSScriptRoot/bin/Pester.psm1" -Encoding UTF8
 
 $powershell = Get-Process -Id $PID | Select-Object -ExpandProperty Path
 
 if ($Load) {
-    & $powershell -c "'Load: ' + (Measure-Command { Import-Module $PSScriptRoot/bin/Pester.psm1 -ErrorAction Stop}).TotalMilliseconds"
+    & $powershell -c "'Load: ' + (Measure-Command { Import-Module '$PSScriptRoot/bin/Pester.psd1' -ErrorAction Stop}).TotalMilliseconds + 'ms'"
     if (0 -ne $LASTEXITCODE) {
         throw "load failed!"
     }
 }
+
+if ($Import) { Import-Module "$PSScriptRoot/bin/Pester.psd1" -Force }

@@ -1,66 +1,75 @@
 ﻿function New-MockObject {
     <#
-.SYNOPSIS
-This function instantiates a .NET object from a type.
+    .SYNOPSIS
+    This function instantiates a .NET object from a type.
 
-.DESCRIPTION
-Using the New-MockObject you can mock an object based on .NET type.
+    .DESCRIPTION
+    Using the New-MockObject you can mock an object based on .NET type.
 
-An .NET assembly for the particular type must be available in the system and loaded.
+    An .NET assembly for the particular type must be available in the system and loaded.
 
-.PARAMETER Type
-The .NET type to create. This creates the object without calling any of its constructors or initializers. Use this to instantiate an object that does not have a public constructor. If your object has a constructor, or is giving you errors, try using the constructor and provide the object using the InputObject parameter to decorate it.
+    .PARAMETER Type
+    The .NET type to create. This creates the object without calling any of its constructors or initializers. Use this to instantiate an object that does not have a public constructor. If your object has a constructor, or is giving you errors, try using the constructor and provide the object using the InputObject parameter to decorate it.
 
-.PARAMETER InputObject
-An already constructed object to decorate. Use New-Object or ::new to create it.
+    .PARAMETER InputObject
+    An already constructed object to decorate. Use New-Object or ::new to create it.
 
-.PARAMETER Properties
-Properties to define, specified as a hashtable, in format @{ PropertyName = value }.
+    .PARAMETER Properties
+    Properties to define, specified as a hashtable, in format @{ PropertyName = value }.
 
-.PARAMETER Methods
-Methods to define, specified as a hashtable, in format @{ MethodName = scriptBlock }.
+    .PARAMETER Methods
+    Methods to define, specified as a hashtable, in format @{ MethodName = scriptBlock }.
 
-ScriptBlock can define param block, and it will receive arguments that were provided to the function call based on order.
+    ScriptBlock can define param block, and it will receive arguments that were provided to the function call based on order.
 
-Method overloads are not supported because ScriptMethods are used to decorate the object, and ScriptMethods do not support method overloads.
+    Method overloads are not supported because ScriptMethods are used to decorate the object, and ScriptMethods do not support method overloads.
 
-For each method a property named _MethodName is defined which holds history of the invocations of the method and the arguments that were provided.
+    For each method a property named _MethodName (if using default -MethodHistoryPrefix) is defined which holds history of the invocations of the method and the arguments that were provided.
 
-.EXAMPLE
-```powershell
-$obj = New-MockObject -Type 'System.Diagnostics.Process'
-$obj.GetType().FullName
-    System.Diagnostics.Process
-```
+    .PARAMETER MethodHistoryPrefix
+    Prefix for the history-property created for each mocked method. Default is '_' which would create the property ' _MethodName'.
 
-.EXAMPLE
-```powershell
-$obj = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{ Id = 123 }
-```
+    .EXAMPLE
+    ```powershell
+    $obj = New-MockObject -Type 'System.Diagnostics.Process'
+    $obj.GetType().FullName
+        System.Diagnostics.Process
+    ```
 
-.EXAMPLE
-```powershell
-$obj = New-MockObject -Type 'System.Diagnostics.Process' -Methods @{ Kill = { param($entireProcessTree) "killed" } }
-$obj.Kill()
-$obj.Kill($true)
-$obj.Kill($false)
+    Creates a mock of a process-object with default property-values.
 
-$obj._Kill
+    .EXAMPLE
+    ```powershell
+    $obj = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{ Id = 123 }
+    ```
 
-Call Arguments
----- ---------
-   1 {}
-   2 {True}
-   3 {False}
-```
+    Create a mock of a process-object with the Id-property specified.
 
-.LINK
-https://pester.dev/docs/commands/New-MockObject
+    .EXAMPLE
+    ```powershell
+    $obj = New-MockObject -Type 'System.Diagnostics.Process' -Methods @{ Kill = { param($entireProcessTree) "killed" } }
+    $obj.Kill()
+    $obj.Kill($true)
+    $obj.Kill($false)
 
-.LINK
-https://pester.dev/docs/usage/mocking
+    $obj._Kill
 
-#>
+    Call Arguments
+    ---- ---------
+    1 {}
+    2 {True}
+    3 {False}
+    ```
+
+    Create a mock of a process-object and mocks the object's Kill()-method. The mocked method will keep a history
+    of any call and the associated arguments in a key named <_<MethodName
+
+    .LINK
+    https://pester.dev/docs/commands/New-MockObject
+
+    .LINK
+    https://pester.dev/docs/usage/mocking
+    #>
     [CmdletBinding(DefaultParameterSetName = "Type")]
     param (
         [Parameter(ParameterSetName = "Type", Mandatory, Position = 0)]

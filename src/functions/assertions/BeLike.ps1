@@ -1,22 +1,22 @@
 ﻿function Should-BeLike($ActualValue, $ExpectedValue, [switch] $Negate, [String] $Because) {
     <#
-.SYNOPSIS
-Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator.
-This comparison is not case-sensitive.
+    .SYNOPSIS
+    Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator.
+    This comparison is not case-sensitive.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -BeLike "actual *"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -BeLike "actual *"
 
-This test will pass. -BeLike is not case sensitive.
-For a case sensitive assertion, see -BeLikeExactly.
+    This test will pass. -BeLike is not case sensitive.
+    For a case sensitive assertion, see -BeLikeExactly.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -BeLike "not actual *"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -BeLike "not actual *"
 
-This test will fail, as the first string does not match the expected value.
-#>
+    This test will fail, as the first string does not match the expected value.
+    #>
     [bool] $succeeded = $ActualValue -like $ExpectedValue
     if ($Negate) {
         $succeeded = -not $succeeded

@@ -1,14 +1,14 @@
 ﻿function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
-.SYNOPSIS
-Asserts that a number (or other comparable value) is lower than an expected value.
-Uses PowerShell's -lt operator to compare the two values.
+    .SYNOPSIS
+    Asserts that a number (or other comparable value) is lower than an expected value.
+    Uses PowerShell's -lt operator to compare the two values.
 
-.EXAMPLE
-1 | Should -BeLessThan 10
+    .EXAMPLE
+    1 | Should -BeLessThan 10
 
-This test passes, as PowerShell evaluates `1 -lt 10` as true.
-#>
+    This test passes, as PowerShell evaluates `1 -lt 10` as true.
+    #>
     if ($Negate) {
         return Should-BeGreaterOrEqual -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
@@ -28,20 +28,20 @@ This test passes, as PowerShell evaluates `1 -lt 10` as true.
 
 function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
-.SYNOPSIS
-Asserts that a number (or other comparable value) is greater than or equal to an expected value.
-Uses PowerShell's -ge operator to compare the two values.
+    .SYNOPSIS
+    Asserts that a number (or other comparable value) is greater than or equal to an expected value.
+    Uses PowerShell's -ge operator to compare the two values.
 
-.EXAMPLE
-2 | Should -BeGreaterOrEqual 0
+    .EXAMPLE
+    2 | Should -BeGreaterOrEqual 0
 
-This test passes, as PowerShell evaluates `2 -ge 0` as true.
+    This test passes, as PowerShell evaluates `2 -ge 0` as true.
 
-.EXAMPLE
-2 | Should -BeGreaterOrEqual 2
+    .EXAMPLE
+    2 | Should -BeGreaterOrEqual 2
 
-This test also passes, as PowerShell evaluates `2 -ge 2` as true.
-#>
+    This test also passes, as PowerShell evaluates `2 -ge 2` as true.
+    #>
     if ($Negate) {
         return Should-BeLessThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }

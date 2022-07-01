@@ -1,31 +1,31 @@
 ﻿
 function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
     <#
-.SYNOPSIS
-Asserts that the actual value should be an object of a specified type
-(or a subclass of the specified type) using PowerShell's -is operator.
+    .SYNOPSIS
+    Asserts that the actual value should be an object of a specified type
+    (or a subclass of the specified type) using PowerShell's -is operator.
 
-.EXAMPLE
-$actual = Get-Item $env:SystemRoot
-$actual | Should -BeOfType System.IO.DirectoryInfo
+    .EXAMPLE
+    $actual = Get-Item $env:SystemRoot
+    $actual | Should -BeOfType System.IO.DirectoryInfo
 
-This test passes, as $actual is a DirectoryInfo object.
+    This test passes, as $actual is a DirectoryInfo object.
 
-.EXAMPLE
-$actual | Should -BeOfType System.IO.FileSystemInfo
+    .EXAMPLE
+    $actual | Should -BeOfType System.IO.FileSystemInfo
 
-This test passes, as DirectoryInfo's base class is FileSystemInfo.
+    This test passes, as DirectoryInfo's base class is FileSystemInfo.
 
-.EXAMPLE
-$actual | Should -HaveType System.IO.FileSystemInfo
+    .EXAMPLE
+    $actual | Should -HaveType System.IO.FileSystemInfo
 
-This test passes for the same reason, but uses the -HaveType alias instead.
+    This test passes for the same reason, but uses the -HaveType alias instead.
 
-.EXAMPLE
-$actual | Should -BeOfType System.IO.FileInfo
+    .EXAMPLE
+    $actual | Should -BeOfType System.IO.FileInfo
 
-This test will fail, as FileInfo is not a base class of DirectoryInfo.
-#>
+    This test will fail, as FileInfo is not a base class of DirectoryInfo.
+    #>
     if ($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
         $parsedType = ($ExpectedType -replace '^\[(.*)\]$', '$1') -as [Type]
