@@ -32,6 +32,9 @@
         and measure how fast it imports. If the module cannot be imported it throws
         an error.
 
+    .PARAMETER CI
+        Performs CI build, with clean, restore from nuget.lock and inlining all files.
+
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
 
@@ -47,12 +50,20 @@
 [CmdletBinding()]
 param (
     [switch] $Load,
+    [switch] $CI,
     [switch] $Clean,
-    [switch] $Inline
+    [switch] $Inline,
 )
 
 $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
+
+$lockedRestore = $false
+if ($CI) {
+    $Clean = $true
+    $Inline = $true
+    $lockedRestore = $true
+}
 
 if ($Clean -and $PSVersionTable.PSVersion -lt [version]'5.1') {
     throw "Clean build of Pester requires PowerShell 5.1 or greater. If you have already compiled the assemblies and only modified powershell-files, try calling ./build.ps1 without -Clean."
@@ -67,7 +78,12 @@ if ($Clean) {
     # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
     # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
     $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/src"
-    dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
+    if ($lockedRestore) {
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln" --locked-mode
+    }
+    else { 
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
+    }
     dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
