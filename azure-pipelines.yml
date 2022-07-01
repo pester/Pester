@@ -39,6 +39,7 @@ variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   CI: 1
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
 
 stages:
   - stage: Build
@@ -52,7 +53,18 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -CI -Clean -Inline
+          - task: Cache@2
+            displayName: Cache
+            inputs:
+              key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
+              path: '$(NUGET_PACKAGES)'
+              cacheHitVar: 'CACHE_RESTORED'
+          - task: NuGetCommand@2
+            condition: ne(variables.CACHE_RESTORED, true)
+            inputs:
+              command: 'restore'
+              restoreSolution: 'src/csharp/Pester.sln'
+          - powershell: ./build.ps1 -NoRestore -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
