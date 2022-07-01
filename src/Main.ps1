@@ -944,21 +944,6 @@ function Invoke-Pester {
                 $PesterPreference.Output.StackTraceVerbosity = "Full"
             }
 
-            if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
-                if ($null -ne $env:NO_COLOR) {
-                    # https://no-color.org/)
-                    $PesterPreference.Output.RenderMode = 'Plaintext'
-                }
-                elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
-                    $PesterPreference.Output.RenderMode = 'Ansi'
-                }
-                else {
-                    $PesterPreference.Output.RenderMode = 'Legacy'
-                }
-            }
-            # using for demo in CI - will remove before release
-            Write-PesterHostMessage "Using RenderMode: $($PesterPreference.Output.RenderMode.Value)"
-
             $plugins +=
             @(
                 # decorator plugin needs to be added after output

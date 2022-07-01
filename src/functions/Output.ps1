@@ -585,6 +585,25 @@ function Get-WriteScreenPlugin ($Verbosity) {
         Name = 'WriteScreen'
     }
 
+    if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'Legacy', 'Plaintext') {
+        throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
+    }
+
+    if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
+        if ($null -ne $env:NO_COLOR) {
+            # https://no-color.org/)
+            $PesterPreference.Output.RenderMode = 'Plaintext'
+        }
+        elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+            $PesterPreference.Output.RenderMode = 'Ansi'
+        }
+        else {
+            $PesterPreference.Output.RenderMode = 'Legacy'
+        }
+    }
+    # using for demo in CI - will remove before release
+    Write-PesterHostMessage "Using RenderMode: $($PesterPreference.Output.RenderMode.Value)"
+
     if ($Verbosity -in 'Detailed', 'Diagnostic') {
         $p.Start = {
             param ($Context)
