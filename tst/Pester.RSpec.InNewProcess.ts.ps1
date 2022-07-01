@@ -45,7 +45,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';UseANSI=`$false}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -67,7 +67,7 @@ i -PassThru:$PassThru {
                 $c = 'Context "c" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';UseANSI=`$false}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -91,7 +91,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Describe "d - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';UseANSI=`$false}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -113,7 +113,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Context "c - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';UseANSI=`$false}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -240,6 +240,7 @@ i -PassThru:$PassThru {
 
                 $ps.HadErrors | Verify-False
                 $res.PassedCount | Verify-Equal 1
+                $ps.Streams.Information -match 'Describe' | Verify-NotNull
             } finally {
                 $ps.Dispose()
             }

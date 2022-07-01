@@ -944,17 +944,20 @@ function Invoke-Pester {
                 $PesterPreference.Output.StackTraceVerbosity = "Full"
             }
 
-            # Auto-detect ANSI-formatted host output if not specified
-            if ($PesterPreference.Output.UseANSI.IsOriginalValue()) {
-                if (($suppVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $suppVT.Value) {
-                    $PesterPreference.Output.UseANSI = $true
+            if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
+                if ($null -ne $env:NO_COLOR) {
+                    # https://no-color.org/)
+                    $PesterPreference.Output.RenderMode = 'Plaintext'
+                }
+                elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+                    $PesterPreference.Output.RenderMode = 'Ansi'
                 }
                 else {
-                    $PesterPreference.Output.UseANSI = $false
+                    $PesterPreference.Output.RenderMode = 'Legacy'
                 }
             }
             # using for demo in CI - will remove before release
-            Write-PesterHostMessage "Using ANSI? $($PesterPreference.Output.UseANSI.Value)"
+            Write-PesterHostMessage "Using RenderMode: $($PesterPreference.Output.RenderMode.Value)"
 
             $plugins +=
             @(

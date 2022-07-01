@@ -82,14 +82,12 @@ function Write-PesterHostMessage {
         [string]
         $Separator = ' ',
 
-        [switch]
-        $UseANSI = $PesterPreference.Output.UseANSI.Value
+        [ValidateSet('Ansi', 'Legacy', 'Plaintext')]
+        [string]
+        $RenderMode = $PesterPreference.Output.RenderMode.Value
     )
 
     begin {
-        $HostSupportsOutput = $null -ne $host.UI.RawUI.ForegroundColor
-        if (-not $HostSupportsOutput) { return }
-
         # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
         $esc = [char]27
         $ANSIcodes = @{
@@ -138,37 +136,31 @@ function Write-PesterHostMessage {
     }
 
     process {
-        if (-not $HostSupportsOutput) { return }
-
-        $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
-
-        if ($UseANSI) {
+        if ($RenderMode -eq 'Ansi') {
+            $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
             $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()] } else { '' }
             $bg = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()] } else { '' }
 
             # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
+
+            & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
         } else {
-            if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
-                $oldFg = $host.UI.RawUI.ForegroundColor
-                $host.UI.RawUI.ForegroundColor = $ForegroundColor
+            if ($RenderMode -eq 'Plaintext') {
+                if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
+                    $null = $PSBoundParameters.Remove('ForegroundColor')
+                }
+                if ($PSBoundParameters.ContainsKey('BackgroundColor')) {
+                    $null = $PSBoundParameters.Remove('BackgroundColor')
+                }
             }
-            if ($PSBoundParameters.ContainsKey('BackgroundColor')) {
-                $oldBg = $host.UI.RawUI.BackgroundColor
-                $host.UI.RawUI.BackgroundColor = $BackgroundColor
+
+            if ($PSBoundParameters.ContainsKey('RenderMode')) {
+                $null = $PSBoundParameters.Remove('RenderMode')
             }
-        }
 
-        if ($NoNewLine) {
-            $host.UI.Write($message)
+            & $SafeCommands['Write-Host'] @PSBoundParameters
         }
-        else {
-            $host.UI.WriteLine($message)
-        }
-
-        # Revert console-colors if needed
-        if ($oldFg) { $host.UI.RawUI.ForegroundColor = $oldFg }
-        if ($oldBg) { $host.UI.RawUI.BackgroundColor = $oldBg }
     }
 }
 
@@ -799,13 +791,15 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
 
                     # Loop to generate problem for every failed assertion per test (when $PesterPreference.Should.ErrorAction.Value = "Continue")
-                    # Using -UseANSI:$false to make sure it doesn't interfere with problemMatcher in vscode-powershell extension 
-                    foreach ($e in $_test.ErrorRecord) {
-                        Write-PesterHostMessage -UseANSI:$false -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
-                        Write-PesterHostMessage -UseANSI:$false -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                    # Disabling ANSI to make sure it doesn't interfere with problemMatcher in vscode-powershell extension
+                    $RenderMode = if ($PesterPreference.Output.RenderMode.Value -eq 'Ansi') { 'Legacy' } else { $PesterPreference.Output.RenderMode.Value }
 
-                        Write-PesterHostMessage -UseANSI:$false -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^', $error_margin)
-                        Write-PesterHostMessage -UseANSI:$false -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^', $error_margin)
+                    foreach ($e in $_test.ErrorRecord) {
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailTime " $humanTime"
+
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^', $error_margin)
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^', $error_margin)
                     }
 
                 }

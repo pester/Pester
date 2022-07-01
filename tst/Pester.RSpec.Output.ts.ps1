@@ -110,7 +110,7 @@ i -PassThru:$PassThru {
                 $PesterPreference = [PesterConfiguration]::Default
                 $PesterPreference.Output.Verbosity = 'Detailed'
                 $PesterPreference.Output.CIFormat = 'None'
-                $PesterPreference.Output.UseANSI = $false
+                $PesterPreference.Output.RenderMode = 'Legacy'
 
                 $container = New-PesterContainer -ScriptBlock {
                     Describe 'd1' {
@@ -171,7 +171,7 @@ i -PassThru:$PassThru {
             $sb = {
                 $PesterPreference = [PesterConfiguration]::Default
                 $PesterPreference.Output.Verbosity = 'Detailed'
-                $PesterPreference.Output.UseANSI = $false
+                $PesterPreference.Output.RenderMode = 'Legacy'
 
                 $container = New-PesterContainer -ScriptBlock {
                     Describe 'd1 <value>' -ForEach @(
@@ -203,10 +203,10 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','both' | & $cmd -UseAnsi -ForegroundColor Green -BackgroundColor Blue
-                'green' | & $cmd -UseAnsi -ForegroundColor Green
-                'blue' | & $cmd -UseAnsi  -BackgroundColor Blue
-                & $cmd 'NoColorsOnlyReset' -UseAnsi
+                'Hello','both' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
+                'green' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green
+                'blue' | & $cmd -RenderMode 'Ansi'  -BackgroundColor Blue
+                & $cmd 'NoColorsOnlyReset' -RenderMode 'Ansi'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -226,7 +226,7 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                "Hello`nWorld" | & $cmd -UseAnsi -ForegroundColor Green -BackgroundColor Blue
+                "Hello`nWorld" | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -239,21 +239,21 @@ i -PassThru:$PassThru {
             $output -join "`n" | Verify-Equal ($expected -join "`n")
         }
 
-        t 'Ansi and Console output are equal' {
+        t 'Ansi and ConsoleColor (Legacy) output are equal' {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | & $cmd -UseAnsi
-                'No','NewLine' | & $cmd -UseAnsi -NoNewLine
-                'hello',('foo','bar') | & $cmd -UseAnsi
-                'hello',('no','newline') | & $cmd -UseAnsi -NoNewline
-                & $cmd -Object 'foo','bar' -UseAnsi -Separator ';'
+                'Hello','world' | & $cmd -RenderMode 'Ansi'
+                'No','NewLine' | & $cmd -RenderMode 'Ansi' -NoNewLine
+                'hello',('foo','bar') | & $cmd -RenderMode 'Ansi'
+                'hello',('no','newline') | & $cmd -RenderMode 'Ansi' -NoNewline
+                & $cmd -Object 'foo','bar' -RenderMode 'Ansi' -Separator ';'
 
-                'Hello','world' | & $cmd -UseAnsi:$false
-                'No','NewLine' | & $cmd -UseAnsi:$false -NoNewLine
-                'hello',('foo','bar') | & $cmd -UseAnsi:$false
-                'hello',('no','newline') | & $cmd -UseAnsi:$false -NoNewline
-                & $cmd -Object 'foo','bar' -UseAnsi:$false -Separator ';'
+                'Hello','world' | & $cmd -RenderMode 'Legacy'
+                'No','NewLine' | & $cmd -RenderMode 'Legacy' -NoNewLine
+                'hello',('foo','bar') | & $cmd -RenderMode 'Legacy'
+                'hello',('no','newline') | & $cmd -RenderMode 'Legacy' -NoNewline
+                & $cmd -Object 'foo','bar' -RenderMode 'Legacy' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -262,6 +262,31 @@ i -PassThru:$PassThru {
             $ansiOutput = $output[0..4] -replace '\x1b\[[0-9;]*?m' -join "`n"
             $normalOutput = $output[5..9] -join "`n"
             $ansiOutput | Verify-Equal $normalOutput
+        }
+
+        t 'Plaintext and ConsoleColor (Legacy) output are equal' {
+            $sb = {
+                $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
+
+                'Hello','world' | & $cmd -RenderMode 'Plaintext'
+                'No','NewLine' | & $cmd -RenderMode 'Plaintext' -NoNewline
+                'hello',('foo','bar') | & $cmd -RenderMode 'Plaintext'
+                'hello',('no','newline') | & $cmd -RenderMode 'Plaintext' -NoNewline
+                & $cmd -RenderMode 'Plaintext' -Object 'foo','bar' -Separator ';'
+
+                'Hello','world' | & $cmd -RenderMode 'Legacy'
+                'No','NewLine' | & $cmd -RenderMode 'Legacy' -NoNewLine
+                'hello',('foo','bar') | & $cmd -RenderMode 'Legacy'
+                'hello',('no','newline') | & $cmd -RenderMode 'Legacy' -NoNewline
+                & $cmd -Object 'foo','bar' -RenderMode 'Legacy' -Separator ';'
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+
+            # Output should be same without ANSI escaped sequences
+            $plaintextOutput = $output[0..4] -join "`n"
+            $normalOutput = $output[5..9] -join "`n"
+            $normalOutput | Verify-Equal $plaintextOutput
         }
 
         t 'Output is equal to Write-Host' {
@@ -274,11 +299,11 @@ i -PassThru:$PassThru {
                 'hello',('no','newline') | Write-Host -NoNewLine
                 Write-Host -Object 'foo','bar' -Separator ';'
 
-                'Hello','world' | & $cmd -UseAnsi:$false
-                'No','NewLine' | & $cmd -UseAnsi:$false -NoNewLine
-                'hello',('foo','bar') | & $cmd -UseAnsi:$false
-                'hello',('no','newline') | & $cmd -UseAnsi:$false -NoNewline
-                & $cmd -Object 'foo','bar' -UseAnsi:$false -Separator ';'
+                'Hello','world' | & $cmd -RenderMode 'Legacy'
+                'No','NewLine' | & $cmd -RenderMode 'Legacy' -NoNewLine
+                'hello',('foo','bar') | & $cmd -RenderMode 'Legacy'
+                'hello',('no','newline') | & $cmd -RenderMode 'Legacy' -NoNewline
+                & $cmd -Object 'foo','bar' -RenderMode 'Legacy' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb

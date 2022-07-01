@@ -25,7 +25,7 @@ namespace Pester
         private StringOption _verbosity;
         private StringOption _stackTraceVerbosity;
         private StringOption _ciFormat;
-        private BoolOption _useANSI;
+        private StringOption _renderMode;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -40,7 +40,7 @@ namespace Pester
                 Verbosity = configuration.GetObjectOrNull<string>("Verbosity") ?? Verbosity;
                 StackTraceVerbosity = configuration.GetObjectOrNull<string>("StackTraceVerbosity") ?? StackTraceVerbosity;
                 CIFormat = configuration.GetObjectOrNull<string>("CIFormat") ?? CIFormat;
-                UseANSI = configuration.GetValueOrNull<bool>("UseANSI") ?? UseANSI;
+                RenderMode = configuration.GetObjectOrNull<string>("RenderMode") ?? RenderMode;
             }
         }
 
@@ -49,7 +49,7 @@ namespace Pester
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
             StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
             CIFormat = new StringOption("The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.", "Auto");
-            UseANSI = new BoolOption("Prints messages with ANSI escaped sequences for formatting. If not set explicitly, ANSI will be enabled if supported.", true);
+            RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, Legacy and Plaintext.", "Auto");
         }
 
         public StringOption Verbosity
@@ -100,18 +100,18 @@ namespace Pester
             }
         }
 
-        public BoolOption UseANSI
+        public StringOption RenderMode
         {
-            get { return _useANSI; }
+            get { return _renderMode; }
             set
             {
-                if (_useANSI == null)
+                if (_renderMode == null)
                 {
-                    _useANSI = value;
+                    _renderMode = value;
                 }
                 else
                 {
-                    _useANSI = new BoolOption(_useANSI, value.Value);
+                    _renderMode = new StringOption(_renderMode, value?.Value);
                 }
             }
         }
