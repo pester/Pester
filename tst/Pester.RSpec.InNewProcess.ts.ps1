@@ -233,8 +233,10 @@ i -PassThru:$PassThru {
             try {
                 $ps = [PowerShell]::Create()
                 $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
-                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
-                $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
+                $ps.AddStatement().AddScript("Write-Host 'nocolor'") > $null
+                $ps.AddStatement().AddScript("Write-Host 'Describe' -ForegroundColor Yellow") > $null
+                #$ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
+                #$ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
                 $res = $ps.Invoke()
 
                 "$($ps.Streams.Error)" | Verify-Equal ''
