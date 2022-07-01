@@ -682,10 +682,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $param.ParameterType | Should -Be $WritePesterHostMessageParam[$param.Name].ParameterType
                 if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
             }
-
-            It 'Should fail - Testing output with CIFormat' {
-                1 | Should -Be 2
-            }
         }
     }
 }
