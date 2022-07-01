@@ -262,11 +262,11 @@ i -PassThru:$PassThru {
             { $config.Run.Path.Value = 'invalid' } | Verify-Throw
         }
 
-        t "IsOriginalValue returns false after change even if same as default" {
+        t "IsModified returns true after change even if same as default" {
             $config = [PesterConfiguration]::Default
-            $config.Run.Path.IsOriginalValue | Verify-True
+            $config.Run.Path.IsModified | Verify-False
             $config.Run.Path = $config.Run.Path.Default
-            $config.Run.Path.IsOriginalValue | Verify-False
+            $config.Run.Path.IsModified | Verify-True
         }
     }
 
@@ -343,14 +343,14 @@ i -PassThru:$PassThru {
             $result.Filter.Tag.Value | Verify-Equal "abc"
         }
 
-        t 'IsOriginalValue returns True after merging two original values' {
+        t 'IsModified returns False after merging two original values' {
             $one = [PesterConfiguration]::Default
             $two = [PesterConfiguration]::Default
             $result = [PesterConfiguration]::Merge($one, $two)
 
             # has the same value as default but was written so it will override
             $result.Output.Verbosity.Value | Verify-Equal $one.Output.Verbosity.Value
-            $result.Output.Verbosity.IsOriginalValue | Verify-True
+            $result.Output.Verbosity.IsModified | Verify-False
         }
     }
 
@@ -584,7 +584,7 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
 
-        t 'IsOriginalValue is only False on modified properties after merging Hashtable' {
+        t 'IsModified is only True on modified properties after merging Hashtable' {
             $MyOptions = @{
                 Run    = @{
                     PassThru = $true
@@ -597,8 +597,8 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
-            $config.Run.PassThru.IsOriginalValue | Verify-False
-            $config.Run.SkipRun.IsOriginalValue | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
         }
 
         t "Merges configuration when a hashtable has been serialized" {
@@ -617,9 +617,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
-            $config.Run.PassThru.IsOriginalValue | Verify-False
-            $config.Run.SkipRun.IsOriginalValue | Verify-True
-            $config.Output.Verbosity.IsOriginalValue | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object has been serialized" {
@@ -639,9 +639,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
-            $config.Run.PassThru.IsOriginalValue | Verify-False
-            $config.Run.SkipRun.IsOriginalValue | Verify-True
-            $config.Output.Verbosity.IsOriginalValue | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object includes an array of values" {

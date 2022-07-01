@@ -29,7 +29,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
     Context "Testing format data for 'Pester.Option[T]'" {
         BeforeAll {
             $formatData = Get-FormatData -TypeName 'Pester.Option'
-            $options = [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsOriginalValue'
+            $options = [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsModified'
         }
         It 'Has a single view defined of type TableControl' {
             $formatData | Should -Not -BeNullOrEmpty
@@ -45,9 +45,9 @@ Describe "PesterConfiguration.Format.ps1xml" {
             $missingOptions | Should -Be @()
         }
 
-        It 'View does not include IsOriginalValue' {
+        It 'View does not include IsModified' {
             $propertiesInView = @($formatData.FormatViewDefinition[0].Control.Rows.Columns.DisplayEntry | Where-Object ValueType -EQ 'Property')
-            $propertiesInView.Value | Should -Not -Contain 'IsOriginalValue'
+            $propertiesInView.Value | Should -Not -Contain 'IsModified'
         }
     }
 }

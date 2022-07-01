@@ -61,9 +61,11 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         foreach (var property in sourceSection.Properties)
         {
-            var IsOriginalValue = ((PSObject)property.Value).Properties["IsOriginalValue"];
+            var IsModified = ((PSObject)property.Value).Properties["IsModified"];
             
-            if (IsOriginalValue != null && (bool)IsOriginalValue.Value) {
+            // Doing this instead of IsModified -> Add to be compatible with saved PesterConfigurations from previous versions
+            // Consider rewriting in next major release
+            if (IsModified != null && !((bool)IsModified.Value)) {
                 continue;
             }
             

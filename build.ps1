@@ -216,9 +216,9 @@ if ($Clean) {
         New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
     }
 
-    # Create view for Option to ensure Table and hide IsOriginalValue
+    # Create view for Option to ensure Table and hide IsModified
     $builder = [System.Management.Automation.TableControl]::Create().StartRowDefinition()
-    [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsOriginalValue' | ForEach-Object {
+    [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsModified' | ForEach-Object {
         $builder.AddPropertyColumn($_.Name, [System.Management.Automation.Alignment]::Undefined, $null) > $null
     }
     $tableControl = $builder.EndRowDefinition().EndTable()
