@@ -65,7 +65,7 @@ stages:
             inputs:
               command: 'restore'
               restoreSolution: 'src/csharp/Pester.sln'
-          - powershell: ./build.ps1 -NoRestore -Clean -Inline
+          - powershell: ./build.ps1 -LockedRestore -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
