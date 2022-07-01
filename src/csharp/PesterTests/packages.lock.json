@@ -304,7 +304,7 @@
       "System.Private.DataContractSerialization": {
         "type": "Transitive",
         "resolved": "4.3.0",
-        "contentHash": "vgafJKz0seJId2pBHFQcVVmVgDnLjKYc6q3doWIb7LyPkXi99CXo06SakNv36jCl/nYInDf9pEp+XY1WhlrDCA==",
+        "contentHash": "yDaJ2x3mMmjdZEDB4IbezSnCsnjQ4BxinKhRAaP6kEgL6Bb6jANWphs5SzyD8imqeC/3FxgsuXT6ykkiH1uUmA==",
         "dependencies": {
           "System.Collections": "4.3.0",
           "System.Collections.Concurrent": "4.3.0",
