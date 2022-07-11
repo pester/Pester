@@ -79,6 +79,9 @@ function Export-NUnitReport {
     .PARAMETER Path
     The path where the XML-report should  to the ou the XML report as string.
 
+    .PARAMETER Format
+    Specifies the NUnit-schema to be used.
+
     .EXAMPLE
     ```powershell
     $p = Invoke-Pester -Passthru
@@ -244,6 +247,9 @@ function ConvertTo-NUnitReport {
 
     .PARAMETER AsString
     Returns the XML-report as a string.
+
+    .PARAMETER Format
+    Specifies the NUnit-schema to be used.
 
     .EXAMPLE
     ```powershell
