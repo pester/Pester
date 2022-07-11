@@ -1,4 +1,4 @@
-function Get-HumanTime {
+﻿function Get-HumanTime {
     param( [TimeSpan] $TimeSpan)
     if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
         $time = [int]($TimeSpan.TotalMilliseconds)
@@ -391,7 +391,7 @@ function Write-NUnitEnvironmentInformation($Result, [System.Xml.XmlWriter] $XmlW
 
     $environment = Get-RunTimeEnvironment
     foreach ($keyValuePair in $environment.GetEnumerator()) {
-        if ($keyValuePair.Name -eq 'junit-version') {
+        if ($keyValuePair.Name -in 'junit-version', 'framework-version') {
             continue
         }
 
@@ -875,6 +875,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -888,6 +889,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -901,6 +903,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
@@ -965,7 +968,7 @@ function Get-ErrorForXmlReport ($TestResult) {
     }
 }
 
-function Get-RunTimeEnvironment() {
+function Get-RunTimeEnvironment {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
     $userName = $env:Username
@@ -1001,24 +1004,17 @@ function Get-RunTimeEnvironment() {
         }
     }
 
-    if ( ($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
-        $CLrVersion = "Unknown"
-
-    }
-    else {
-        $CLrVersion = [string]$PSVersionTable.ClrVersion
-    }
-
     @{
-        'nunit-version' = '2.5.8.0'
-        'junit-version' = '4'
-        'os-version'    = $osSystemInformation.Version
-        'platform'      = $osSystemInformation.Name
-        'cwd'           = $pwd.Path
-        'machine-name'  = $computerName
-        'user'          = $username
-        'user-domain'   = $env:userDomain
-        'clr-version'   = $ClrVersion
+        'nunit-version'     = '2.5.8.0'
+        'junit-version'     = '4'
+        'os-version'        = $osSystemInformation.Version
+        'platform'          = $osSystemInformation.Name
+        'cwd'               = $pwd.Path
+        'machine-name'      = $computerName
+        'user'              = $username
+        'user-domain'       = $env:userDomain
+        'clr-version'       = [string][System.Environment]::Version
+        'framework-version' = [string]$ExecutionContext.SessionState.Module.Version
     }
 }
 
