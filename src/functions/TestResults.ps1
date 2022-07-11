@@ -795,7 +795,7 @@ function Convert-TimeSpan {
 }
 
 function Get-UTCTimeString ($DateTime) {
-    $DateTime.ToUniversalTime().ToString('u')
+    $DateTime.ToUniversalTime().ToString('o')
 }
 
 function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
