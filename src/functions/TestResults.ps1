@@ -1,4 +1,4 @@
-﻿function Get-HumanTime {
+function Get-HumanTime {
     param( [TimeSpan] $TimeSpan)
     if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
         $time = [int]($TimeSpan.TotalMilliseconds)
@@ -41,6 +41,10 @@ function Export-PesterResults {
 
     switch -Wildcard ($Format) {
         'NUnit2.5' {
+            Export-XmlReport -Result $Result -Path $Path -Format $Format
+        }
+
+        'NUnit3' {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
 
@@ -222,13 +226,13 @@ function Export-XmlReport {
 function ConvertTo-NUnitReport {
     <#
     .SYNOPSIS
-    Converts a Pester result-object to an NUnit 2.5-compatible XML-report
+    Converts a Pester result-object to an NUnit 2.5 or 3-compatible XML-report
 
     .DESCRIPTION
     Pester can generate a result-object containing information about all
     tests that are processed in a run. This objects can then be converted to an
     NUnit-compatible XML-report using this function. The report is generated
-    using the NUnit 2.5-schema.
+    using either the NUnit 2.5 or 3-schema.
 
     The function can convert to both XML-object or a string containing the XML.
     This can be useful for further processing or publishing of test results,
@@ -253,6 +257,15 @@ function ConvertTo-NUnitReport {
     .EXAMPLE
     ```powershell
     $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport -Format NUnit3
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 3-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
     $p | ConvertTo-NUnitReport -AsString
     ```
 
@@ -268,7 +281,10 @@ function ConvertTo-NUnitReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
-        [Switch] $AsString
+        [Switch] $AsString,
+
+        [ValidateSet('NUnit2.5', 'NUnit3')]
+        [string] $Format = 'NUnit2.5'
     )
 
     $settings = [Xml.XmlWriterSettings] @{
@@ -282,7 +298,15 @@ function ConvertTo-NUnitReport {
         $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+        switch ($Format) {
+            'NUnit2.5' {
+                Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+            }
+
+            'NUnit3' {
+                Write-NUnit3Report -XmlWriter $xmlWriter -Result $Result
+            }
+        }
 
         $xmlWriter.Flush()
         $stringWriter.Flush()
