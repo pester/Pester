@@ -21,15 +21,15 @@ namespace Pester
 {
     public abstract class Option
     {
-        protected bool _isOriginalValue;
+        protected bool _isModified;
 
         [Obsolete("IsOriginalValue() is obsolete and should no longer be used. Use the property IsModified instead.")]
         public bool IsOriginalValue()
         {
-            return _isOriginalValue;
+            return !_isModified;
         }
         public bool IsModified {
-            get { return !_isOriginalValue; }
+            get { return _isModified; }
         }
     }
 }
