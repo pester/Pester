@@ -131,19 +131,6 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
     # do not run interactively in non-saved files
     # (vscode will use path like "untitled:Untitled-*" so we check if the path is rooted)
     if (-not [String]::IsNullOrEmpty($ScriptName) -and [IO.Path]::IsPathRooted($ScriptName)) {
-
-        if ($null -ne $script:lastExecutedAt -and ([datetime]::now - $script:lastExecutedAt).TotalMilliseconds -lt 100 -and $script:lastExecutedFile -eq $ScriptName) {
-            # skip file if the same file was executed less than 100 ms ago. This is here because we will run the file from the first
-            # describe and the subsequent describes in the same file would try to re-run the file. 100ms window should be good enough
-            # to be transparent for the interactive use, yet big enough to advance from the end of the command to the next, even on slow systems
-            # use the file name as well to allow running multiple files in sequence
-
-            $script:lastExecutedFile = $ScriptName
-            $script:lastExecutedAt = [datetime]::Now
-
-            return
-        }
-
         # we are invoking a file, try call Invoke-Pester on the whole file,
         # but make sure we are invoking it in the caller session state, because
         # paths don't stay attached to session state
@@ -158,8 +145,11 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
 
         Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $invokePester
         & $invokePester $ScriptName $scriptBoundParameters $SafeCommands['Out-Null']
-        $script:lastExecutedFile = $ScriptName
-        $script:lastExecutedAt = [datetime]::Now
+
+        # exit the current script (always invoked test-file in this block) to avoid rerunning the next root-level block
+        # and running any remaining root-level code. this will not kill a parent script or process.
+        # pass on exit-code set by Invoke-Pester (always equal to failing tests count)
+        exit $global:LASTEXITCODE
     }
     else {
         throw "Pester can run only saved files interactively. Please save your file to a disk."
