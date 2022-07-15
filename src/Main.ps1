@@ -1635,10 +1635,6 @@ function BeforeDiscovery {
         . $ScriptBlock
     }
     else {
-        if ($invokedInteractively) {
-            return
-        }
-        $invokedInteractively = $true
         Invoke-Interactively -CommandUsed 'BeforeDiscovery' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
     }
 }
