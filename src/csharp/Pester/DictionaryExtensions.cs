@@ -58,7 +58,7 @@ namespace Pester
 
         public static T[] GetArrayOrNull<T>(this IDictionary dictionary, string key) where T : class
         {
-            if (!dictionary.Contains(key))
+            if (!dictionary.Contains(key) || dictionary[key] is null)
                 return null;
 
             var value = dictionary[key];
