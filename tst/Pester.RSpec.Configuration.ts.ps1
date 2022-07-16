@@ -98,6 +98,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
         }
 
+        t "Output.RenderMode is Auto" {
+            [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
+        }
+
         # CodeCoverage configuration
         t "CodeCoverage.Enabled is `$false" {
             [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False
