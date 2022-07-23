@@ -79,7 +79,6 @@ function Write-PesterHostMessage {
         [switch]
         $NoNewLine,
 
-        [string]
         $Separator = ' ',
 
         [ValidateSet('Ansi', 'Legacy', 'Plaintext')]
