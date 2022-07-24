@@ -1,0 +1,65 @@
+name: Code analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pssa:
+    name: PSScriptAnalyzer
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: PowerShell Module Cache
+        uses: potatoqualitee/psmodulecache@v4.5
+        with:
+          # This doesn't update modules, so might want to pin version later to know which we use like ConverToSARIF:1.0.0
+          # or run Update-Module on a weekly/monthly interval
+          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF
+          allow-prerelease: false
+
+      # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Import-Module ConvertToSARIF -Force
+
+          Get-ChildItem -Path ./src/ -Filter *.ps* -Recurse -File |
+          Invoke-ScriptAnalyzer -Settings ./.github/workflows/PSScriptAnalyzerSettings.psd1 |
+          ConvertTo-SARIF -FilePath results.sarif
+
+      # Upload the SARIF file generated in the previous step
+      - name: Upload SARIF results file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+  # codeql:
+  #   name: CodeQL C#
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     actions: read
+  #     contents: read
+  #     security-events: write
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v3
+
+  #   - name: Initialize CodeQL
+  #     uses: github/codeql-action/init@v2
+  #     with:
+  #       languages: csharp
+
+  #   - name: Autobuild
+  #     uses: github/codeql-action/autobuild@v2
+
+  #   - name: Perform CodeQL Analysis
+  #     uses: github/codeql-action/analyze@v2
