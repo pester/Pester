@@ -1,9 +1,10 @@
-﻿# Get list of SafeCommands
-$SafeCommands = & { . "$PSScriptRoot/../src/functions/Pester.SafeCommands.ps1"; $Script:SafeCommands }
-# Workaround as RuleSuppressionID-based suppression is bugged. returns error.
+﻿# Workaround as RuleSuppressionID-based suppression is bugged. returns error.
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester
 # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable')]
-$IgnoreUnsafeCommands = @('Remove-Variable')
+$IgnoreUnsafeCommands = @('Remove-Variable', 'Write-PesterDebugMessage')
+# Hardcoding this to avoid dependency on imported module and slow PSSA-performance when execution Pester.SafeCommands.ps1 (due to many reimports by PSSA). Consider making build.ps1 update this
+$SafeCommands = 'Import-LocalizedData', 'Write-Host', 'Remove-Variable', 'Format-Table', 'New-Variable', 'Add-Type', 'Get-Help', 'New-PSDrive', 'Set-Content', 'Add-Member', 'Write-PesterDebugMessage', 'Set-Alias', 'Add-ShouldOperator', 'ForEach-Object', 'Get-Member', 'Start-Sleep', 'New-Module', 'Out-Null', 'Remove-Item', 'Out-File', 'Get-PSCallStack', 'Split-Path', 'Get-ChildItem', 'Write-Progress', 'Get-MockDynamicParameter', 'Import-Module', 'Pop-Location', 'Resolve-Path', 'Set-StrictMode', 'Measure-Object', 'Out-Host', 'ExecutionContext', 'Write-Verbose', 'Select-Object', 'Get-Unique', 'Group-Object', 'Join-Path', 'New-Item', 'Set-Variable', 'id', 'New-Object', 'Remove-PSDrive', 'Where-Object', 'Sort-Object', 'Get-Location', 'Get-PSDrive', 'Compare-Object', 'Get-Alias', 'Out-String', 'Set-PSBreakpoint', 'New-ItemProperty', 'Get-ItemProperty', 'Write-Error', 'Get-Command', 'Get-Content', 'Set-Location', 'Test-Path', 'Get-Variable', 'Get-Item', 'Update-TypeData', 'Get-Module', 'uname', 'Write-Warning', 'Get-Date', 'Push-Location', 'Remove-PSBreakpoint', 'Set-DynamicParameterVariable', 'Export-ModuleMember'
+
 function Measure-SafeCommands {
     <#
     .SYNOPSIS
@@ -38,11 +39,10 @@ function Measure-SafeCommands {
             $commandName = $CommandAst.GetCommandName()
 
             # If command exists in $SafeCommands, write error
-            if ($null -ne $commandName -and $commandName -in $SafeCommands.Keys -and $commandName -notin $IgnoreUnsafeCommands) {
+            if ($null -ne $commandName -and $commandName -notin $IgnoreUnsafeCommands -and $commandName -in $SafeCommands) {
                 foreach ($cmd in $CommandAst.CommandElements) {
                     # Find extent for command name only
                     if (($cmd -is [System.Management.Automation.Language.StringConstantExpressionAst]) -and $cmd.Value -eq $commandName) {
-
                         #Define fix-action
                         [int]$startLineNumber = $cmd.Extent.StartLineNumber
                         [int]$endLineNumber = $cmd.Extent.EndLineNumber
@@ -65,6 +65,7 @@ function Measure-SafeCommands {
                             "SuggestedCorrections" = $suggestedCorrections
                         }
                         $results += $result
+                        break;
                     }
                 }
             }
@@ -111,7 +112,7 @@ Function Measure-ObjectCmdlets {
             'Message'              = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
             'Extent'               = $CommandAst.Extent
             'RuleName'             = $PSCmdlet.MyInvocation.InvocationName
-            'Severity'             = 'Information'
+            'Severity'             = 'Information' # This is ignored in PSSA 1.x. Custom rules are always Warning
         }
 
         try {
