@@ -2,8 +2,9 @@
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester
 # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable')]
 $IgnoreUnsafeCommands = @('Remove-Variable', 'Write-PesterDebugMessage')
-# Hardcoding this to avoid dependency on imported module and slow PSSA-performance when execution Pester.SafeCommands.ps1 (due to many reimports by PSSA). Consider making build.ps1 update this
-$SafeCommands = 'Import-LocalizedData', 'Write-Host', 'Remove-Variable', 'Format-Table', 'New-Variable', 'Add-Type', 'Get-Help', 'New-PSDrive', 'Set-Content', 'Add-Member', 'Write-PesterDebugMessage', 'Set-Alias', 'Add-ShouldOperator', 'ForEach-Object', 'Get-Member', 'Start-Sleep', 'New-Module', 'Out-Null', 'Remove-Item', 'Out-File', 'Get-PSCallStack', 'Split-Path', 'Get-ChildItem', 'Write-Progress', 'Get-MockDynamicParameter', 'Import-Module', 'Pop-Location', 'Resolve-Path', 'Set-StrictMode', 'Measure-Object', 'Out-Host', 'ExecutionContext', 'Write-Verbose', 'Select-Object', 'Get-Unique', 'Group-Object', 'Join-Path', 'New-Item', 'Set-Variable', 'id', 'New-Object', 'Remove-PSDrive', 'Where-Object', 'Sort-Object', 'Get-Location', 'Get-PSDrive', 'Compare-Object', 'Get-Alias', 'Out-String', 'Set-PSBreakpoint', 'New-ItemProperty', 'Get-ItemProperty', 'Write-Error', 'Get-Command', 'Get-Content', 'Set-Location', 'Test-Path', 'Get-Variable', 'Get-Item', 'Update-TypeData', 'Get-Module', 'uname', 'Write-Warning', 'Get-Date', 'Push-Location', 'Remove-PSBreakpoint', 'Set-DynamicParameterVariable', 'Export-ModuleMember'
+# Hardcoding SafeCommands-entries to avoid dependency on imported module and slow PSSA-performance when execution Pester.SafeCommands.ps1 (due to many reimports by PSSA).
+# Consider making build.ps1 update this
+$SafeCommands = [System.IO.File]::ReadAllLines([System.IO.Path]::Join($PSScriptRoot,'SafeCommands.txt'))
 
 function Measure-SafeCommands {
     <#
@@ -109,10 +110,10 @@ Function Measure-ObjectCmdlets {
         $objectCommands = "(?:New|Where|Foreach|Select)-Object"
 
         $result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-            'Message'              = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
-            'Extent'               = $CommandAst.Extent
-            'RuleName'             = $PSCmdlet.MyInvocation.InvocationName
-            'Severity'             = 'Information' # This is ignored in PSSA 1.x. Custom rules are always Warning
+            'Message'  = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
+            'Extent'   = $CommandAst.Extent
+            'RuleName' = $PSCmdlet.MyInvocation.InvocationName
+            'Severity' = 'Information' # This is ignored in PSSA 1.x. Custom rules are always Warning
         }
 
         try {
@@ -122,11 +123,12 @@ Function Measure-ObjectCmdlets {
                 # Cmdlet used
                 $results += $result
 
-            } elseif ($CommandAst.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand) {
+            }
+            elseif ($CommandAst.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand) {
                 $invocatedCmd = $CommandAst.CommandElements[0]
 
                 if ($invocatedCmd -is [System.Management.Automation.Language.IndexExpressionAst] -and
-                    $invocatedCmd.Target -match 'SafeCommands'-and $invocatedCmd.Index -match $objectCommands) {
+                    $invocatedCmd.Target -match 'SafeCommands' -and $invocatedCmd.Index -match $objectCommands) {
                     # SafeCommands
                     $results += $result
                 }
