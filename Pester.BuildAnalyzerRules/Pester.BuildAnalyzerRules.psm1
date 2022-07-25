@@ -113,7 +113,7 @@ Function Measure-ObjectCmdlets {
             'Message'  = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
             'Extent'   = $CommandAst.Extent
             'RuleName' = $PSCmdlet.MyInvocation.InvocationName
-            'Severity' = 'Information' # This is ignored in PSSA 1.x. Custom rules are always Warning
+            'Severity' = 'Information'
         }
 
         try {
