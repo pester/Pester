@@ -1631,7 +1631,12 @@ function BeforeDiscovery {
         [ScriptBlock]$ScriptBlock
     )
 
-    . $ScriptBlock
+    if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        . $ScriptBlock
+    }
+    else {
+        Invoke-Interactively -CommandUsed 'BeforeDiscovery' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
+    }
 }
 
 # Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over

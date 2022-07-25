@@ -81,6 +81,30 @@ i -PassThru:$PassThru {
             }
         }
 
+        t "Works with directly invoked testfile with root-level BeforeDiscovery" {
+            # Making sure variables in root-level BeforeDiscovery aren't set in session scope = available in Run-phase
+            # https://github.com/pester/Pester/issues/2092
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
         t "Works with directly invoked parameterized testfile using Describe" {
             # https://github.com/pester/Pester/issues/1784
 
@@ -121,6 +145,30 @@ i -PassThru:$PassThru {
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Context c - demo.ps1"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked parameterized testfile with root-level BeforeDiscovery" {
+            # Also making sure variables in root-level BeforeDiscovery aren't set in session scope = available in Run-phase
+            # https://github.com/pester/Pester/issues/2092
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d - <File>" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; $MyValue | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d - demo.ps1"
             }
             finally {
                 Remove-Item -Path $testpath
