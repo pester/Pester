@@ -111,5 +111,35 @@ namespace Pester
 
             return null;
         }
+
+        public static void AssignValueIfNotNull<T>(this IDictionary dictionary, string key, Action<T> assign)
+        where T : struct
+        {
+            var value = GetValueOrNull<T>(dictionary, key);
+            if (value != null)
+            {
+                assign(value.Value);
+            }
+        }
+
+        public static void AssignObjectIfNotNull<T>(this IDictionary dictionary, string key, Action<T> assign)
+        where T : class
+        {
+            var value = GetObjectOrNull<T>(dictionary, key);
+            if (value != null)
+            {
+                assign(value);
+            }
+        }
+
+        public static void AssignArrayIfNotNull<T>(this IDictionary dictionary, string key, Action<T[]> assign)
+        where T : class
+        {
+            var value = GetArrayOrNull<T>(dictionary, key);
+            if (value != null)
+            {
+                assign(value);
+            }
+        }
     }
 }

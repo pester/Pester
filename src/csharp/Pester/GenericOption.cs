@@ -21,12 +21,12 @@ namespace Pester
     {
         public Option(Option<T> option, T value) : this(option.Description, option.Default, value)
         {
-            _isOriginalValue = false;
+            _isModified = true;
         }
 
         public Option(string description, T defaultValue, T value)
         {
-            _isOriginalValue = true;
+            _isModified = false;
             Default = defaultValue;
             Value = value;
             Description = description;
