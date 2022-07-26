@@ -669,19 +669,23 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
         }
     }
+}
 
-    Describe 'Write-PesterHostMessage' {
-        Context 'Is syntax-compatible with Write-Host' {
-            BeforeAll {
-                $WritePesterHostMessageParam = (Get-Command 'Write-PesterHostMessage' -Module Pester).Parameters
-                $WriteHostParam = (Get-Command 'Write-Host' -Module 'Microsoft.PowerShell.Utility' -CommandType Cmdlet).Parameters
-            }
-            It 'parameter <_> is equal' -TestCases @('NoNewLine', 'Object', 'Separator', 'ForegroundColor', 'BackgroundColor') {
-                $param = $WriteHostParam["$_"]
-                $param.Name | Should -BeIn $WritePesterHostMessageParam.Keys
-                $WritePesterHostMessageParam[$param.Name].ParameterType | Should -Be $param.ParameterType
-                if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
-            }
+# Can't run inside InModuleScope because variables dissapear when leaving BeforeDiscovery = no testcases
+Describe 'Write-PesterHostMessage' {
+    Context 'Is syntax-compatible with Write-Host' {
+        BeforeDiscovery {
+            $WriteHostParam = @(Get-Command 'Write-Host' -Module 'Microsoft.PowerShell.Utility' -CommandType Cmdlet).Parameters.Values |
+                Where-Object Name -NotIn ([System.Management.Automation.Cmdlet]::CommonParameters)
+        }
+        BeforeAll {
+            $WritePesterHostMessageParam = & (Get-Module Pester) { (Get-Command 'Write-PesterHostMessage' -Module Pester).Parameters }
+        }
+        It 'Parameter <_.Name> is equal' -TestCases $WriteHostParam {
+            $param = $_
+            $param.Name | Should -BeIn $WritePesterHostMessageParam.Keys
+            $WritePesterHostMessageParam[$param.Name].ParameterType | Should -Be $param.ParameterType
+            if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
         }
     }
 }
