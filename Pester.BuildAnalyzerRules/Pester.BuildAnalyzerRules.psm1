@@ -1,9 +1,11 @@
-﻿# Get list of SafeCommands
-$SafeCommands = & { . "$PSScriptRoot/../src/functions/Pester.SafeCommands.ps1"; $Script:SafeCommands }
-# Workaround as RuleSuppressionID-based suppression is bugged. returns error.
+﻿# Workaround as RuleSuppressionID-based suppression is bugged. returns error.
 # Should be replaced with the following line when PSScriptAnalyzer is fixed. See Invoke-Pester
 # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable')]
-$IgnoreUnsafeCommands = @('Remove-Variable')
+$IgnoreUnsafeCommands = @('Remove-Variable', 'Write-PesterDebugMessage')
+# Hardcoding SafeCommands-entries to avoid dependency on imported module and slow PSSA-performance when execution Pester.SafeCommands.ps1 (due to many reimports by PSSA).
+# Consider making build.ps1 update this
+$SafeCommands = [System.IO.File]::ReadAllLines([System.IO.Path]::Join($PSScriptRoot,'SafeCommands.txt'))
+
 function Measure-SafeCommands {
     <#
     .SYNOPSIS
@@ -38,11 +40,10 @@ function Measure-SafeCommands {
             $commandName = $CommandAst.GetCommandName()
 
             # If command exists in $SafeCommands, write error
-            if ($null -ne $commandName -and $commandName -in $SafeCommands.Keys -and $commandName -notin $IgnoreUnsafeCommands) {
+            if ($null -ne $commandName -and $commandName -notin $IgnoreUnsafeCommands -and $commandName -in $SafeCommands) {
                 foreach ($cmd in $CommandAst.CommandElements) {
                     # Find extent for command name only
                     if (($cmd -is [System.Management.Automation.Language.StringConstantExpressionAst]) -and $cmd.Value -eq $commandName) {
-
                         #Define fix-action
                         [int]$startLineNumber = $cmd.Extent.StartLineNumber
                         [int]$endLineNumber = $cmd.Extent.EndLineNumber
@@ -65,6 +66,7 @@ function Measure-SafeCommands {
                             "SuggestedCorrections" = $suggestedCorrections
                         }
                         $results += $result
+                        break;
                     }
                 }
             }
@@ -108,10 +110,10 @@ Function Measure-ObjectCmdlets {
         $objectCommands = "(?:New|Where|Foreach|Select)-Object"
 
         $result = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
-            'Message'              = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
-            'Extent'               = $CommandAst.Extent
-            'RuleName'             = $PSCmdlet.MyInvocation.InvocationName
-            'Severity'             = 'Information'
+            'Message'  = "$((Get-Help $MyInvocation.MyCommand.Name).Description.Text)"
+            'Extent'   = $CommandAst.Extent
+            'RuleName' = $PSCmdlet.MyInvocation.InvocationName
+            'Severity' = 'Information'
         }
 
         try {
@@ -121,11 +123,12 @@ Function Measure-ObjectCmdlets {
                 # Cmdlet used
                 $results += $result
 
-            } elseif ($CommandAst.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand) {
+            }
+            elseif ($CommandAst.InvocationOperator -eq [System.Management.Automation.Language.TokenKind]::Ampersand) {
                 $invocatedCmd = $CommandAst.CommandElements[0]
 
                 if ($invocatedCmd -is [System.Management.Automation.Language.IndexExpressionAst] -and
-                    $invocatedCmd.Target -match 'SafeCommands'-and $invocatedCmd.Index -match $objectCommands) {
+                    $invocatedCmd.Target -match 'SafeCommands' -and $invocatedCmd.Index -match $objectCommands) {
                     # SafeCommands
                     $results += $result
                 }
