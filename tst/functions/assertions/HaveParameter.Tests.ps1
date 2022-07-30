@@ -112,14 +112,12 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             }
         ) {
-            param($ParameterName)
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName
         }
 
         It "passes if the parameter <ParameterName> is mandatory" -TestCases @(
             @{ParameterName = "MandatoryParam" }
         ) {
-            param($ParameterName)
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory
         }
 
@@ -132,7 +130,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String" }
             }
         ) {
-            param($ParameterName, $ExpectedType)
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType
         }
 
@@ -141,7 +138,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithArgumentCompleter" }
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             ) {
-                param($ParameterName)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter
             }
         }
@@ -155,7 +151,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedValue = "./.git" }
             }
         ) {
-            param($ParameterName, $ExpectedValue)
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
@@ -167,7 +162,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "./.git" }
             }
         ) {
-            param($ParameterName, $ExpectedType, $ExpectedValue)
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
         }
 
@@ -180,7 +174,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
             ) {
-                param($ParameterName, $ExpectedType, $ExpectedValue)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter
             }
         }
@@ -194,7 +187,6 @@ InPesterModuleScope {
             @{ParameterName = "Date" }
             @{ParameterName = "Path" }
         ) {
-            param($ParameterName)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName } | Verify-AssertionFailed
         }
 
@@ -208,7 +200,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject" }
         ) {
-            param($ParameterName)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory } | Verify-AssertionFailed
         }
 
@@ -222,7 +213,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject"; ExpectedType = [String] }
         ) {
-            param($ParameterName, $ExpectedType)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType } | Verify-AssertionFailed
         }
 
@@ -233,7 +223,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithScriptValidation" }
                 @{ParameterName = "InputObject" }
             ) {
-                param($ParameterName)
                 { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
@@ -248,7 +237,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject"; ExpectedValue = "" }
         ) {
-            param($ParameterName, $ExpectedValue)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
@@ -262,7 +250,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = "" }
         ) {
-            param($ParameterName, $ExpectedType, $ExpectedValue)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
@@ -279,7 +266,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
                 @{ParameterName = "InputObject"; ExpectedType = [String]; ExpectedValue = "." }
             ) {
-                param($ParameterName, $ExpectedType, $ExpectedValue)
                 { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
@@ -316,7 +302,6 @@ InPesterModuleScope {
             @{ParameterName = "FirstParam" }
             @{ParameterName = "InputObject" }
         ) {
-            param($ParameterName)
             Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName
         }
 
@@ -329,7 +314,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject" }
         ) {
-            param($ParameterName)
             Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory
         }
 
@@ -342,7 +326,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]" }
         ) {
-            param($ParameterName, $ExpectedType)
             Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory -Type $ExpectedType
         }
 
@@ -356,7 +339,6 @@ InPesterModuleScope {
             }
             @{ParameterName = "InputObject"; ExpectedType = "[Object]"; ExpectedValue = "" }
         ) {
-            param($ParameterName, $ExpectedType, $ExpectedValue)
             Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
         }
 
@@ -367,7 +349,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithScriptValidation" }
                 @{ParameterName = "InputObject" }
             ) {
-                param($ParameterName)
                 Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter -HasArgumentCompleter
             }
         }
@@ -381,14 +362,12 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             }
         ) {
-            param($ParameterName)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is mandatory" -TestCases @(
             @{ParameterName = "MandatoryParam" }
         ) {
-            param($ParameterName)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Mandatory } | Verify-AssertionFailed
         }
 
@@ -401,7 +380,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String" }
             }
         ) {
-            param($ParameterName, $ExpectedType)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType } | Verify-AssertionFailed
         }
 
@@ -414,7 +392,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "." }
             }
         ) {
-            param($ParameterName, $ExpectedType, $ExpectedValue)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
@@ -423,7 +400,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithArgumentCompleter" }
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter" }
             ) {
-                param($ParameterName)
                 { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
@@ -437,7 +413,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedValue = "./.git" }
             }
         ) {
-            param($ParameterName, $ExpectedValue)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
@@ -450,7 +425,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "String"; ExpectedValue = "." }
             }
         ) {
-            param($ParameterName, $ExpectedType, $ExpectedValue)
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
@@ -463,7 +437,6 @@ InPesterModuleScope {
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "./.git" }
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = [DateTime]; ExpectedValue = "" }
             ) {
-                param($ParameterName, $ExpectedType, $ExpectedValue)
                 { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
