@@ -258,19 +258,30 @@
             }
         }
 
-        if ($HasArgumentCompleter) {
+        if ($PSBoundParameters.ContainsKey('HasArgumentCompleter')) {
             $testArgumentCompleter = $attributes | & $SafeCommands['Where-Object'] { $_ -is [ArgumentCompleter] }
 
             if (-not $testArgumentCompleter) {
                 $testArgumentCompleter = Get-ArgumentCompleter -CommandName $ActualValue.Name -ParameterName $ParameterName
             }
-            $filters += "has ArgumentCompletion"
+            $filters += "with$(if ($Negate -or $HasArgumentCompleter -eq $false) {'out'}) ArgumentCompletion"
 
-            if (-not $Negate -and -not $testArgumentCompleter) {
-                $buts += "has no ArgumentCompletion"
+            if ($Negate) {
+                if ($HasArgumentCompleter -and $testArgumentCompleter) {
+                    # -Not -HasArgumentCompleter but it did
+                    $buts += 'it has ArgumentCompletion'
+                }
+                # -Not -HasArgumentCompleter:$false ignored as it makes no sense to use
             }
-            elseif ($Negate -and $testArgumentCompleter) {
-                $buts += "has ArgumentCompletion"
+            else {
+                if ($HasArgumentCompleter -and -not $testArgumentCompleter ) {
+                    # -HasArgumentCompleter but it did not
+                    $buts += 'it has no ArgumentCompletion'
+                }
+                elseif (-not $HasArgumentCompleter -and $testArgumentCompleter) {
+                    # -HasArgumentCompleter:$false but it did
+                    $buts += 'it has ArgumentCompletion'
+                }
             }
         }
 

@@ -151,6 +151,14 @@ InPesterModuleScope {
                 param($ParameterName)
                 Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter
             }
+
+            It 'passes if the parameter <ParameterName> matches explicit -HasArgumentCompleter:<HasArgumentCompleter>' -TestCases @(
+                @{ParameterName = 'ParamWithArgumentCompleter'; HasArgumentCompleter = $true }
+                @{ParameterName = 'ParamWithRegisteredArgumentCompleter'; HasArgumentCompleter = $true }
+                @{ParameterName = 'MandatoryParam'; HasArgumentCompleter = $false }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -HasArgumentCompleter:$HasArgumentCompleter
+            }
         }
 
         It "passes if the parameter <ParameterName> has a default value '<ExpectedValue>'" -TestCases @(
@@ -249,6 +257,14 @@ InPesterModuleScope {
             ) {
                 param($ParameterName)
                 { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -HasArgumentCompleter } | Verify-AssertionFailed
+            }
+
+            It 'fails if the parameter <ParameterName> exists but does not match explicit -HasArgumentCompleter:<HasArgumentCompleter>' -TestCases @(
+                @{ParameterName = 'MandatoryParam'; HasArgumentCompleter = $true }
+                @{ParameterName = 'ParamWithArgumentCompleter'; HasArgumentCompleter = $false }
+                @{ParameterName = 'ParamWithRegisteredArgumentCompleter'; HasArgumentCompleter = $false }
+            ) {
+                { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -HasArgumentCompleter:$HasArgumentCompleter } | Verify-AssertionFailed
             }
         }
 
