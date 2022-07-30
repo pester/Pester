@@ -205,15 +205,26 @@
     else {
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
 
-        if ($Mandatory) {
+        if ($PSBoundParameters.ContainsKey('Mandatory')) {
             $testMandatory = $attributes | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
-            $filters += "which is$(if ($Negate) {" not"}) mandatory"
+            $filters += "which is$(if ($Negate -or $Mandatory -eq $false) {' not'}) mandatory"
 
-            if (-not $Negate -and -not $testMandatory) {
-                $buts += "it wasn't mandatory"
+            if ($Negate) {
+                if ($Mandatory -and $testMandatory) {
+                    # -Not -Mandatory + was actually mandatory
+                    $buts += 'it was mandatory'
+                }
+                # -Not -Mandatory:$false ignored as it makes no sense to use
             }
-            elseif ($Negate -and $testMandatory) {
-                $buts += "it was mandatory"
+            else {
+                if ($Mandatory -and -not $testMandatory ) {
+                    # -Mandatory + was not mandatory
+                    $buts += "it wasn't mandatory"
+                }
+                elseif (-not $Mandatory -and $testMandatory) {
+                    # -Mandatory:$false + was actually mandatory
+                    $buts += 'it was mandatory'
+                }
             }
         }
 
@@ -223,7 +234,7 @@
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
             $testType = ($Type -eq $actualType)
-            $filters += "$(if ($Negate) { "not " })of type [$($Type.FullName)]"
+            $filters += "$(if ($Negate) { 'not ' })of type [$($Type.FullName)]"
 
             if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
@@ -233,7 +244,7 @@
             }
         }
 
-        if ($PSBoundParameters.Keys -contains "DefaultValue") {
+        if ($PSBoundParameters.ContainsKey('DefaultValue')) {
             $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
             $actualDefault = if ($parameterMetadata.DefaultValue) { $parameterMetadata.DefaultValue } else { "" }
             $testDefault = ($actualDefault -eq $DefaultValue)

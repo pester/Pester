@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version Latest
+Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -123,6 +123,13 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory
         }
 
+        It "passes if the parameter <ParameterName> matches explicit -Mandatory:<Mandatory>" -TestCases @(
+            @{ParameterName = "MandatoryParam"; Mandatory = $true }
+            @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; Mandatory = $false }
+        ) {
+            Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -Mandatory:$Mandatory
+        }
+
         It "passes if the parameter <ParameterName> is of type <ExpectedType>" -TestCases @(
             @{ParameterName = "MandatoryParam"; ExpectedType = [System.Object] }
             @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime] }
@@ -210,6 +217,13 @@ InPesterModuleScope {
         ) {
             param($ParameterName)
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Mandatory } | Verify-AssertionFailed
+        }
+
+        It 'fails if the parameter <ParameterName> exists but does not match explicit -Mandatory:<Mandatory>' -TestCases @(
+            @{ParameterName = 'MandatoryParam'; Mandatory = $false }
+            @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; Mandatory = $true }
+        ) {
+            { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -Mandatory:$Mandatory } | Verify-AssertionFailed
         }
 
         It "fails if the parameter <ParameterName> is not of type <ExpectedType> or does not exist" -TestCases @(
