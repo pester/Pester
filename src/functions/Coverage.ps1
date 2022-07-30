@@ -969,7 +969,7 @@ function Get-JaCoCoReportXml {
                 "$commonParentLeaf/$classElementRelativePath"
             }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
-            $classElement = Add-XmlElement-Parent $packageElement -Name 'class' -Attributes ([ordered] @{
+            $classElement = Add-XmlElement -Parent $packageElement -Name 'class' -Attributes ([ordered] @{
                     name           = $classElementName
                     sourcefilename = if ($isGutters) {
                         & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
