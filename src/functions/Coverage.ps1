@@ -986,15 +986,15 @@ function Get-JaCoCoReportXml {
                         desc = '()'
                         line = $method.FirstLine
                     })
-                Add-JaCoCoCounter Instruction $method $methodElement
-                Add-JaCoCoCounter Line $method $methodElement
-                Add-JaCoCoCounter Method $method $methodElement
+                Add-JaCoCoCounter -Type 'Instruction' -Data $method -Parent $methodElement
+                Add-JaCoCoCounter -Type 'Line' -Data $method -Parent $methodElement
+                Add-JaCoCoCounter -Type 'Method' -Data $method -Parent $methodElement
             }
 
-            Add-JaCoCoCounter Instruction $class $classElement
-            Add-JaCoCoCounter Line $class $classElement
-            Add-JaCoCoCounter Method $class $classElement
-            Add-JaCoCoCounter Class $class $classElement
+            Add-JaCoCoCounter -Type 'Instruction' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Line' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Method' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Class' -Data $class -Parent $classElement
         }
 
         foreach ($file in $package.Classes.Keys) {
@@ -1019,22 +1019,22 @@ function Get-JaCoCoReportXml {
                     })
             }
 
-            Add-JaCoCoCounter Instruction $class $sourceFileElement
-            Add-JaCoCoCounter Line $class $sourceFileElement
-            Add-JaCoCoCounter Method $class $sourceFileElement
-            Add-JaCoCoCounter Class $class $sourceFileElement
+            Add-JaCoCoCounter -Type 'Instruction' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Line' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Method' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Class' -Data $class -Parent $sourceFileElement
         }
 
-        Add-JaCoCoCounter Instruction $package $packageElement
-        Add-JaCoCoCounter Line $package $packageElement
-        Add-JaCoCoCounter Method $package $packageElement
-        Add-JaCoCoCounter Class $package $packageElement
+        Add-JaCoCoCounter -Type 'Instruction' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Line' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Method' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Class' -Data $package -Parent $packageElement
     }
 
-    Add-JaCoCoCounter Instruction $report $reportElement
-    Add-JaCoCoCounter Line $report $reportElement
-    Add-JaCoCoCounter Method $report $reportElement
-    Add-JaCoCoCounter Class $report $reportElement
+    Add-JaCoCoCounter -Type 'Instruction' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Line' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Method' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Class' -Data $report -Parent $reportElement
 
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
     $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
