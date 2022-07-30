@@ -675,8 +675,10 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 Describe 'Write-PesterHostMessage' {
     Context 'Is syntax-compatible with Write-Host' {
         BeforeDiscovery {
+            # Using internal code as [System.Management.Automation.Cmdlet]::CommonParameters is unavailable in PSv3
+            $CommonParameters = [System.Management.Automation.Internal.CommonParameters].DeclaredProperties.Name
             $WriteHostParam = @(Get-Command 'Write-Host' -Module 'Microsoft.PowerShell.Utility' -CommandType Cmdlet).Parameters.Values |
-                Where-Object Name -NotIn ([System.Management.Automation.Cmdlet]::CommonParameters)
+                Where-Object Name -NotIn $CommonParameters
         }
         BeforeAll {
             $WritePesterHostMessageParam = & (Get-Module Pester) { (Get-Command 'Write-PesterHostMessage' -Module Pester).Parameters }
