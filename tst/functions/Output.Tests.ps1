@@ -671,7 +671,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
     }
 }
 
-# Can't run inside InModuleScope because variables dissapear when leaving BeforeDiscovery = no testcases
+# Can't run inside InModuleScope Pester { } because variables defined in BeforeDiscovery will be lost due to same module state as scriptblock = no testcases
 Describe 'Write-PesterHostMessage' {
     Context 'Is syntax-compatible with Write-Host' {
         BeforeDiscovery {
