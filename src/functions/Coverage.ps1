@@ -1157,8 +1157,8 @@ function Get-TracerHitLocation ($command) {
         $c = $command
         "`n`nCommand: $c" | Write-Host
         $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
-                $ast | select @{n = "type"; e = { $_.GetType().Name } } , @{n = "extent"; e = { $_.extent } }
-            } ) | ft type, extent | out-string | Write-Host
+                $ast | Select-Object @{n = 'type'; e = { $_.GetType().Name } } , @{n = 'extent'; e = { $_.extent } }
+            } ) | Format-Table type, extent | Out-String | Write-Host
     }
 
     if ($env:PESTER_CC_DEBUG -eq 1) {
