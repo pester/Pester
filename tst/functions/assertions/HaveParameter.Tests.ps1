@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
 
@@ -324,6 +324,11 @@ InPesterModuleScope {
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, but it wasn't mandatory."
         }
 
+        It 'returns the correct assertion message when parameter MandatoryParam is mandatory with -Mandatory explicitly set to false' {
+            $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter MandatoryParam -Mandatory:$false } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, which is not mandatory, but it was mandatory."
+        }
+
         It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type and has a different default value than expected" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -Because 'of reasons' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan] and the default value to be 'wrong value', because of reasons, but it wasn't mandatory, it was of type [System.DateTime] and the default value was '(Get-Date)'."
@@ -332,7 +337,12 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and with ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and it has no ArgumentCompletion."
+            }
+
+            It 'returns the correct assertion message when parameter ParamWithArgumentCompleter has ArgumentCompletion with -HasArgumentCompleter explicitly set to false' {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter ParamWithArgumentCompleter -HasArgumentCompleter:$false } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal 'Expected command Invoke-DummyFunction to have a parameter ParamWithArgumentCompleter, without ArgumentCompletion, but it has ArgumentCompletion.'
             }
         }
     }
@@ -509,12 +519,12 @@ InPesterModuleScope {
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
-            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" -TestCases @(
+            It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has unexpected ArgumentCompleter" -TestCases @(
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = "System.String"; ExpectedValue = "./.git" }
                 @{ParameterName = "ParamWithRegisteredArgumentCompleter"; ExpectedType = "System.String"; ExpectedValue = "./.git" }
             ) {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and has ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and has ArgumentCompletion."
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and without ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and it has ArgumentCompletion."
             }
         }
     }
