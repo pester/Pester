@@ -91,7 +91,7 @@ i -PassThru:$PassThru {
                 $c = 'BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -161,7 +161,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d - <File>" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='Legacy'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
