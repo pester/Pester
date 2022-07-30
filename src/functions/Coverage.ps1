@@ -955,7 +955,7 @@ function Get-JaCoCoReportXml {
             }
         }
 
-        $packageElement = Add-XmlElement $reportElement "package" @{
+        $packageElement = Add-XmlElement -Parent $reportElement -Name 'package' -Attributes @{
             name = ($packageName -replace "/$", "")
         }
 
@@ -969,7 +969,7 @@ function Get-JaCoCoReportXml {
                 "$commonParentLeaf/$classElementRelativePath"
             }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
-            $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
+            $classElement = Add-XmlElement-Parent $packageElement -Name 'class' -Attributes ([ordered] @{
                     name           = $classElementName
                     sourcefilename = if ($isGutters) {
                         & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
@@ -981,7 +981,7 @@ function Get-JaCoCoReportXml {
 
             foreach ($function in $class.Methods.Keys) {
                 $method = $class.Methods.$function
-                $methodElement = Add-XmlElement $classElement 'method' -Attributes ([ordered] @{
+                $methodElement = Add-XmlElement -Parent $classElement -Name 'method' -Attributes ([ordered] @{
                         name = $function
                         desc = '()'
                         line = $method.FirstLine
@@ -1000,7 +1000,7 @@ function Get-JaCoCoReportXml {
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
+            $sourceFileElement = Add-XmlElement -Parent $packageElement -Name 'sourcefile' -Attributes ([ordered] @{
                     name = if ($isGutters) {
                         & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
                     }
@@ -1010,7 +1010,7 @@ function Get-JaCoCoReportXml {
                 })
 
             foreach ($line in $class.Lines.Keys) {
-                $null = Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
+                $null = Add-XmlElement -Parent $sourceFileElement -Name 'line' -Attributes ([ordered] @{
                         nr = $line
                         mi = $class.Lines.$line.Instruction.Missed
                         ci = $class.Lines.$line.Instruction.Covered
@@ -1068,7 +1068,7 @@ function Add-JaCoCoCounter {
     if ($Data.$Type.Missed -isnot [int] -or $Data.$Type.Covered -isnot [int]) {
         throw 'Counter data expected'
     }
-    $null = Add-XmlElement $Parent 'counter' -Attributes ([ordered] @{
+    $null = Add-XmlElement -Parent $Parent -Name 'counter' -Attributes ([ordered] @{
             type    = $Type.ToUpperInvariant()
             missed  = $Data.$Type.Missed
             covered = $Data.$Type.Covered
