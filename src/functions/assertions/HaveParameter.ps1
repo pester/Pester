@@ -17,8 +17,13 @@
 
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
+    .EXAMPLE
+        Get-Command "Invoke-WebRequest" | Should -HaveParameter Method -Mandatory:$false
+
+        This test passes, because it expected the parameter Method to exist and to
+        not be mandatory/required.
     .NOTES
-        The attribute [ArgumentCompleter] was added with PSv5. Previouse this
+        The attribute [ArgumentCompleter] was added with PSv5. Previous this
         assertion will not be able to use the -HasArgumentCompleter parameter
         if the attribute does not exist.
     #>
