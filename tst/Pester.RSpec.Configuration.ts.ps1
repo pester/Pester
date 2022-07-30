@@ -1,11 +1,11 @@
-﻿param ([switch] $PassThru)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-& "$PSScriptRoot\..\build.ps1"
+if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
@@ -266,11 +266,11 @@ i -PassThru:$PassThru {
             { $config.Run.Path.Value = 'invalid' } | Verify-Throw
         }
 
-        t "IsOriginalValue returns false after change even if same as default" {
+        t "IsModified returns true after change even if same as default" {
             $config = [PesterConfiguration]::Default
-            $config.Run.Path.IsOriginalValue() | Verify-True
+            $config.Run.Path.IsModified | Verify-False
             $config.Run.Path = $config.Run.Path.Default
-            $config.Run.Path.IsOriginalValue() | Verify-False
+            $config.Run.Path.IsModified | Verify-True
         }
     }
 
@@ -345,6 +345,16 @@ i -PassThru:$PassThru {
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
+        }
+
+        t 'IsModified returns False after merging two original values' {
+            $one = [PesterConfiguration]::Default
+            $two = [PesterConfiguration]::Default
+            $result = [PesterConfiguration]::Merge($one, $two)
+
+            # has the same value as default but was written so it will override
+            $result.Output.Verbosity.Value | Verify-Equal $one.Output.Verbosity.Value
+            $result.Output.Verbosity.IsModified | Verify-False
         }
     }
 
@@ -578,6 +588,23 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
 
+        t 'IsModified is only True on modified properties after merging Hashtable' {
+            $MyOptions = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = 'Core'
+                }
+            }
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+        }
+
         t "Merges configuration when a hashtable has been serialized" {
             $BeforeSerialization = @{
                 Run    = @{
@@ -594,6 +621,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object has been serialized" {
@@ -613,6 +643,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object includes an array of values" {

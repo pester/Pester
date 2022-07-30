@@ -15,15 +15,21 @@
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
 
+using System;
+
 namespace Pester
 {
     public abstract class Option
     {
-        protected bool _isOriginalValue;
+        protected bool _isModified;
 
+        [Obsolete("IsOriginalValue() is obsolete and should no longer be used. Use the property IsModified instead.")]
         public bool IsOriginalValue()
         {
-            return _isOriginalValue;
+            return !_isModified;
+        }
+        public bool IsModified {
+            get { return _isModified; }
         }
     }
 }

@@ -37,11 +37,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Tag = configuration.GetArrayOrNull<string>("Tag") ?? Tag;
-                ExcludeTag = configuration.GetArrayOrNull<string>("ExcludeTag") ?? ExcludeTag;
-                Line = configuration.GetArrayOrNull<string>("Line") ?? Line;
-                ExcludeLine = configuration.GetArrayOrNull<string>("ExcludeLine") ?? ExcludeLine;
-                FullName = configuration.GetArrayOrNull<string>("FullName") ?? FullName;
+                configuration.AssignArrayIfNotNull<string>(nameof(Tag), v => Tag = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(ExcludeTag), v => ExcludeTag = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(Line), v => Line = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(ExcludeLine), v => ExcludeLine = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(FullName), v => FullName = v);
             }
         }
         public FilterConfiguration() : base("Filter configuration")

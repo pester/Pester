@@ -14,37 +14,32 @@ function Assert-ValidAssertionAlias {
 
 function Add-ShouldOperator {
     <#
-.SYNOPSIS
+    .SYNOPSIS
     Register a Should Operator with Pester
-.DESCRIPTION
+    .DESCRIPTION
     This function allows you to create custom Should assertions.
-.PARAMETER Name
+    .PARAMETER Name
     The name of the assertion. This will become a Named Parameter of Should.
-.PARAMETER Test
+    .PARAMETER Test
     The test function. The function must return a PSObject with a [Bool]succeeded and a [string]failureMessage property.
-.PARAMETER Alias
+    .PARAMETER Alias
     A list of aliases for the Named Parameter.
-.PARAMETER SupportsArrayInput
+    .PARAMETER SupportsArrayInput
     Does the test function support the passing an array of values to test.
-.PARAMETER InternalName
+    .PARAMETER InternalName
     If -Name is different from the actual function name, record the actual function name here.
     Used by Get-ShouldOperator to pull function help.
-.EXAMPLE
+    .EXAMPLE
     ```powershell
-    function BeAwesome($ActualValue, [switch] $Negate)
-    {
-
+    function BeAwesome($ActualValue, [switch] $Negate) {
         [bool] $succeeded = $ActualValue -eq 'Awesome'
         if ($Negate) { $succeeded = -not $succeeded }
 
-        if (-not $succeeded)
-        {
-            if ($Negate)
-            {
+        if (-not $succeeded) {
+            if ($Negate) {
                 $failureMessage = "{$ActualValue} is Awesome"
             }
-            else
-            {
+            else {
                 $failureMessage = "{$ActualValue} is not Awesome"
             }
         }
@@ -55,16 +50,18 @@ function Add-ShouldOperator {
         }
     }
 
-    Add-ShouldOperator -Name  BeAwesome `
-                        -Test  $function:BeAwesome `
-                        -Alias 'BA'
+    Add-ShouldOperator -Name BeAwesome `
+        -Test $function:BeAwesome `
+        -Alias 'BA'
 
-    PS C:\> "bad" | should -BeAwesome
+    PS C:\> "bad" | Should -BeAwesome
     {bad} is not Awesome
     ```
-.LINK
+
+    Example of how to create a simple custom assertion that checks if the input string is 'Awesome'
+    .LINK
     https://pester.dev/docs/commands/Add-ShouldOperator
-#>
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -1298,7 +1295,6 @@ function New-PesterOption {
     .LINK
     Invoke-Pester
     #>
-
     [CmdletBinding()]
     param (
         [switch] $IncludeVSCodeMarker,
@@ -1654,7 +1650,12 @@ function BeforeDiscovery {
         [ScriptBlock]$ScriptBlock
     )
 
-    . $ScriptBlock
+    if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        . $ScriptBlock
+    }
+    else {
+        Invoke-Interactively -CommandUsed 'BeforeDiscovery' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
+    }
 }
 
 # Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over
