@@ -42,7 +42,6 @@ InPesterModuleScope {
                 @{ Value = @() }
                 @{ Value = 0 }
             ) {
-                param($Value)
                 $Value | Should -Not -BeTrue
             }
 

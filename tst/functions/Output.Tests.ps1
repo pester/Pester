@@ -624,7 +624,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                param($Header, $Message, $Expected)
                 Format-CIErrorMessage -CIFormat 'AzureDevops' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
@@ -664,7 +663,6 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                param($Header, $Message, $Expected)
                 Format-CIErrorMessage -CIFormat 'GithubActions' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
