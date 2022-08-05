@@ -343,18 +343,19 @@ function Should-InvokeInternal {
         [Parameter(Mandatory = $true)]
         [hashtable] $ContextInfo,
 
-        [int]$Times = 1,
+        [int] $Times = 1,
 
         [Parameter(ParameterSetName = 'ParameterFilter')]
-        [ScriptBlock]$ParameterFilter = { $True },
+        [ScriptBlock] $ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
         [string] $ModuleName,
 
-        [switch]$Exactly,
-        [switch]$Negate,
+        [switch] $Exactly,
+        [switch] $Negate,
+        [string] $Because,
 
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
@@ -453,13 +454,13 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey("Times"))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was"
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
     }
@@ -467,19 +468,19 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made"
             }
         }
     }
