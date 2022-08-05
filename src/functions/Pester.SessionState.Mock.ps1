@@ -630,7 +630,7 @@ function Assert-VerifiableMock {
     Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
     & $sb
 }
-function Should-InvokeVerifiable ([switch]$Negate) {
+function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -662,7 +662,7 @@ function Should-InvokeVerifiable ([switch]$Negate) {
     This will not throw an exception because the mock was invoked.
     #>
     $behaviors = @(Get-VerifiableBehaviors)
-    Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
+    Should-InvokeVerifiableInternal @PSBoundParameters -Behaviors $behaviors
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `

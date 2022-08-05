@@ -303,7 +303,8 @@ function Should-InvokeVerifiableInternal {
     param(
         [Parameter(Mandatory)]
         $Behaviors,
-        [switch]$Negate
+        [switch] $Negate,
+        [string] $Because
     )
 
     $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
@@ -314,8 +315,8 @@ function Should-InvokeVerifiableInternal {
     }
 
     if ($filteredBehaviors.Count -gt 0) {
-        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
-        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
+        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called,$(Format-Because $Because) but these were:" }
+        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called,$(Format-Because $Because) but these were not:" }
 
         foreach ($b in $filteredBehaviors) {
             $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
