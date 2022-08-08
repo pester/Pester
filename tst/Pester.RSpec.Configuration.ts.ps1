@@ -244,6 +244,45 @@ i -PassThru:$PassThru {
             Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
         }
 
+        t 'StringArrayOption can be assigned an arraylist' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned an arraylist from hashtable' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]@{ Run = @{ Path = $expectedPaths } }
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo from hashtable' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
         t "StringArrayOption can be assigned PSCustomObjects in object array" {
             $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)), (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)) | Resolve-Path
             $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
