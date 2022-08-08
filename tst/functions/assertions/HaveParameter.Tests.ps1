@@ -462,3 +462,26 @@ InPesterModuleScope {
         }
     }
 }
+
+Describe 'Using Should -HaveParameter with alias for local function or mock' {
+    # https://github.com/pester/Pester/issues/1431
+    It 'throws when testing mock without workaround' {
+        function TestFunction($Parameter1) { }
+        Mock TestFunction {}
+
+        { Get-Command TestFunction | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for mock TestFunction. This is a known issue with Get-Command in PowerShell. Try 'Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter 'Parameter1'
+    }
+
+    It 'throws when testing alias for function defined in local script scope' {
+        function TestFunction2($Parameter1) { }
+        Set-Alias -Name LocalAlias -Value TestFunction2
+
+        { Get-Command LocalAlias | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for alias LocalAlias. This is a known issue with Get-Command in PowerShell. Try using the actual command name, ex. 'Get-Command TestFunction2 | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction2 | Should -HaveParameter 'Parameter1'
+    }
+}
