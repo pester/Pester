@@ -2972,3 +2972,39 @@ Describe "When inherited variables conflicts with parameters" {
         Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 123 } -Times 1 -Exactly
     }
 }
+
+Describe 'Mocking in manifest modules' {
+    BeforeAll {
+        $moduleName = 'MockManifestModule'
+        $moduleManifestPath = "TestDrive:/$moduleName.psd1"
+        $scriptPath = "TestDrive:/$moduleName-functions.ps1"
+        Set-Content -Path $scriptPath -Value {
+            function myManifestPublicFunction {
+                myManifestPrivateFunction
+            }
+
+            function myManifestPrivateFunction {
+                'real'
+            }
+        }
+        New-ModuleManifest -Path $moduleManifestPath -NestedModules "$moduleName-functions.ps1" -FunctionsToExport 'myManifestPublicFunction'
+        Import-Module $moduleManifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $moduleName -ErrorAction SilentlyContinue | Remove-Module
+        Remove-Item $moduleManifestPath, $scriptPath -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'Should be able to mock public function' {
+        Mock -CommandName 'myManifestPublicFunction' -MockWith { 'mocked public' }
+        myManifestPublicFunction | Should -Be 'mocked public'
+        Should -Invoke -CommandName 'myManifestPublicFunction' -Exactly -Times 1
+    }
+
+    It 'Should be able to mock private function' {
+        Mock -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -MockWith { 'mocked private' }
+        myManifestPublicFunction | Should -Be 'mocked private'
+        Should -Invoke -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -Exactly -Times 1
+    }
+}
