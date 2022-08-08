@@ -67,7 +67,7 @@ Describe "Executing test code inside a module" {
     }
 }
 
-Describe "Get-ScriptModule behavior" {
+Describe 'Get-CompatibleModule behavior' {
 
     Context "When attempting to mock a command in a non-existent module" {
 

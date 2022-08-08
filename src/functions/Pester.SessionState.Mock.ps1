@@ -77,9 +77,9 @@ function Mock {
     verifiable mock is not called, Should -InvokeVerifiable will throw an
     exception and indicate all mocks not called.
 
-    If you wish to mock commands that are called from inside a script module,
-    you can do so by using the -ModuleName parameter to the Mock command. This
-    injects the mock into the specified module. If you do not specify a
+    If you wish to mock commands that are called from inside a script or manifest
+    module, you can do so by using the -ModuleName parameter to the Mock command.
+    This injects the mock into the specified module. If you do not specify a
     module name, the mock will be created in the same scope as the test script.
     You may mock the same command multiple times, in different scopes, as needed.
     Each module's mock maintains a separate call history and verified status.

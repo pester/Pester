@@ -613,7 +613,7 @@ function Resolve-Command {
             $SessionState = $callerSessionState
         }
         else {
-            $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+            $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction Stop
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
             }
@@ -1604,7 +1604,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
     Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
     & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
 
-    # clean up also in all loaded script modules
+    # clean up also in all loaded script and manifest modules
     $modules = & $script:SafeCommands['Get-Module']
     foreach ($module in $modules) {
         # we cleaned up in module on the start of this method without overhead of moving to module scope
@@ -1615,7 +1615,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
         # some script modules aparently can have no session state
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
-        if ('Script' -eq $module.ModuleType -and $null -ne $module.SessionState) {
+        if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
             & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
         }
     }
