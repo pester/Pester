@@ -133,14 +133,12 @@ function Remove-TestRegistry ($TestRegistryPath) {
 
 
 function Get-TestRegistryPlugin {
-
-    # TODO: add OnStart block and put this in it
-
-    if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
-        & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
-        & $SafeCommands['Remove-PSDrive'] TestRegistry
-    }
-    New-PluginObject -Name "TestRegistry" -EachBlockSetupStart {
+    New-PluginObject -Name "TestRegistry" -Start {
+        if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
+            & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
+            & $SafeCommands['Remove-PSDrive'] TestRegistry
+        }
+    } -EachBlockSetupStart {
         param($Context)
 
         if ($Context.Block.IsRoot) {
