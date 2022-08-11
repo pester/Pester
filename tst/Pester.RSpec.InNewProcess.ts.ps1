@@ -183,7 +183,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d1" { It "i" { 1 | Should -Be 1 } }; Describe "d2" { It "i2" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -215,7 +215,7 @@ i -PassThru:$PassThru {
                 $c = "'before'; . '$testpath'; . '$testpath2'; 'after'"
                 Set-Content -Path $scriptPath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $scriptPath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $scriptPath")
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
                 # assert that both files were executed once
@@ -243,7 +243,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }; "DONOTSHOWME"'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
