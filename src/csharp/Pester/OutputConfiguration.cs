@@ -49,7 +49,7 @@ namespace Pester
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
             StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
             CIFormat = new StringOption("The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.", "Auto");
-            RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, Legacy and Plaintext.", "Auto");
+            RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.", "Auto");
         }
 
         public StringOption Verbosity

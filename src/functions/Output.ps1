@@ -81,7 +81,7 @@ function Write-PesterHostMessage {
 
         $Separator = ' ',
 
-        [ValidateSet('Ansi', 'Legacy', 'Plaintext')]
+        [ValidateSet('Ansi', 'ConsoleColor', 'Plaintext')]
         [string]
         $RenderMode = $PesterPreference.Output.RenderMode.Value
     )
@@ -796,8 +796,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
 
                     # Loop to generate problem for every failed assertion per test (when $PesterPreference.Should.ErrorAction.Value = "Continue")
-                    # Disabling ANSI to make sure it doesn't interfere with problemMatcher in vscode-powershell extension
-                    $RenderMode = if ($PesterPreference.Output.RenderMode.Value -eq 'Ansi') { 'Legacy' } else { $PesterPreference.Output.RenderMode.Value }
+                    # Disabling ANSI sequences to make sure it doesn't interfere with problemMatcher in vscode-powershell extension
+                    $RenderMode = if ($PesterPreference.Output.RenderMode.Value -eq 'Ansi') { 'ConsoleColor' } else { $PesterPreference.Output.RenderMode.Value }
 
                     foreach ($e in $_test.ErrorRecord) {
                         Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine

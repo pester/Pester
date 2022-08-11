@@ -1117,7 +1117,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        t 'Output.RenderMode is Legacy when set to Auto and virtual terminal is not supported and env:NO_COLOR is not set' {
+        t 'Output.RenderMode is ConsoleColor when set to Auto and virtual terminal is not supported and env:NO_COLOR is not set' {
             $previousValue = $env:NO_COLOR
             Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
 
@@ -1132,7 +1132,7 @@ i -PassThru:$PassThru {
 
                 "$($ps.Streams.Error)" | Verify-Equal ''
                 $ps.HadErrors | Verify-False
-                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Legacy'
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'ConsoleColor'
             }
             finally {
                 $ps.Dispose()
@@ -1148,7 +1148,7 @@ i -PassThru:$PassThru {
                 }
             }
 
-            foreach ($option in 'Ansi', 'Legacy', 'Plaintext') {
+            foreach ($option in 'Ansi', 'ConsoleColor', 'Plaintext') {
                 $c.Output.RenderMode = $option
                 $r = Invoke-Pester -Configuration $c
                 $r.Configuration.Output.RenderMode.Value | Verify-Equal $option

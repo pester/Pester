@@ -924,7 +924,7 @@ function Invoke-Pester {
             $plugins = @()
 
             # Verify this before WriteScreenPlugin because of Write-PesterStart and Write-PesterDebugMessage
-            if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'Legacy', 'Plaintext') {
+            if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
                 throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
             }
 
@@ -937,7 +937,7 @@ function Invoke-Pester {
                     $PesterPreference.Output.RenderMode = 'Ansi'
                 }
                 else {
-                    $PesterPreference.Output.RenderMode = 'Legacy'
+                    $PesterPreference.Output.RenderMode = 'ConsoleColor'
                 }
             }
 
