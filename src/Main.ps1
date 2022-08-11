@@ -922,6 +922,25 @@ function Invoke-Pester {
             $pluginConfiguration = @{}
             $pluginData = @{}
             $plugins = @()
+
+            # Verify this before WriteScreenPlugin because of Write-PesterStart and Write-PesterDebugMessage
+            if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
+                throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
+            }
+
+            if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
+                if ($null -ne $env:NO_COLOR) {
+                    # https://no-color.org/)
+                    $PesterPreference.Output.RenderMode = 'Plaintext'
+                }
+                elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+                    $PesterPreference.Output.RenderMode = 'Ansi'
+                }
+                else {
+                    $PesterPreference.Output.RenderMode = 'ConsoleColor'
+                }
+            }
+
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
             }
@@ -1105,7 +1124,7 @@ function Invoke-Pester {
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 if ($PesterPreference.Output.Verbosity.Value -ne "None") {
                     $sw = [Diagnostics.Stopwatch]::StartNew()
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $measure = if (-not $PesterPreference.CodeCoverage.UseBreakpoints.Value) { @($run.PluginData.Coverage.Tracer.Hits) }
@@ -1163,7 +1182,7 @@ function Invoke-Pester {
 
                 $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }
                 $reportText = Write-CoverageReport $coverageReport
 

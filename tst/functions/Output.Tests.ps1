@@ -670,3 +670,24 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         }
     }
 }
+
+# Can't run inside InModuleScope Pester { } because variables defined in BeforeDiscovery will be lost due to same module state as scriptblock = no testcases
+Describe 'Write-PesterHostMessage' {
+    Context 'Is syntax-compatible with Write-Host' {
+        BeforeDiscovery {
+            # Using internal code as [System.Management.Automation.Cmdlet]::CommonParameters is unavailable in PSv3
+            $CommonParameters = [System.Management.Automation.Internal.CommonParameters].DeclaredProperties.Name
+            $WriteHostParam = @(Get-Command 'Write-Host' -Module 'Microsoft.PowerShell.Utility' -CommandType Cmdlet).Parameters.Values |
+                Where-Object Name -NotIn $CommonParameters
+        }
+        BeforeAll {
+            $WritePesterHostMessageParam = & (Get-Module Pester) { (Get-Command 'Write-PesterHostMessage' -Module Pester).Parameters }
+        }
+        It 'Parameter <_.Name> is equal' -TestCases $WriteHostParam {
+            $param = $_
+            $param.Name | Should -BeIn $WritePesterHostMessageParam.Keys
+            $WritePesterHostMessageParam[$param.Name].ParameterType | Should -Be $param.ParameterType
+            if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
+        }
+    }
+}

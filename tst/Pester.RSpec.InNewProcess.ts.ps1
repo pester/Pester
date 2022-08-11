@@ -45,7 +45,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -67,7 +67,7 @@ i -PassThru:$PassThru {
                 $c = 'Context "c" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -91,7 +91,7 @@ i -PassThru:$PassThru {
                 $c = 'BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -115,7 +115,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Describe "d - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -137,7 +137,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Context "c - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -161,7 +161,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d - <File>" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -183,7 +183,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d1" { It "i" { 1 | Should -Be 1 } }; Describe "d2" { It "i2" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -215,7 +215,7 @@ i -PassThru:$PassThru {
                 $c = "'before'; . '$testpath'; . '$testpath2'; 'after'"
                 Set-Content -Path $scriptPath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $scriptPath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $scriptPath")
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
                 # assert that both files were executed once
@@ -243,7 +243,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }; "DONOTSHOWME"'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -382,6 +382,28 @@ i -PassThru:$PassThru {
             }
             finally {
                 Remove-Item -Path $testpath
+            }
+        }
+    }
+
+    b 'Running in PSHost without UI' {
+        # Making sure Pester works in a custom host
+        t 'Executes successfully without errors' {
+            $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
+            try {
+                $ps = [PowerShell]::Create()
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
+                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
+                $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
+                $res = $ps.Invoke()
+
+                "$($ps.Streams.Error)" | Verify-Equal ''
+                $ps.HadErrors | Verify-False
+                $res.PassedCount | Verify-Equal 1
+                # Information-stream introduced in PSv5 for Write-Host output
+                if ($PSVersionTable.PSVersion.Major -ge 5) { $ps.Streams.Information -match 'Describe' | Verify-NotNull }
+            } finally {
+                $ps.Dispose()
             }
         }
     }
