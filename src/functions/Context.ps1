@@ -115,10 +115,6 @@
         }
     }
     else {
-        if ($invokedInteractively) {
-            return
-        }
-        $invokedInteractively = $true
         Invoke-Interactively -CommandUsed 'Context' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
     }
 }

@@ -955,7 +955,7 @@ function Get-JaCoCoReportXml {
             }
         }
 
-        $packageElement = Add-XmlElement $reportElement "package" @{
+        $packageElement = Add-XmlElement -Parent $reportElement -Name 'package' -Attributes @{
             name = ($packageName -replace "/$", "")
         }
 
@@ -969,7 +969,7 @@ function Get-JaCoCoReportXml {
                 "$commonParentLeaf/$classElementRelativePath"
             }
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
-            $classElement = Add-XmlElement $packageElement 'class' -Attributes ([ordered] @{
+            $classElement = Add-XmlElement -Parent $packageElement -Name 'class' -Attributes ([ordered] @{
                     name           = $classElementName
                     sourcefilename = if ($isGutters) {
                         & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
@@ -981,26 +981,26 @@ function Get-JaCoCoReportXml {
 
             foreach ($function in $class.Methods.Keys) {
                 $method = $class.Methods.$function
-                $methodElement = Add-XmlElement $classElement 'method' -Attributes ([ordered] @{
+                $methodElement = Add-XmlElement -Parent $classElement -Name 'method' -Attributes ([ordered] @{
                         name = $function
                         desc = '()'
                         line = $method.FirstLine
                     })
-                Add-JaCoCoCounter Instruction $method $methodElement
-                Add-JaCoCoCounter Line $method $methodElement
-                Add-JaCoCoCounter Method $method $methodElement
+                Add-JaCoCoCounter -Type 'Instruction' -Data $method -Parent $methodElement
+                Add-JaCoCoCounter -Type 'Line' -Data $method -Parent $methodElement
+                Add-JaCoCoCounter -Type 'Method' -Data $method -Parent $methodElement
             }
 
-            Add-JaCoCoCounter Instruction $class $classElement
-            Add-JaCoCoCounter Line $class $classElement
-            Add-JaCoCoCounter Method $class $classElement
-            Add-JaCoCoCounter Class $class $classElement
+            Add-JaCoCoCounter -Type 'Instruction' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Line' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Method' -Data $class -Parent $classElement
+            Add-JaCoCoCounter -Type 'Class' -Data $class -Parent $classElement
         }
 
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $sourceFileElement = Add-XmlElement $packageElement 'sourcefile' -Attributes ([ordered] @{
+            $sourceFileElement = Add-XmlElement -Parent $packageElement -Name 'sourcefile' -Attributes ([ordered] @{
                     name = if ($isGutters) {
                         & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
                     }
@@ -1010,7 +1010,7 @@ function Get-JaCoCoReportXml {
                 })
 
             foreach ($line in $class.Lines.Keys) {
-                $null = Add-XmlElement $sourceFileElement 'line' -Attributes ([ordered] @{
+                $null = Add-XmlElement -Parent $sourceFileElement -Name 'line' -Attributes ([ordered] @{
                         nr = $line
                         mi = $class.Lines.$line.Instruction.Missed
                         ci = $class.Lines.$line.Instruction.Covered
@@ -1019,22 +1019,22 @@ function Get-JaCoCoReportXml {
                     })
             }
 
-            Add-JaCoCoCounter Instruction $class $sourceFileElement
-            Add-JaCoCoCounter Line $class $sourceFileElement
-            Add-JaCoCoCounter Method $class $sourceFileElement
-            Add-JaCoCoCounter Class $class $sourceFileElement
+            Add-JaCoCoCounter -Type 'Instruction' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Line' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Method' -Data $class -Parent $sourceFileElement
+            Add-JaCoCoCounter -Type 'Class' -Data $class -Parent $sourceFileElement
         }
 
-        Add-JaCoCoCounter Instruction $package $packageElement
-        Add-JaCoCoCounter Line $package $packageElement
-        Add-JaCoCoCounter Method $package $packageElement
-        Add-JaCoCoCounter Class $package $packageElement
+        Add-JaCoCoCounter -Type 'Instruction' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Line' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Method' -Data $package -Parent $packageElement
+        Add-JaCoCoCounter -Type 'Class' -Data $package -Parent $packageElement
     }
 
-    Add-JaCoCoCounter Instruction $report $reportElement
-    Add-JaCoCoCounter Line $report $reportElement
-    Add-JaCoCoCounter Method $report $reportElement
-    Add-JaCoCoCounter Class $report $reportElement
+    Add-JaCoCoCounter -Type 'Instruction' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Line' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Method' -Data $report -Parent $reportElement
+    Add-JaCoCoCounter -Type 'Class' -Data $report -Parent $reportElement
 
     # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
     $jaCoCoReportDocType = '<!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">'
@@ -1068,7 +1068,7 @@ function Add-JaCoCoCounter {
     if ($Data.$Type.Missed -isnot [int] -or $Data.$Type.Covered -isnot [int]) {
         throw 'Counter data expected'
     }
-    $null = Add-XmlElement $Parent 'counter' -Attributes ([ordered] @{
+    $null = Add-XmlElement -Parent $Parent -Name 'counter' -Attributes ([ordered] @{
             type    = $Type.ToUpperInvariant()
             missed  = $Data.$Type.Missed
             covered = $Data.$Type.Covered
@@ -1157,8 +1157,8 @@ function Get-TracerHitLocation ($command) {
         $c = $command
         "`n`nCommand: $c" | Write-Host
         $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
-                $ast | select @{n = "type"; e = { $_.GetType().Name } } , @{n = "extent"; e = { $_.extent } }
-            } ) | ft type, extent | out-string | Write-Host
+                $ast | Select-Object @{n = 'type'; e = { $_.GetType().Name } } , @{n = 'extent'; e = { $_.extent } }
+            } ) | Format-Table type, extent | Out-String | Write-Host
     }
 
     if ($env:PESTER_CC_DEBUG -eq 1) {
