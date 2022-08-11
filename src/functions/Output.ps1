@@ -70,10 +70,10 @@ function Write-PesterHostMessage {
         [Alias('Message', 'Msg')]
         $Object,
 
-        [System.ConsoleColor]
+        [ConsoleColor]
         $ForegroundColor,
 
-        [System.ConsoleColor]
+        [ConsoleColor]
         $BackgroundColor,
 
         [switch]
@@ -97,43 +97,43 @@ function Write-PesterHostMessage {
             ResetAll        = "$esc[0m"
 
             ForegroundColor = @{
-                Black       = "$esc[30m"
-                DarkBlue    = "$esc[34m"
-                DarkGreen   = "$esc[32m"
-                DarkCyan    = "$esc[36m"
-                DarkRed     = "$esc[31m"
-                DarkMagenta = "$esc[35m"
-                DarkYellow  = "$esc[33m"
-                Gray        = "$esc[37m"
+                [ConsoleColor]::Black       = "$esc[30m"
+                [ConsoleColor]::DarkBlue    = "$esc[34m"
+                [ConsoleColor]::DarkGreen   = "$esc[32m"
+                [ConsoleColor]::DarkCyan    = "$esc[36m"
+                [ConsoleColor]::DarkRed     = "$esc[31m"
+                [ConsoleColor]::DarkMagenta = "$esc[35m"
+                [ConsoleColor]::DarkYellow  = "$esc[33m"
+                [ConsoleColor]::Gray        = "$esc[37m"
 
-                DarkGray    = "$esc[90m"
-                Blue        = "$esc[94m"
-                Green       = "$esc[92m"
-                Cyan        = "$esc[96m"
-                Red         = "$esc[91m"
-                Magenta     = "$esc[95m"
-                Yellow      = "$esc[93m"
-                White       = "$esc[97m"
+                [ConsoleColor]::DarkGray    = "$esc[90m"
+                [ConsoleColor]::Blue        = "$esc[94m"
+                [ConsoleColor]::Green       = "$esc[92m"
+                [ConsoleColor]::Cyan        = "$esc[96m"
+                [ConsoleColor]::Red         = "$esc[91m"
+                [ConsoleColor]::Magenta     = "$esc[95m"
+                [ConsoleColor]::Yellow      = "$esc[93m"
+                [ConsoleColor]::White       = "$esc[97m"
             }
 
             BackgroundColor = @{
-                Black       = "$esc[40m"
-                DarkBlue    = "$esc[44m"
-                DarkGreen   = "$esc[42m"
-                DarkCyan    = "$esc[46m"
-                DarkRed     = "$esc[41m"
-                DarkMagenta = "$esc[45m"
-                DarkYellow  = "$esc[43m"
-                Gray        = "$esc[47m"
+                [ConsoleColor]::Black       = "$esc[40m"
+                [ConsoleColor]::DarkBlue    = "$esc[44m"
+                [ConsoleColor]::DarkGreen   = "$esc[42m"
+                [ConsoleColor]::DarkCyan    = "$esc[46m"
+                [ConsoleColor]::DarkRed     = "$esc[41m"
+                [ConsoleColor]::DarkMagenta = "$esc[45m"
+                [ConsoleColor]::DarkYellow  = "$esc[43m"
+                [ConsoleColor]::Gray        = "$esc[47m"
 
-                DarkGray    = "$esc[100m"
-                Blue        = "$esc[104m"
-                Green       = "$esc[102m"
-                Cyan        = "$esc[106m"
-                Red         = "$esc[101m"
-                Magenta     = "$esc[105m"
-                Yellow      = "$esc[103m"
-                White       = "$esc[107m"
+                [ConsoleColor]::DarkGray    = "$esc[100m"
+                [ConsoleColor]::Blue        = "$esc[104m"
+                [ConsoleColor]::Green       = "$esc[102m"
+                [ConsoleColor]::Cyan        = "$esc[106m"
+                [ConsoleColor]::Red         = "$esc[101m"
+                [ConsoleColor]::Magenta     = "$esc[105m"
+                [ConsoleColor]::Yellow      = "$esc[103m"
+                [ConsoleColor]::White       = "$esc[107m"
             }
         }
     }
@@ -143,8 +143,8 @@ function Write-PesterHostMessage {
 
         if ($RenderMode -eq 'Ansi') {
             $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
-            $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor.ToString()] } else { '' }
-            $bg = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $ANSIcodes.BackgroundColor[$BackgroundColor.ToString()] } else { '' }
+            $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor] } else { '' }
+            $bg = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $ANSIcodes.BackgroundColor[$BackgroundColor] } else { '' }
 
             # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
