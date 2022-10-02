@@ -97,6 +97,11 @@ function Add-ShouldOperator {
         return
     }
 
+    # https://github.com/pester/Pester/issues/1355 and https://github.com/PowerShell/PowerShell/issues/9372
+    if ($script:AssertionOperators.Count -ge 32) {
+        throw 'Max number of assertion operators (32) has already been reached. This limitation is due to maximum allowed parameter sets in PowerShell.'
+    }
+
     $namesToCheck = @(
         $Name
         $Alias
