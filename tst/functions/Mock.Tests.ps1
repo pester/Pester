@@ -676,7 +676,7 @@ Describe "When Creating Verifiable Mock that is not called" {
 }
 
 Describe "When Creating multiple Verifiable Mocks that are not called" {
-    It "Should throw and list all commands" {
+    BeforeAll {
         Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "one" }
         Mock FunctionUnderTest { return "I am another verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "two" }
         Mock FunctionUnderTest { return "I am probably called" } -Verifiable -ParameterFilter { $param1 -eq "three" }
@@ -688,8 +688,20 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
         catch {
             $result = $_
         }
+    }
 
+    It "Should throw and list all commands" {
         $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
+    }
+    
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -InvokeVerifiable -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, because of reasons, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
 }
 
@@ -720,6 +732,16 @@ Describe "When calling Should -Not -InvokeVerifiable" {
 
         It "Should throw" {
             $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+        }
+
+        It 'Should include reason when -Because is used' {
+            try {
+                Should -Not -InvokeVerifiable -Because 'of reasons'
+            }
+            Catch {
+                $failure = $_
+            }
+            $failure.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, because of reasons, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -777,16 +799,26 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 0 times exactly but was called 1 times"
+        $result.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 times'
     }
 
     It "Should not throw if mock was not called" {
         Should -Invoke FunctionUnderTest 0 -ParameterFilter { $param1 -eq "stupid" }
     }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Invoke FunctionUnderTest 0  -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 times'
+    }
 }
 
 Describe "When Calling Should -Not -Invoke without exactly" {
-    BeforeEach {
+    BeforeAll {
         Mock FunctionUnderTest {}
         FunctionUnderTest "one"
 
@@ -799,7 +831,7 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times, but it was"
     }
 
     It "Should not throw if mock was not called" {
@@ -845,7 +877,20 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called less than $Times times but was called $MockCalls times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called less than $Times times, but was called $MockCalls times"
+    }
+
+    It 'Should include reason when -Because is used' {
+        FunctionUnderTest
+        FunctionUnderTest
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Times 1 -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called less than 1 times, because of reasons, but was called 2 times'
     }
 }
 
@@ -864,7 +909,7 @@ Describe "When Calling Should -Invoke with exactly" {
     }
 
     It "Should throw if mock was not called the number of times specified" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 3 times exactly but was called 2 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 3 times exactly, but was called 2 times"
     }
 
     It "Should not throw if mock was called the number of times specified" {
@@ -886,11 +931,21 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times, but it was"
     }
 
     It "Should not throw if mock was not called" {
         Should -Not -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq "stupid" }
+    }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Not -Invoke FunctionUnderTest -Exactly -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest not to be called exactly 1 times, because of reasons, but it was'
     }
 }
 
@@ -933,7 +988,7 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly $Times times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly $Times times, but it was"
     }
 }
 
@@ -947,7 +1002,7 @@ Describe "When Calling Should -Invoke without exactly" {
 
     It "Should throw if mock was not called at least the number of times specified" {
         $scriptBlock = { Should -Invoke FunctionUnderTest 4 -Scope Describe }
-        $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
+        $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times, but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
@@ -961,6 +1016,26 @@ Describe "When Calling Should -Invoke without exactly" {
     It "Should throw an error if any non-matching calls to the mock are made, and the -ExclusiveFilter parameter is used" {
         $scriptBlock = { Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw '*1 non-matching calls were made*'
+    }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Invoke FunctionUnderTest 4 -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called at least 4 times, because of reasons, but was called 3 times'
+    }
+
+    It 'Should include reason when -Because is used with -ExclusiveFilter' {
+        try {
+            Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to only be called with with parameters matching the specified filter, because of reasons, but 1 non-matching calls were made'
     }
 }
 
