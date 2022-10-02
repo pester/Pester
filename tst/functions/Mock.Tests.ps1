@@ -976,6 +976,54 @@ Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
     }
 }
 
+Describe 'When Calling Should -Invoke with invalid -Scope' {
+    Context 'Using -Scope It outside of It block' {
+        BeforeAll {
+            Mock FunctionUnderTest {}
+
+            try {
+                Should -Not -Invoke FunctionUnderTest -Scope It
+            }
+            Catch {
+                $result = $_
+            }
+        }
+        It 'Should throw' {
+            $result.Exception.Message | Should -Be 'Assertion is placed outside of an It block, but -Scope It is specified.'
+        }
+    }
+
+    It 'Should throw when negative number' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope -1 }
+        $scriptBlock | Should -Throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
+    }
+
+    It 'Should throw when unknown named block' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope SomethingElse }
+        $scriptBlock | Should -Throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
+    }
+}
+
+Context 'When Calling Should -Invoke -Scope Describe while not inside Describe' {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+    }
+    It 'Should throw' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope Describe }
+        $scriptBlock | Should -Throw 'Assertion is not placed directly nor nested inside a Describe block, but -Scope Describe is specified.'
+    }
+}
+
+Describe 'When Calling Should -Invoke -Scope Context while not inside Context' {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+    }
+    It 'Should throw' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope Context }
+        $scriptBlock | Should -Throw 'Assertion is not placed directly nor nested inside a Context block, but -Scope Context is specified.'
+    }
+}
+
 Describe "When Calling Should -Invoke with pipeline-input or -ActualValue" {
     It "Should throw an error on pipeline-input" {
         $scriptBlock = { "value" | Should -Invoke -CommandName "ABC" -Scope Describe }

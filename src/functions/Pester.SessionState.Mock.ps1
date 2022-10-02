@@ -980,6 +980,11 @@ function Should-Invoke {
                 $level++
                 $i = $i.Parent
             }
+
+            if ($null -eq $i) {
+                # Reached parent of root-block which means we never called break (got a hit) in the while-loop
+                throw "Assertion is not placed directly nor nested inside a $Scope block, but -Scope $Scope is specified."
+            }
         }
     }
 
