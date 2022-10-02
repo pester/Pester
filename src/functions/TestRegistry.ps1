@@ -87,16 +87,22 @@ function New-RandomTempRegistry {
     do {
         $tempPath = Get-TempRegistry
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
-    } until (-not (& $SafeCommands['Test-Path'] -Path $Path ))
+    } until (-not (& $SafeCommands['Test-Path'] -Path $Path -PathType Container))
 
     try {
-        & $SafeCommands['New-Item'] -Path $Path
+        try {
+            & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
+        }
+        catch [System.IO.IOException] {
+                # when running in parallel this occasionally triggers
+                # IOException: No more data is available
+                # let's just retry the operation
+                & $SafeCommands['Write-Warning'] "IO exception during creating path $path"
+                & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
+        }
     }
-    catch [System.IO.IOException] {
-        # when running in parallel this occasionally triggers
-        # IOException: No more data is available
-        # let's just retry the operation
-        & $SafeCommands['New-Item'] -Path $Path
+    catch [Exception] {
+        throw ([Exception]"Was not able to registry key for TestRegistry at '$Path'", ($_.Exception))
     }
 }
 
@@ -122,7 +128,7 @@ function Remove-TestRegistry ($TestRegistryPath) {
         $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
     }
 
-    if (& $SafeCommands['Test-Path'] -Path $path) {
+    if (& $SafeCommands['Test-Path'] -Path $path -PathType Container) {
         & $SafeCommands['Remove-Item'] -Path $path -Force -Recurse
     }
 
