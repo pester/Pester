@@ -311,6 +311,27 @@ i -PassThru:$PassThru {
             $config.Run.Path = $config.Run.Path.Default
             $config.Run.Path.IsModified | Verify-True
         }
+
+        t "Assigning null to array option using hashtable does not throw" {
+            # https://github.com/pester/Pester/issues/2026
+            $config = [PesterConfiguration]@{ Run = @{ Path = $null } }
+            $config.Run.Path | Verify-NotNull
+        }
+
+        t "Assigning null to string option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ TestExtension = $null } }
+            $config.Run.TestExtension | Verify-NotNull
+        }
+
+        t "Assigning null to value option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ Exit = $null } }
+            $config.Run.Exit.Value | Verify-NotNull
+        }
+
+        t "Assigning null to config-section in hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = $null }
+            $config.Run | Verify-NotNull
+        }
     }
 
     b "Cloning" {
