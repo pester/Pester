@@ -849,8 +849,6 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         @{ MockCalls = 2; Times = 5 }
         @{ MockCalls = 0; Times = 1 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -864,8 +862,6 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         @{ MockCalls = 1; Times = 1 }
         @{ MockCalls = 0; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -961,8 +957,6 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
         @{ MockCalls = 0; Times = 1 }
         @{ MockCalls = 1; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -975,8 +969,6 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
         @{ MockCalls = 1; Times = 1 }
         @{ MockCalls = 0; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -2667,8 +2659,6 @@ InPesterModuleScope {
             }
 
             It 'mocks <Command> command' -TestCases $case {
-                param($Command)
-
                 Mock $Command { 'I am being mocked' }
 
                 & $Command | Should -Be 'I am being mocked'

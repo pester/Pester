@@ -451,8 +451,6 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "Unit"; Collection = "Low", "Medium", "High" }
             @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
         ) {
-            param($Filter, $Collection)
-
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeFalse
         }
@@ -465,8 +463,6 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "Low", "Medium"; Collection = "Low", "Medium", "High" }
             @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
         ) {
-            param($Filter, $Collection)
-
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeTrue
         }

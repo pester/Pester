@@ -132,7 +132,6 @@ InPesterModuleScope {
             )
 
             It -TestCases $cases 'Calls the test block when the test name <Description>' {
-                param ($Name)
                 DescribeImpl -Name $Name -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
                 Should -Invoke MockMe -Scope It -Exactly 1
             }
@@ -159,8 +158,6 @@ InPesterModuleScope {
             )
 
             It -TestCases $cases 'Given a filter <filter> and a test with tags <tags> the test runs, because <because>' {
-                param ($Tags, $Filter, $Because)
-
                 # figuring out what this test does is a bit difficult. Internally the tags to be used
                 # are stored in Pester state tag filter. So here we have a static  filter and
                 # we throw tests on it to see if they would run. Then we assert that a mock in the
@@ -173,8 +170,6 @@ InPesterModuleScope {
             It 'Given a filter <filter> and a test with tags <tags> that do not match it does not run the test, because <because>' -TestCases @(
                 @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
-                param($Tags, $Filter, $Because)
-
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
                 Should -Invoke MockMe -Scope It -Exactly 0
@@ -194,8 +189,6 @@ InPesterModuleScope {
             )
 
             It -TestCases $cases 'Given a filter <filter> and a test with tags <tags> the test does not run, because <because>' {
-                param ($Tags, $Filter, $Because)
-
                 # figuring out what this test does is a bit difficult. Internally the tags to be used
                 # are stored in Pester state tag filter. So here we have a static  filter and
                 # we throw tests on it to see if they would run. Then we assert that a mock in the
@@ -208,8 +201,6 @@ InPesterModuleScope {
             It 'Given a filter <filter> and a test with tags <tags> that do not match it runs the test, because <because>' -TestCases @(
                 @{ Filter = $filter; Tags = 'Low'; Because = 'none of the tags match' }
             ) {
-                param($Tags, $Filter, $Because)
-
                 DescribeImpl -Name 'Name' -Tags $Tags -Pester $testState -Fixture $testBlock -NoTestDrive -NoTestRegistry
 
                 Should -Invoke MockMe -Scope It -Exactly 1
