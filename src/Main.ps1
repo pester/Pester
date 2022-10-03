@@ -163,6 +163,13 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
+    # Add synopsis as HelpMessage to show in online help for Should parameters.
+    $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
+    # Ignore functions without synopsis defined (they show syntax)
+    if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
+        $attribute.HelpMessage = $assertHelp.Synopsis
+    }
+
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
@@ -171,9 +178,11 @@ function Add-AssertionDynamicParameterSet {
         $attributeCollection.Add($attribute)
     }
 
+    # Register assertion
     $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
+    # Register -Not in the assertion's parameter set. Create parameter if not already present (first assertion).
     if ($script:AssertionDynamicParams.ContainsKey('Not')) {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
@@ -185,8 +194,10 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
+    $attribute.HelpMessage = 'Reverse the assertion'
     $null = $dynamic.Attributes.Add($attribute)
 
+    # Register required parameters in the assertion's parameter set. Create parameter if not already present.
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values) {
         # common parameters that are already defined
@@ -230,6 +241,7 @@ function Add-AssertionDynamicParameterSet {
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }
