@@ -8,7 +8,7 @@ InPesterModuleScope {
             function Invoke-DummyFunction {
                 param(
                     [Parameter(Mandatory = $true)]
-                    [Alias('First')]
+                    [Alias('First', 'Another')]
                     $MandatoryParam,
 
                     [ValidateNotNullOrEmpty()]
@@ -169,6 +169,10 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First
         }
 
+        It "passes if the parameter MandatoryParam has an alias 'First' and an alias 'Another'" {
+            Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First, Another
+        }
+
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "passes if the parameter <ParameterName> exists, is of type <ExpectedType>, has a default value '<ExpectedValue>' and has an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "ParamWithArgumentCompleter"; ExpectedType = [String]; ExpectedValue = "./.git" }
@@ -253,8 +257,18 @@ InPesterModuleScope {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
-        It "passes if the parameter MandatoryParam has no alias 'Second'" {
+        It "fails if the parameter MandatoryParam has no alias 'Second'" {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second } | Verify-AssertionFailed
+        }
+
+        It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' even though alias 'First' exists" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First, Second } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, to have an alias 'First' and to have an alias 'Second', but it didn't have an alias 'Second'."
+        }
+
+        It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' and no alias 'Third'" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second, Third } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, to have an alias 'Second' and to have an alias 'Third', but it didn't have an alias 'Second' and it didn't have an alias 'Third'."
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {

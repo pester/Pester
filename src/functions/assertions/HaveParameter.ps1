@@ -5,7 +5,7 @@
     [String]$DefaultValue,
     [Switch]$Mandatory,
     [Switch]$HasArgumentCompleter,
-    [String]$Alias,
+    [String[]]$Alias,
     [Switch]$Negate,
     [String]$Because ) {
     <#
@@ -264,14 +264,16 @@
         }
 
         if ($Alias) {
-            $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $Alias
-            $filters += "to$(if ($Negate) {" not"}) have an alias '$Alias'"
+            foreach ($AliasValue in $Alias) {
+                $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $AliasValue
+                $filters += "to$(if ($Negate) {" not"}) have an alias '$AliasValue'"
 
-            if (-not $Negate -and -not $testPresenceOfAlias) {
-                $buts += "it didn't have an alias '$Alias'"
-            }
-            elseif ($Negate -and $testPresenceOfAlias) {
-                $buts += "it had an alias '$Alias'"
+                if (-not $Negate -and -not $testPresenceOfAlias) {
+                    $buts += "it didn't have an alias '$AliasValue'"
+                }
+                elseif ($Negate -and $testPresenceOfAlias) {
+                    $buts += "it had an alias '$AliasValue'"
+                }
             }
         }
     }
