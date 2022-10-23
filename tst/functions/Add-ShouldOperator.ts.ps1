@@ -6,12 +6,14 @@ Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\..\build.ps1" }
-Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 i -PassThru:$PassThru {
-    # Running as P-tests to avoid corrupting other tests if more than 32 operators (parameter sets) are defined
-    # https://github.com/pester/Pester/issues/1355 and https://github.com/pester/Pester/pull/2170#issuecomment-1116423527
+    # Running as P-tests to avoid corrupting other tests if more than 32 operators (parameter sets) are defined.
+    # Each b section reloads the Pester module to further avoid running into the more than 32 operators limitation for the total number of tests.
+    # See https://github.com/pester/Pester/issues/1355 and https://github.com/pester/Pester/pull/2170#issuecomment-1116423527.
     b 'Add-ShouldOperator' {
+        Remove-Module Pester -Force -ErrorAction SilentlyContinue
+        Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
         ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
 
         t 'Adds empty HelpMessage for Should operator without synopsis' {
@@ -68,6 +70,13 @@ i -PassThru:$PassThru {
             # Should not throw
             Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
         }
+
+    }
+
+    b 'Add-ShouldOperator' {
+        Remove-Module Pester -Force -ErrorAction SilentlyContinue
+        Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
+        ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
 
         t 'Does not allow an operator with a different test to be registered using an existing name' {
             function DifferentScriptBlockA {
