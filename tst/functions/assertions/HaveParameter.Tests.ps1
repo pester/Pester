@@ -263,12 +263,12 @@ InPesterModuleScope {
 
         It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' even though alias 'First' exists" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First, Second } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, to have an alias 'First' and to have an alias 'Second', but it didn't have an alias 'Second'."
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, with aliases 'First' and 'Second', but it didn't have an alias 'Second'."
         }
 
         It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' and no alias 'Third'" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second, Third } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, to have an alias 'Second' and to have an alias 'Third', but it didn't have an alias 'Second' and it didn't have an alias 'Third'."
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, with aliases 'Second' and 'Third', but it didn't have the aliases 'Second' and 'Third'."
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {

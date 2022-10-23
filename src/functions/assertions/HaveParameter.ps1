@@ -264,15 +264,26 @@
         }
 
         if ($Alias) {
+
+            $filters += "with$(if ($Negate) {'out'}) alias$(if ($Alias.Count -ge 2) {'es'}) $(Join-And ($Alias -replace '^|$', "'"))"
+            $faultyAliases = @()
             foreach ($AliasValue in $Alias) {
                 $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $AliasValue
-                $filters += "to$(if ($Negate) {" not"}) have an alias '$AliasValue'"
-
                 if (-not $Negate -and -not $testPresenceOfAlias) {
-                    $buts += "it didn't have an alias '$AliasValue'"
+                    $faultyAliases += $AliasValue
                 }
                 elseif ($Negate -and $testPresenceOfAlias) {
-                    $buts += "it had an alias '$AliasValue'"
+                    $faultyAliases += $AliasValue
+                }
+            }
+            if($faultyAliases.Count -ge 1) {
+                $aliases = $(Join-And ($faultyAliases -replace '^|$', "'"))
+                $singular = $faultyAliases.Count -eq 1
+                if($Negate) {
+                    $buts += "it has $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
+                }
+                else {
+                    $buts += "it didn't have $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
                 }
             }
         }
