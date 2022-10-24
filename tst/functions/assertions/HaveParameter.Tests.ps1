@@ -63,7 +63,7 @@ InPesterModuleScope {
             function Invoke-DummyFunction {
                 param(
                     [Parameter(Mandatory = $true)]
-                    [Alias('First')]
+                    [Alias('First', 'Another')]
                     $MandatoryParam,
 
                     [ValidateNotNullOrEmpty()]
@@ -169,7 +169,7 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First
         }
 
-        It "passes if the parameter MandatoryParam has an alias 'First' and an alias 'Another'" {
+        It "passes if the parameter MandatoryParam has the aliases 'First' and 'Another'" {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First, Another
         }
 
