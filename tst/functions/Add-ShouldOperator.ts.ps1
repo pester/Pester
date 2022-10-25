@@ -6,38 +6,14 @@ Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\..\build.ps1" }
-Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 i -PassThru:$PassThru {
-    # Running as P-tests to avoid corrupting other tests if more than 32 operators (parameter sets) are defined
+    # Running as P-tests and multiple blocks so we can reload Pester to avoid 32 operator (parameter sets) limit
     # https://github.com/pester/Pester/issues/1355 and https://github.com/pester/Pester/pull/2170#issuecomment-1116423527
+
     b 'Add-ShouldOperator' {
-        ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
-
-        t 'Adds empty HelpMessage for Should operator without synopsis' {
-            function WithoutSynopsis {
-                param($ActualValue, $Param1)
-                $true
-            }
-
-            Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis
-            (Get-Command -Name Should).Parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Verify-Null
-        }
-
-        t 'Adds HelpMessage for Should operator with synopsis' {
-            function WithSynopsis {
-                <#
-                .SYNOPSIS
-                    Here I am
-                .DESCRIPTION
-                    Longer description
-                #>
-                $true
-            }
-
-            Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis
-            (Get-Command -Name Should).Parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Verify-Equal 'Here I am'
-        }
+        Get-Module Pester | Remove-Module
+        Import-Module "$PSScriptRoot\..\..\bin\Pester.psd1"
 
         t 'Allows an operator with an identical name and test to be re-registered' {
             function SameNameAndScript {
@@ -91,6 +67,37 @@ i -PassThru:$PassThru {
             Add-ShouldOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
 
             { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Verify-Throw
+        }
+    }
+
+    b 'HelpMessage for Should operators' {
+        Get-Module Pester | Remove-Module
+        Import-Module "$PSScriptRoot\..\..\bin\Pester.psd1"
+        ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
+
+        t 'Adds empty HelpMessage for Should operator without synopsis' {
+            function WithoutSynopsis {
+                param($ActualValue, $Param1)
+                $true
+            }
+
+            Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis
+            (Get-Command -Name Should).Parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Verify-Null
+        }
+
+        t 'Adds HelpMessage for Should operator with synopsis' {
+            function WithSynopsis {
+                <#
+                .SYNOPSIS
+                    Here I am
+                .DESCRIPTION
+                    Longer description
+                #>
+                $true
+            }
+
+            Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis
+            (Get-Command -Name Should).Parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Verify-Equal 'Here I am'
         }
     }
 }
