@@ -61,11 +61,6 @@ stages:
               key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
               path: '$(NUGET_PACKAGES)'
               cacheHitVar: 'CACHE_RESTORED'
-          - task: NuGetCommand@2
-            condition: ne(variables.CACHE_RESTORED, true)
-            inputs:
-              command: 'restore'
-              restoreSolution: 'src/csharp/Pester.sln'
           - powershell: ./build.ps1 -LockedRestore -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
