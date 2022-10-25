@@ -47,11 +47,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
-                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
-                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
-                OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputPath;
-                TestSuiteName = configuration.GetObjectOrNull<string>("TestSuiteName") ?? TestSuiteName;
+                configuration.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputFormat), v => OutputFormat = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputPath), v => OutputPath = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputEncoding), v => OutputEncoding = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(TestSuiteName), v => TestSuiteName = v);
             }
         }
 

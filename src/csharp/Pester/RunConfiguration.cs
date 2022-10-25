@@ -43,16 +43,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Path = configuration.GetArrayOrNull<string>(nameof(Path)) ?? Path;
-                ExcludePath = configuration.GetArrayOrNull<string>(nameof(ExcludePath)) ?? ExcludePath;
-                ScriptBlock = configuration.GetArrayOrNull<ScriptBlock>(nameof(ScriptBlock)) ?? ScriptBlock;
-                Container = configuration.GetArrayOrNull<ContainerInfo>(nameof(Container)) ?? Container;
-                TestExtension = configuration.GetObjectOrNull<string>(nameof(TestExtension)) ?? TestExtension;
-                Exit = configuration.GetValueOrNull<bool>(nameof(Exit)) ?? Exit;
-                Throw = configuration.GetValueOrNull<bool>(nameof(Throw)) ?? Throw;
-                PassThru = configuration.GetValueOrNull<bool>(nameof(PassThru)) ?? PassThru;
-                SkipRun = configuration.GetValueOrNull<bool>(nameof(SkipRun)) ?? SkipRun;
-                SkipRemainingOnFailure = configuration.GetObjectOrNull<string>(nameof(SkipRemainingOnFailure)) ?? SkipRemainingOnFailure;
+                configuration.AssignArrayIfNotNull<string>(nameof(Path), v => Path = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(ExcludePath), v => ExcludePath = v);
+                configuration.AssignArrayIfNotNull<ScriptBlock>(nameof(ScriptBlock), v => ScriptBlock = v);
+                configuration.AssignArrayIfNotNull<ContainerInfo>(nameof(Container), v => Container = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(TestExtension), v => TestExtension = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Exit), v => Exit = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Throw), v => Throw = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
             }
         }
 

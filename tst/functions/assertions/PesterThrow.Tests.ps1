@@ -215,10 +215,6 @@ InPesterModuleScope {
                         notMatching = 3; assertionMessage = "Expected an exception, with type [System.InvalidOperationException], with message '+mess' and with FullyQualifiedErrorId '+id' to be thrown, but the exception type was [System.ArgumentException], the message was '-mess' and the FullyQualifiedErrorId was '-id'. from ##path##:8 char:"
                     }
                 ) {
-                    param ($actualId, $actualMess, $actualType,
-                        $expectedId, $expectedMess, $expectedType,
-                        $notMatching, $assertionMessage)
-
                     $exception = New-Object ($actualType.FullName) $actualMess
                     $errorRecord = New-Object System.Management.Automation.ErrorRecord (
                         $exception,

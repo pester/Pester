@@ -77,9 +77,9 @@ function Mock {
     verifiable mock is not called, Should -InvokeVerifiable will throw an
     exception and indicate all mocks not called.
 
-    If you wish to mock commands that are called from inside a script module,
-    you can do so by using the -ModuleName parameter to the Mock command. This
-    injects the mock into the specified module. If you do not specify a
+    If you wish to mock commands that are called from inside a script or manifest
+    module, you can do so by using the -ModuleName parameter to the Mock command.
+    This injects the mock into the specified module. If you do not specify a
     module name, the mock will be created in the same scope as the test script.
     You may mock the same command multiple times, in different scopes, as needed.
     Each module's mock maintains a separate call history and verified status.
@@ -630,7 +630,7 @@ function Assert-VerifiableMock {
     Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
     & $sb
 }
-function Should-InvokeVerifiable ([switch]$Negate) {
+function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -662,7 +662,7 @@ function Should-InvokeVerifiable ([switch]$Negate) {
     This will not throw an exception because the mock was invoked.
     #>
     $behaviors = @(Get-VerifiableBehaviors)
-    Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
+    Should-InvokeVerifiableInternal @PSBoundParameters -Behaviors $behaviors
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `
@@ -979,6 +979,11 @@ function Should-Invoke {
                 }
                 $level++
                 $i = $i.Parent
+            }
+
+            if ($null -eq $i) {
+                # Reached parent of root-block which means we never called break (got a hit) in the while-loop
+                throw "Assertion is not placed directly nor nested inside a $Scope block, but -Scope $Scope is specified."
             }
         }
     }

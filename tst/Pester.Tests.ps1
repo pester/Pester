@@ -341,73 +341,6 @@ InPesterModuleScope {
         #}
     }
 }
-Describe 'Assertion operators' {
-
-    BeforeAll {
-        $operators = &(Get-Module Pester) { $script:AssertionOperators }
-        # enumerate to avoid the collection from being modified
-        $builtInOperators = $operators.Keys | Foreach-Object { $_ }
-    }
-
-    It 'Allows an operator with an identical name and test to be re-registered' {
-        function SameNameAndScript {
-            $true
-        }
-        Add-ShouldOperator -Name SameNameAndScript -Test $function:SameNameAndScript
-
-        { Add-ShouldOperator -Name SameNameAndScript -Test $function:SameNameAndScript } | Should -Not -Throw
-    }
-
-    It 'Allows an operator with an identical name, test, and alias to be re-registered' {
-        function SameNameAndScriptAndAlias {
-            $true
-        }
-        Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias
-
-        { Add-ShouldOperator -Name SameNameAndScriptAndAlias -Test $function:SameNameAndScriptAndAlias -Alias SameAlias } | Should -Not -Throw
-    }
-    It 'Allows an operator to be registered with multiple aliases' {
-        function MultipleAlias {
-            $true
-        }
-        Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple
-
-        { Add-ShouldOperator -Name MultipleAlias -Test $Function:MultipleAlias -Alias mult, multiple } | Should -Not -Throw
-    }
-    It 'Does not allow an operator with a different test to be registered using an existing name' {
-        function DifferentScriptBlockA {
-            $true
-        }
-        function DifferentScriptBlockB {
-            $false
-        }
-        Add-ShouldOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockA
-
-        { Add-ShouldOperator -Name DifferentScriptBlock -Test $function:DifferentScriptBlockB } | Should -Throw
-    }
-
-    It 'Does not allow an operator with a different test to be registered using an existing alias' {
-        function DifferentAliasA {
-            $true
-        }
-        function DifferentAliasB {
-            $true
-        }
-        Add-ShouldOperator -Name DifferentAliasA -Test $function:DifferentAliasA -Alias DifferentAliasTest
-
-        { Add-ShouldOperator -Name DifferentAliasB -Test $function:DifferentAliasB -Alias DifferentAliasTest } | Should -Throw
-    }
-
-    AfterAll {
-        $operators = &(Get-Module Pester) { $script:AssertionOperators }
-        # enumerate to avoid modifying the collection
-        # list all operators that we added in the tests above
-        # otherwise we leak them to other tests
-        # (especially the help tests that will then fail)
-        $keys = $operators.Keys | Where-Object { $_ -notin $builtInOperators }
-        $keys | ForEach-Object { $operators.Remove($_) }
-    }
-}
 
 Describe 'Set-StrictMode for all tests files' {
     It 'Pester tests files start with explicit declaration of StrictMode set to Latest' {
@@ -451,8 +384,6 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "Unit"; Collection = "Low", "Medium", "High" }
             @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
         ) {
-            param($Filter, $Collection)
-
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeFalse
         }
@@ -465,8 +396,6 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "Low", "Medium"; Collection = "Low", "Medium", "High" }
             @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
         ) {
-            param($Filter, $Collection)
-
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
                 Should -BeTrue
         }

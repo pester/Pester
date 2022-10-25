@@ -97,6 +97,11 @@ function Add-ShouldOperator {
         return
     }
 
+    # https://github.com/pester/Pester/issues/1355 and https://github.com/PowerShell/PowerShell/issues/9372
+    if ($script:AssertionOperators.Count -ge 32) {
+        throw 'Max number of assertion operators (32) has already been reached. This limitation is due to maximum allowed parameter sets in PowerShell.'
+    }
+
     $namesToCheck = @(
         $Name
         $Alias
@@ -158,6 +163,13 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
+    # Add synopsis as HelpMessage to show in online help for Should parameters.
+    $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
+    # Ignore functions without synopsis defined (they show syntax)
+    if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
+        $attribute.HelpMessage = $assertHelp.Synopsis
+    }
+
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
@@ -166,9 +178,11 @@ function Add-AssertionDynamicParameterSet {
         $attributeCollection.Add($attribute)
     }
 
+    # Register assertion
     $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
+    # Register -Not in the assertion's parameter set. Create parameter if not already present (first assertion).
     if ($script:AssertionDynamicParams.ContainsKey('Not')) {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
@@ -180,8 +194,10 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
+    $attribute.HelpMessage = 'Reverse the assertion'
     $null = $dynamic.Attributes.Add($attribute)
 
+    # Register required parameters in the assertion's parameter set. Create parameter if not already present.
     $i = 1
     foreach ($parameter in $metadata.Parameters.Values) {
         # common parameters that are already defined
@@ -225,6 +241,7 @@ function Add-AssertionDynamicParameterSet {
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }
@@ -630,6 +647,9 @@ function Invoke-Pester {
         $script:mockTable = @{}
         # todo: move mock cleanup to BeforeAllBlockContainer when there is any
         Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
+
+        # store CWD so we can revert any changes at the end
+        $initialPWD = $pwd.Path
     }
 
     end {
@@ -922,6 +942,25 @@ function Invoke-Pester {
             $pluginConfiguration = @{}
             $pluginData = @{}
             $plugins = @()
+
+            # Verify this before WriteScreenPlugin because of Write-PesterStart and Write-PesterDebugMessage
+            if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
+                throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
+            }
+
+            if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
+                if ($null -ne $env:NO_COLOR) {
+                    # https://no-color.org/)
+                    $PesterPreference.Output.RenderMode = 'Plaintext'
+                }
+                elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+                    $PesterPreference.Output.RenderMode = 'Ansi'
+                }
+                else {
+                    $PesterPreference.Output.RenderMode = 'ConsoleColor'
+                }
+            }
+
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
             }
@@ -1105,7 +1144,7 @@ function Invoke-Pester {
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 if ($PesterPreference.Output.Verbosity.Value -ne "None") {
                     $sw = [Diagnostics.Stopwatch]::StartNew()
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Processing code coverage result."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Processing code coverage result."
                 }
                 $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
                 $measure = if (-not $PesterPreference.CodeCoverage.UseBreakpoints.Value) { @($run.PluginData.Coverage.Tracer.Hits) }
@@ -1163,7 +1202,7 @@ function Invoke-Pester {
 
                 $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
                 if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-                    & $SafeCommands["Write-Host"] -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+                    Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
                 }
                 $reportText = Write-CoverageReport $coverageReport
 
@@ -1210,6 +1249,9 @@ function Invoke-Pester {
                 exit -1
             }
         }
+
+        # go back to original CWD
+        if ($null -ne $initialPWD) { & $SafeCommands['Set-Location'] -Path $initialPWD }
 
         # exit with exit code if we fail and even if we succeed, otherwise we could inherit
         # exit code of some other app end exit with it's exit code instead with ours
@@ -1631,7 +1673,12 @@ function BeforeDiscovery {
         [ScriptBlock]$ScriptBlock
     )
 
-    . $ScriptBlock
+    if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
+        . $ScriptBlock
+    }
+    else {
+        Invoke-Interactively -CommandUsed 'BeforeDiscovery' -ScriptName $PSCmdlet.MyInvocation.ScriptName -SessionState $PSCmdlet.SessionState -BoundParameters $PSCmdlet.MyInvocation.BoundParameters
+    }
 }
 
 # Adding Add-ShouldOperator because it used to be an alias in v4, and so when we now import it will take precedence over

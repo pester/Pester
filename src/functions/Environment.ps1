@@ -34,13 +34,14 @@ function Get-TempDirectory {
 
 function Get-TempRegistry {
     $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
-    if (-not (& $script:SafeCommands['Test-Path'] $pesterTempRegistryRoot)) {
-        try {
+    try {
+        # Test-Path returns true and doesn't throw access denied when path exists but user missing permission unless -PathType Container is used
+        if (-not (& $script:SafeCommands['Test-Path'] $pesterTempRegistryRoot -PathType Container -ErrorAction Stop)) {
             $null = & $SafeCommands['New-Item'] -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
-        catch [Exception] {
-            throw ([Exception]"Was not able to create a Pester Registry key for TestRegistry", ($_.Exception))
-        }
+    }
+    catch [Exception] {
+        throw ([Exception]"Was not able to create a Pester Registry key for TestRegistry at '$pesterTempRegistryRoot'", ($_.Exception))
     }
     return $pesterTempRegistryRoot
 }

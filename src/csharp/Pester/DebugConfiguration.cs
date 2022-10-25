@@ -41,11 +41,11 @@ namespace Pester
         {
             if (configuration != null)
             {
-                ShowFullErrors = configuration.GetValueOrNull<bool>("ShowFullErrors") ?? ShowFullErrors;
-                WriteDebugMessages = configuration.GetValueOrNull<bool>("WriteDebugMessages") ?? WriteDebugMessages;
-                WriteDebugMessagesFrom = configuration.GetArrayOrNull<string>("WriteDebugMessagesFrom") ?? WriteDebugMessagesFrom;
-                ShowNavigationMarkers = configuration.GetValueOrNull<bool>("ShowNavigationMarkers") ?? ShowNavigationMarkers;
-                ReturnRawResultObject = configuration.GetValueOrNull<bool>("ReturnRawResultObject") ?? ReturnRawResultObject;
+                configuration.AssignValueIfNotNull<bool>(nameof(ShowFullErrors), v => ShowFullErrors = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(WriteDebugMessages), v => WriteDebugMessages = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(WriteDebugMessagesFrom), v => WriteDebugMessagesFrom = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ShowNavigationMarkers), v => ShowNavigationMarkers = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ReturnRawResultObject), v => ReturnRawResultObject = v);
             }
         }
 

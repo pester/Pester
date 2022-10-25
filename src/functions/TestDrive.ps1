@@ -1,12 +1,10 @@
 ﻿function Get-TestDrivePlugin {
-
-    # TODO: add OnStart block and put this in it
-
-    if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
-        & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
-        & $SafeCommands['Remove-PSDrive'] TestDrive
-    }
-    New-PluginObject -Name "TestDrive" -EachBlockSetupStart {
+    New-PluginObject -Name "TestDrive" -Start {
+        if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
+            & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
+            & $SafeCommands['Remove-PSDrive'] TestDrive
+        }
+    } -EachBlockSetupStart {
         param($Context)
 
         if ($Context.Block.IsRoot) {
