@@ -49,7 +49,7 @@ stages:
         workspace:
           clean: all
         pool:
-          vmImage: windows-2019
+          vmImage: windows-2022
         timeoutInMinutes: 3
         steps:
           - checkout: self
