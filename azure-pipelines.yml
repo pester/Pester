@@ -37,7 +37,11 @@ pr:
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 0
+  DOTNET_NOLOGO: 1
   CI: 1
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
 
 stages:
   - stage: Build
@@ -51,7 +55,16 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -Clean -Inline
+          - task: Cache@2
+            displayName: Cache
+            inputs:
+              # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/caching-nuget?view=azure-devops
+              key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
+              path: '$(NUGET_PACKAGES)'
+              cacheHitVar: 'CACHE_RESTORED'
+          - powershell: |
+              "Running .NET SDK v$(dotnet --version)"
+              ./build.ps1 -LockedRestore -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 

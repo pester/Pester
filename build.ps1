@@ -35,6 +35,9 @@
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
 
+    .PARAMETER LockedRestore
+        Restore nuget packages using the nuget lock file. Useful only for CI.
+
     .PARAMETER Inline
         Inline all files into Pester.psm1, instead of dot-sourcing. This is how the real build is done,
         but inlinig the files is annoying for local development.
@@ -48,6 +51,7 @@
 param (
     [switch] $Load,
     [switch] $Clean,
+    [switch] $LockedRestore,
     [switch] $Inline,
     [switch] $Import
 )
@@ -68,7 +72,13 @@ if ($Clean) {
     # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
     # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
     $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/src"
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    if (-not $LockedRestore) {
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
+    }
+    else { 
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln" --locked-mode
+    }
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
         throw "build failed!"
     }
