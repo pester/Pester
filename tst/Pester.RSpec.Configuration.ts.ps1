@@ -253,12 +253,12 @@ i -PassThru:$PassThru {
         }
 
         t "DecimalOption can be assigned an int from hashtable" {
-            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = 90 } }
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = [int] 90 } }
             $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 90
         }
 
         t "DecimalOption can be assigned an double from hashtable" {
-            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = 12.34 } }
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = [double] 12.34 } }
             $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 12.34
         }
 
