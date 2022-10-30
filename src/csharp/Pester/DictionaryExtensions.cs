@@ -32,12 +32,10 @@ namespace Pester
             var value = dictionary[key];
 
             if (typeof(T) == typeof(decimal))
-                if (value is int o)
-                    return (T)Convert.ChangeType(o, typeof(decimal));
-
-            if (typeof(T) == typeof(decimal))
-                if (value is double o)
-                    return (T)Convert.ChangeType(o, typeof(decimal));
+            {
+                if (value is int or double)
+                    return (T)Convert.ChangeType(value, typeof(decimal));
+            }
 
             return value as T?;
         }
