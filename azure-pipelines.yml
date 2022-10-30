@@ -81,11 +81,11 @@ stages:
             PS7_Ubuntu_20_04:
               vmImage: ubuntu-20.04
               pwsh: true
-            PS7_macOS_10_15:
-              vmImage: macOS-10.15
-              pwsh: true
             PS7_macOS_11:
               vmImage: macOS-11
+              pwsh: true
+            PS7_macOS_12:
+              vmImage: macOS-12
               pwsh: true
             PS7_Windows_Server2019:
               vmImage: windows-2019
