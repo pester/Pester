@@ -14,7 +14,7 @@ if (@($cert).Length -gt 1) {
 
 "Signing Files"
 $files = Get-ChildItem -Recurse -ErrorAction SilentlyContinue $Path |
-    Where-Object { $_.Extension -in ".ps1", ".psm1", ".psd1", ".dll" } |
+    Where-Object { $_.Extension -in ".ps1", ".psm1", ".psd1", ".ps1xml", ".dll" } |
     Select-Object -ExpandProperty FullName
 
 $incorrectSignatures = Get-AuthenticodeSignature -FilePath $files | Where-Object { "Valid", "NotSigned" -notcontains $_.Status }

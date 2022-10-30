@@ -32,7 +32,6 @@
 
     .LINK
     https://pester.dev/docs/commands/Should
-
     #>
     [CmdletBinding()]
     param ()
@@ -48,6 +47,7 @@
         $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
         $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
         $ParameterAttribute.Position = 0
+        $ParameterAttribute.HelpMessage = 'Name or alias of operator'
 
         $AttributeCollection.Add($ParameterAttribute)
 

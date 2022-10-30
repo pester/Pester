@@ -326,9 +326,9 @@ function Write-PesterDebugMessage {
         $Message = (&$LazyMessage) -join "`n"
     }
 
-    & $script:SafeCommands['Write-Host'] -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
+    Write-PesterHostMessage -ForegroundColor Black -BackgroundColor $color  "${Scope}: $Message "
     if ($null -ne $ErrorRecord) {
-        & $script:SafeCommands['Write-Host'] -ForegroundColor Black -BackgroundColor $color "$ErrorRecord"
+        Write-PesterHostMessage -ForegroundColor Black -BackgroundColor $color "$ErrorRecord"
     }
 }
 

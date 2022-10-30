@@ -40,7 +40,7 @@ namespace Pester
         {
             if (configuration != null)
             {
-                ErrorAction = configuration.GetObjectOrNull<string>("ErrorAction") ?? ErrorAction;
+                configuration.AssignObjectIfNotNull<string>(nameof(ErrorAction), v => ErrorAction = v);
             }
         }
 

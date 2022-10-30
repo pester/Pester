@@ -408,6 +408,9 @@ function New-PesterConfiguration {
       CIFormat: The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.
       Default value: 'Auto'
 
+      RenderMode: The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.
+      Default value: 'Auto'
+
     TestDrive:
       Enabled: Enable TestDrive.
       Default value: $true
@@ -463,8 +466,6 @@ function New-PesterConfiguration {
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
-
-
     #>
     [CmdletBinding()]
     param(

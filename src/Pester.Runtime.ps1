@@ -1297,7 +1297,7 @@ function Assert-Success {
 
     if ($anyFailed) {
         $Message = $Message + ":`n$err"
-        & $SafeCommands["Write-Host"] -ForegroundColor Red $Message
+        Write-PesterHostMessage -ForegroundColor Red $Message
         throw $Message
     }
 }
@@ -2502,9 +2502,9 @@ function Import-Dependency {
         # that script block, and then we dot source it again to import it
         # into the caller scope, effectively defining the functions there
         $sb = {
-            param ($p)
+            param ($p, $private:Remove_Variable)
 
-            . $($p; & $SafeCommands['Remove-Variable'] -Scope Local -Name p)
+            . $($p; & $private:Remove_Variable -Scope Local -Name p)
         }
 
         $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -2515,7 +2515,7 @@ function Import-Dependency {
         $sb.GetType().GetProperty('SessionStateInternal', $flags).SetValue($sb, $SessionStateInternal, $null)
 
         # dot source the caller bound scriptblock which imports it into user scope
-        . $sb $Dependency
+        . $sb $Dependency $SafeCommands['Remove-Variable']
     }
 }
 

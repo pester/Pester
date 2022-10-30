@@ -1,11 +1,11 @@
-﻿param ([switch] $PassThru)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-& "$PSScriptRoot\..\build.ps1"
+if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
@@ -45,7 +45,7 @@ i -PassThru:$PassThru {
                 $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -67,7 +67,7 @@ i -PassThru:$PassThru {
                 $c = 'Context "c" { It "i" { 1 | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -75,6 +75,30 @@ i -PassThru:$PassThru {
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Context c"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked testfile with root-level BeforeDiscovery" {
+            # Making sure variables in root-level BeforeDiscovery aren't set in session scope = available in Run-phase
+            # https://github.com/pester/Pester/issues/2092
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d"
             }
             finally {
                 Remove-Item -Path $testpath
@@ -91,7 +115,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Describe "d - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -113,7 +137,7 @@ i -PassThru:$PassThru {
                 $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) Context "c - <File>" { It "i" { $MyValue | Should -Be 1 } }'
                 Set-Content -Path $testpath -Value $c
 
-                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath -File 'demo.ps1'")
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
 
                 $output = Invoke-InNewProcess -ScriptBlock $sb
 
@@ -121,6 +145,142 @@ i -PassThru:$PassThru {
                 $passedTests | Verify-NotNull
                 @($passedTests).Count | Verify-Equal 1
                 $passedTests.Context.PreContext | Verify-Equal "Context c - demo.ps1"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works with directly invoked parameterized testfile with root-level BeforeDiscovery" {
+            # Also making sure variables in root-level BeforeDiscovery aren't set in session scope = available in Run-phase
+            # https://github.com/pester/Pester/issues/2092
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'param([Parameter(Mandatory)]$File, $MyValue = 1) BeforeDiscovery { $myDiscoveryVar = 123 }; Describe "d - <File>" { It "i" { $myDiscoveryVar | Should -BeNullOrEmpty; $MyValue | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath -File 'demo.ps1'")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d - demo.ps1"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Invokes Pester only once for testfile with multiple root-level blocks" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'Describe "d1" { It "i" { 1 | Should -Be 1 } }; Describe "d2" { It "i2" { 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                # file is executed once so two describe blocks should be reported, not four.
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 2
+                $passedTests[0].Context.PreContext | Verify-Equal "Describing d1"
+                $passedTests[1].Context.PreContext | Verify-Equal "Describing d2"
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Works when invoking multiple files from a parent script" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+            $testpath2 = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+            $scriptPath = Join-Path $temp "$([Guid]::NewGuid().Guid).ps1"
+
+            try {
+                # setup testfiles
+                $c = 'Describe "d1" { It "i" { 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath -Value $c
+                $c = 'Describe "d2" { It "i" { 1 | Should -Be 1 } }'
+                Set-Content -Path $testpath2 -Value $c
+                # setup parent script
+                $c = "'before'; . '$testpath'; . '$testpath2'; 'after'"
+                Set-Content -Path $scriptPath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $scriptPath")
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                # assert that both files were executed once
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 2
+                $passedTests[0].Context.PreContext | Verify-Equal "Describing d1"
+                $passedTests[1].Context.PreContext | Verify-Equal "Describing d2"
+
+                # assert that end of parent script was executed because parent script should not be exited
+                $output[-1] | Verify-Equal 'after'
+            }
+            finally {
+                Remove-Item -Path $testpath
+                Remove-Item -Path $testpath2
+                Remove-Item -Path $scriptPath
+            }
+        }
+
+        t "Does not invoke remaining code in file after interactive execution" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'Describe "d" { It "i" { 1 | Should -Be 1 } }; "DONOTSHOWME"'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed';RenderMode='ConsoleColor'}}; & $testpath")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                # assert it run successfully
+                $passedTests = $output | Select-String -SimpleMatch -Pattern '[+]' -Context 1, 0
+                $passedTests | Verify-NotNull
+                @($passedTests).Count | Verify-Equal 1
+                $passedTests.Context.PreContext | Verify-Equal "Describing d"
+
+                # assert that last line is from Pester, not DONOTSHOWME
+                $output[-1] -notmatch 'DONOTSHOWME' | Verify-True
+                $output[-1] -match 'Tests Passed' | Verify-True
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Keeps original exit code from Invoke-Pester" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"
+
+            try {
+                $c = 'Describe "d" { It "i" { 1 | Should -Be 2 }; It "i2" { 1 | Should -Be 2 } }'
+                Set-Content -Path $testpath -Value $c
+
+                $sb = [scriptblock]::Create("`$global:PesterPreference = [PesterConfiguration]@{Output=@{Verbosity='Detailed'}}; & $testpath; `"ExitCode=`$LASTEXITCODE`"")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                # assert it run as expected
+                $failedTests = $output | Select-String -SimpleMatch -Pattern '[-]'
+                $failedTests | Verify-NotNull
+                @($failedTests).Count | Verify-Equal 2
+
+                # assert that exit code from script was 2 (number of failing tests) which is set by Invoke-Pester
+                $output[-1] | Verify-Equal 'ExitCode=2'
             }
             finally {
                 Remove-Item -Path $testpath
@@ -222,6 +382,28 @@ i -PassThru:$PassThru {
             }
             finally {
                 Remove-Item -Path $testpath
+            }
+        }
+    }
+
+    b 'Running in PSHost without UI' {
+        # Making sure Pester works in a custom host
+        t 'Executes successfully without errors' {
+            $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
+            try {
+                $ps = [PowerShell]::Create()
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
+                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
+                $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
+                $res = $ps.Invoke()
+
+                "$($ps.Streams.Error)" | Verify-Equal ''
+                $ps.HadErrors | Verify-False
+                $res.PassedCount | Verify-Equal 1
+                # Information-stream introduced in PSv5 for Write-Host output
+                if ($PSVersionTable.PSVersion.Major -ge 5) { $ps.Streams.Information -match 'Describe' | Verify-NotNull }
+            } finally {
+                $ps.Dispose()
             }
         }
     }

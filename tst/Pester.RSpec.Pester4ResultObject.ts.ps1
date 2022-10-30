@@ -1,4 +1,4 @@
-﻿param ([switch] $PassThru)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 # excluding this, as it produces errors because errors are processed differently between v4 and v5, but it is still useful to have around to confirm the overall shape of the result object is correct
 return (i -PassThru:$PassThru { })
 
@@ -7,7 +7,7 @@ Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Modu
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-& "$PSScriptRoot\..\build.ps1"
+if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 

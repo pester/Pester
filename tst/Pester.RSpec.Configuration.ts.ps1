@@ -1,11 +1,11 @@
-﻿param ([switch] $PassThru)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
 
-& "$PSScriptRoot\..\build.ps1"
+if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
 
 $global:PesterPreference = @{
@@ -96,6 +96,10 @@ i -PassThru:$PassThru {
 
         t "Output.CIFormat is Auto" {
             [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
+        }
+
+        t "Output.RenderMode is Auto" {
+            [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
         }
 
         # CodeCoverage configuration
@@ -244,6 +248,45 @@ i -PassThru:$PassThru {
             Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
         }
 
+        t 'StringArrayOption can be assigned an arraylist' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned an arraylist from hashtable' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]@{ Run = @{ Path = $expectedPaths } }
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo from hashtable' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
         t "StringArrayOption can be assigned PSCustomObjects in object array" {
             $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)), (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)) | Resolve-Path
             $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
@@ -272,11 +315,32 @@ i -PassThru:$PassThru {
             { $config.Run.Path.Value = 'invalid' } | Verify-Throw
         }
 
-        t "IsOriginalValue returns false after change even if same as default" {
+        t "IsModified returns true after change even if same as default" {
             $config = [PesterConfiguration]::Default
-            $config.Run.Path.IsOriginalValue() | Verify-True
+            $config.Run.Path.IsModified | Verify-False
             $config.Run.Path = $config.Run.Path.Default
-            $config.Run.Path.IsOriginalValue() | Verify-False
+            $config.Run.Path.IsModified | Verify-True
+        }
+
+        t "Assigning null to array option using hashtable does not throw" {
+            # https://github.com/pester/Pester/issues/2026
+            $config = [PesterConfiguration]@{ Run = @{ Path = $null } }
+            $config.Run.Path | Verify-NotNull
+        }
+
+        t "Assigning null to string option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ TestExtension = $null } }
+            $config.Run.TestExtension | Verify-NotNull
+        }
+
+        t "Assigning null to value option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ Exit = $null } }
+            $config.Run.Exit.Value | Verify-NotNull
+        }
+
+        t "Assigning null to config-section in hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = $null }
+            $config.Run | Verify-NotNull
         }
     }
 
@@ -351,6 +415,16 @@ i -PassThru:$PassThru {
             # has value different from default but was not written in override so the
             # override does not touch it
             $result.Filter.Tag.Value | Verify-Equal "abc"
+        }
+
+        t 'IsModified returns False after merging two original values' {
+            $one = [PesterConfiguration]::Default
+            $two = [PesterConfiguration]::Default
+            $result = [PesterConfiguration]::Merge($one, $two)
+
+            # has the same value as default but was written so it will override
+            $result.Output.Verbosity.Value | Verify-Equal $one.Output.Verbosity.Value
+            $result.Output.Verbosity.IsModified | Verify-False
         }
     }
 
@@ -584,6 +658,23 @@ i -PassThru:$PassThru {
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
         }
 
+        t 'IsModified is only True on modified properties after merging Hashtable' {
+            $MyOptions = @{
+                Run    = @{
+                    PassThru = $true
+                }
+                Filter = @{
+                    Tag = 'Core'
+                }
+            }
+            $config = New-PesterConfiguration -Hashtable $MyOptions
+
+            $config.Run.PassThru.Value | Verify-Equal $true
+            $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+        }
+
         t "Merges configuration when a hashtable has been serialized" {
             $BeforeSerialization = @{
                 Run    = @{
@@ -600,6 +691,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object has been serialized" {
@@ -619,6 +713,9 @@ i -PassThru:$PassThru {
 
             $config.Run.PassThru.Value | Verify-Equal $true
             $config.Filter.Tag.Value -contains 'Core' | Verify-True
+            $config.Run.PassThru.IsModified | Verify-True
+            $config.Run.SkipRun.IsModified | Verify-False
+            $config.Output.Verbosity.IsModified | Verify-False
         }
 
         t "Merges configuration when a PesterConfiguration object includes an array of values" {
@@ -1018,6 +1115,139 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+        }
+    }
+
+    b 'Output.RenderMode' {
+        t 'Output.RenderMode is Plaintext when set to Auto (default) and env:NO_COLOR is set' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            $previousValue = $env:NO_COLOR
+            $env:NO_COLOR = $true
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Plaintext'
+            }
+            finally {
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue } else { Remove-Item Env:\NO_COLOR }
+            }
+        }
+
+        t 'Output.RenderMode is Plaintext when set to Plaintext and env:NO_COLOR is not set' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    RenderMode = 'Plaintext'
+                }
+            }
+
+            $previousValue = $env:NO_COLOR
+            Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Plaintext'
+            }
+            finally {
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+            }
+        }
+
+        if ($($VT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $VT.Value) {
+            t 'Output.RenderMode is Ansi when set to Auto and virtual terminal is supported and env:NO_COLOR is not set' {
+                $c = [PesterConfiguration] @{
+                    Run    = @{
+                        ScriptBlock = { }
+                        PassThru    = $true
+                    }
+                    Output = @{
+                        RenderMode = 'Auto'
+                    }
+                }
+
+                $previousValue = $env:NO_COLOR
+                Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+                try {
+                    $r = Invoke-Pester -Configuration $c
+                    $r.Configuration.Output.RenderMode.Value | Verify-Equal 'Ansi'
+                }
+                finally {
+                    if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+                }
+            }
+        }
+
+        t 'Output.RenderMode is ConsoleColor when set to Auto and virtual terminal is not supported and env:NO_COLOR is not set' {
+            $previousValue = $env:NO_COLOR
+            Remove-Item Env:\NO_COLOR -ErrorAction SilentlyContinue
+
+            $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
+            try {
+                $ps = [PowerShell]::Create()
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
+                $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
+                $ps.AddStatement().AddScript('$c = [PesterConfiguration]@{Run = @{ScriptBlock={ describe "d1" { it "i1" { } } };PassThru=$true};Output=@{RenderMode="Auto"}}') > $null
+                $ps.AddStatement().AddScript('Invoke-Pester -Configuration $c') > $null
+                $r = $ps.Invoke()
+
+                "$($ps.Streams.Error)" | Verify-Equal ''
+                $ps.HadErrors | Verify-False
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal 'ConsoleColor'
+            }
+            finally {
+                $ps.Dispose()
+                if ($null -ne $previousValue) { $env:NO_COLOR = $previousValue }
+            }
+        }
+
+        t 'Each non-Auto option can be set and updated' {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in 'Ansi', 'ConsoleColor', 'Plaintext') {
+                $c.Output.RenderMode = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.RenderMode.Value | Verify-Equal $option
+            }
+        }
+
+        t 'Exception is thrown when incorrect option is set' {
+            $sb = {
+                Describe 'a' {
+                    It 'b' {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    Throw       = $true
+                }
+                Output = @{
+                    CIFormat   = 'None'
+                    RenderMode = 'Something'
+                }
+            }
+
+            try {
+                Invoke-Pester -Configuration $c
+            } catch {
+                $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
+            }
         }
     }
 

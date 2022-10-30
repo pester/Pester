@@ -29,14 +29,20 @@ namespace Pester
             foreach (var p in properties.Where(p => p.CanRead && p.CanWrite))
             {
                 object value;
+                var configurationValue = p.GetValue(configuration);
                 var overrideValue = p.GetValue(@override);
-                if (!((Option)overrideValue).IsOriginalValue())
+
+                if (((Option)overrideValue).IsModified)
                 {
                     value = overrideValue;
                 }
                 else
                 {
-                    value = p.GetValue(configuration);
+                    if(!((Option)configurationValue).IsModified)
+                    {
+                        continue;
+                    }
+                    value = configurationValue;
                 }
 
                 p.SetValue(cfg, value);

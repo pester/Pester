@@ -1,4 +1,4 @@
-﻿param ([switch] $PassThru)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 
 Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
@@ -11,7 +11,7 @@ if ($PSVersionTable.PSVersion.Major -gt 5 -and -not $IsWindows) {
     return (i -PassThru:$PassThru { })
 }
 
-& "$PSScriptRoot\..\..\build.ps1"
+if (-not $NoBuild) { & "$PSScriptRoot\..\..\build.ps1" }
 Import-Module $PSScriptRoot\..\..\bin\Pester.psd1
 
 $global:PesterPreference = @{

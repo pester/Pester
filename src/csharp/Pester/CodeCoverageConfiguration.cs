@@ -57,17 +57,16 @@ namespace Pester
         {
             if (configuration != null)
             {
-                Enabled = configuration.GetValueOrNull<bool>("Enabled") ?? Enabled;
-                OutputFormat = configuration.GetObjectOrNull<string>("OutputFormat") ?? OutputFormat;
-                OutputPath = configuration.GetObjectOrNull<string>("OutputPath") ?? OutputPath;
-                OutputEncoding = configuration.GetObjectOrNull<string>("OutputEncoding") ?? OutputEncoding;
-                Path = configuration.GetArrayOrNull<string>("Path") ?? Path;
-                ExcludeTests = configuration.GetValueOrNull<bool>("ExcludeTests") ?? ExcludeTests;
-                RecursePaths = configuration.GetValueOrNull<bool>("RecursePaths") ?? RecursePaths;
-                CoveragePercentTarget = configuration.GetValueOrNull<decimal>("CoveragePercentTarget") ?? CoveragePercentTarget;
-
-                SingleHitBreakpoints = configuration.GetValueOrNull<bool>("SingleHitBreakpoints") ?? SingleHitBreakpoints;
-                UseBreakpoints = configuration.GetValueOrNull<bool>("UseBreakpoints") ?? UseBreakpoints;
+                configuration.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputFormat), v => OutputFormat = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputPath), v => OutputPath = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(OutputEncoding), v => OutputEncoding = v);
+                configuration.AssignArrayIfNotNull<string>(nameof(Path), v => Path = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ExcludeTests), v => ExcludeTests = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(RecursePaths), v => RecursePaths = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(UseBreakpoints), v => UseBreakpoints = v);
+                configuration.AssignValueIfNotNull<decimal>(nameof(CoveragePercentTarget), v => CoveragePercentTarget = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(SingleHitBreakpoints), v => SingleHitBreakpoints = v);
             }
         }
 

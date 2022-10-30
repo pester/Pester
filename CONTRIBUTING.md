@@ -53,9 +53,9 @@ Get-Help ./build.ps1 -Detailed
 
 Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
 
-### Install .NET Core 3.1 SDK
+### Install .NET Core 6.0 SDK
 
-[Download Link](https://dotnet.microsoft.com/download/dotnet-core/3.1)
+[Download Link](https://dotnet.microsoft.com/download/dotnet-core/6.0)
 
 ### .Net Framework 4.5 Developer Pack
 

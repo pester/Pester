@@ -92,6 +92,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
+        $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
 
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
             $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
@@ -302,7 +303,8 @@ function Should-InvokeVerifiableInternal {
     param(
         [Parameter(Mandatory)]
         $Behaviors,
-        [switch]$Negate
+        [switch] $Negate,
+        [string] $Because
     )
 
     $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
@@ -313,8 +315,8 @@ function Should-InvokeVerifiableInternal {
     }
 
     if ($filteredBehaviors.Count -gt 0) {
-        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
-        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
+        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called,$(Format-Because $Because) but these were:" }
+        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called,$(Format-Because $Because) but these were not:" }
 
         foreach ($b in $filteredBehaviors) {
             $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
@@ -342,18 +344,19 @@ function Should-InvokeInternal {
         [Parameter(Mandatory = $true)]
         [hashtable] $ContextInfo,
 
-        [int]$Times = 1,
+        [int] $Times = 1,
 
         [Parameter(ParameterSetName = 'ParameterFilter')]
-        [ScriptBlock]$ParameterFilter = { $True },
+        [ScriptBlock] $ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
         [string] $ModuleName,
 
-        [switch]$Exactly,
-        [switch]$Negate,
+        [switch] $Exactly,
+        [switch] $Negate,
+        [string] $Because,
 
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
@@ -452,13 +455,13 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey("Times"))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was"
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
     }
@@ -466,19 +469,19 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
             return [PSCustomObject] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made"
             }
         }
     }
@@ -612,7 +615,7 @@ function Resolve-Command {
             $SessionState = $callerSessionState
         }
         else {
-            $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+            $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction Stop
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
             }
@@ -1603,7 +1606,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
     Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
     & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
 
-    # clean up also in all loaded script modules
+    # clean up also in all loaded script and manifest modules
     $modules = & $script:SafeCommands['Get-Module']
     foreach ($module in $modules) {
         # we cleaned up in module on the start of this method without overhead of moving to module scope
@@ -1614,7 +1617,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
         # some script modules aparently can have no session state
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
-        if ('Script' -eq $module.ModuleType -and $null -ne $module.SessionState) {
+        if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
             & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
         }
     }
@@ -1804,4 +1807,56 @@ function New-BlockWithoutParameterAliases {
     catch {
         $PSCmdlet.ThrowTerminatingError($_)
     }
+}
+
+function Repair-EnumParameters {
+    param (
+        [string]
+        $ParamBlock,
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    # proxycommand breaks ValidateRange for enum-parameters
+    # broken arguments (unquoted strings) will show as NamedArguments in ast, while valid arguments are PositionalArguments.
+    # https://github.com/pester/Pester/issues/1496
+    # https://github.com/PowerShell/PowerShell/issues/17546
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
+    $brokenValidateRange = $ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.AttributeAst] -and
+        $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
+        $node.NamedArguments.Count -gt 0 -and
+        # triple checking for broken argument - it won't have a value/expression
+        $node.NamedArguments.ExpressionOmitted -notcontains $false
+    }, $false)
+
+    if ($brokenValidateRange.Count -eq 0) {
+        # No errors found. Return original string
+        return $ParamBlock
+    }
+
+    $sb = & $SafeCommands['New-Object'] System.Text.StringBuilder($ParamBlock)
+
+    foreach ($attr in $brokenValidateRange) {
+        $paramName = $attr.Parent.Name.VariablePath.UserPath
+        $originalAttribute = $Metadata.Parameters[$paramName].Attributes | & $SafeCommands['Where-Object'] { $_ -is [ValidateRange] }
+        $enumType = @($originalAttribute)[0].MinRange.GetType()
+        if (-not $enumType.IsEnum) { continue }
+
+        # prefix arguments with [My.Enum.Type]::
+        $enumPrefix = "[$($enumType.FullName)]::"
+        $fixedValidation = $attr.Extent.Text -replace '(\w+)(?=,\s|\)\])', "$enumPrefix`$1"
+
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock -Message "Fixed ValidateRange-attribute parameter '$paramName' from '$($attr.Extent.Text)' to '$fixedValidation'"
+        }
+
+        # make sure we modify the correct parameter by modifying the whole thing
+        $orgParameter = $attr.Parent.Extent.Text
+        $fixedParameter = $orgParameter.Replace($attr.Extent.Text, $fixedValidation)
+        $null = $sb.Replace($orgParameter, $fixedParameter)
+    }
+
+    $sb.ToString()
 }

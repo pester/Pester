@@ -64,6 +64,111 @@ $script:ReportTheme = DATA {
     }
 }
 
+function Write-PesterHostMessage {
+    param(
+        [Parameter(Position = 0, ValueFromPipeline = $true)]
+        [Alias('Message', 'Msg')]
+        $Object,
+
+        [ConsoleColor]
+        $ForegroundColor,
+
+        [ConsoleColor]
+        $BackgroundColor,
+
+        [switch]
+        $NoNewLine,
+
+        $Separator = ' ',
+
+        [ValidateSet('Ansi', 'ConsoleColor', 'Plaintext')]
+        [string]
+        $RenderMode = $PesterPreference.Output.RenderMode.Value
+    )
+
+    begin {
+        # Custom PSHosts without UI will fail with Write-Host. Works in PS5+ due to use of InformationRecords
+        $HostSupportsOutput = $null -ne $host.UI.RawUI.ForegroundColor -or $PSVersionTable.PSVersion.Major -ge 5
+        if (-not $HostSupportsOutput) { return }
+
+        # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
+        $esc = [char]27
+        $ANSIcodes = @{
+            ResetAll        = "$esc[0m"
+
+            ForegroundColor = @{
+                [ConsoleColor]::Black       = "$esc[30m"
+                [ConsoleColor]::DarkBlue    = "$esc[34m"
+                [ConsoleColor]::DarkGreen   = "$esc[32m"
+                [ConsoleColor]::DarkCyan    = "$esc[36m"
+                [ConsoleColor]::DarkRed     = "$esc[31m"
+                [ConsoleColor]::DarkMagenta = "$esc[35m"
+                [ConsoleColor]::DarkYellow  = "$esc[33m"
+                [ConsoleColor]::Gray        = "$esc[37m"
+
+                [ConsoleColor]::DarkGray    = "$esc[90m"
+                [ConsoleColor]::Blue        = "$esc[94m"
+                [ConsoleColor]::Green       = "$esc[92m"
+                [ConsoleColor]::Cyan        = "$esc[96m"
+                [ConsoleColor]::Red         = "$esc[91m"
+                [ConsoleColor]::Magenta     = "$esc[95m"
+                [ConsoleColor]::Yellow      = "$esc[93m"
+                [ConsoleColor]::White       = "$esc[97m"
+            }
+
+            BackgroundColor = @{
+                [ConsoleColor]::Black       = "$esc[40m"
+                [ConsoleColor]::DarkBlue    = "$esc[44m"
+                [ConsoleColor]::DarkGreen   = "$esc[42m"
+                [ConsoleColor]::DarkCyan    = "$esc[46m"
+                [ConsoleColor]::DarkRed     = "$esc[41m"
+                [ConsoleColor]::DarkMagenta = "$esc[45m"
+                [ConsoleColor]::DarkYellow  = "$esc[43m"
+                [ConsoleColor]::Gray        = "$esc[47m"
+
+                [ConsoleColor]::DarkGray    = "$esc[100m"
+                [ConsoleColor]::Blue        = "$esc[104m"
+                [ConsoleColor]::Green       = "$esc[102m"
+                [ConsoleColor]::Cyan        = "$esc[106m"
+                [ConsoleColor]::Red         = "$esc[101m"
+                [ConsoleColor]::Magenta     = "$esc[105m"
+                [ConsoleColor]::Yellow      = "$esc[103m"
+                [ConsoleColor]::White       = "$esc[107m"
+            }
+        }
+    }
+
+    process {
+        if (-not $HostSupportsOutput) { return }
+
+        if ($RenderMode -eq 'Ansi') {
+            $message = @(foreach ($o in $Object) { $o.ToString() }) -join $Separator
+            $fg = if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $ANSIcodes.ForegroundColor[$ForegroundColor] } else { '' }
+            $bg = if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $ANSIcodes.BackgroundColor[$BackgroundColor] } else { '' }
+
+            # CI auto-resets ANSI on linebreak for some reason. Need to prepend style at beginning of every line
+            $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
+
+            & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
+        } else {
+            if ($RenderMode -eq 'Plaintext') {
+                if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
+                    $null = $PSBoundParameters.Remove('ForegroundColor')
+                }
+                if ($PSBoundParameters.ContainsKey('BackgroundColor')) {
+                    $null = $PSBoundParameters.Remove('BackgroundColor')
+                }
+            }
+
+            if ($PSBoundParameters.ContainsKey('RenderMode')) {
+                $null = $PSBoundParameters.Remove('RenderMode')
+            }
+
+            & $SafeCommands['Write-Host'] @PSBoundParameters
+        }
+    }
+}
+
 function Format-PesterPath ($Path, [String]$Delimiter) {
     # -is check is not enough for the arrays, the incoming value will likely be object[]
     # so we have to check if we can upcast to our required type
@@ -131,7 +236,7 @@ function Write-PesterStart {
         #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
         # }
 
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Discovery $message
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery $message
     }
 }
 
@@ -203,7 +308,7 @@ function Write-PesterReport {
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
-    & $SafeCommands['Write-Host'] ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
+    Write-PesterHostMessage ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 
     $Success, $Failure = if ($RunResult.FailedCount -gt 0) {
         $ReportTheme.Foreground, $ReportTheme.Fail
@@ -265,15 +370,15 @@ function Write-PesterReport {
     #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
     # }
     # if ($ReportStrings.TestsPassed) {
-    & $SafeCommands['Write-Host'] ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
-    & $SafeCommands['Write-Host'] ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
-    & $SafeCommands['Write-Host'] ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
-    & $SafeCommands['Write-Host'] ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
-    & $SafeCommands['Write-Host'] ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
+    Write-PesterHostMessage ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
-        & $SafeCommands['Write-Host'] ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
 
     if (0 -lt $RunResult.FailedContainersCount) {
@@ -290,8 +395,8 @@ function Write-PesterReport {
 
             "  - $path"
         }
-        & $SafeCommands['Write-Host'] ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
-        & $SafeCommands['Write-Host'] ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
@@ -338,31 +443,31 @@ function Write-CoverageReport {
         $coverageMessage + "`n"
         $color = if ($writeToScreen -and $CoverageReport.CoveragePercent -ge $PesterPreference.CodeCoverage.CoveragePercentTarget.Value) { $ReportTheme.Pass } else { $ReportTheme.Fail }
         if ($writeToScreen) {
-            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $color
+            Write-PesterHostMessage $coverageMessage -Foreground $color
         }
         if ($CoverageReport.MissedCommands.Count -eq 1) {
             $ReportStrings.MissedSingular + "`n"
             if ($writeMissedCommands) {
-                & $SafeCommands['Write-Host'] $ReportStrings.MissedSingular -Foreground $color
+                Write-PesterHostMessage $ReportStrings.MissedSingular -Foreground $color
             }
         }
         else {
             $ReportStrings.MissedPlural + "`n"
             if ($writeMissedCommands) {
-                & $SafeCommands['Write-Host'] $ReportStrings.MissedPlural -Foreground $color
+                Write-PesterHostMessage $ReportStrings.MissedPlural -Foreground $color
             }
         }
         $reportTable = $report | & $SafeCommands['Format-Table'] -AutoSize | & $SafeCommands['Out-String']
         $reportTable + "`n"
         if ($writeMissedCommands) {
-            $reportTable | & $SafeCommands['Write-Host'] -Foreground $ReportTheme.Coverage
+            $reportTable | Write-PesterHostMessage -Foreground $ReportTheme.Coverage
         }
     }
     else {
         $coverageMessage = $ReportStrings.CoverageMessage -f $command, $file, $executedPercent, $totalCommandCount, $fileCount, $PesterPreference.CodeCoverage.CoveragePercentTarget.Value
         $coverageMessage + "`n"
         if ($writeToScreen) {
-            & $SafeCommands['Write-Host'] $coverageMessage -Foreground $ReportTheme.Pass
+            Write-PesterHostMessage $coverageMessage -Foreground $ReportTheme.Pass
         }
     }
 }
@@ -496,7 +601,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
     }
 
     $p.ContainerDiscoveryEnd = {
@@ -525,7 +630,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
             }
             else {
-                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
                 Write-ErrorToScreen @formatErrorParams
             }
         }
@@ -542,14 +647,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
 
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
             if ($null -ne $activeFilters) {
                 foreach ($aFilter in $activeFilters) {
                     # Assuming only StringArrayOption filter-types. Might break in the future.
-                    & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Filter '$($aFilter.Name)' set to ('$($aFilter.Value -join "', '")')."
                 }
 
                 $testsToRun = 0
@@ -557,18 +662,18 @@ function Get-WriteScreenPlugin ($Verbosity) {
                     if ($test.ShouldRun) { $testsToRun++ }
                 }
 
-                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "Filters selected $testsToRun tests to run."
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Filters selected $testsToRun tests to run."
             }
         }
 
         if ($PesterPreference.Run.SkipRun.Value) {
-            & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Discovery "`nTest run was skipped."
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nTest run was skipped."
         }
     }
 
 
     $p.RunStart = {
-        & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "Running tests."
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "Running tests."
     }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
@@ -577,7 +682,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ("file" -eq $Context.Block.BlockContainer.Type) {
                 # write two spaces to separate each file
-                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
             }
         }
     }
@@ -598,7 +703,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
             }
             else {
-                & $SafeCommands["Write-Host"] -ForegroundColor $ReportTheme.Fail $errorHeader
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
                 Write-ErrorToScreen @formatErrorParams
             }
         }
@@ -607,14 +712,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $humanTime = "$(Get-HumanTime ($Context.Result.Duration)) ($(Get-HumanTime $Context.Result.UserDuration)|$(Get-HumanTime $Context.Result.FrameworkDuration))"
 
             if ($Context.Result.Passed) {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Item)" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Item)" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
             if ($Context.Result.Skip) {
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "[!] $($Context.Result.Item)" -NoNewLine
-                & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "[!] $($Context.Result.Item)" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
             }
         }
     }
@@ -680,8 +785,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
         switch ($result) {
             Passed {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "$margin[+] $out" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
                 }
                 break
             }
@@ -691,12 +796,15 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($env:TERM_PROGRAM -eq 'vscode' -and -not $psEditor) {
 
                     # Loop to generate problem for every failed assertion per test (when $PesterPreference.Should.ErrorAction.Value = "Continue")
-                    foreach ($e in $_test.ErrorRecord) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                    # Disabling ANSI sequences to make sure it doesn't interfere with problemMatcher in vscode-powershell extension
+                    $RenderMode = if ($PesterPreference.Output.RenderMode.Value -eq 'Ansi') { 'ConsoleColor' } else { $PesterPreference.Output.RenderMode.Value }
 
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^', $error_margin)
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^', $error_margin)
+                    foreach ($e in $_test.ErrorRecord) {
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailTime " $humanTime"
+
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailDetail $($e.DisplayStackTrace -replace '(?m)^', $error_margin)
+                        Write-PesterHostMessage -RenderMode $RenderMode -ForegroundColor $ReportTheme.FailDetail $($e.DisplayErrorMessage -replace '(?m)^', $error_margin)
                     }
 
                 }
@@ -712,8 +820,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                         Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
                     }
                     else {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.FailTime " $humanTime"
+                        Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
+                        Write-PesterHostMessage -ForegroundColor $ReportTheme.FailTime " $humanTime"
                         Write-ErrorToScreen @formatErrorParams
                     }
                 }
@@ -722,8 +830,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             Skipped {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
                 }
                 break
             }
@@ -731,9 +839,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Pending {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.PendingTime " $humanTime"
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                 }
                 break
             }
@@ -741,9 +849,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Inconclusive {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
-                    & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
                 }
 
                 break
@@ -753,8 +861,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     # TODO:  Add actual Incomplete status as default rather than checking for null time.
                     if ($null -eq $_test.Duration) {
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
-                        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
+                        Write-PesterHostMessage -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
+                        Write-PesterHostMessage -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
                     }
                 }
             }
@@ -815,7 +923,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
         }
         else {
-            & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.BlockFail $errorHeader
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.BlockFail $errorHeader
             Write-ErrorToScreen @formatErrorParams
         }
     }
@@ -904,7 +1012,7 @@ function Write-CIErrorToScreen {
     $errorMessage = Format-CIErrorMessage @PSBoundParameters
 
     foreach ($line in $errorMessage) {
-        & $SafeCommands['Write-Host'] $line
+        Write-PesterHostMessage $line
     }
 }
 
@@ -996,7 +1104,7 @@ function Write-ErrorToScreen {
         throw $errorMessage
     }
     else {
-        & $SafeCommands['Write-Host'] -ForegroundColor $ReportTheme.Fail "$errorMessage"
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$errorMessage"
     }
 }
 
@@ -1036,9 +1144,9 @@ function Write-BlockToScreen {
     if (0 -eq $level -and -not $block.First) {
         # write extra line before top-level describe / context if it is not first
         # in that case there are already two spaces before the name of the file
-        & $SafeCommands['Write-Host']
+        Write-PesterHostMessage
     }
 
     $Block.FrameworkData.WrittenToScreen = $true
-    & $SafeCommands['Write-Host'] "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
+    Write-PesterHostMessage "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
 }

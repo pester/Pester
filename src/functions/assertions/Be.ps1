@@ -1,23 +1,23 @@
-﻿#Be
+#Be
 function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
-.SYNOPSIS
-Compares one object with another for equality
-and throws if the two objects are not the same.
+    .SYNOPSIS
+    Compares one object with another for equality
+    and throws if the two objects are not the same.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -Be "actual value"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -Be "actual value"
 
-This test will pass. -Be is not case sensitive.
-For a case sensitive assertion, see -BeExactly.
+    This test will pass. -Be is not case sensitive.
+    For a case sensitive assertion, see -BeExactly.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -Be "not actual value"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -Be "not actual value"
 
-This test will fail, as the two strings are not identical.
-#>
+    This test will fail, as the two strings are not identical.
+    #>
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue
 
     if ($Negate) {
@@ -72,22 +72,22 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 #BeExactly
 function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
     <#
-.SYNOPSIS
-Compares one object with another for equality and throws if the
-two objects are not the same. This comparison is case sensitive.
+    .SYNOPSIS
+    Compares one object with another for equality and throws if the
+    two objects are not the same. This comparison is case sensitive.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -Be "Actual value"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -Be "Actual value"
 
-This test will pass. The two strings are identical.
+    This test will pass. The two strings are identical.
 
-.EXAMPLE
-$actual = "Actual value"
-$actual | Should -Be "actual value"
+    .EXAMPLE
+    $actual = "Actual value"
+    $actual | Should -Be "actual value"
 
-This test will fail, as the two strings do not match case sensitivity.
-#>
+    This test will fail, as the two strings do not match case sensitivity.
+    #>
     [bool] $succeeded = ArraysAreEqual $ActualValue $ExpectedValue -CaseSensitive
 
     if ($Negate) {

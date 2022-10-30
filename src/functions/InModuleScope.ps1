@@ -1,37 +1,36 @@
 ﻿function InModuleScope {
     <#
-.SYNOPSIS
-   Allows you to execute parts of a test script within the
-   scope of a PowerShell script module.
-.DESCRIPTION
-   By injecting some test code into the scope of a PowerShell
-   script module, you can use non-exported functions, aliases
-   and variables inside that module, to perform unit tests on
-   its internal implementation.
+    .SYNOPSIS
+    Allows you to execute parts of a test script within the
+    scope of a PowerShell script or manifest module.
+    .DESCRIPTION
+    By injecting some test code into the scope of a PowerShell
+    script or manifest module, you can use non-exported functions, aliases
+    and variables inside that module, to perform unit tests on
+    its internal implementation.
 
-   InModuleScope may be used anywhere inside a Pester script,
-   either inside or outside a Describe block.
-.PARAMETER ModuleName
-   The name of the module into which the test code should be
-   injected. This module must already be loaded into the current
-   PowerShell session.
-.PARAMETER ScriptBlock
-   The code to be executed within the script module.
-.PARAMETER Parameters
-   A optional hashtable of parameters to be passed to the scriptblock.
-   Parameters are automatically made available as variables in the scriptblock.
-.PARAMETER ArgumentList
-   A optional list of arguments to be passed to the scriptblock.
-.EXAMPLE
+    InModuleScope may be used anywhere inside a Pester script,
+    either inside or outside a Describe block.
+    .PARAMETER ModuleName
+    The name of the module into which the test code should be
+    injected. This module must already be loaded into the current
+    PowerShell session.
+    .PARAMETER ScriptBlock
+    The code to be executed within the script or manifest module.
+    .PARAMETER Parameters
+    A optional hashtable of parameters to be passed to the scriptblock.
+    Parameters are automatically made available as variables in the scriptblock.
+    .PARAMETER ArgumentList
+    A optional list of arguments to be passed to the scriptblock.
+
+    .EXAMPLE
     ```powershell
     # The script module:
-    function PublicFunction
-    {
+    function PublicFunction {
         # Does something
     }
 
-    function PrivateFunction
-    {
+    function PrivateFunction {
         return $true
     }
 
@@ -55,16 +54,14 @@
     "PublicFunction".  Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
 
-.EXAMPLE
+    .EXAMPLE
     ```powershell
     # The script module:
-    function PublicFunction
-    {
+    function PublicFunction {
         # Does something
     }
 
-    function PrivateFunction ($MyParam)
-    {
+    function PrivateFunction ($MyParam) {
         return $MyParam
     }
 
@@ -101,10 +98,9 @@
     No variables from the outside are available inside the scriptblock without explicitly passing
     them in using `-Parameters` or `-ArgumentList`.
 
-.LINK
+    .LINK
     https://pester.dev/docs/commands/InModuleScope
-#>
-
+    #>
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -122,7 +118,7 @@
         $ArgumentList = @()
     )
 
-    $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+    $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction Stop
     $sessionState = Set-SessionStateHint -PassThru -Hint "Module - $($module.Name)" -SessionState $module.SessionState
 
     $wrapper = {
@@ -169,7 +165,7 @@
     & $wrapper $splat
 }
 
-function Get-ScriptModule {
+function Get-CompatibleModule {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -190,24 +186,24 @@ function Get-ScriptModule {
         throw "No modules named '$ModuleName' are currently loaded."
     }
 
-    $scriptModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -eq 'Script' })
-    if ($scriptModules.Count -gt 1) {
-        throw "Multiple script modules named '$ModuleName' are currently loaded.  Make sure to remove any extra copies of the module from your session before testing."
+    $compatibleModules = @($modules | & $SafeCommands['Where-Object'] { $_.ModuleType -in 'Script', 'Manifest' })
+    if ($compatibleModules.Count -gt 1) {
+        throw "Multiple script or manifest modules named '$ModuleName' are currently loaded. Make sure to remove any extra copies of the module from your session before testing."
     }
 
-    if ($scriptModules.Count -eq 0) {
+    if ($compatibleModules.Count -eq 0) {
         $actualTypes = @(
             $modules |
-                & $SafeCommands['Where-Object'] { $_.ModuleType -ne 'Script' } |
+                & $SafeCommands['Where-Object'] { $_.ModuleType -notin 'Script', 'Manifest' } |
                 & $SafeCommands['Select-Object'] -ExpandProperty ModuleType -Unique
         )
 
         $actualTypes = $actualTypes -join ', '
 
-        throw "Module '$ModuleName' is not a Script module.  Detected modules of the following types: '$actualTypes'"
+        throw "Module '$ModuleName' is not a Script or Manifest module. Detected modules of the following types: '$actualTypes'"
     }
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Runtime "Found module $ModuleName version $($scriptModules[0].Version)."
+        Write-PesterDebugMessage -Scope Runtime "Found module $ModuleName version $($compatibleModules[0].Version)."
     }
-    return $scriptModules[0]
+    return $compatibleModules[0]
 }
