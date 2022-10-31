@@ -198,7 +198,7 @@
             $suggestion = "'Get-Command $($ActualValue.Name) | Where-Object Parameters | Should -HaveParameter ...'"
         } else {
             $type = 'alias'
-            $suggestion = "using the actual command name, ex. 'Get-Command $($ActualValue.Definition) | Should -HaveParameter ...'"
+            $suggestion = "using the actual command name. For example: 'Get-Command $($ActualValue.Definition) | Should -HaveParameter ...'"
         }
 
         throw "Could not retrieve parameters for $type $($ActualValue.Name). This is a known issue with Get-Command in PowerShell. Try $suggestion"
