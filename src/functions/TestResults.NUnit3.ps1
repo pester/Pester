@@ -467,7 +467,7 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
 
 function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
     # add parameters to name for testcase with data when not using variables in name
-    if ($TestResult.Name -eq $TestResult.ExpandedName) {
+    if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
         $paramString = Get-NUnitParamString -Node $TestResult
         $name = "$($TestResult.Name)$paramString"
         $fullname = "$($TestResult.ExpandedPath)$paramString"

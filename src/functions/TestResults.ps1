@@ -800,7 +800,7 @@ function Convert-TimeSpan {
     }
 }
 
-function Get-UTCTimeString ($DateTime) {
+function Get-UTCTimeString ([datetime]$DateTime) {
     $DateTime.ToUniversalTime().ToString('o')
 }
 
