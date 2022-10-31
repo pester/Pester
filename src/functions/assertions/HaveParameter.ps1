@@ -5,7 +5,7 @@
     [String]$DefaultValue,
     [Switch]$Mandatory,
     [Switch]$HasArgumentCompleter,
-    [String]$Alias,
+    [String[]]$Alias,
     [Switch]$Negate,
     [String]$Because ) {
     <#
@@ -264,14 +264,27 @@
         }
 
         if ($Alias) {
-            $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $Alias
-            $filters += "to$(if ($Negate) {" not"}) have an alias '$Alias'"
 
-            if (-not $Negate -and -not $testPresenceOfAlias) {
-                $buts += "it didn't have an alias '$Alias'"
+            $filters += "with$(if ($Negate) {'out'}) alias$(if ($Alias.Count -ge 2) {'es'}) $(Join-And ($Alias -replace '^|$', "'"))"
+            $faultyAliases = @()
+            foreach ($AliasValue in $Alias) {
+                $testPresenceOfAlias = $ActualValue.Parameters[$ParameterName].Aliases -contains $AliasValue
+                if (-not $Negate -and -not $testPresenceOfAlias) {
+                    $faultyAliases += $AliasValue
+                }
+                elseif ($Negate -and $testPresenceOfAlias) {
+                    $faultyAliases += $AliasValue
+                }
             }
-            elseif ($Negate -and $testPresenceOfAlias) {
-                $buts += "it had an alias '$Alias'"
+            if($faultyAliases.Count -ge 1) {
+                $aliases = $(Join-And ($faultyAliases -replace '^|$', "'"))
+                $singular = $faultyAliases.Count -eq 1
+                if($Negate) {
+                    $buts += "it has $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
+                }
+                else {
+                    $buts += "it didn't have $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
+                }
             }
         }
     }
