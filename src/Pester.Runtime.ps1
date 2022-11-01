@@ -320,7 +320,7 @@ function Invoke-Block ($previousBlock) {
                 $block.Executed = $true
 
                 # update ExpandedPath to included expanded parent name in case this fails in setup
-                if (-not $block.IsRoot) { $block.ExpandedPath = "$($block.Parent.ExpandedPath).$($block.Name)" }
+                if (-not $block.Parent.IsRoot) { $block.ExpandedPath = "$($block.Parent.ExpandedPath).$($block.Name)" }
 
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
