@@ -319,6 +319,9 @@ function Invoke-Block ($previousBlock) {
                 $block.ExecutedAt = [DateTime]::Now
                 $block.Executed = $true
 
+                # update ExpandedPath to included expanded parent name in case this fails in setup
+                if (-not $block.Parent.IsRoot) { $block.ExpandedPath = "$($block.Parent.ExpandedPath).$($block.Name)" }
+
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Runtime "Executing body of block '$($block.Name)'"
                 }
@@ -577,6 +580,9 @@ function Invoke-TestItem {
                 Configuration = $state.PluginConfiguration
             }
         }
+
+        # update ExpandedPath to included expanded parent name in case this fails in setup
+        $Test.ExpandedPath = "$($block.ExpandedPath).$($Test.Name)"
 
         if ($Test.Skip) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {

@@ -1769,6 +1769,48 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
         }
 
+        t "ExpandedPath is expanded for parent blocks when block setup fails" {
+            $sb = {
+                Describe 'd <_>' {
+                    Describe 'd2 <_>' {
+                        BeforeAll { throw 'oh no' }
+                        It 'i <_>' { $_ | Should -Be 1 }
+                    }
+                } -ForEach 1
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Failed'
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal 'd2 <_>'
+            # ExpandedPath is updated as far as possible (parent block) before failure in block
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedPath | Verify-Equal 'd 1.d2 <_>'
+        }
+
+        t "ExpandedPath is expanded for parent blocks when test is skipped or fails in BeforeEach" {
+            $sb = {
+                Describe 'd <_>' {
+                    It 'i <_>' -Skip { $_ | Should -Be 2 }
+                } -ForEach 1
+                Describe 'd <_>' {
+                    BeforeEach { throw 'oh no' }
+                    It 'i <_>' { $_ | Should -Be 2 }
+                } -ForEach 2
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            # when test skipped
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd 1'
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Skipped'
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i <_>'
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedPath | Verify-Equal 'd 1.i <_>'
+            # when test setup failed
+            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'd 2'
+            $r.Containers[0].Blocks[1].Tests[0].ExpandedName | Verify-Equal 'i <_>'
+            $r.Containers[0].Blocks[1].Tests[0].ExpandedPath | Verify-Equal 'd 2.i <_>'
+        }
+
         t "<user.name> expands to `$user.name" {
             $sb = {
                 Describe "d <user.name>" {
