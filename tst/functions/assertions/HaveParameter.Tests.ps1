@@ -479,7 +479,7 @@ Describe 'Using Should -HaveParameter with alias for local function or mock' {
         function TestFunction2($Parameter1) { }
         Set-Alias -Name LocalAlias -Value TestFunction2
 
-        { Get-Command LocalAlias | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for alias LocalAlias. This is a known issue with Get-Command in PowerShell. Try using the actual command name, ex. 'Get-Command TestFunction2 | Should -HaveParameter ...'"
+        { Get-Command LocalAlias | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for alias LocalAlias. This is a known issue with Get-Command in PowerShell. Try using the actual command name. For example: 'Get-Command TestFunction2 | Should -HaveParameter ...'"
 
         # Verify it works with suggested workaround
         Get-Command TestFunction2 | Should -HaveParameter 'Parameter1'
