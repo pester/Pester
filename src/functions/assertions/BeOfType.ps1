@@ -28,9 +28,10 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
     #>
     if ($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
-        $parsedType = ($ExpectedType -replace '^\[(.*)\]$', '$1') -as [Type]
+        $trimmedType = $ExpectedType -replace '^\[(.*)\]$', '$1'
+        $parsedType = $trimmedType -as [Type]
         if ($null -eq $parsedType) {
-            throw [ArgumentException]"Could not find type [$ParsedType]. Make sure that the assembly that contains that type is loaded."
+            throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded."
         }
 
         $ExpectedType = $parsedType
