@@ -7,10 +7,11 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             function Invoke-DummyFunction {
                 param(
-                    [Parameter(Mandatory = $true)]
+                    [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
                     $MandatoryParam,
 
+                    [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
                     [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
@@ -62,10 +63,11 @@ InPesterModuleScope {
         else {
             function Invoke-DummyFunction {
                 param(
-                    [Parameter(Mandatory = $true)]
+                    [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
                     $MandatoryParam,
 
+                    [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
                     [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
@@ -305,6 +307,38 @@ InPesterModuleScope {
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
             }
         }
+
+        Context 'Using InParameterSet' {
+            It "passes if parameter <ParameterName> exist in parameter set <ParameterSetName>" -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName
+            }
+
+            It 'passes if parameter <ParameterName> exist in parameter set <ParameterSetName> and is mandatory' -TestCases @(
+                @{ParameterName = 'MandatoryParam'; ParameterSetName = 'PrimarySet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName -Mandatory
+            }
+
+            It 'fails if parameter <ParameterName> does not exist at all or not in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'NonExistingParam'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'NonExistingSet' }
+                @{ParameterName = 'ParamWithScriptValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter $ParameterName in parameter set $ParameterSetName, but the parameter is missing."
+            }
+
+            It 'fails if parameter <ParameterName> exists in parameter set <ParameterSetName> but is not mandatory' -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName -Mandatory } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter $ParameterName in parameter set $ParameterSetName, which is mandatory, but it wasn't mandatory."
+            }
+
+            # -InParameterSet only affects if parameter exist and -Mandatory atm. Only appends a filter in the error for the remaining options
+        }
     }
 
     Describe "Should -Not -HaveParameter" {
@@ -473,6 +507,25 @@ InPesterModuleScope {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and has ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and has ArgumentCompletion."
             }
+        }
+
+        Context 'Using InParameterSet' {
+            It 'passes if parameter <ParameterName> does not exist at all or not in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'NonExistingParam'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithScriptValidation'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'NonExistingSet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -Not -HaveParameter $ParameterName -InParameterSet $ParameterSetName
+            }
+
+            It 'fails if parameter <ParameterName> exist in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -Not -HaveParameter $ParameterName -InParameterSet $ParameterSetName } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName in parameter set $ParameterSetName, but the parameter exists."
+            }
+
+            # -Not -HaveParameter only supports parameter existing atm. Extend when not mandatory etc is possible.
         }
     }
 }
