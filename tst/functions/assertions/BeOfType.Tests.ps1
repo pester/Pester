@@ -17,7 +17,7 @@ InPesterModuleScope {
             $err = { 5 | Should -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
             # Verify expected type is included in error message
-            $err.Exception.Message | Should -Match 'Could not find type \[UnknownType\].'
+            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
         }
 
         It "returns the correct assertion message when actual value has a real type" {
@@ -36,7 +36,7 @@ InPesterModuleScope {
             $err = { 5 | Should -Not -BeOfType 'UnknownType' } | Verify-Throw
             $err.Exception | Verify-Type ([ArgumentException])
             # Verify expected type is included in error message
-            $err.Exception.Message | Should -Match 'Could not find type \[UnknownType\].'
+            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
         }
 
         It "returns the correct assertion message when actual value has a real type" {
