@@ -535,7 +535,7 @@ function ConvertTo-FailureLines {
                 }
                 catch {
                     $PSItem.ScriptStackTrace
-                    $regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
+                    $regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s*:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
                     if ($PSItem.ScriptStackTrace -match $regex) {
                         $LocalizedAt = $Matches["At"]
                         $LocalizedLine = $Matches["Line"]
