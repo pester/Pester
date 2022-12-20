@@ -150,7 +150,8 @@ function Write-PesterHostMessage {
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
 
             & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
-        } else {
+        }
+        else {
             if ($RenderMode -eq 'Plaintext') {
                 if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
                     $null = $PSBoundParameters.Remove('ForegroundColor')
@@ -534,7 +535,6 @@ function ConvertTo-FailureLines {
                     throw 'Generate exception on purpose'
                 }
                 catch {
-                    $PSItem.ScriptStackTrace
                     $regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s*:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
                     if ($PSItem.ScriptStackTrace -match $regex) {
                         $LocalizedAt = $Matches["At"]
@@ -568,7 +568,7 @@ function ConvertTo-FailureLines {
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
-                [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
+                [String]$isPesterFunction = "^{0} .*, .*{1}.*: {2} [0-9]*$" -f $internal_localizedAt, $path, $internal_localizedLine
                 [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
             # end PESTER_BUILD
