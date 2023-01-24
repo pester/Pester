@@ -60,11 +60,19 @@
 
         foreach ($parameter in $paramBlock.Parameters) {
             $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
-                Name = $parameter.Name.VariablePath.UserPath
-                DefaultValue = $parameter.DefaultValue.Value
+                Name             = $parameter.Name.VariablePath.UserPath
                 DefaultValueType = $parameter.StaticType.Name
-                Type = "[$($parameter.StaticType.Name.ToLower())]"
+                Type             = "[$($parameter.StaticType.Name.ToLower())]"
             } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
+
+            if ($null -ne $parameter.DefaultValue) {
+                if ([bool](Get-Member -Name Value -InputObject $parameter.DefaultValue -MemberType Property)) {
+                    $paramInfo.DefaultValue = $parameter.DefaultValue.Value
+                }
+                else {
+                    $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
+                }
+            }
 
             $paramInfo
         }
