@@ -48,7 +48,7 @@
         #>
 
         # Find param block
-        $ast = (Get-Command -Name $Command).ScriptBlock.Ast
+        $ast = (& $SafeCommands['Get-Command'] -Name $Command).ScriptBlock.Ast
 
         $paramBlock = $ast.FindAll(
             {
