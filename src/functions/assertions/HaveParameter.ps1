@@ -31,79 +31,42 @@
     }
 
     function Get-ParameterInfo {
-        param(
-            [Parameter( Mandatory = $true )]
+        param (
+            [Parameter(Mandatory = $true)]
             [Management.Automation.CommandInfo]$Command
         )
         <#
         .SYNOPSIS
-            Use Tokenize to get information about the parameter block of a command
+            Use AST to get information about the parameter block of a command
         .DESCRIPTION
             In order to get information about the parameter block of a command,
             several tools can be used (Get-Command, AST, etc).
             In order to get the default value of a parameter, AST is the easiest
-            way to go; but AST was only introduced with PSv3.
-            This function creates an object with information about parameters
-            using the Tokenize
+            way to go
         .NOTES
-            Author: Chris Dent
+            Author: Brian West
         #>
 
-        function Get-TokenGroup {
-            param(
-                [Parameter( Mandatory = $true )]
-                [System.Management.Automation.PSToken[]]$tokens
-            )
-            $i = $j = 0
-            do {
-                $token = $tokens[$i]
-                if ($token.Type -eq 'GroupStart') {
-                    $j++
-                }
-                if ($token.Type -eq 'GroupEnd') {
-                    $j--
-                }
-                if (-not $token.PSObject.Properties.Item('Depth')) {
-                    $token.PSObject.Properties.Add([Pester.Factory]::CreateNoteProperty("Depth", $j))
-                }
-                $token
-
-                $i++
-            } until ($j -eq 0 -or $i -ge $tokens.Count)
-        }
-
-        $errors = $null
-        $tokens = [System.Management.Automation.PSParser]::Tokenize($Command.Definition, [Ref]$errors)
-
         # Find param block
-        $start = $tokens.IndexOf(($tokens | & $SafeCommands['Where-Object'] { $_.Content -eq 'param' } | & $SafeCommands['Select-Object'] -First 1)) + 1
-        $paramBlock = Get-TokenGroup $tokens[$start..($tokens.Count - 1)]
+        $ast = (Get-Command -Name $Command).ScriptBlock.Ast
 
-        for ($i = 0; $i -lt $paramBlock.Count; $i++) {
-            $token = $paramBlock[$i]
+        $paramBlock = $ast.FindAll(
+            {
+                param($Item)
+                return ($Item -is [System.Management.Automation.Language.ParamBlockAst])
+            },
+            $true
+        )
 
-            if ($token.Depth -eq 1 -and $token.Type -eq 'Variable') {
-                $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
-                    Name = $token.Content
-                } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
+        foreach ($parameter in $paramBlock.Parameters) {
+            $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
+                Name = $parameter.Name.VariablePath.UserPath
+                DefaultValue = $parameter.DefaultValue.Value
+                DefaultValueType = $parameter.StaticType.Name
+                Type = "[$($parameter.StaticType.Name.ToLower())]"
+            } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
 
-                if ($paramBlock[$i + 1].Content -ne ',') {
-                    $value = $paramBlock[$i + 2]
-                    if ($value.Type -eq 'GroupStart') {
-                        $tokenGroup = Get-TokenGroup $paramBlock[($i + 2)..($paramBlock.Count - 1)]
-                        $paramInfo.DefaultValue = [String]::Join('', ($tokenGroup | & $SafeCommands['ForEach-Object'] { $_.Content }))
-                        $paramInfo.DefaultValueType = 'Expression'
-                    }
-                    else {
-                        $paramInfo.DefaultValue = $value.Content
-                        $paramInfo.DefaultValueType = $value.Type
-                    }
-                }
-                if ($paramBlock[$i - 1].Type -eq 'Type') {
-                    $paramInfo.Type = $paramBlock[$i - 1].Content
-                }
-                $paramInfo
-            }
+            $paramInfo
         }
     }
 
@@ -235,7 +198,12 @@
 
         if ($PSBoundParameters.Keys -contains "DefaultValue") {
             $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
-            $actualDefault = if ($parameterMetadata.DefaultValue) { $parameterMetadata.DefaultValue } else { "" }
+            $actualDefault = if ($parameterMetadata.DefaultValue) {
+                $parameterMetadata.DefaultValue
+            }
+            else {
+                ""
+            }
             $testDefault = ($actualDefault -eq $DefaultValue)
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
 
@@ -276,10 +244,10 @@
                     $faultyAliases += $AliasValue
                 }
             }
-            if($faultyAliases.Count -ge 1) {
+            if ($faultyAliases.Count -ge 1) {
                 $aliases = $(Join-And ($faultyAliases -replace '^|$', "'"))
                 $singular = $faultyAliases.Count -eq 1
-                if($Negate) {
+                if ($Negate) {
                     $buts += "it has $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
                 }
                 else {
