@@ -1578,7 +1578,7 @@ function Invoke-ScriptBlock {
         # here we are moving into the user scope if the provided
         # scriptblock was bound to user scope, so we want to take some actions
         # typically switching between user and framework timer. There are still tiny pieces of
-        # framework code running in the scriptblock but we can safely ignore those becasue they are
+        # framework code running in the scriptblock but we can safely ignore those because they are
         # just logging, so the time difference is miniscule.
         # The code might also run just in framework scope, in that case the callback can remain empty,
         # eg when we are invoking framework setup.
@@ -1908,7 +1908,7 @@ function Invoke-Test {
     $state.PluginData = $PluginData
     $state.Configuration = $Configuration
 
-    # # TODO: this it potentially unreliable, because supressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
+    # # TODO: this it potentially unreliable, because suppressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
     # # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
     # $originalErrors = $SessionState.PSVariable.Get("Error").Value
@@ -2049,7 +2049,7 @@ function PostProcess-DiscoveredBlock {
                     $t.ShouldRun = $false
                 }
                 else {
-                    # run the exlude filters before checking if the parent is included
+                    # run the exclude filters before checking if the parent is included
                     # otherwise you would include tests that could match the exclude rule
                     $shouldRun = (Test-ShouldRun -Item $t -Filter $Filter)
                     $t.Explicit = $shouldRun.Explicit
@@ -2203,7 +2203,7 @@ function PostProcess-ExecutedBlock {
             $aggregatedChildDuration = [TimeSpan]::Zero
             if (none $childBlocks) {
                 # one thing to consider here is what happens when a block fails, in the current
-                # excecution model the block can fail when a setup or teardown fails, with failed
+                # execution model the block can fail when a setup or teardown fails, with failed
                 # setup it is easy all the tests in the block are considered failed, with teardown
                 # not so much, when all tests pass and the teardown itself fails what should be the result?
 
@@ -2225,7 +2225,7 @@ function PostProcess-ExecutedBlock {
             }
             else {
                 # when we have children we first let them process themselves and
-                # then we add the results together (the recusion could reach to the parent and add the totals)
+                # then we add the results together (the recursion could reach to the parent and add the totals)
                 # but that is difficult with the duration, so this way is less error prone
                 PostProcess-ExecutedBlock -Block $childBlocks
 

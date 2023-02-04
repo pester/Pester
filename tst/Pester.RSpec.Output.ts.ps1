@@ -34,7 +34,7 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
         . $ScriptBlock
     }.ToString()
 
-    # we need to escape " with \" because otherwise the " are eaten when the process we are starting recieves them
+    # we need to escape " with \" because otherwise the " are eaten when the process we are starting receives them
     $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
     & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
 }

@@ -115,7 +115,7 @@ function t {
                 function Get-FullStackTrace ($ErrorRecord) {
                     $_.ScriptStackTrace | Out-String | % { $_ -replace '\s*line\s+(\d+)', '$1' }
                 }
-                # verify throws Exception directly, so if the type is someting
+                # verify throws Exception directly, so if the type is something
                 # different then show me more info because it's likely a bug in my code
                 # otherwise show the assertion message and stacktrace to keep the noise
                 # on test failure low

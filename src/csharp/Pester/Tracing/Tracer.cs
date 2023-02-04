@@ -159,7 +159,7 @@ namespace Pester.Tracing
                 // action we just use them to get the live data without the overhead of looking 
                 // up properties all the time. This might be internally done in the reflection code
                 // did not measure the impact, and it is probably done for us in the reflection api itself
-                // in modern verisons of runtime
+                // in modern versions of runtime
                 var callStack1 = callStackField.GetValue(debugger);
                 var callStackList1 = (NonGeneric.IList)callStack1;
                 var level1 = callStackList1.Count - initialLevel;

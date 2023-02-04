@@ -1,5 +1,5 @@
 # session state bound functions that act as endpoints,
-# so the internal funtions can make their session state
+# so the internal functions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
 
@@ -888,7 +888,7 @@ function Should-Invoke {
         #
         # Mock FunctionUnderTest {}
         #
-        # Consider the normal expection:
+        # Consider the normal expectation:
         # `Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' }`
         #
         # | Invocations               | Should raises an error |
@@ -1153,7 +1153,7 @@ function Invoke-Mock {
                 }
             }
             else {
-                # not the targetted module, skip it
+                # not the targeted module, skip it
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
                 }
@@ -1192,7 +1192,7 @@ function Invoke-Mock {
         }
     }
 
-    # if we are targetting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
+    # if we are targeting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
     # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
     # then the default mock for Remove-Item should be effective.
     $behaviors = if ($targettingAModule) {
@@ -1210,7 +1210,7 @@ function Invoke-Mock {
         $moduleBehaviors
     }
     else {
-        # we are not targetting a mock in a module use the non module behaviors
+        # we are not targeting a mock in a module use the non module behaviors
         if ($null -ne $nonModuleDefaultBehavior) {
             # add the default non-module behavior if we have any
             $nonModuleBehaviors.Add($nonModuleDefaultBehavior)

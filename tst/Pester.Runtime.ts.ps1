@@ -819,7 +819,7 @@ i -PassThru:$PassThru {
 
             # here I have the failed tests, I need to accumulate paths
             # on them and use them for filtering the run in the next run
-            # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
+            # I should probably re-do the navigation to make it see how deep # I am in the scope, I have some Scopes prototype in the Mock imho
 
             $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.StartLine)" }
             $lines.Length | Verify-Equal 2

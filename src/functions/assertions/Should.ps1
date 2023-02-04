@@ -31,7 +31,7 @@ function Should {
 
     Should can be used more than once in the It block if more than one assertion
     need to be verified. Each Should keyword needs to be on a separate line.
-    Test will be passed only when all assertion will be met (logical conjuction).
+    Test will be passed only when all assertion will be met (logical conjunction).
 
     .PARAMETER ActualValue
     The actual value that was obtained in the test which should be verified against
@@ -166,7 +166,7 @@ function Should {
                         $shouldThrow = $true
                     }
                     else {
-                        # ErrorAction was not specified explictily, figure out what to do from the configuration
+                        # ErrorAction was not specified explicitly, figure out what to do from the configuration
                         $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
                     }
                 }
