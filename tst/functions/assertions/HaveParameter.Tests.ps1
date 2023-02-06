@@ -61,13 +61,15 @@ InPesterModuleScope {
         }
         else {
             function Invoke-DummyFunction {
-                param(
+                param
+                (
                     [Parameter(Mandatory = $true)]
                     [Alias('First', 'Another')]
                     $MandatoryParam,
 
                     [ValidateNotNullOrEmpty()]
-                    [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
+                    [DateTime]
+                    $ParamWithNotNullOrEmptyValidation = (Get-Date),
 
                     # argument completer is PowerShell v5+ only
                     [Parameter()]

@@ -48,33 +48,35 @@
         #>
 
         # Find param block
-        $ast = (& $SafeCommands['Get-Command'] -Name $Command).ScriptBlock.Ast
+        $ast = $Command.ScriptBlock.Ast
 
-        $paramBlock = $ast.FindAll(
-            {
-                param($Item)
-                return ($Item -is [System.Management.Automation.Language.ParamBlockAst])
-            },
-            $true
-        )
+        if ($null -ne $ast) {
+            $paramBlock = $ast.FindAll(
+                {
+                    param($Item)
+                    return ($Item -is [System.Management.Automation.Language.ParamBlockAst])
+                },
+                $true
+            )
 
-        foreach ($parameter in $paramBlock.Parameters) {
-            $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
-                Name             = $parameter.Name.VariablePath.UserPath
-                DefaultValueType = $parameter.StaticType.Name
-                Type             = "[$($parameter.StaticType.Name.ToLower())]"
-            } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
+            foreach ($parameter in $paramBlock.Parameters) {
+                $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
+                    Name             = $parameter.Name.VariablePath.UserPath
+                    DefaultValueType = $parameter.StaticType.Name
+                    Type             = "[$($parameter.StaticType.Name.ToLower())]"
+                } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
 
-            if ($null -ne $parameter.DefaultValue) {
-                if ([bool](Get-Member -Name Value -InputObject $parameter.DefaultValue -MemberType Property)) {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Value
+                if ($null -ne $parameter.DefaultValue) {
+                    if ($parameter.DefaultValue.PSObject.Properties['Value']) {
+                        $paramInfo.DefaultValue = $parameter.DefaultValue.Value
+                    }
+                    else {
+                        $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
+                    }
                 }
-                else {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
-                }
+
+                $paramInfo
             }
-
-            $paramInfo
         }
     }
 
