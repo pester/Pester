@@ -1239,7 +1239,7 @@ function Invoke-Pester {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
             }
             else {
                 Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value

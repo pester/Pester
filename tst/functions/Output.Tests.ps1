@@ -624,7 +624,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings $false -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings:$false -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
@@ -648,7 +648,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings $true -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings:$true -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
@@ -687,7 +687,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings $false -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings:$false -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
@@ -726,7 +726,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings $true -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings:$true -Header $Header -Message $Message | Should -Be $Expected
             }
         }
     }

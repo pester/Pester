@@ -627,7 +627,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -700,7 +700,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -817,7 +817,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                     if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                         $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
                     }
                     else {
                         Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
@@ -920,7 +920,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
             $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
         }
         else {
             Write-PesterHostMessage -ForegroundColor $ReportTheme.BlockFail $errorHeader
@@ -1015,7 +1015,7 @@ function Write-CIErrorToScreen {
         [string] $CIFormat,
 
         [Parameter(Mandatory)]
-        [switch]$CITreatErrorsAsWarnings,
+        [switch] $CITreatErrorsAsWarnings,
 
         [Parameter(Mandatory)]
         [string] $Header,
