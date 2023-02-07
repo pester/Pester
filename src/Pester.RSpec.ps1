@@ -408,6 +408,9 @@ function New-PesterConfiguration {
       CIFormat: The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.
       Default value: 'Auto'
 
+      CITreatErrorsAsWarnings: When true, errors will be logged in CI as warnings.
+      Default value: $false
+
       RenderMode: The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.
       Default value: 'Auto'
 

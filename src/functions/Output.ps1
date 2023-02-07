@@ -627,7 +627,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -700,7 +700,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -817,7 +817,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                     if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                         $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
                     }
                     else {
                         Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
@@ -920,7 +920,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
             $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings $PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
         }
         else {
             Write-PesterHostMessage -ForegroundColor $ReportTheme.BlockFail $errorHeader
@@ -946,6 +946,9 @@ function Format-CIErrorMessage {
         [string] $CIFormat,
 
         [Parameter(Mandatory)]
+        [switch] $CITreatErrorsAsWarnings,
+
+        [Parameter(Mandatory)]
         [string] $Header,
 
         # [Parameter(Mandatory)]
@@ -962,19 +965,32 @@ function Format-CIErrorMessage {
 
         # header task issue error, so it gets reported to build log
         # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
-        $headerTaskIssueError = "##vso[task.logissue type=error] $Header"
+        # https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-a-warning-about-a-specific-place-in-a-file
+        if ($CITreatErrorsAsWarnings) {
+            $logIssueType = 'warning'
+        }
+        else {
+            $logIssueType = 'error'
+        }
+        $headerTaskIssueError = "##vso[task.logissue type=$logIssueType] $Header"
         $lines.Add($headerTaskIssueError)
 
         # Add subsequent messages as errors, but do not get reported to build log
         foreach ($line in $Message) {
-            $lines.Add("##[error] $line")
+            $lines.Add("##[$logIssueType] $line")
         }
     }
     elseif ($CIFormat -eq 'GithubActions') {
 
         # header error, so it gets reported to build log
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
-        $headerError = "::error::$($Header.TrimStart())"
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-a-warning-message
+        if ($CITreatErrorsAsWarnings) {
+            $headerError = "::warning::$($Header.TrimStart())"
+        }
+        else {
+            $headerError = "::error::$($Header.TrimStart())"
+        }
         $lines.Add($headerError)
 
         # Add rest of messages inside expandable group
@@ -997,6 +1013,9 @@ function Write-CIErrorToScreen {
         [Parameter(Mandatory)]
         [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
         [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [switch]$CITreatErrorsAsWarnings,
 
         [Parameter(Mandatory)]
         [string] $Header,

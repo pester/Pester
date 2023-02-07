@@ -98,6 +98,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
         }
 
+        t "Output.CITreatErrorsAsWarnings is `$false" {
+            [PesterConfiguration]::Default.Output.CITreatErrorsAsWarnings.Value | Verify-False
+        }
+
         t "Output.RenderMode is Auto" {
             [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
         }
@@ -1115,6 +1119,23 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+        }
+
+        t "CITreatErrorsAsWarnings is `$true when set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity               = "None"
+                    CIFormat                = "AzureDevops"
+                    CITreatErrorsAsWarnings = $true
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.CITreatErrorsAsWarnings.Value | Verify-True
         }
     }
 
