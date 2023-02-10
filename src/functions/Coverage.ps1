@@ -1043,6 +1043,221 @@ function Get-JaCoCoReportXml {
     return $xml
 }
 
+function Get-CoberturaReportXml {
+    param (
+        [parameter(Mandatory = $true)]
+        $CommandCoverage,
+        [parameter(Mandatory = $true)]
+        [object] $CoverageReport,
+        [parameter(Mandatory = $true)]
+        [long] $TotalMilliseconds
+    )
+
+    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+        return [string]::Empty
+    }
+
+    $now = & $SafeCommands['Get-Date']
+    $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
+    [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
+    [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
+
+    $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
+        & $SafeCommands["Split-Path"] $_.File -Parent
+    }
+
+    $packageList = [System.Collections.Generic.List[psobject]]@()
+
+    $report = @{
+        Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
+        Line        = @{ Missed = 0; Covered = 0; Total = 0 }
+        Method      = @{ Missed = 0; Covered = 0; Total = 0 }
+        Class       = @{ Missed = 0; Covered = 0; Total = 0 }
+    }
+
+    foreach ($folderGroup in $folderGroups) {
+
+        $package = @{
+            Name        = $folderGroup.Name
+            Classes     = [ordered] @{ }
+            Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
+            Line        = @{ Missed = 0; Covered = 0; Total = 0 }
+            Method      = @{ Missed = 0; Covered = 0; Total = 0 }
+            Class       = @{ Missed = 0; Covered = 0; Total = 0 }
+        }
+
+        foreach ($command in $folderGroup.Group) {
+            $file = $command.File
+            $function = $command.Function
+            if (!$function) { $function = '<script>' }
+            $line = $command.StartLine.ToString()
+
+            $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
+            $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }
+            $total = 1
+
+            if (!$package.Classes.Contains($file)) {
+                $package.Class.Missed += $missed
+                $package.Class.Covered += $covered
+                $package.Class.Total += $total
+                $package.Classes.$file = @{
+                    Methods     = [ordered] @{ }
+                    Lines       = [ordered] @{ }
+                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
+                    Line        = @{ Missed = 0; Covered = 0; Total = 0 }
+                    Method      = @{ Missed = 0; Covered = 0; Total = 0 }
+                    Class       = @{ Missed = $missed; Covered = $covered; Total = $total }
+                }
+            }
+
+            if (!$package.Classes.$file.Methods.Contains($function)) {
+                $package.Method.Missed += $missed
+                $package.Method.Covered += $covered
+                $package.Method.Total += $total
+                $package.Classes.$file.Method.Missed += $missed
+                $package.Classes.$file.Method.Covered += $covered
+                $package.Classes.$file.Method.Total += $total
+                $package.Classes.$file.Methods.$function = @{
+                    FirstLine   = $line
+                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
+                    Line        = @{ Missed = 0; Covered = 0; Total = 0 }
+                    Method      = @{ Missed = $missed; Covered = $covered; Total = $total }
+                }
+            }
+
+            if (!$package.Classes.$file.Lines.Contains($line)) {
+                $package.Line.Missed += $missed
+                $package.Line.Covered += $covered
+                $package.Line.Total += $total
+                $package.Classes.$file.Line.Missed += $missed
+                $package.Classes.$file.Line.Covered += $covered
+                $package.Classes.$file.Line.Total += $total
+                $package.Classes.$file.Methods.$function.Line.Missed += $missed
+                $package.Classes.$file.Methods.$function.Line.Covered += $covered
+                $package.Classes.$file.Methods.$function.Line.Total += $total
+                $package.Classes.$file.Lines.$line = @{
+                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
+                }
+            }
+
+            $package.Instruction.Missed += $missed
+            $package.Instruction.Covered += $covered
+            $package.Instruction.Total += $total
+            $package.Classes.$file.Instruction.Missed += $missed
+            $package.Classes.$file.Instruction.Covered += $covered
+            $package.Classes.$file.Instruction.Total += $total
+            $package.Classes.$file.Methods.$function.Instruction.Missed += $missed
+            $package.Classes.$file.Methods.$function.Instruction.Covered += $covered
+            $package.Classes.$file.Methods.$function.Instruction.Total += $total
+            $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
+            $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
+            $package.Classes.$file.Lines.$line.Instruction.Total += $total
+        }
+
+        $report.Class.Missed += $package.Class.Missed
+        $report.Class.Covered += $package.Class.Covered
+        $report.Class.Total += $package.Class.Total
+        $report.Method.Missed += $package.Method.Missed
+        $report.Method.Covered += $package.Method.Covered
+        $report.Method.Total += $package.Method.Total
+        $report.Line.Missed += $package.Line.Missed
+        $report.Line.Covered += $package.Line.Covered
+        $report.Line.Total += $package.Line.Total
+        $report.Instruction.Missed += $package.Instruction.Missed
+        $report.Instruction.Covered += $package.Instruction.Covered
+        $report.Instruction.Total += $package.Instruction.Total
+
+        $packageList.Add($package)
+    }
+
+    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $commonParentLeaf = & $SafeCommands["Split-Path"] $commonParent -Leaf
+
+    # the Cobertura xml format without the doctype, as the XML stuff does not like DTD's.
+    $xmlDeclaration = '<?xml version="1.0" encoding="utf-8"?>'
+    $coberturaReport = $xmlDeclaration
+    $coberturaReport += '<coverage>'
+    $coberturaReport += "<sources><source>$commonParent</source></sources>"
+    $coberturaReport += '</coverage>'
+
+    [xml] $coberturaReportXml = $coberturaReport
+
+    $coverageElement = $coberturaReportXml.coverage
+    Add-XmlAttribute -Element $coverageElement -Attributes @{
+        'lines-valid'      = $report.Line.Total
+        'lines-covered'    = $report.Line.Covered
+        'line-rate'        = $report.Line.Covered / ($report.Line.Total ?? 1)
+        # TODO: branch coverage
+        'branches-valid'   = 0
+        'branches-covered' = 0
+        'branch-rate'      = 1
+        timestamp          = $startTime
+        complexity         = 0
+        version            = 0.1
+    }
+
+    $packagesElement = Add-XmlElement -Parent $coverageElement -Name 'packages'
+
+    foreach ($package in $packageList) {
+        $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
+
+        # "" in root and "sub-dir" elsewhere
+        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
+            ""
+        }
+        else {
+            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
+            $packageRelativePathFormatted
+        }
+
+        $packageElement = Add-XmlElement -Parent $packagesElement -Name 'package' -Attributes @{
+            name          = ($packageName -replace "/$", "")
+            'line-rate'   = $package.Line.Missed / ($package.Line.Total ?? 0)
+            'branch-rate' = 1
+        }
+        $classesElement = Add-XmlElement -Parent $packageElement -Name 'classes'
+
+        foreach ($file in $package.Classes.Keys) {
+            $class = $package.Classes.$file
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
+            $classElementName = "$classElementRelativePath"
+            $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
+            $classElement = Add-XmlElement -Parent $classesElement -Name 'class' -Attributes ([ordered] @{
+                    name          = $classElementName
+                    filename      = $classElementRelativePath
+                    'line-rate'   = $class.Line.Missed / ($class.Line.Total ?? 0)
+                    'branch-rate' = 1
+                })
+            $methodsElement = Add-XmlElement -Parent $classElement -Name 'methods'
+
+            foreach ($function in $class.Methods.Keys) {
+                $method = $class.Methods.$function
+                $methodElement = Add-XmlElement -Parent $methodsElement -Name 'method' -Attributes ([ordered] @{
+                        name      = $function
+                        hits      = $method.Method.Covered
+                        signature = '()'
+                    })
+
+                $linesElement = Add-XmlElement -Parent $methodElement -Name 'lines'
+
+                foreach ($line in $class.Lines.Keys) {
+                    $null = Add-XmlElement -Parent $linesElement -Name 'line' -Attributes ([ordered] @{
+                            number = $line
+                            hits   = $class.Lines.$line.Instruction.Covered
+                        })
+                }
+            }
+
+        }
+    }
+
+    # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
+    $coberturaReportDocType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>'
+    $xml = $coberturaReportXml.OuterXml.Insert($xmlDeclaration.Length, $coberturaReportDocType)
+
+    return $xml
+}
+
 function Add-XmlElement {
     param (
         [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Parent,
@@ -1051,12 +1266,21 @@ function Add-XmlElement {
     )
     $element = $Parent.AppendChild($Parent.OwnerDocument.CreateElement($Name))
     if ($Attributes) {
-        foreach ($key in $Attributes.Keys) {
-            $attribute = $element.Attributes.Append($Parent.OwnerDocument.CreateAttribute($key))
-            $attribute.Value = $Attributes.$key
-        }
+        Add-XmlAttribute -Element $element -Attributes $Attributes
     }
     return $element
+}
+
+function Add-XmlAttribute {
+    param(
+        [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Element,
+        [parameter(Mandatory = $true)] [System.Collections.IDictionary] $Attributes
+    )
+
+    foreach ($key in $Attributes.Keys) {
+        $attribute = $Element.Attributes.Append($Element.OwnerDocument.CreateAttribute($key))
+        $attribute.Value = $Attributes.$key
+    }
 }
 
 function Add-JaCoCoCounter {

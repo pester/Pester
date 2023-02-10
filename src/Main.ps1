@@ -382,6 +382,7 @@ function Invoke-Pester {
     Default value is: JaCoCo.
     Currently supported formats are:
     - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
+    - Cobertura - this XML file format is compatible with Azure Devops, VSTS/TFS
 
     The ReportGenerator tool can be used to consolidate multiple reports and provide code coverage reporting.
     https://github.com/danielpalme/ReportGenerator
@@ -1154,10 +1155,13 @@ function Invoke-Pester {
                 $configuration = $run.PluginConfiguration.Coverage
 
                 if ("JaCoCo" -eq $configuration.OutputFormat -or "CoverageGutters" -eq $configuration.OutputFormat) {
-                    [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                    [xml] $coverageXmlReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                }
+                elseif ("Cobertura" -eq $configuration.OutputFormat) {
+                    [xml] $coverageXmlReport = [xml] (Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport)
                 }
                 else {
-                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($configuration.OutputFormat), please review your configuration."
+                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo', 'CoverageGutters', or 'Cobertura' but it was $($configuration.OutputFormat), please review your configuration."
                 }
 
                 $settings = [Xml.XmlWriterSettings] @{
@@ -1172,7 +1176,7 @@ function Invoke-Pester {
                     $stringWriter = [Pester.Factory]::CreateStringWriter()
                     $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
-                    $jaCocoReport.WriteContentTo($xmlWriter)
+                    $coverageXmlReport.WriteContentTo($xmlWriter)
 
                     $xmlWriter.Flush()
                     $stringWriter.Flush()
