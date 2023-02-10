@@ -150,7 +150,8 @@ function Write-PesterHostMessage {
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
 
             & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
-        } else {
+        }
+        else {
             if ($RenderMode -eq 'Plaintext') {
                 if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
                     $null = $PSBoundParameters.Remove('ForegroundColor')
@@ -973,8 +974,8 @@ function Format-CIErrorMessage {
             Default { $logIssueType = 'error' }
         }
 
-        $headerTaskIssueError = "##vso[task.logissue type=$logIssueType] $Header"
-        $lines.Add($headerTaskIssueError)
+        $headerLoggingCommand = "##vso[task.logissue type=$logIssueType] $Header"
+        $lines.Add($headerLoggingCommand)
 
         # Add subsequent messages as errors, but do not get reported to build log
         foreach ($line in $Message) {
@@ -987,12 +988,12 @@ function Format-CIErrorMessage {
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-a-warning-message
         switch ($CILogLevel) {
-            "Error" { $headerError = "::error::$($Header.TrimStart())" }
-            "Warning" { $headerError = "::warning::$($Header.TrimStart())" }
-            Default { $headerError = "::error::$($Header.TrimStart())" }
+            "Error" { $headerWorkflowCommand = "::error::$($Header.TrimStart())" }
+            "Warning" { $headerWorkflowCommand = "::warning::$($Header.TrimStart())" }
+            Default { $headerWorkflowCommand = "::error::$($Header.TrimStart())" }
         }
 
-        $lines.Add($headerError)
+        $lines.Add($headerWorkflowCommand)
 
         # Add rest of messages inside expandable group
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
