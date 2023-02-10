@@ -1186,7 +1186,7 @@ function Get-CoberturaReportXml {
     Add-XmlAttribute -Element $coverageElement -Attributes @{
         'lines-valid'      = $report.Line.Total
         'lines-covered'    = $report.Line.Covered
-        'line-rate'        = $report.Line.Covered / ($report.Line.Total ?? 1)
+        'line-rate'        = if ($report.Line.Total) { $report.Line.Missed / $report.Line.Total} else { 0 }
         # TODO: branch coverage
         'branches-valid'   = 0
         'branches-covered' = 0
@@ -1212,7 +1212,7 @@ function Get-CoberturaReportXml {
 
         $packageElement = Add-XmlElement -Parent $packagesElement -Name 'package' -Attributes @{
             name          = ($packageName -replace "/$", "")
-            'line-rate'   = $package.Line.Missed / ($package.Line.Total ?? 0)
+            'line-rate'   = if ($package.Line.Total) { $package.Line.Missed / $package.Line.Total} else { 0 }
             'branch-rate' = 1
         }
         $classesElement = Add-XmlElement -Parent $packageElement -Name 'classes'
@@ -1225,7 +1225,7 @@ function Get-CoberturaReportXml {
             $classElement = Add-XmlElement -Parent $classesElement -Name 'class' -Attributes ([ordered] @{
                     name          = $classElementName
                     filename      = $classElementRelativePath
-                    'line-rate'   = $class.Line.Missed / ($class.Line.Total ?? 0)
+                    'line-rate'   = if ($class.Line.Total) { $class.Line.Missed / $class.Line.Total} else { 0 }
                     'branch-rate' = 1
                 })
             $methodsElement = Add-XmlElement -Parent $classElement -Name 'methods'
