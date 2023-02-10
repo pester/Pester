@@ -469,7 +469,7 @@ InPesterModuleScope {
                 [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
-                $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
+                $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot').Replace($root.Replace('\', '/'), 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" encoding="utf-8"?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>
