@@ -469,17 +469,8 @@ InPesterModuleScope {
                 [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
-                $coberturaReportXml = $coberturaReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
+                $coberturaReportXml = $coberturaReportXml -replace "$(Split-Path -Path $rootSubFolder)", 'CommonRoot'
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), '')
-# 'lines-valid'
-# 'lines-covered'
-# 'line-rate'
-# 'branches-valid'
-# 'branches-covered'
-# 'branch-rate'
-# timestamp
-# complexity
-# version
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" encoding="utf-8"?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>
@@ -489,7 +480,7 @@ InPesterModuleScope {
                         timestamp=""
                         complexity="0"
                         version="0.1">
-                    <sources><source>/tmp/CommonRoot</source></sources>
+                    <sources><source>CommonRoot</source></sources>
                     <packages>
                         <package name="" line-rate="0.866666666666667" branch-rate="1">
                             <classes>
