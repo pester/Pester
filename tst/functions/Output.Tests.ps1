@@ -624,11 +624,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings:$false -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
-        Context "Azure Devops Error As Warning Format" {
+        Context "Azure Devops Warning Format" {
             It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
                 @{
                     Header   = 'header'
@@ -648,7 +648,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CITreatErrorsAsWarnings:$true -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
@@ -687,11 +687,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings:$false -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
-        Context 'Github Actions Error As Warning Format' {
+        Context 'Github Actions Warning Format' {
             It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
                 @{
                     Header   = 'header'
@@ -726,7 +726,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CITreatErrorsAsWarnings:$true -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
     }

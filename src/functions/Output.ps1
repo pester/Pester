@@ -150,7 +150,8 @@ function Write-PesterHostMessage {
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
 
             & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
-        } else {
+        }
+        else {
             if ($RenderMode -eq 'Plaintext') {
                 if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
                     $null = $PSBoundParameters.Remove('ForegroundColor')
@@ -627,7 +628,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -700,7 +701,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -817,7 +818,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                     if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                         $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
                     }
                     else {
                         Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
@@ -920,7 +921,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
             $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorHeader -Message $errorMessage
+            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
         }
         else {
             Write-PesterHostMessage -ForegroundColor $ReportTheme.BlockFail $errorHeader
@@ -946,7 +947,8 @@ function Format-CIErrorMessage {
         [string] $CIFormat,
 
         [Parameter(Mandatory)]
-        [switch] $CITreatErrorsAsWarnings,
+        [ValidateSet('Error', 'Warning', IgnoreCase)]
+        [string] $CILogLevel,
 
         [Parameter(Mandatory)]
         [string] $Header,
@@ -966,12 +968,12 @@ function Format-CIErrorMessage {
         # header task issue error, so it gets reported to build log
         # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
         # https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-a-warning-about-a-specific-place-in-a-file
-        if ($CITreatErrorsAsWarnings) {
-            $logIssueType = 'warning'
+        switch ($CILogLevel) {
+            "Error" { $logIssueType = 'error' }
+            "Warning" { $logIssueType = 'warning' }
+            Default { $logIssueType = 'error' }
         }
-        else {
-            $logIssueType = 'error'
-        }
+
         $headerTaskIssueError = "##vso[task.logissue type=$logIssueType] $Header"
         $lines.Add($headerTaskIssueError)
 
@@ -985,12 +987,12 @@ function Format-CIErrorMessage {
         # header error, so it gets reported to build log
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-a-warning-message
-        if ($CITreatErrorsAsWarnings) {
-            $headerError = "::warning::$($Header.TrimStart())"
+        switch ($CILogLevel) {
+            "Error" { $headerError = "::error::$($Header.TrimStart())" }
+            "Warning" { $headerError = "::warning::$($Header.TrimStart())" }
+            Default { $headerError = "::error::$($Header.TrimStart())" }
         }
-        else {
-            $headerError = "::error::$($Header.TrimStart())"
-        }
+
         $lines.Add($headerError)
 
         # Add rest of messages inside expandable group
@@ -1015,7 +1017,8 @@ function Write-CIErrorToScreen {
         [string] $CIFormat,
 
         [Parameter(Mandatory)]
-        [switch] $CITreatErrorsAsWarnings,
+        [ValidateSet('Error', 'Warning', IgnoreCase)]
+        [string] $CILogLevel,
 
         [Parameter(Mandatory)]
         [string] $Header,

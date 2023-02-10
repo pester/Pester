@@ -1055,7 +1055,7 @@ function Invoke-Pester {
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
+            if (defined additionalPlugins) { $plugins += $script:additionalPlugins }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
@@ -1239,7 +1239,7 @@ function Invoke-Pester {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CITreatErrorsAsWarnings:$PesterPreference.Output.CITreatErrorsAsWarnings.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
             }
             else {
                 Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
