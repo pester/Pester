@@ -1142,7 +1142,7 @@ i -PassThru:$PassThru {
     b 'Output.RenderMode' {
         t 'Output.RenderMode is Plaintext when set to Auto (default) and env:NO_COLOR is set' {
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = { }
                     PassThru    = $true
                 }
@@ -1215,7 +1215,7 @@ i -PassThru:$PassThru {
             $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
             try {
                 $ps = [PowerShell]::Create()
-                $ps.AddCommand('Set-StrictMode').AddParameter('Version', 'Latest') > $null
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
                 $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
                 $ps.AddStatement().AddScript('$c = [PesterConfiguration]@{Run = @{ScriptBlock={ describe "d1" { it "i1" { } } };PassThru=$true};Output=@{RenderMode="Auto"}}') > $null
                 $ps.AddStatement().AddScript('Invoke-Pester -Configuration $c') > $null
@@ -1233,7 +1233,7 @@ i -PassThru:$PassThru {
 
         t 'Each non-Auto option can be set and updated' {
             $c = [PesterConfiguration] @{
-                Run = @{
+                Run    = @{
                     ScriptBlock = { }
                     PassThru    = $true
                 }
@@ -1266,8 +1266,7 @@ i -PassThru:$PassThru {
 
             try {
                 Invoke-Pester -Configuration $c
-            }
-            catch {
+            } catch {
                 $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
             }
         }
