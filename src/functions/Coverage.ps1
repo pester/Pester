@@ -1171,7 +1171,6 @@ function Get-CoberturaReportXml {
     }
 
     $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
-    $commonParentLeaf = & $SafeCommands["Split-Path"] $commonParent -Leaf
 
     # the Cobertura xml format without the doctype, as the XML stuff does not like DTD's.
     $xmlDeclaration = '<?xml version="1.0" encoding="utf-8"?>'
@@ -1183,18 +1182,17 @@ function Get-CoberturaReportXml {
     [xml] $coberturaReportXml = $coberturaReport
 
     $coverageElement = $coberturaReportXml.coverage
-    Add-XmlAttribute -Element $coverageElement -Attributes @{
+    Add-XmlAttribute -Element $coverageElement -Attributes ([ordered]@{
         'lines-valid'      = $report.Line.Total
         'lines-covered'    = $report.Line.Covered
-        'line-rate'        = if ($report.Line.Total) { $report.Line.Missed / $report.Line.Total} else { 0 }
-        # TODO: branch coverage
+        'line-rate'        = if ($report.Line.Total) { $report.Line.Covered / $report.Line.Total } else { 1 }
         'branches-valid'   = 0
         'branches-covered' = 0
         'branch-rate'      = 1
         timestamp          = $startTime
         complexity         = 0
         version            = 0.1
-    }
+    })
 
     $packagesElement = Add-XmlElement -Parent $coverageElement -Name 'packages'
 
@@ -1210,11 +1208,11 @@ function Get-CoberturaReportXml {
             $packageRelativePathFormatted
         }
 
-        $packageElement = Add-XmlElement -Parent $packagesElement -Name 'package' -Attributes @{
+        $packageElement = Add-XmlElement -Parent $packagesElement -Name 'package' -Attributes ([ordered]@{
             name          = ($packageName -replace "/$", "")
-            'line-rate'   = if ($package.Line.Total) { $package.Line.Missed / $package.Line.Total} else { 0 }
+            'line-rate'   = if ($package.Line.Total) { $package.Line.Covered / $package.Line.Total } else { 1 }
             'branch-rate' = 1
-        }
+        })
         $classesElement = Add-XmlElement -Parent $packageElement -Name 'classes'
 
         foreach ($file in $package.Classes.Keys) {
@@ -1222,17 +1220,17 @@ function Get-CoberturaReportXml {
             $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
             $classElementName = "$classElementRelativePath"
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
-            $classElement = Add-XmlElement -Parent $classesElement -Name 'class' -Attributes ([ordered] @{
+            $classElement = Add-XmlElement -Parent $classesElement -Name 'class' -Attributes ([ordered]@{
                     name          = $classElementName
                     filename      = $classElementRelativePath
-                    'line-rate'   = if ($class.Line.Total) { $class.Line.Missed / $class.Line.Total} else { 0 }
+                    'line-rate'   = if ($class.Line.Total) { $class.Line.Covered / $class.Line.Total } else { 1 }
                     'branch-rate' = 1
                 })
             $methodsElement = Add-XmlElement -Parent $classElement -Name 'methods'
 
             foreach ($function in $class.Methods.Keys) {
                 $method = $class.Methods.$function
-                $methodElement = Add-XmlElement -Parent $methodsElement -Name 'method' -Attributes ([ordered] @{
+                $methodElement = Add-XmlElement -Parent $methodsElement -Name 'method' -Attributes ([ordered]@{
                         name      = $function
                         hits      = $method.Method.Covered
                         signature = '()'
@@ -1241,7 +1239,7 @@ function Get-CoberturaReportXml {
                 $linesElement = Add-XmlElement -Parent $methodElement -Name 'lines'
 
                 foreach ($line in $class.Lines.Keys) {
-                    $null = Add-XmlElement -Parent $linesElement -Name 'line' -Attributes ([ordered] @{
+                    $null = Add-XmlElement -Parent $linesElement -Name 'line' -Attributes ([ordered]@{
                             number = $line
                             hits   = $class.Lines.$line.Instruction.Covered
                         })

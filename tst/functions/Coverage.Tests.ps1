@@ -471,15 +471,29 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), '')
+# 'lines-valid'
+# 'lines-covered'
+# 'line-rate'
+# 'branches-valid'
+# 'branches-covered'
+# 'branch-rate'
+# timestamp
+# complexity
+# version
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" encoding="utf-8"?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>
-                <coverage branch-rate="1" timestamp="" line-rate="0.875" version="0.1" lines-covered="14" complexity="0" branches-covered="0" lines-valid="16" branches-valid="0">
+                <coverage
+                        lines-valid="16" lines-covered="14" line-rate="0.875"
+                        branches-valid="0" branches-covered="0" branch-rate="1"
+                        timestamp=""
+                        complexity="0"
+                        version="0.1">
                     <sources><source>/tmp/CommonRoot</source></sources>
                     <packages>
-                        <package line-rate="0.133333333333333" name="" branch-rate="1">
+                        <package name="" line-rate="0.866666666666667" branch-rate="1">
                             <classes>
-                                <class name="TestScript" filename="TestScript.ps1" line-rate="0.142857142857143" branch-rate="1">
+                                <class name="TestScript" filename="TestScript.ps1" line-rate="0.857142857142857" branch-rate="1">
                                     <methods>
                                         <method name="NestedFunction" hits="1" signature="()">
                                             <lines>
@@ -607,22 +621,34 @@ InPesterModuleScope {
                                                 <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        </methods></class><class name="TestScript2" filename="TestScript2.ps1" line-rate="0" branch-rate="1"><methods><method name="&lt;script&gt;" hits="1" signature="()">
-                                            <lines>
-                                                <line number="1" hits="1" />
-                                            </lines>
-                                        </method>
-                                        </methods></class></classes></package><package line-rate="0" name="TestSubFolder" branch-rate="1"><classes><class name="TestSubFolder/TestScript3" filename="TestSubFolder/TestScript3.ps1" line-rate="0" branch-rate="1"><methods><method name="&lt;script&gt;" hits="1" signature="()">
-                                            <lines>
-                                                <line number="1" hits="1" />
-                                            </lines>
-                                        </method>
                                     </methods>
                                 </class>
-                            </classes>
-                        </package>
-                    </packages>
-                </coverage>
+                                <class name="TestScript2" filename="TestScript2.ps1" line-rate="1" branch-rate="1">
+                                    <methods>
+                                        <method name="&lt;script&gt;" hits="1" signature="()">
+                                            <lines>
+                                                <line number="1" hits="1" />
+                                            </lines>
+                                        </method>
+                                        </methods>
+                                    </class>
+                                </classes>
+                            </package>
+                            <package name="TestSubFolder" line-rate="1" branch-rate="1">
+                                <classes>
+                                    <class name="TestSubFolder/TestScript3" filename="TestSubFolder/TestScript3.ps1" line-rate="1" branch-rate="1">
+                                        <methods>
+                                            <method name="&lt;script&gt;" hits="1" signature="()">
+                                                <lines>
+                                                    <line number="1" hits="1" />
+                                                </lines>
+                                            </method>
+                                        </methods>
+                                    </class>
+                                </classes>
+                            </package>
+                        </packages>
+                    </coverage>
                 ')
             }
 
