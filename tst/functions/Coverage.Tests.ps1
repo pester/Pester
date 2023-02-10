@@ -472,124 +472,157 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), '')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
-                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-                <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
-                <report name="Pester (date)">
-                    <sessioninfo id="this" start="" dump="" />
-                    <package name=".">
-                        <class name="TestScript" sourcefilename="TestScript.ps1">
-                            <method name="NestedFunction" desc="()" line="5">
-                                <counter type="INSTRUCTION" missed="0" covered="2" />
-                                <counter type="LINE" missed="0" covered="2" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="FunctionOne" desc="()" line="9">
-                                <counter type="INSTRUCTION" missed="1" covered="6" />
-                                <counter type="LINE" missed="0" covered="5" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="FunctionTwo" desc="()" line="22">
-                                <counter type="INSTRUCTION" missed="1" covered="0" />
-                                <counter type="LINE" missed="1" covered="0" />
-                                <counter type="METHOD" missed="1" covered="0" />
-                            </method>
-                            <method name="&lt;script&gt;" desc="()" line="25">
-                                <counter type="INSTRUCTION" missed="0" covered="3" />
-                                <counter type="LINE" missed="0" covered="3" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MyClass" desc="()" line="32">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MethodOne" desc="()" line="37">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MethodTwo" desc="()" line="42">
-                                <counter type="INSTRUCTION" missed="1" covered="0" />
-                                <counter type="LINE" missed="1" covered="0" />
-                                <counter type="METHOD" missed="1" covered="0" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <class name="TestScript2" sourcefilename="TestScript2.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="1">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="11" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
-                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="37" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="42" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="46" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="47" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <sourcefile name="TestScript2.ps1">
-                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <counter type="INSTRUCTION" missed="3" covered="14" />
-                        <counter type="LINE" missed="2" covered="13" />
-                        <counter type="METHOD" missed="2" covered="6" />
-                        <counter type="CLASS" missed="0" covered="2" />
-                    </package>
-                    <package name="TestSubFolder">
-                        <class name="TestSubFolder/TestScript3" sourcefilename="TestScript3.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="1">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <sourcefile name="TestScript3.ps1">
-                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <counter type="INSTRUCTION" missed="0" covered="1" />
-                        <counter type="LINE" missed="0" covered="1" />
-                        <counter type="METHOD" missed="0" covered="1" />
-                        <counter type="CLASS" missed="0" covered="1" />
-                    </package>
-                    <counter type="INSTRUCTION" missed="3" covered="15" />
-                    <counter type="LINE" missed="2" covered="14" />
-                    <counter type="METHOD" missed="2" covered="7" />
-                    <counter type="CLASS" missed="0" covered="3" />
-                </report>
+                <?xml version="1.0" encoding="utf-8"?>
+                <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>
+                <coverage branch-rate="1" timestamp="" line-rate="0.875" version="0.1" lines-covered="14" complexity="0" branches-covered="0" lines-valid="16" branches-valid="0">
+                    <sources><source>/tmp/CommonRoot</source></sources>
+                    <packages>
+                        <package line-rate="0.133333333333333" name="" branch-rate="1">
+                            <classes>
+                                <class name="TestScript" filename="TestScript.ps1" line-rate="0.142857142857143" branch-rate="1">
+                                    <methods>
+                                        <method name="NestedFunction" hits="1" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="FunctionOne" hits="1" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="FunctionTwo" hits="0" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="&lt;script&gt;" hits="1" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="MyClass" hits="1" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="MethodOne" hits="1" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="MethodTwo" hits="0" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                                <line number="22" hits="0" />
+                                                <line number="25" hits="1" />
+                                                <line number="32" hits="1" />
+                                                <line number="37" hits="1" />
+                                                <line number="42" hits="0" />
+                                                <line number="46" hits="1" />
+                                                <line number="47" hits="1" />
+                                            </lines>
+                                        </method>
+                                        </methods></class><class name="TestScript2" filename="TestScript2.ps1" line-rate="0" branch-rate="1"><methods><method name="&lt;script&gt;" hits="1" signature="()">
+                                            <lines>
+                                                <line number="1" hits="1" />
+                                            </lines>
+                                        </method>
+                                        </methods></class></classes></package><package line-rate="0" name="TestSubFolder" branch-rate="1"><classes><class name="TestSubFolder/TestScript3" filename="TestSubFolder/TestScript3.ps1" line-rate="0" branch-rate="1"><methods><method name="&lt;script&gt;" hits="1" signature="()">
+                                            <lines>
+                                                <line number="1" hits="1" />
+                                            </lines>
+                                        </method>
+                                    </methods>
+                                </class>
+                            </classes>
+                        </package>
+                    </packages>
+                </coverage>
                 ')
             }
 
@@ -602,7 +635,7 @@ InPesterModuleScope {
 
             It 'Cobertura returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
-                [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
+                [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $coberturaReportXml | Should -Not -Be $null
                 $coberturaReportXml | Should -Be ([String]::Empty)
             }
