@@ -2424,8 +2424,8 @@ function New-BlockContainerObject {
     )
 
     # Data is null or IDictionary, but all IDictionary does not work with ContainsKey()
-    # Contains requires casting to interface with ex generic dictionary.
-    # Merging to a controlled data structure to have consistent API internally
+    # Contains() requires interface-casting for some types, ex. generic dictionary.
+    # Instead we're merging to a controlled data structure to have consistent API internally
     # Also works as a shallow clone to avoid leaking default parameter values between containers with same Data
     $ContainerData = @{ }
     if ($Data -is [System.Collections.IDictionary]) {
