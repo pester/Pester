@@ -1149,6 +1149,7 @@ i -PassThru:$PassThru {
                 Run    = @{
                     ScriptBlock = $sb
                     PassThru    = $true
+                    Throw       = $true
                 }
                 Output = @{
                     CIFormat = 'None'
