@@ -473,9 +473,16 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
-                <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-                <coverage lines-valid="27" lines-covered="23" line-rate="0.851851851851852" branches-valid="0"
-                    branches-covered="0" branch-rate="1" timestamp="">
+                <!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">
+                <coverage
+                        lines-valid="27"
+                        lines-covered="23"
+                        line-rate="0.851851851851852"
+                        branches-valid="0"
+                        branches-covered="0"
+                        branch-rate="1"
+                        timestamp=""
+                        version="0.1">
                     <sources>
                         <source>CommonRoot</source>
                     </sources>
@@ -484,7 +491,7 @@ InPesterModuleScope {
                             <classes>
                                 <class name="TestScript.ps1" filename="TestScript.ps1" line-rate="0.84" branch-rate="1">
                                     <methods>
-                                        <method name="FunctionOne" hits="6" signature="()">
+                                        <method name="FunctionOne" signature="()">
                                             <lines>
                                                 <line number="9" hits="1" />
                                                 <line number="11" hits="1" />
@@ -493,27 +500,27 @@ InPesterModuleScope {
                                                 <line number="17" hits="2" />
                                             </lines>
                                         </method>
-                                        <method name="FunctionTwo" hits="0" signature="()">
+                                        <method name="FunctionTwo" signature="()">
                                             <lines>
                                                 <line number="22" hits="0" />
                                             </lines>
                                         </method>
-                                        <method name="MethodOne" hits="1" signature="()">
+                                        <method name="MethodOne" signature="()">
                                             <lines>
                                                 <line number="37" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="MethodTwo" hits="0" signature="()">
+                                        <method name="MethodTwo" signature="()">
                                             <lines>
                                                 <line number="42" hits="0" />
                                             </lines>
                                         </method>
-                                        <method name="MyClass" hits="1" signature="()">
+                                        <method name="MyClass" signature="()">
                                             <lines>
                                                 <line number="32" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="NestedFunction" hits="2" signature="()">
+                                        <method name="NestedFunction" signature="()">
                                             <lines>
                                                 <line number="5" hits="1" />
                                                 <line number="6" hits="1" />
@@ -539,6 +546,7 @@ InPesterModuleScope {
                                 </class>
                                 <class name="TestScript2.ps1" filename="TestScript2.ps1" line-rate="1"
                                     branch-rate="1">
+                                    <methods />
                                     <lines>
                                         <line number="1" hits="1" />
                                     </lines>
@@ -549,6 +557,7 @@ InPesterModuleScope {
                             <classes>
                                 <class name="TestScript3.ps1" filename="TestSubFolder/TestScript3.ps1" line-rate="1"
                                     branch-rate="1">
+                                    <methods />
                                     <lines>
                                         <line number="1" hits="1" />
                                     </lines>

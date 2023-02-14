@@ -1092,15 +1092,10 @@ function Get-CoberturaReportXml {
                 | & $SafeCommands["Group-Object"] -Property Line `
                 | New-LineNode
 
-                $hits = [int](
-                    $lines.attributes.hits | & $SafeCommands["Measure-Object"] -Sum
-                ).Sum
-
                 $method = [ordered]@{
                     name         = 'method'
                     attributes   = [ordered]@{
                         name      = $methodGroup.Name
-                        hits      = $hits
                         signature = '()'
                     }
                     children     = [ordered]@{
@@ -1188,6 +1183,7 @@ function Get-CoberturaReportXml {
             'branches-covered' = 0
             'branch-rate'      = 1
             timestamp          = $startTime
+            version            = 0.1
         }
         children   = [ordered]@{
             sources  = [ordered]@{
@@ -1199,7 +1195,7 @@ function Get-CoberturaReportXml {
     }
 
     $xmlDeclaration = '<?xml version="1.0" ?>'
-    $docType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">'
+    $docType = '<!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">'
     $coverageXml = ConvertTo-XmlElement -Node $coverage
     $document = "$xmlDeclaration`n$docType`n$(([System.Xml.XmlElement]$coverageXml).OuterXml)"
 
@@ -1248,10 +1244,6 @@ function ConvertTo-XmlElement {
     if ($node.children) {
         $children = $node.children
         foreach ($child in $children.GetEnumerator()) {
-            if ($null -eq $child.Value) {
-                continue
-            }
-
             $childElement = ([xml]"<$($child.Name)/>").DocumentElement
             foreach ($value in $child.Value) {
                 $childXml = ConvertTo-XmlElement $value
