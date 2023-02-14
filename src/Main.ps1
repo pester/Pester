@@ -382,7 +382,6 @@ function Invoke-Pester {
     Default value is: JaCoCo.
     Currently supported formats are:
     - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
-    - Cobertura - this XML file format is compatible with Azure Devops, VSTS/TFS
 
     The ReportGenerator tool can be used to consolidate multiple reports and provide code coverage reporting.
     https://github.com/danielpalme/ReportGenerator
@@ -1056,7 +1055,7 @@ function Invoke-Pester {
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
+            if (defined additionalPlugins) { $plugins += $script:additionalPlugins }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
