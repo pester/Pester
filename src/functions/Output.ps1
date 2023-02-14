@@ -776,6 +776,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
         }
 
+        if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
+            throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {

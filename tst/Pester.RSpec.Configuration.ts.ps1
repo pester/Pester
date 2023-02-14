@@ -1120,7 +1120,9 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
         }
+    }
 
+    b "Output.CILogLevel" {
         t "Output.CILogLevel is Error when set" {
             $c = [PesterConfiguration] @{
                 Run    = @{
@@ -1129,13 +1131,49 @@ i -PassThru:$PassThru {
                 }
                 Output = @{
                     Verbosity  = "None"
-                    CIFormat   = "AzureDevops"
                     CILogLevel = "Error"
                 }
             }
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CILogLevel.Value | Verify-Equal Error
+        }
+
+        t "Output.CILogLevel is Warning when set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity  = "None"
+                    CILogLevel = "Warning"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Configuration.Output.CILogLevel.Value | Verify-Equal Warning
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                }
+                Output = @{
+                    CILogLevel = "Something"
+                }
+            }
+
+            $r = Invoke-Pester -Configuration $c
+            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI log level 'Something'"
         }
     }
 
