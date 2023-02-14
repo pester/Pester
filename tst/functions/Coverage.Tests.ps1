@@ -469,7 +469,7 @@ InPesterModuleScope {
                 [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
-                $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot').Replace($root.Replace('\', '/'), 'CommonRoot')
+                $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
@@ -477,10 +477,10 @@ InPesterModuleScope {
                     branches-covered="0" branch-rate="1" timestamp="">
                     <sources>CommonRoot</sources>
                     <packages>
-                        <package name="" line-rate="0.8666666666666667" branch-rate="0">
+                        <package name="" line-rate="0.866666666666667" branch-rate="0">
                             <classes>
                                 <class name="TestScript.ps1" filename="/TestScript.ps1"
-                                    line-rate="0.8571428571428571" branch-rate="1">
+                                    line-rate="0.857142857142857" branch-rate="1">
                                     <methods>
                                         <method name="FunctionOne" hits="6">
                                             <lines>

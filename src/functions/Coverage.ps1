@@ -1202,7 +1202,7 @@ function Get-CoberturaReportXml {
     $xmlDeclaration = '<?xml version="1.0" ?>'
     $docType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">'
     $coverageXml = ConvertTo-XmlElement -Node $coverage
-    $document = "$xmlDeclaration`n$docType`n$coverageXml"
+    $document = "$xmlDeclaration`n$docType`n$(([System.Xml.XmlElement]$coverageXml).OuterXml)"
 
     $document
 }
@@ -1239,29 +1239,29 @@ function ConvertTo-XmlElement {
         [parameter(Mandatory = $true)] [object] $Node
     )
 
-    $element = [xml]"<$($Node.name)/>"
+    $element = ([xml]"<$($Node.name)/>").DocumentElement
     if ($node.attributes) {
         $attributes = $node.attributes
         foreach ($attr in $attributes.GetEnumerator()) {
-            $attribute = $element.OwnerDocument.CreateAttribute($attr.Name)
-            $attribute.Value = $attr.Value
-            $element.Attributes.SetNamedItem($attribute)
+            $element.SetAttribute($attr.Name, $attr.Value)
         }
     }
     if ($node.children) {
         $children = $node.children
         foreach ($child in $children.GetEnumerator()) {
-            $childElement = [xml]"<$($child.Name)/>"
+            $childElement = ([xml]"<$($child.Name)/>").DocumentElement
             if ($child.Value.value) {
-                $childElement.Value = $child.Value.value
+                $childElement.InnerText = $child.Value.value
             }
             else {
                 foreach ($value in $child.Value) {
                     $childXml = ConvertTo-XmlElement $value
-                    $childElement.AppendChild($childXml)
+                    $importedChildXml = $childElement.OwnerDocument.ImportNode($childXml, $true)
+                    $null = $childElement.AppendChild($importedChildXml)
                 }
             }
-            $element.AppendChild($childElement)
+            $importedChild = $element.OwnerDocument.ImportNode($childElement, $true)
+            $null = $element.AppendChild($importedChild)
         }
     }
 
