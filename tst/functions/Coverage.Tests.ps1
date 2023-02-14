@@ -471,7 +471,7 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
-                <?xml version="1.0"?>
+                <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
                 <coverage lines-valid="27" lines-covered="23" line-rate="0.851851851851852" branches-valid="0"
                     branches-covered="0" branch-rate="1" timestamp="">
