@@ -1142,7 +1142,7 @@ function Get-CoberturaReportXml {
                     'branch-rate' = 1
                 }
                 children     = [ordered]@{
-                    methods = $methods
+                    methods = $methods | & $SafeCommands["Sort-Object"] { $_.attributes.name }
                     lines   = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
                 }
                 totalLines   = $totalLines
@@ -1165,7 +1165,7 @@ function Get-CoberturaReportXml {
                 'branch-rate' = 0
             }
             children     = [ordered]@{
-                classes = $classes
+                classes = $classes | & $SafeCommands["Sort-Object"] { $_.attributes.name }
             }
             totalLines   = $totalLines
             coveredLines = $coveredLines
@@ -1194,7 +1194,7 @@ function Get-CoberturaReportXml {
                 name  = 'source'
                 value = $commonRoot.Replace('\', '/')
             }
-            packages = $packages
+            packages = $packages | & $SafeCommands["Sort-Object"] { $_.attributes.name }
         }
     }
 
