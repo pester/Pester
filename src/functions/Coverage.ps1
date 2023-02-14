@@ -1064,9 +1064,9 @@ function Get-CoberturaReportXml {
 
     $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
 
-    $allLines = [System.Collections.Generic.List[psobject]]@()
-    $allLines.AddRange($CoverageReport.HitCommands)
-    $allLines.AddRange($CoverageReport.MissedCommands)
+    $allLines = [System.Collections.Generic.List[object]]@()
+    $null = $allLines.AddRange($CoverageReport.HitCommands)
+    $null = $allLines.AddRange($CoverageReport.MissedCommands)
 
     $parentDirSelector = { & $SafeCommands["Split-Path"] $_.File -Parent }
 
