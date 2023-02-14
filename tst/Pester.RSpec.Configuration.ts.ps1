@@ -1136,7 +1136,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CILogLevel.Value | Verify-Equal Error
+            $r.Configuration.Output.CILogLevel.Value | Verify-Equal 'Error'
         }
 
         t "Output.CILogLevel is Warning when set" {
@@ -1152,7 +1152,7 @@ i -PassThru:$PassThru {
             }
 
             $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CILogLevel.Value | Verify-Equal Warning
+            $r.Configuration.Output.CILogLevel.Value | Verify-Equal 'Warning'
         }
 
         t "Exception is thrown when incorrect option is set" {
