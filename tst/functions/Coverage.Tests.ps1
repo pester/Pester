@@ -470,6 +470,7 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
+                $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
