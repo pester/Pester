@@ -1139,7 +1139,7 @@ function Get-CoberturaReportXml {
                 name         = 'class'
                 attributes   = [ordered]@{
                     name          = (& $SafeCommands["Split-Path"] $classGroup.Name -Leaf)
-                    filename      = $classGroup.Name.Substring($commonRoot.Length)
+                    filename      = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/')
                     'line-rate'   = $lineRate
                     'branch-rate' = 1
                 }
@@ -1161,7 +1161,7 @@ function Get-CoberturaReportXml {
         $package = [ordered]@{
             name         = 'package'
             attributes   = [ordered]@{
-                name          = $packageGroup.Name.Substring($commonRoot.Length)
+                name          = $packageGroup.Name.Substring($commonRoot.Length).Replace('\', '/')
                 'line-rate'   = $lineRate
                 'branch-rate' = 0
             }
@@ -1193,7 +1193,7 @@ function Get-CoberturaReportXml {
         children   = [ordered]@{
             sources  = [ordered]@{
                 name  = 'source'
-                value = $commonRoot
+                value = $commonRoot.Replace('\', '/')
             }
             packages = $packages
         }
@@ -1201,7 +1201,7 @@ function Get-CoberturaReportXml {
 
     $xmlDeclaration = '<?xml version="1.0" ?>'
     $docType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">'
-    $coverageXml = ConvertTo-XElement -Node $coverage
+    $coverageXml = ConvertTo-XmlElement -Node $coverage
     $document = "$xmlDeclaration`n$docType`n$coverageXml"
 
     $document
@@ -1234,32 +1234,34 @@ function Get-LineRate {
     $CoveredLines / $denominator
 }
 
-function ConvertTo-XElement {
+function ConvertTo-XmlElement {
     param(
         [parameter(Mandatory = $true)] [object] $Node
     )
 
-    $element = [System.Xml.Linq.XElement]"<$($Node.name)/>"
+    $element = [xml]"<$($Node.name)/>"
     if ($node.attributes) {
         $attributes = $node.attributes
-        foreach ($attribute in $attributes.GetEnumerator()) {
-            $element.SetAttributeValue($attribute.Name, $attribute.Value)
+        foreach ($attr in $attributes.GetEnumerator()) {
+            $attribute = $element.OwnerDocument.CreateAttribute($attr.Name)
+            $attribute.Value = $attr.Value
+            $element.Attributes.SetNamedItem($attribute)
         }
     }
     if ($node.children) {
         $children = $node.children
         foreach ($child in $children.GetEnumerator()) {
-            $childElement = [System.Xml.Linq.XElement]"<$($child.Name)/>"
+            $childElement = [xml]"<$($child.Name)/>"
             if ($child.Value.value) {
-                $childElement.SetValue($child.Value.value)
+                $childElement.Value = $child.Value.value
             }
             else {
-                $child.Value | & $SafeCommands["ForEach-Object"] {
-                    $childXml = ConvertTo-XElement $_
-                    $childElement.Add($childXml)
+                foreach ($value in $child.Value) {
+                    $childXml = ConvertTo-XmlElement $value
+                    $childElement.AppendChild($childXml)
                 }
             }
-            $element.Add($childElement)
+            $element.AppendChild($childElement)
         }
     }
 
