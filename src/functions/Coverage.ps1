@@ -1103,8 +1103,9 @@ function Get-CoberturaReportXml {
                 $method = [ordered]@{
                     name         = 'method'
                     attributes   = [ordered]@{
-                        name = $methodGroup.Name
-                        hits = $hits
+                        name      = $methodGroup.Name
+                        hits      = $hits
+                        signature = '()'
                     }
                     children     = [ordered]@{
                         lines = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
@@ -1119,7 +1120,7 @@ function Get-CoberturaReportXml {
             $methodsTotalLines = ($methods.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
             $methodsCoveredLines = ($methods.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
 
-            $classLineFilter = { $_.File -eq $classGroup.Name -and -not $_.Function }
+            $classLineFilter = { $_.File -eq $classGroup.Name }
 
             $coveredLines = $CoverageReport.HitCommands `
             | & $SafeCommands["Where-Object"] $classLineFilter `
@@ -1134,12 +1135,13 @@ function Get-CoberturaReportXml {
             $totalLines = $lines.Length + $methodsTotalLines
             $coveredLines = $coveredLines.Length + $methodsCoveredLines
             $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+            $filename = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
 
             $class = [ordered]@{
                 name         = 'class'
                 attributes   = [ordered]@{
                     name          = (& $SafeCommands["Split-Path"] $classGroup.Name -Leaf)
-                    filename      = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/')
+                    filename      = $filename
                     'line-rate'   = $lineRate
                     'branch-rate' = 1
                 }
@@ -1157,11 +1159,12 @@ function Get-CoberturaReportXml {
         $totalLines = ($classes.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
         $coveredLines = ($classes.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
         $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+        $packageName = $packageGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
 
         $package = [ordered]@{
             name         = 'package'
             attributes   = [ordered]@{
-                name          = $packageGroup.Name.Substring($commonRoot.Length).Replace('\', '/')
+                name          = $packageName
                 'line-rate'   = $lineRate
                 'branch-rate' = 0
             }
@@ -1249,20 +1252,22 @@ function ConvertTo-XmlElement {
     if ($node.children) {
         $children = $node.children
         foreach ($child in $children.GetEnumerator()) {
-            $childElement = ([xml]"<$($child.Name)/>").DocumentElement
-            if ($child.Value.value) {
-                $childElement.InnerText = $child.Value.value
+            if ($null -eq $child.Value) {
+                continue
             }
-            else {
-                foreach ($value in $child.Value) {
-                    $childXml = ConvertTo-XmlElement $value
-                    $importedChildXml = $childElement.OwnerDocument.ImportNode($childXml, $true)
-                    $null = $childElement.AppendChild($importedChildXml)
-                }
+
+            $childElement = ([xml]"<$($child.Name)/>").DocumentElement
+            foreach ($value in $child.Value) {
+                $childXml = ConvertTo-XmlElement $value
+                $importedChildXml = $childElement.OwnerDocument.ImportNode($childXml, $true)
+                $null = $childElement.AppendChild($importedChildXml)
             }
             $importedChild = $element.OwnerDocument.ImportNode($childElement, $true)
             $null = $element.AppendChild($importedChild)
         }
+    }
+    if ($node.value) {
+        $element.InnerText = $node.value
     }
 
     $element
