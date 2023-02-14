@@ -1123,36 +1123,19 @@ i -PassThru:$PassThru {
     }
 
     b "Output.CILogLevel" {
-        t "Output.CILogLevel is Error when set" {
+        t "Each option can be set and updated" {
             $c = [PesterConfiguration] @{
-                Run    = @{
+                Run = @{
                     ScriptBlock = { }
                     PassThru    = $true
                 }
-                Output = @{
-                    Verbosity  = "None"
-                    CILogLevel = "Error"
-                }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CILogLevel.Value | Verify-Equal 'Error'
-        }
-
-        t "Output.CILogLevel is Warning when set" {
-            $c = [PesterConfiguration] @{
-                Run    = @{
-                    ScriptBlock = { }
-                    PassThru    = $true
-                }
-                Output = @{
-                    Verbosity  = "None"
-                    CILogLevel = "Warning"
-                }
+            foreach ($option in "Error", "Warning") {
+                $c.Output.CILogLevel = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CILogLevel.Value | Verify-Equal $option
             }
-
-            $r = Invoke-Pester -Configuration $c
-            $r.Configuration.Output.CILogLevel.Value | Verify-Equal 'Warning'
         }
 
         t "Exception is thrown when incorrect option is set" {
@@ -1168,12 +1151,12 @@ i -PassThru:$PassThru {
                     PassThru    = $true
                 }
                 Output = @{
-                    CILogLevel = "Something"
+                    CIFormat = 'None'
+                    CILogLevel = 'Something'
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI log level 'Something'"
+            { Invoke-Pester -Configuration $c } | Verify-Throw
         }
     }
 
