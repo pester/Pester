@@ -471,174 +471,81 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot').Replace($root.Replace('\', '/'), 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
-                <?xml version="1.0" encoding="utf-8"?>
-                <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>
-                <coverage
-                        lines-valid="16" lines-covered="14" line-rate="0.875"
-                        branches-valid="0" branches-covered="0" branch-rate="1"
-                        timestamp=""
-                        complexity="0"
-                        version="0.1">
-                    <sources><source>CommonRoot</source></sources>
+                <?xml version="1.0" ?>
+                <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
+                <coverage lines-valid="16" lines-covered="14" line-rate="0.875" branches-valid="0"
+                    branches-covered="0" branch-rate="1" timestamp="">
+                    <sources>CommonRoot</sources>
                     <packages>
-                        <package name="" line-rate="0.866666666666667" branch-rate="1">
+                        <package name="" line-rate="0.8666666666666667" branch-rate="0">
                             <classes>
-                                <class name="TestScript" filename="TestScript.ps1" line-rate="0.857142857142857" branch-rate="1">
+                                <class name="TestScript.ps1" filename="/TestScript.ps1"
+                                    line-rate="0.8571428571428571" branch-rate="1">
                                     <methods>
-                                        <method name="NestedFunction" hits="1" signature="()">
+                                        <method name="FunctionOne" hits="6">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
                                                 <line number="9" hits="1" />
                                                 <line number="11" hits="1" />
                                                 <line number="12" hits="1" />
                                                 <line number="15" hits="1" />
                                                 <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="FunctionOne" hits="1" signature="()">
+                                        <method name="FunctionTwo" hits="0">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
                                                 <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="FunctionTwo" hits="0" signature="()">
+                                        <method name="MethodOne" hits="1">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
                                                 <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="&lt;script&gt;" hits="1" signature="()">
+                                        <method name="MethodTwo" hits="0">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
                                                 <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="MyClass" hits="1" signature="()">
+                                        <method name="MyClass" hits="1">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
                                                 <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
-                                        <method name="MethodOne" hits="1" signature="()">
+                                        <method name="NestedFunction" hits="2">
                                             <lines>
                                                 <line number="5" hits="1" />
                                                 <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
-                                            </lines>
-                                        </method>
-                                        <method name="MethodTwo" hits="0" signature="()">
-                                            <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
-                                                <line number="9" hits="1" />
-                                                <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
-                                                <line number="22" hits="0" />
-                                                <line number="25" hits="1" />
-                                                <line number="32" hits="1" />
-                                                <line number="37" hits="1" />
-                                                <line number="42" hits="0" />
-                                                <line number="46" hits="1" />
-                                                <line number="47" hits="1" />
                                             </lines>
                                         </method>
                                     </methods>
+                                    <lines>
+                                        <line number="25" hits="1" />
+                                        <line number="46" hits="1" />
+                                        <line number="47" hits="1" />
+                                    </lines>
                                 </class>
-                                <class name="TestScript2" filename="TestScript2.ps1" line-rate="1" branch-rate="1">
-                                    <methods>
-                                        <method name="&lt;script&gt;" hits="1" signature="()">
-                                            <lines>
-                                                <line number="1" hits="1" />
-                                            </lines>
-                                        </method>
-                                        </methods>
-                                    </class>
-                                </classes>
-                            </package>
-                            <package name="TestSubFolder" line-rate="1" branch-rate="1">
-                                <classes>
-                                    <class name="TestSubFolder/TestScript3" filename="TestSubFolder/TestScript3.ps1" line-rate="1" branch-rate="1">
-                                        <methods>
-                                            <method name="&lt;script&gt;" hits="1" signature="()">
-                                                <lines>
-                                                    <line number="1" hits="1" />
-                                                </lines>
-                                            </method>
-                                        </methods>
-                                    </class>
-                                </classes>
-                            </package>
-                        </packages>
-                    </coverage>
+                                <class name="TestScript2.ps1" filename="/TestScript2.ps1" line-rate="1"
+                                    branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="1" hits="1" />
+                                    </lines>
+                                </class>
+                            </classes>
+                        </package>
+                        <package name="/TestSubFolder" line-rate="1" branch-rate="0">
+                            <classes>
+                                <class name="TestScript3.ps1" filename="/TestSubFolder/TestScript3.ps1"
+                                    line-rate="1" branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="1" hits="1" />
+                                    </lines>
+                                </class>
+                            </classes>
+                        </package>
+                    </packages>
+                </coverage>
                 ')
             }
 

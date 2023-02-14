@@ -1062,198 +1062,208 @@ function Get-CoberturaReportXml {
     [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
-    $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
-        & $SafeCommands["Split-Path"] $_.File -Parent
+    $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+
+    $allLines = @()
+    foreach ($line in $CoverageReport.HitCommands) {
+        $allLines += $line
+    }
+    foreach ($line in $CoverageReport.MissedCommands) {
+        $allLines += $line
     }
 
-    $packageList = [System.Collections.Generic.List[psobject]]@()
+    $parentDirSelector = { & $SafeCommands["Split-Path"] $_.File -Parent }
 
-    $report = @{
-        Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
-        Line        = @{ Missed = 0; Covered = 0; Total = 0 }
-        Method      = @{ Missed = 0; Covered = 0; Total = 0 }
-        Class       = @{ Missed = 0; Covered = 0; Total = 0 }
-    }
+    $packageGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property $parentDirSelector
+    $packages = foreach ($packageGroup in $packageGroups) {
+        $classGroups = $packageGroup.Group | & $SafeCommands["Group-Object"] -Property File
+        $classes = foreach ($classGroup in $classGroups) {
+            $methodGroups = $classGroup.Group | & $SafeCommands["Group-Object"] -Property Function
+            $methods = foreach ($methodGroup in $methodGroups) {
+                if (!$methodGroup.Name) {
+                    continue
+                }
 
-    foreach ($folderGroup in $folderGroups) {
+                $methodLineFilter = { $_.File -eq $classGroup.Name -and $_.Function -eq $methodGroup.Name }
 
-        $package = @{
-            Name        = $folderGroup.Name
-            Classes     = [ordered] @{ }
-            Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
-            Line        = @{ Missed = 0; Covered = 0; Total = 0 }
-            Method      = @{ Missed = 0; Covered = 0; Total = 0 }
-            Class       = @{ Missed = 0; Covered = 0; Total = 0 }
+                $coveredLines = $CoverageReport.HitCommands `
+                | & $SafeCommands["Where-Object"] $methodLineFilter `
+                | & $SafeCommands["Group-Object"] -Property Line `
+                | New-LineNode
+
+                $lines = $allLines `
+                | & $SafeCommands["Where-Object"] $methodLineFilter `
+                | & $SafeCommands["Group-Object"] -Property Line `
+                | New-LineNode
+
+                $hits = [int](
+                    $lines.attributes.hits | & $SafeCommands["Measure-Object"] -Sum
+                ).Sum
+
+                $method = [ordered]@{
+                    name         = 'method'
+                    attributes   = [ordered]@{
+                        name = $methodGroup.Name
+                        hits = $hits
+                    }
+                    children     = [ordered]@{
+                        lines = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
+                    }
+                    totalLines   = $lines.Length
+                    coveredLines = $coveredLines.Length
+                }
+
+                $method
+            }
+
+            $methodsTotalLines = ($methods.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+            $methodsCoveredLines = ($methods.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+
+            $classLineFilter = { $_.File -eq $classGroup.Name -and -not $_.Function }
+
+            $coveredLines = $CoverageReport.HitCommands `
+            | & $SafeCommands["Where-Object"] $classLineFilter `
+            | & $SafeCommands["Group-Object"] -Property Line `
+            | New-LineNode
+
+            $lines = $allLines `
+            | & $SafeCommands["Where-Object"] $classLineFilter `
+            | & $SafeCommands["Group-Object"] -Property Line `
+            | New-LineNode
+
+            $totalLines = $lines.Length + $methodsTotalLines
+            $coveredLines = $coveredLines.Length + $methodsCoveredLines
+            $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+
+            $class = [ordered]@{
+                name         = 'class'
+                attributes   = [ordered]@{
+                    name          = (& $SafeCommands["Split-Path"] $classGroup.Name -Leaf)
+                    filename      = $classGroup.Name.Substring($commonRoot.Length)
+                    'line-rate'   = $lineRate
+                    'branch-rate' = 1
+                }
+                children     = [ordered]@{
+                    methods = $methods
+                    lines   = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
+                }
+                totalLines   = $totalLines
+                coveredLines = $coveredLines
+            }
+
+            $class
         }
 
-        foreach ($command in $folderGroup.Group) {
-            $file = $command.File
-            $function = $command.Function
-            if (!$function) { $function = '<script>' }
-            $line = $command.StartLine.ToString()
+        $totalLines = ($classes.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+        $coveredLines = ($classes.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+        $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
 
-            $missed = if ($command.Breakpoint.HitCount) { 0 } else { 1 }
-            $covered = if ($command.Breakpoint.HitCount) { 1 } else { 0 }
-            $total = 1
-
-            if (!$package.Classes.Contains($file)) {
-                $package.Class.Missed += $missed
-                $package.Class.Covered += $covered
-                $package.Class.Total += $total
-                $package.Classes.$file = @{
-                    Methods     = [ordered] @{ }
-                    Lines       = [ordered] @{ }
-                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
-                    Line        = @{ Missed = 0; Covered = 0; Total = 0 }
-                    Method      = @{ Missed = 0; Covered = 0; Total = 0 }
-                    Class       = @{ Missed = $missed; Covered = $covered; Total = $total }
-                }
+        $package = [ordered]@{
+            name         = 'package'
+            attributes   = [ordered]@{
+                name          = $packageGroup.Name.Substring($commonRoot.Length)
+                'line-rate'   = $lineRate
+                'branch-rate' = 0
             }
-
-            if (!$package.Classes.$file.Methods.Contains($function)) {
-                $package.Method.Missed += $missed
-                $package.Method.Covered += $covered
-                $package.Method.Total += $total
-                $package.Classes.$file.Method.Missed += $missed
-                $package.Classes.$file.Method.Covered += $covered
-                $package.Classes.$file.Method.Total += $total
-                $package.Classes.$file.Methods.$function = @{
-                    FirstLine   = $line
-                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
-                    Line        = @{ Missed = 0; Covered = 0; Total = 0 }
-                    Method      = @{ Missed = $missed; Covered = $covered; Total = $total }
-                }
+            children     = [ordered]@{
+                classes = $classes
             }
-
-            if (!$package.Classes.$file.Lines.Contains($line)) {
-                $package.Line.Missed += $missed
-                $package.Line.Covered += $covered
-                $package.Line.Total += $total
-                $package.Classes.$file.Line.Missed += $missed
-                $package.Classes.$file.Line.Covered += $covered
-                $package.Classes.$file.Line.Total += $total
-                $package.Classes.$file.Methods.$function.Line.Missed += $missed
-                $package.Classes.$file.Methods.$function.Line.Covered += $covered
-                $package.Classes.$file.Methods.$function.Line.Total += $total
-                $package.Classes.$file.Lines.$line = @{
-                    Instruction = @{ Missed = 0; Covered = 0; Total = 0 }
-                }
-            }
-
-            $package.Instruction.Missed += $missed
-            $package.Instruction.Covered += $covered
-            $package.Instruction.Total += $total
-            $package.Classes.$file.Instruction.Missed += $missed
-            $package.Classes.$file.Instruction.Covered += $covered
-            $package.Classes.$file.Instruction.Total += $total
-            $package.Classes.$file.Methods.$function.Instruction.Missed += $missed
-            $package.Classes.$file.Methods.$function.Instruction.Covered += $covered
-            $package.Classes.$file.Methods.$function.Instruction.Total += $total
-            $package.Classes.$file.Lines.$line.Instruction.Missed += $missed
-            $package.Classes.$file.Lines.$line.Instruction.Covered += $covered
-            $package.Classes.$file.Lines.$line.Instruction.Total += $total
+            totalLines   = $totalLines
+            coveredLines = $coveredLines
         }
 
-        $report.Class.Missed += $package.Class.Missed
-        $report.Class.Covered += $package.Class.Covered
-        $report.Class.Total += $package.Class.Total
-        $report.Method.Missed += $package.Method.Missed
-        $report.Method.Covered += $package.Method.Covered
-        $report.Method.Total += $package.Method.Total
-        $report.Line.Missed += $package.Line.Missed
-        $report.Line.Covered += $package.Line.Covered
-        $report.Line.Total += $package.Line.Total
-        $report.Instruction.Missed += $package.Instruction.Missed
-        $report.Instruction.Covered += $package.Instruction.Covered
-        $report.Instruction.Total += $package.Instruction.Total
-
-        $packageList.Add($package)
+        $package
     }
 
-    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+    $totalLines = ($packages.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+    $coveredLines = ($packages.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+    $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
 
-    # the Cobertura xml format without the doctype, as the XML stuff does not like DTD's.
-    $xmlDeclaration = '<?xml version="1.0" encoding="utf-8"?>'
-    $coberturaReport = $xmlDeclaration
-    $coberturaReport += '<coverage>'
-    $coberturaReport += "<sources><source>$commonParent</source></sources>"
-    $coberturaReport += '</coverage>'
-
-    [xml] $coberturaReportXml = $coberturaReport
-
-    $coverageElement = $coberturaReportXml.coverage
-    Add-XmlAttribute -Element $coverageElement -Attributes ([ordered]@{
-            'lines-valid'      = $report.Line.Total
-            'lines-covered'    = $report.Line.Covered
-            'line-rate'        = if ($report.Line.Total) { $report.Line.Covered / $report.Line.Total } else { 1 }
+    $coverage = [ordered]@{
+        name       = 'coverage'
+        attributes = [ordered]@{
+            'lines-valid'      = $totalLines
+            'lines-covered'    = $coveredLines
+            'line-rate'        = $lineRate
             'branches-valid'   = 0
             'branches-covered' = 0
             'branch-rate'      = 1
             timestamp          = $startTime
-            complexity         = 0
-            version            = '0.1'
-        })
-
-    $packagesElement = Add-XmlElement -Parent $coverageElement -Name 'packages'
-
-    foreach ($package in $packageList) {
-        $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
-
-        # "" in root and "sub-dir" elsewhere
-        $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
-            ""
         }
-        else {
-            $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
-            $packageRelativePathFormatted
-        }
-
-        $packageElement = Add-XmlElement -Parent $packagesElement -Name 'package' -Attributes ([ordered]@{
-                name          = ($packageName -replace "/$", "")
-                'line-rate'   = if ($package.Line.Total) { $package.Line.Covered / $package.Line.Total } else { 1 }
-                'branch-rate' = 1
-            })
-        $classesElement = Add-XmlElement -Parent $packageElement -Name 'classes'
-
-        foreach ($file in $package.Classes.Keys) {
-            $class = $package.Classes.$file
-            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = "$classElementRelativePath"
-            $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
-            $classElement = Add-XmlElement -Parent $classesElement -Name 'class' -Attributes ([ordered]@{
-                    name          = $classElementName
-                    filename      = $classElementRelativePath
-                    'line-rate'   = if ($class.Line.Total) { $class.Line.Covered / $class.Line.Total } else { 1 }
-                    'branch-rate' = 1
-                })
-            $methodsElement = Add-XmlElement -Parent $classElement -Name 'methods'
-
-            foreach ($function in $class.Methods.Keys) {
-                $method = $class.Methods.$function
-                $methodElement = Add-XmlElement -Parent $methodsElement -Name 'method' -Attributes ([ordered]@{
-                        name      = $function
-                        hits      = $method.Method.Covered
-                        signature = '()'
-                    })
-
-                $linesElement = Add-XmlElement -Parent $methodElement -Name 'lines'
-
-                foreach ($line in $class.Lines.Keys) {
-                    $null = Add-XmlElement -Parent $linesElement -Name 'line' -Attributes ([ordered]@{
-                            number = $line
-                            hits   = $class.Lines.$line.Instruction.Covered
-                        })
-                }
+        children   = [ordered]@{
+            sources  = [ordered]@{
+                name  = 'source'
+                value = $commonRoot
             }
-
+            packages = $packages
         }
     }
 
-    # There is no pretty way to insert the Doctype, as microsoft has deprecated the DTD stuff.
-    $coberturaReportDocType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd"[]>'
-    $xml = $coberturaReportXml.OuterXml.Insert($xmlDeclaration.Length, $coberturaReportDocType)
+    $xmlDeclaration = '<?xml version="1.0" ?>'
+    $docType = '<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">'
+    $coverageXml = ConvertTo-XElement -Node $coverage
+    $document = "$xmlDeclaration`n$docType`n$coverageXml"
 
-    return $xml
+    $document
+}
+
+function New-LineNode {
+    param(
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)] [object] $LineGroup
+    )
+
+    process {
+        [ordered]@{
+            name       = 'line'
+            attributes = [ordered]@{
+                number = [int]$LineGroup.Name
+                hits   = [int]($LineGroup.Group.HitCount | & $SafeCommands["Measure-Object"] -Sum).Sum
+            }
+        }
+    }
+}
+
+function Get-LineRate {
+    param(
+        [parameter(Mandatory = $true)] [int] $CoveredLines,
+        [parameter(Mandatory = $true)] [int] $TotalLines
+    )
+
+    [double]$denominator = if ($TotalLines) { $TotalLines } else { 1 }
+
+    $CoveredLines / $denominator
+}
+
+function ConvertTo-XElement {
+    param(
+        [parameter(Mandatory = $true)] [object] $Node
+    )
+
+    $element = [System.Xml.Linq.XElement]"<$($Node.name)/>"
+    if ($node.attributes) {
+        $attributes = $node.attributes
+        foreach ($attribute in $attributes.GetEnumerator()) {
+            $element.SetAttributeValue($attribute.Name, $attribute.Value)
+        }
+    }
+    if ($node.children) {
+        $children = $node.children
+        foreach ($child in $children.GetEnumerator()) {
+            $childElement = [System.Xml.Linq.XElement]"<$($child.Name)/>"
+            if ($child.Value.value) {
+                $childElement.SetValue($child.Value.value)
+            }
+            else {
+                $child.Value | & $SafeCommands["ForEach-Object"] {
+                    $childXml = ConvertTo-XElement $_
+                    $childElement.Add($childXml)
+                }
+            }
+            $element.Add($childElement)
+        }
+    }
+
+    $element
 }
 
 function Add-XmlElement {
