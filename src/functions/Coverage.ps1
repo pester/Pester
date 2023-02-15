@@ -1046,8 +1046,6 @@ function Get-JaCoCoReportXml {
 function Get-CoberturaReportXml {
     param (
         [parameter(Mandatory = $true)]
-        $CommandCoverage,
-        [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
         [long] $TotalMilliseconds
@@ -1065,32 +1063,52 @@ function Get-CoberturaReportXml {
     $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
 
     $allLines = [System.Collections.Generic.List[object]]@()
-    $null = $allLines.AddRange($CoverageReport.HitCommands)
     $null = $allLines.AddRange($CoverageReport.MissedCommands)
+    $null = $allLines.AddRange($CoverageReport.HitCommands)
+    $packages = @{}
+    foreach ($command in $allLines) {
+        $package = & $SafeCommands["Split-Path"] $command.File -Parent
+        if (!$packages[$package]) {
+            $packages[$package] = @{
+                Classes = @{}
+            }
+        }
 
-    $parentDirSelector = { & $SafeCommands["Split-Path"] $_.File -Parent }
+        $class = $command.File
+        if (!$packages[$package].Classes[$class]) {
+            $packages[$package].Classes[$class] = @{
+                Methods = @{}
+                Lines   = @{}
+            }
+        }
 
-    $packageGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property $parentDirSelector
-    $packages = foreach ($packageGroup in $packageGroups) {
-        $classGroups = $packageGroup.Group | & $SafeCommands["Group-Object"] -Property File
-        $classes = foreach ($classGroup in $classGroups) {
-            $methodGroups = $classGroup.Group | & $SafeCommands["Group-Object"] -Property Function
-            $methods = foreach ($methodGroup in $methodGroups) {
-                if (!$methodGroup.Name) {
-                    continue
-                }
+        if (!$packages[$package].Classes[$class].Lines[$command.Line]) {
+            $packages[$package].Classes[$class].Lines[$command.Line] = [ordered]@{ number = $command.Line ; hits = 0 }
+        }
+        $packages[$package].Classes[$class].Lines[$command.Line].hits += $command.HitCount
 
-                $methodLineFilter = { $_.File -eq $classGroup.Name -and $_.Function -eq $methodGroup.Name }
+        $method = $command.Function
+        if (!$method) {
+            continue
+        }
 
-                $coveredLines = $CoverageReport.HitCommands `
-                | & $SafeCommands["Where-Object"] $methodLineFilter `
-                | & $SafeCommands["Group-Object"] -Property Line `
-                | New-LineNode
+        if (!$packages[$package].Classes[$class].Methods[$method]) {
+            $packages[$package].Classes[$class].Methods[$method] = @{}
+        }
 
-                $lines = $allLines `
-                | & $SafeCommands["Where-Object"] $methodLineFilter `
-                | & $SafeCommands["Group-Object"] -Property Line `
-                | New-LineNode
+        if (!$packages[$package].Classes[$class].Methods[$method][$command.Line]) {
+            $packages[$package].Classes[$class].Methods[$method][$command.Line] = [ordered]@{ number = $command.Line ; hits = 0 }
+        }
+        $packages[$package].Classes[$class].Methods[$method][$command.Line].hits += $command.HitCount
+    }
+
+    $packages = foreach ($packageGroup in $packages.GetEnumerator()) {
+        $classGroups = $packageGroup.Value.Classes
+        $classes = foreach ($classGroup in $classGroups.GetEnumerator()) {
+            $methodGroups = $classGroup.Value.Methods
+            $methods = foreach ($methodGroup in $methodGroups.GetEnumerator()) {
+                $lines = ([object[]]$methodGroup.Value.Values) | New-LineNode
+                $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
 
                 $method = [ordered]@{
                     name         = 'method'
@@ -1108,24 +1126,10 @@ function Get-CoberturaReportXml {
                 $method
             }
 
-            $methodsTotalLines = ($methods.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
-            $methodsCoveredLines = ($methods.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+            $lines = ([object[]]$classGroup.Value.Lines.Values) | New-LineNode
+            $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
 
-            $classLineFilter = { $_.File -eq $classGroup.Name }
-
-            $coveredLines = $CoverageReport.HitCommands `
-            | & $SafeCommands["Where-Object"] $classLineFilter `
-            | & $SafeCommands["Group-Object"] -Property Line `
-            | New-LineNode
-
-            $lines = $allLines `
-            | & $SafeCommands["Where-Object"] $classLineFilter `
-            | & $SafeCommands["Group-Object"] -Property Line `
-            | New-LineNode
-
-            $totalLines = $lines.Length + $methodsTotalLines
-            $coveredLines = $coveredLines.Length + $methodsCoveredLines
-            $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+            $lineRate = Get-LineRate -CoveredLines $coveredLines.Length -TotalLines $lines.Length
             $filename = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
 
             $class = [ordered]@{
@@ -1140,8 +1144,8 @@ function Get-CoberturaReportXml {
                     methods = $methods | & $SafeCommands["Sort-Object"] { $_.attributes.name }
                     lines   = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
                 }
-                totalLines   = $totalLines
-                coveredLines = $coveredLines
+                totalLines   = $lines.Length
+                coveredLines = $coveredLines.Length
             }
 
             $class
@@ -1204,16 +1208,13 @@ function Get-CoberturaReportXml {
 
 function New-LineNode {
     param(
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)] [object] $LineGroup
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)] [object] $LineObject
     )
 
     process {
         [ordered]@{
             name       = 'line'
-            attributes = [ordered]@{
-                number = [int]$LineGroup.Name
-                hits   = [int]($LineGroup.Group.HitCount | & $SafeCommands["Measure-Object"] -Sum).Sum
-            }
+            attributes = $LineObject
         }
     }
 }

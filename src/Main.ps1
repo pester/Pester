@@ -1157,7 +1157,7 @@ function Invoke-Pester {
                     [xml] $coverageXmlReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
                 }
                 elseif ("Cobertura" -eq $configuration.OutputFormat) {
-                    [xml] $coverageXmlReport = [xml] (Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport)
+                    [xml] $coverageXmlReport = [xml] (Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds)
                 }
                 else {
                     throw "CodeCoverage.CoverageFormat must be 'JaCoCo', 'CoverageGutters', or 'Cobertura' but it was $($configuration.OutputFormat), please review your configuration."

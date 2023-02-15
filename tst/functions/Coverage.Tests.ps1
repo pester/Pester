@@ -466,7 +466,7 @@ InPesterModuleScope {
             }
 
             It 'Cobertura report must be correct' {
-                [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport
+                [String]$coberturaReportXml = Get-CoberturaReportXml -TotalMilliseconds 10000 -CoverageReport $coverageReport
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
@@ -474,22 +474,16 @@ InPesterModuleScope {
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">
-                <coverage
-                        lines-valid="27"
-                        lines-covered="23"
-                        line-rate="0.851851851851852"
-                        branches-valid="0"
-                        branches-covered="0"
-                        branch-rate="1"
-                        timestamp=""
-                        version="0.1">
+                <coverage lines-valid="16" lines-covered="14" line-rate="0.875" branches-valid="0"
+                    branches-covered="0" branch-rate="1" timestamp="" version="0.1">
                     <sources>
                         <source>CommonRoot</source>
                     </sources>
                     <packages>
-                        <package name="" line-rate="0.846153846153846" branch-rate="0">
+                        <package name="" line-rate="0.866666666666667" branch-rate="0">
                             <classes>
-                                <class name="TestScript.ps1" filename="TestScript.ps1" line-rate="0.84" branch-rate="1">
+                                <class name="TestScript.ps1" filename="TestScript.ps1" line-rate="0.857142857142857"
+                                    branch-rate="1">
                                     <methods>
                                         <method name="FunctionOne" signature="()">
                                             <lines>
@@ -578,7 +572,7 @@ InPesterModuleScope {
 
             It 'Cobertura returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
-                [String]$coberturaReportXml = Get-CoberturaReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport
+                [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000
                 $coberturaReportXml | Should -Not -Be $null
                 $coberturaReportXml | Should -Be ([String]::Empty)
             }
