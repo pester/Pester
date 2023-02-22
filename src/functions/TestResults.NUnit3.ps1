@@ -105,9 +105,9 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
         }
 
         # likely a BeforeAll/AfterAll error
-        if ($Node.ErrorRecord.Count -gt 0) { Write-NUnitFailureElement -TestResult $Node -XmlWriter $XmlWriter }
+        if ($Node.ErrorRecord.Count -gt 0) { Write-NUnit3FailureElement -TestResult $Node -XmlWriter $XmlWriter }
 
-        if ($Node.StandardOutput) { Write-NUnitOutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
+        if ($Node.StandardOutput) { Write-NUnit3OutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
     }
 
     $blockGroups = @(
@@ -452,14 +452,11 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
         Skipped { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
         Pending { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
         Inconclusive { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
-        Failed {
-            Write-NUnitFailureElement -TestResult $TestResult -XmlWriter $XmlWriter
-            break
-        }
+        Failed { Write-NUnit3FailureElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
     }
 
     if ($TestResult.StandardOutput) {
-        Write-NUnitOutputElement -Output $TestResult.StandardOutput -XmlWriter $XmlWriter
+        Write-NUnit3OutputElement -Output $TestResult.StandardOutput -XmlWriter $XmlWriter
     }
 
     $XmlWriter.WriteEndElement()
@@ -468,7 +465,7 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
 function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
     # add parameters to name for testcase with data when not using variables in name
     if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
-        $paramString = Get-NUnitParamString -Node $TestResult
+        $paramString = Get-NUnit3ParamString -Node $TestResult
         $name = "$($TestResult.Name)$paramString"
         $fullname = "$($TestResult.ExpandedPath)$paramString"
     }
@@ -506,7 +503,7 @@ function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $Xm
     $XmlWriter.WriteAttributeString('asserts', '1') # required attr, so hardcoding 1:1 per testcase
 }
 
-function Write-NUnitOutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
     $outputString = @(foreach ($o in $Output) { $o.ToString() }) -join [System.Environment]::NewLine
 
     $XmlWriter.WriteStartElement('output')
@@ -514,7 +511,7 @@ function Write-NUnitOutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitFailureElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3FailureElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
     # TODO: remove monkey patching the error message when parent setup failed so this test never run
     # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
@@ -566,7 +563,7 @@ function Get-NUnit3NodeId {
     else { '' }
 }
 
-function Get-NUnitParamString ($Node) {
+function Get-NUnit3ParamString ($Node) {
     $paramString = ''
     if ($null -ne $Node.Data) {
         $params = @(
