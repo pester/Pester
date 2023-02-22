@@ -8,8 +8,8 @@ namespace Pester.Tracing
 {
     public class CodeCoverageTracer : ITracer
     {
-        bool _debug;
-        string _debugFile;
+        private readonly bool _debug;
+        private readonly string _debugFile;
 
         public static CodeCoverageTracer Create(List<CodeCoveragePoint> points)
         {
