@@ -24,32 +24,26 @@ namespace Pester
     {
         public ScriptBlockArrayOption(ScriptBlockArrayOption option, ScriptBlock[] value) : base(option, value)
         {
-
         }
 
         public ScriptBlockArrayOption(string description, ScriptBlock[] defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public ScriptBlockArrayOption(string description, ScriptBlock[] defaultValue, ScriptBlock[] value) : base(description, defaultValue, value)
         {
-
         }
 
         public ScriptBlockArrayOption(object[] value) : base("", new ScriptBlock[0], value.Cast<ScriptBlock>().ToArray())
         {
-
         }
 
         public ScriptBlockArrayOption(ScriptBlock[] value) : base("", new ScriptBlock[0], value)
         {
-
         }
 
         public ScriptBlockArrayOption(ScriptBlock value) : this(new ScriptBlock[] { value })
         {
-
         }
 
         public static implicit operator ScriptBlockArrayOption(ScriptBlock[] value)

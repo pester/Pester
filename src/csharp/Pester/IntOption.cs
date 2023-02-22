@@ -21,17 +21,14 @@ namespace Pester
     {
         public IntOption(IntOption option, int value) : base(option, value)
         {
-
         }
 
         public IntOption(string description, int defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public IntOption(string description, int defaultValue, int value) : base(description, defaultValue, value)
         {
-
         }
 
         public static implicit operator IntOption(int value)

@@ -21,7 +21,6 @@ namespace Pester
 {
     public class ShouldConfiguration : ConfigurationSection
     {
-
         private StringOption _errorAction;
 
         public static ShouldConfiguration Default { get { return new ShouldConfiguration(); } }

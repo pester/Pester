@@ -41,7 +41,6 @@ namespace Pester.Tracing
                     var pointsOnLineAndColumn = hits[key];
                     pointsOnLineAndColumn.Add(point);
                 }
-
             }
         }
 
@@ -67,7 +66,6 @@ namespace Pester.Tracing
                     }
                     Console.WriteLine($"DBG: {message?.Trim()}");
                     Console.WriteLine($"EXP: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
-
                 }
                 finally
                 {
@@ -84,7 +82,6 @@ namespace Pester.Tracing
             var key2 = $"{extent.StartLineNumber}:{extent.StartColumnNumber}";
             if (!lineColumn.ContainsKey(key2))
                 return;
-
 
             var points = lineColumn[key2];
             if (points.TrueForAll(a => a.Hit))
