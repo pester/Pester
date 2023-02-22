@@ -79,7 +79,7 @@ namespace Pester
                 string path = values[i]?.ToString();
                 strings.Add(path);
             }
-            
+
             return strings.ToArray();
         }
     }
