@@ -57,9 +57,9 @@ namespace Pester
             if (!dictionary.Contains(key))
                 return null;
 
-            if (dictionary[key] is PSObject)
+            if (dictionary[key] is PSObject pso)
             {
-                return ((PSObject)dictionary[key]).BaseObject as IDictionary;
+                return pso.BaseObject as IDictionary;
             }
             else
             {
@@ -96,9 +96,9 @@ namespace Pester
                     var i = 0;
                     foreach (var j in v)
                     {
-                        if (j is T)
+                        if (j is T t)
                         {
-                            arr[i] = (T) j;
+                            arr[i] = t;
                         }
 
                         if (j is PSObject || j is PathInfo)
