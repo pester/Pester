@@ -38,10 +38,7 @@ namespace Pester
 
         public ShouldConfiguration(IDictionary configuration) : this()
         {
-            if (configuration != null)
-            {
-                configuration.AssignObjectIfNotNull<string>(nameof(ErrorAction), v => ErrorAction = v);
-            }
+            configuration?.AssignObjectIfNotNull<string>(nameof(ErrorAction), v => ErrorAction = v);
         }
 
         public StringOption ErrorAction
