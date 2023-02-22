@@ -39,7 +39,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
     private Hashtable ConvertToConfigurationHashtable(PSObject sourceConfiguration)
     {
-        Hashtable configuration = new Hashtable();
+        Hashtable configuration = new();
 
         foreach (var property in sourceConfiguration.Properties)
         {
@@ -57,7 +57,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
     private Hashtable ConvertToSectionHashtable(PSObject sourceSection, string sectionName)
     {
-        Hashtable configurationSection = new Hashtable();
+        Hashtable configurationSection = new();
 
         foreach (var property in sourceSection.Properties)
         {
@@ -96,7 +96,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         if (expectedType == typeof(ScriptBlock[]))
         {
-            ArrayList scriptBlocks = new ArrayList();
+            ArrayList scriptBlocks = new();
             foreach (string scriptBlock in (ArrayList)value)
             {
                 scriptBlocks.Add(ScriptBlock.Create(scriptBlock));
@@ -106,7 +106,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         if (expectedType == typeof(ContainerInfo[]))
         {
-            ArrayList containers = new ArrayList();
+            ArrayList containers = new();
             foreach (PSObject container in (ArrayList)value)
             {
                 var containerInfo = Pester.ContainerInfo.Create();
