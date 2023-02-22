@@ -8,7 +8,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 {
     public override bool CanConvertFrom(object sourceValue, Type destinationType)
     {
-        if (!(sourceValue is PSObject))
+        if (sourceValue is not PSObject)
             return false;
 
         return ((PSObject)sourceValue).TypeNames.Contains("Deserialized.PesterConfiguration");
