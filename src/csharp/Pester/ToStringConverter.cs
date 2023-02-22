@@ -7,17 +7,14 @@ namespace Pester
     {
         static string ResultToString(string result)
         {
-            switch (result) {
-                case "Passed" :
-                    return "[+]";
-                case "Failed":
-                    return "[-]";
-                case "Skipped":
-                    return "[!]";
-                case "NotRun":
-                    return "[ ]";
-                default: return "[ERR]";
-            }
+            return result switch
+            {
+                "Passed" => "[+]",
+                "Failed" => "[-]",
+                "Skipped" => "[!]",
+                "NotRun" => "[ ]",
+                _ => "[ERR]",
+            };
         }
 
         internal static string ContainerToString(Container container)
