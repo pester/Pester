@@ -26,7 +26,7 @@ namespace Pester
                     path = container.Item.ToString();
                     break;
                 case Constants.ScriptBlock:
-                    path = $"<ScriptBlock>";
+                    path = "<ScriptBlock>";
                     if (container.Item is ScriptBlock s) {
                         if (!string.IsNullOrWhiteSpace(s.File))
                         {
