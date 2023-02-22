@@ -123,10 +123,7 @@ namespace Pester.Tracing
             // replace it with out patched up UI that writes to profiler on debug
             externalUIField.SetValue(ui, new TracerHostUI(externalUI, (message) => TraceLine(message, false)));
 
-            ResetUI = () =>
-            {
-                externalUIField.SetValue(ui, externalUI);
-            };
+            ResetUI = () => externalUIField.SetValue(ui, externalUI);
 
             // getting MethodInfo of context._context.Debugger.TraceLine
             var bf = BindingFlags.NonPublic | BindingFlags.Instance;
