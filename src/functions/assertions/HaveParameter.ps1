@@ -47,19 +47,21 @@
             Author: Brian West
         #>
 
-        # Find param block
+        # Find parameters
         $ast = $Command.ScriptBlock.Ast
 
         if ($null -ne $ast) {
-            $paramBlock = $ast.FindAll(
-                {
-                    param($Item)
-                    return ($Item -is [System.Management.Automation.Language.ParamBlockAst])
-                },
-                $true
-            )
+            if ($null -ne $ast.Parameters) {
+                $parameters = $ast.Parameters
+            }
+            elseif ($null -ne $ast.Body.ParamBlock) {
+                $parameters = $ast.Body.ParamBlock.Parameters
+            }
+            else {
+                return
+            }
 
-            foreach ($parameter in $paramBlock.Parameters) {
+            foreach ($parameter in $parameters) {
                 $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
                     Name             = $parameter.Name.VariablePath.UserPath
                     DefaultValueType = $parameter.StaticType.Name
