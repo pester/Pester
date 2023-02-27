@@ -434,7 +434,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     }
 
     $suites = @(
-        # todo: what is this? is it ordering tests into groups based on which test cases they belong to so we data driven tests in one result?
+        # Tests only have Id if parameterized. All other tests are put in group with '' value
         $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
     )
 

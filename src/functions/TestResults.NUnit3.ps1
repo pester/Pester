@@ -466,11 +466,11 @@ function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $Xm
     # add parameters to name for testcase with data when not using variables in name
     if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
         $paramString = Get-NUnit3ParamString -Node $TestResult
-        $name = "$($TestResult.Name)$paramString"
+        #$name = "$($TestResult.Name)$paramString"
         $fullname = "$($TestResult.ExpandedPath)$paramString"
     }
     else {
-        $name = $TestResult.ExpandedName
+        #$name = $TestResult.ExpandedName
         $fullname = $TestResult.ExpandedPath
     }
 
@@ -478,7 +478,9 @@ function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $Xm
     $runstate = if ($TestResult.Skip) { 'Ignored' } else { 'Runnable' }
 
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
-    $XmlWriter.WriteAttributeString('name', $fullname)  # should be $name, but CI-reports don't show the tree-view
+    # Workaround - name-attribute should be $name, but CI-reports don't show the tree-view nor use fullname
+    # See https://github.com/pester/Pester/issues/1530#issuecomment-1186187298
+    $XmlWriter.WriteAttributeString('name', $fullname)
     $XmlWriter.WriteAttributeString('fullname', $fullname)
     $XmlWriter.WriteAttributeString('methodname', $TestResult.Name)
     $XmlWriter.WriteAttributeString('classname', $TestResult.Block.Path -join '.')
