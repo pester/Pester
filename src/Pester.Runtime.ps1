@@ -1486,6 +1486,7 @@ function Invoke-ScriptBlock {
                 finally {
                     if ($null -ne $______parameters.Teardown -and $______parameters.Teardown.Length -gt 0) {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner teardowns" }
+                        if ($______parameters.MoveBetweenScopes) { & $______parameters.SwitchTimerUserCode }
                         foreach ($______current in $______parameters.Teardown) {
                             try {
                                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running inner teardown { $______current }" }
@@ -1516,6 +1517,7 @@ function Invoke-ScriptBlock {
 
             if ($null -ne $______parameters.OuterTeardown -and $______parameters.OuterTeardown.Length -gt 0) {
                 if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer teardowns" }
+                if ($______parameters.MoveBetweenScopes) { & $______parameters.SwitchTimerUserCode }
                 foreach ($______current in $______parameters.OuterTeardown) {
                     try {
                         if ($______parameters.EnableWriteDebug) { &$______parameters.WriteDebug "Running outer teardown { $______current }" }
@@ -1556,6 +1558,13 @@ function Invoke-ScriptBlock {
         }
     }
 
+    $switchTimerUserCode = if ($MoveBetweenScopes) {
+        {
+            $state.UserCodeStopWatch.Start()
+            $state.FrameworkStopWatch.Stop()
+        }
+    }
+
     #$break = $true
     $err = $null
     try {
@@ -1573,6 +1582,8 @@ function Invoke-ScriptBlock {
             WriteDebug                    = $writeDebug
             Configuration                 = $Configuration
             NoNewScope                    = $NoNewScope
+            MoveBetweenScopes             = $MoveBetweenScopes
+            SwitchTimerUserCode           = $switchTimerUserCode
         }
 
         # here we are moving into the user scope if the provided
