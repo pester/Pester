@@ -51,7 +51,7 @@ stages:
           clean: all
         pool:
           vmImage: windows-2022
-        timeoutInMinutes: 3
+        timeoutInMinutes: 5
         steps:
           - checkout: self
             fetchDepth: 1
