@@ -1,8 +1,12 @@
 ﻿function Get-CoveragePlugin {
-    New-PluginObject -Name "Coverage" -Start {
+    $p = @{
+        Name = 'Coverage'
+    }
+
+    $p.Start = {
         param($Context)
 
-        if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'JaCoCo', 'CoverageGutters') {
+        if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin 'JaCoCo', 'CoverageGutters') {
             throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($PesterPreference.CodeCoverage.OutputFormat.Value), please review your configuration."
         }
 
@@ -51,7 +55,9 @@
 
         # Save PluginConfiguration for Coverage
         $Context.Configuration['Coverage'] = $CodeCoverage
-    } -RunStart {
+    }
+
+    $p.RunStart = {
         param($Context)
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -99,7 +105,9 @@
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
             Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
         }
-    } -RunEnd {
+    }
+
+    $p.RunEnd = {
         param($Context)
 
         $config = $Context.Configuration['Coverage']
@@ -119,7 +127,9 @@
             # we used breakpoints to measure CC, clean them up
             Exit-CoverageAnalysis -CommandCoverage $coverageData.CommandCoverage
         }
-    } -End {
+    }
+
+    $p.End = {
         param($Context)
 
         $run = $Context.TestRun
@@ -202,4 +212,6 @@
 
         $run.CodeCoverage = $coverage
     }
+
+    New-PluginObject @p
 }
