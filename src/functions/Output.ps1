@@ -1,4 +1,4 @@
-﻿$script:ReportStrings = DATA {
+$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
