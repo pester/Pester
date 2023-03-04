@@ -953,24 +953,6 @@ function Invoke-Pester {
                 [PesterConfiguration] $PesterPreference = [PesterConfiguration]::Merge($callerPreference, $Configuration)
             }
 
-            if ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
-
-                # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
-                # Do not fix this to check for boolean value, the value is set to literal string 'True'
-                if ($env:TF_BUILD -eq 'True') {
-                    $PesterPreference.Output.CIFormat = 'AzureDevops'
-                }
-                # Variable is set to 'True' if the script is being run by a Github Actions workflow. https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
-                # Do not fix this to check for boolean value, the value is set to literal string 'True'
-                elseif ($env:GITHUB_ACTIONS -eq 'True') {
-                    $PesterPreference.Output.CIFormat = 'GithubActions'
-                }
-
-                else {
-                    $PesterPreference.Output.CIFormat = 'None'
-                }
-            }
-
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
@@ -980,41 +962,11 @@ function Invoke-Pester {
             $pluginData = @{}
             $plugins = @()
 
-            # Verify this before WriteScreenPlugin because of Write-PesterStart and Write-PesterDebugMessage
-            if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
-                throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
-            }
-
-            if ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
-                if ($null -ne $env:NO_COLOR) {
-                    # https://no-color.org/)
-                    $PesterPreference.Output.RenderMode = 'Plaintext'
-                }
-                elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
-                    $PesterPreference.Output.RenderMode = 'Ansi'
-                }
-                else {
-                    $PesterPreference.Output.RenderMode = 'ConsoleColor'
-                }
-            }
+            # Processing Output-configuration before any use of Write-PesterStart and Write-PesterDebugMessage
+            Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
-            }
-
-            if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
-                # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
-                $PesterPreference.Debug.WriteDebugMessages = $true
-                $missingCategories = foreach ($category in @("Discovery", "Skip", "Mock", "CodeCoverage")) {
-                    if ($PesterPreference.Debug.WriteDebugMessagesFrom.Value -notcontains $category) {
-                        $category
-                    }
-                }
-                $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
-            }
-
-            if ($PesterPreference.Debug.ShowFullErrors.Value) {
-                $PesterPreference.Output.StackTraceVerbosity = "Full"
             }
 
             $plugins +=
