@@ -1042,3 +1042,27 @@ function Get-GroupResult ($InputObject) {
     }
     return 'Success'
 }
+
+function Get-TestResultPlugin {
+    $p = @{
+        Name = 'TestResult'
+    }
+
+    $p.Start = {
+        param($Context)
+
+        if ($PesterPreference.TestResult.OutputFormat.Value -notin 'NUnitXml', 'NUnit2.5', 'JUnitXml') {
+            throw "Unsupported TestResult.OutputFormat option '$($PesterPreference.TestResult.OutputFormat.Value)'"
+        }
+    }
+
+    $p.End = {
+        param($Context)
+
+        $run = $Context.TestRun
+        $testResultConfig = $PesterPreference.TestResult
+        Export-PesterResults -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value
+    }
+
+    New-PluginObject @p
+}

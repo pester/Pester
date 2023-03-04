@@ -1,4 +1,4 @@
-﻿function Assert-ValidAssertionName {
+function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -1080,10 +1080,6 @@ function Invoke-Pester {
                     Configuration    = $pluginConfiguration
                     GlobalPluginData = $pluginData
                 } -ThrowOnFailure
-            }
-
-            if ($PesterPreference.TestResult.Enabled.Value) {
-                Export-PesterResults -Result $run -Path $PesterPreference.TestResult.OutputPath.Value -Format $PesterPreference.TestResult.OutputFormat.Value
             }
 
             if (-not $PesterPreference.Debug.ReturnRawResultObject.Value) {
