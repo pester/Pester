@@ -1,4 +1,4 @@
-function Assert-ValidAssertionName {
+﻿function Assert-ValidAssertionName {
     param([string]$Name)
     if ($Name -notmatch '^\S+$') {
         throw "Assertion name '$name' is invalid, assertion name must be a single word."
@@ -960,47 +960,50 @@ function Invoke-Pester {
 
             $pluginConfiguration = @{}
             $pluginData = @{}
-            $plugins = @()
+            $plugins = [System.Collections.Generic.List[object]]@()
 
             # Processing Output-configuration before any use of Write-PesterStart and Write-PesterDebugMessage
             Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
-                $plugins += Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value
+                $plugins.Add((Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value))
             }
 
-            $plugins +=
-            @(
+            $plugins.Add((
                 # decorator plugin needs to be added after output
                 # because on teardown they will run in opposite order
                 # and that way output can consume the fixed object that decorator
                 # decorated, not nice but works
                 Get-RSpecObjectDecoratorPlugin
-            )
+            ))
 
             if ($PesterPreference.TestDrive.Enabled.Value) {
-                $plugins += @(Get-TestDrivePlugin)
+                $plugins.Add((Get-TestDrivePlugin))
             }
 
             if ($PesterPreference.TestRegistry.Enabled.Value -and "Windows" -eq (GetPesterOs)) {
-                $plugins += @(Get-TestRegistryPlugin)
+                $plugins.Add((Get-TestRegistryPlugin))
             }
 
-            $plugins += @(Get-MockPlugin)
+            $plugins.Add((Get-MockPlugin))
 
             if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
                 throw "Unsupported Run.SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
             }
             else {
-                $plugins += @(Get-SkipRemainingOnFailurePlugin)
+                $plugins.Add((Get-SkipRemainingOnFailurePlugin))
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
-                $plugins += (Get-CoveragePlugin)
+                $plugins.Add((Get-CoveragePlugin))
+            }
+
+            if ($PesterPreference.TestResult.Enabled.Value) {
+                $plugins.Add((Get-TestResultPlugin))
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
+            if (defined additionalPlugins) { $plugins.AddRange(@($script:additionalPlugins)) }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
