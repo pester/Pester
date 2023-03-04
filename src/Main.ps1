@@ -691,241 +691,17 @@ function Invoke-Pester {
 
     end {
         try {
+            # populate config from parameters and remove them (variables) so we
+            # don't inherit them to child functions by accident
             if ('Simple' -eq $PSCmdlet.ParameterSetName) {
-                # populate config from parameters and remove them so we
-                # don't inherit them to child functions by accident
-
-                $Configuration = [PesterConfiguration]::Default
-
-                if ($PSBoundParameters.ContainsKey('Path')) {
-                    if ($null -ne $Path) {
-                        if (@($Path)[0] -is [System.Collections.IDictionary]) {
-                            throw "Passing hashtable configuration to -Path / -Script is currently not supported in Pester 5.0. Please provide just paths, as an array of strings."
-                        }
-
-                        $Configuration.Run.Path = $Path
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Path' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('ExcludePath')) {
-                    if ($null -ne $ExcludePath) {
-                        $Configuration.Run.ExcludePath = $ExcludePath
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'ExcludePath' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('TagFilter')) {
-                    if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
-                        $Configuration.Filter.Tag = $TagFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'TagFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
-                        $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'ExcludeTagFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
-                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
-                        $Configuration.Filter.FullName = $FullNameFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'FullNameFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('CI')) {
-                    if ($CI) {
-                        $Configuration.Run.Exit = $true
-                        $Configuration.TestResult.Enabled = $true
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'CI' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('Output')) {
-                    if ($null -ne $Output) {
-                        $Configuration.Output.Verbosity = $Output
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Output' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('PassThru')) {
-                    if ($null -ne $PassThru) {
-                        $Configuration.Run.PassThru = [bool] $PassThru
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'PassThru' -Scope Local | Remove-Variable
-                }
-
-
-                if ($PSBoundParameters.ContainsKey('Container')) {
-                    if ($null -ne $Container) {
-                        $Configuration.Run.Container = $Container
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Container' -Scope Local | Remove-Variable
-                }
+                # dot-sourcing the function to allow removing local variables
+                $Configuration = . Convert-PesterSimpleParameterSet -BoundParameters $PSBoundParameters
             }
+            elseif ('Legacy' -eq $PSCmdlet.ParameterSetName) {
+                & $SafeCommands['Write-Warning'] 'You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information.'
 
-            if ('Legacy' -eq $PSCmdlet.ParameterSetName) {
-                & $SafeCommands['Write-Warning'] "You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information."
-                # populate config from parameters and remove them so we
-                # don't inherit them to child functions by accident
-
-                $Configuration = [PesterConfiguration]::Default
-
-                if ($PSBoundParameters.ContainsKey('Path')) {
-                    if ($null -ne $Path) {
-                        $Configuration.Run.Path = $Path
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Path' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('FullNameFilter')) {
-                    if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
-                        $Configuration.Filter.FullName = $FullNameFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'FullNameFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('EnableExit')) {
-                    if ($EnableExit) {
-                        $Configuration.Run.Exit = $true
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'EnableExit' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('TagFilter')) {
-                    if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
-                        $Configuration.Filter.Tag = $TagFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'TagFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('ExcludeTagFilter')) {
-                    if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
-                        $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'ExcludeTagFilter' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('PassThru')) {
-                    if ($null -ne $PassThru) {
-                        $Configuration.Run.PassThru = [bool] $PassThru
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'PassThru' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('CodeCoverage')) {
-
-                    # advanced CC options won't work (hashtable)
-                    if ($null -ne $CodeCoverage) {
-                        $Configuration.CodeCoverage.Enabled = $true
-                        $Configuration.CodeCoverage.Path = $CodeCoverage
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'CodeCoverage' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFile')) {
-                    if ($null -ne $CodeCoverageOutputFile) {
-                        $Configuration.CodeCoverage.Enabled = $true
-                        $Configuration.CodeCoverage.OutputPath = $CodeCoverageOutputFile
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFile' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileEncoding')) {
-                    if ($null -ne $CodeCoverageOutputFileEncoding) {
-                        $Configuration.CodeCoverage.Enabled = $true
-                        $Configuration.CodeCoverage.OutputEncoding = $CodeCoverageOutputFileEncoding
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFileEncoding' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('CodeCoverageOutputFileFormat')) {
-                    if ($null -ne $CodeCoverageOutputFileFormat) {
-                        $Configuration.CodeCoverage.Enabled = $true
-                        $Configuration.CodeCoverage.OutputFormat = $CodeCoverageOutputFileFormat
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'CodeCoverageOutputFileFormat' -Scope Local | Remove-Variable
-                }
-
-                if (-not $PSBoundParameters.ContainsKey('Strict')) {
-                    & $SafeCommands['Get-Variable'] 'Strict' -Scope Local | Remove-Variable
-                }
-
-                if (-not $PSBoundParameters.ContainsKey('PesterOption')) {
-                    & $SafeCommands['Get-Variable'] 'PesterOption' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('OutputFile')) {
-                    if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count) {
-                        $Configuration.TestResult.Enabled = $true
-                        $Configuration.TestResult.OutputPath = $OutputFile
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'OutputFile' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('OutputFormat')) {
-                    if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
-                        $Configuration.TestResult.OutputFormat = $OutputFormat
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'OutputFormat' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('Show')) {
-                    if ($null -ne $Show) {
-                        # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
-                        # without switching the whole param set just to get Diagnostic output
-                        # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
-                        $verbosity = switch ($Show) {
-                            "All" { "Detailed" }
-                            "Default" { "Detailed" }
-                            "Fails" { "Normal" }
-                            "Diagnostic" { "Diagnostic" }
-                            "Detailed" { "Detailed" }
-                            "Normal" { "Normal" }
-                            "Minimal" { "Minimal" }
-                            "None" { "None" }
-                            default { "Detailed" }
-                        }
-
-                        $Configuration.Output.Verbosity = $verbosity
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Quiet' -Scope Local | Remove-Variable
-                }
-
-                if ($PSBoundParameters.ContainsKey('Quiet')) {
-                    if ($null -ne $Quiet) {
-                        if ($Quiet) {
-                            $Configuration.Output.Verbosity = 'None'
-                        }
-                    }
-
-                    & $SafeCommands['Get-Variable'] 'Quiet' -Scope Local | Remove-Variable
-                }
+                # dot-sourcing the function to allow removing local variables
+                $Configuration = . Convert-PesterLegacyParameterSet -BoundParameters $PSBoundParameters
             }
 
             # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
@@ -1140,6 +916,214 @@ function Invoke-Pester {
             exit $failedCount
         }
     }
+}
+
+function Convert-PesterSimpleParameterSet ($BoundParameters) {
+    $Configuration = [PesterConfiguration]::Default
+
+    $migrations = @{
+        'Path'             = {
+            if ($null -ne $Path) {
+                if (@($Path)[0] -is [System.Collections.IDictionary]) {
+                    throw 'Passing hashtable configuration to -Path / -Script is currently not supported in Pester 5.0. Please provide just paths, as an array of strings.'
+                }
+
+                $Configuration.Run.Path = $Path
+            }
+        }
+
+        'ExcludePath'      = {
+            if ($null -ne $ExcludePath) {
+                $Configuration.Run.ExcludePath = $ExcludePath
+            }
+        }
+
+        'TagFilter'        = {
+            if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
+                $Configuration.Filter.Tag = $TagFilter
+            }
+        }
+
+        'ExcludeTagFilter' = {
+            if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
+                $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
+            }
+        }
+
+        'FullNameFilter'   = {
+            if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
+                $Configuration.Filter.FullName = $FullNameFilter
+            }
+        }
+
+        'CI'               = {
+            if ($CI) {
+                $Configuration.Run.Exit = $true
+                $Configuration.TestResult.Enabled = $true
+            }
+        }
+
+        'Output'           = {
+            if ($null -ne $Output) {
+                $Configuration.Output.Verbosity = $Output
+            }
+        }
+
+        'PassThru'         = {
+            if ($null -ne $PassThru) {
+                $Configuration.Run.PassThru = [bool] $PassThru
+            }
+        }
+
+        'Container'        = {
+            if ($null -ne $Container) {
+                $Configuration.Run.Container = $Container
+            }
+        }
+    }
+
+    # Run all applicable migrations and remove variable to avoid leaking into child scopes
+    foreach ($key in $migrations.Keys) {
+        if ($BoundParameters.ContainsKey($key)) {
+            . $migrations[$key]
+            & $SafeCommands['Get-Variable'] -Name $key -Scope Local | Remove-Variable
+        }
+    }
+
+    return $Configuration
+}
+
+function Convert-PesterLegacyParameterSet ($BoundParameters) {
+    $Configuration = [PesterConfiguration]::Default
+
+    $migrations = @{
+        'Path'                           = {
+            if ($null -ne $Path) {
+                $Configuration.Run.Path = $Path
+            }
+        }
+
+        'FullNameFilter'                 = {
+            if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
+                $Configuration.Filter.FullName = $FullNameFilter
+            }
+        }
+
+        'EnableExit'                     = {
+            if ($EnableExit) {
+                $Configuration.Run.Exit = $true
+            }
+        }
+
+        'TagFilter'                      = {
+            if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
+                $Configuration.Filter.Tag = $TagFilter
+            }
+        }
+
+        'ExcludeTagFilter'               = {
+            if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
+                $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
+            }
+        }
+
+        'PassThru'                       = {
+            if ($null -ne $PassThru) {
+                $Configuration.Run.PassThru = [bool] $PassThru
+            }
+        }
+
+        'CodeCoverage'                   = {
+            # advanced CC options won't work (hashtable)
+            if ($null -ne $CodeCoverage) {
+                $Configuration.CodeCoverage.Enabled = $true
+                $Configuration.CodeCoverage.Path = $CodeCoverage
+            }
+        }
+
+        'CodeCoverageOutputFile'         = {
+            if ($null -ne $CodeCoverageOutputFile) {
+                $Configuration.CodeCoverage.Enabled = $true
+                $Configuration.CodeCoverage.OutputPath = $CodeCoverageOutputFile
+            }
+        }
+
+        'CodeCoverageOutputFileEncoding' = {
+            if ($null -ne $CodeCoverageOutputFileEncoding) {
+                $Configuration.CodeCoverage.Enabled = $true
+                $Configuration.CodeCoverage.OutputEncoding = $CodeCoverageOutputFileEncoding
+            }
+        }
+
+        'CodeCoverageOutputFileFormat'   = {
+            if ($null -ne $CodeCoverageOutputFileFormat) {
+                $Configuration.CodeCoverage.Enabled = $true
+                $Configuration.CodeCoverage.OutputFormat = $CodeCoverageOutputFileFormat
+            }
+        }
+
+        'OutputFile'                     = {
+            if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count) {
+                $Configuration.TestResult.Enabled = $true
+                $Configuration.TestResult.OutputPath = $OutputFile
+            }
+        }
+
+        'OutputFormat'                   = {
+            if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
+                $Configuration.TestResult.OutputFormat = $OutputFormat
+            }
+        }
+
+        'Show'                           = {
+            if ($null -ne $Show) {
+                # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
+                # without switching the whole param set just to get Diagnostic output
+                # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
+                $verbosity = switch ($Show) {
+                    'All' { 'Detailed' }
+                    'Default' { 'Detailed' }
+                    'Fails' { 'Normal' }
+                    'Diagnostic' { 'Diagnostic' }
+                    'Detailed' { 'Detailed' }
+                    'Normal' { 'Normal' }
+                    'Minimal' { 'Minimal' }
+                    'None' { 'None' }
+                    default { 'Detailed' }
+                }
+
+                $Configuration.Output.Verbosity = $verbosity
+            }
+        }
+
+        'Quiet'                          = {
+            if ($null -ne $Quiet) {
+                if ($Quiet) {
+                    $Configuration.Output.Verbosity = 'None'
+                }
+            }
+        }
+    }
+
+    # Run all applicable migrations and remove variable to avoid leaking into child scopes
+    foreach ($key in $migrations.Keys) {
+        if ($BoundParameters.ContainsKey($key)) {
+            . $migrations[$key]
+            & $SafeCommands['Get-Variable'] -Name $key -Scope Local | Remove-Variable
+        }
+    }
+
+    # Remove auto null-variables for undefined parameters in set
+    # TODO: Why are these special? Only removed when not defined, but they're never used. Other are only removed when expliclity set
+    if (-not $BoundParameters.ContainsKey('Strict')) {
+        & $SafeCommands['Get-Variable'] 'Strict' -Scope Local | Remove-Variable
+    }
+
+    if (-not $BoundParameters.ContainsKey('PesterOption')) {
+        & $SafeCommands['Get-Variable'] 'PesterOption' -Scope Local | Remove-Variable
+    }
+
+    return $Configuration
 }
 
 function New-PesterOption {
