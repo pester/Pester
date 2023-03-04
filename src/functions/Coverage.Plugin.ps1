@@ -1,5 +1,52 @@
 ﻿function Get-CoveragePlugin {
-    New-PluginObject -Name "Coverage" -RunStart {
+    New-PluginObject -Name "Coverage" -Start {
+        param($Context)
+        $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
+                $PesterPreference.CodeCoverage.Path.Value
+            }
+            else {
+                # no paths specific to CodeCoverage were provided, resolve them from
+                # tests by using the whole directory in which the test or the
+                # provided directory. We might need another option to disable this convention.
+                @(foreach ($p in $PesterPreference.Run.Path.Value) {
+                        # this is a bit ugly, but the logic here is
+                        # that we check if the path exists,
+                        # and if it does and is a file then we return the
+                        # parent directory, otherwise we got a directory
+                        # and return just it
+                        $i = & $SafeCommands['Get-Item'] $p
+                        if ($i.PSIsContainer) {
+                            & $SafeCommands['Join-Path'] $i.FullName "*"
+                        }
+                        else {
+                            & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
+                        }
+                    })
+            })
+
+        $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
+            $PesterPreference.CodeCoverage.OutputPath.Value
+        }
+        else {
+            & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
+        }
+
+        $CodeCoverage = @{
+            Enabled                 = $PesterPreference.CodeCoverage.Enabled.Value
+            OutputFormat            = $PesterPreference.CodeCoverage.OutputFormat.Value
+            OutputPath              = $outputPath
+            OutputEncoding          = $PesterPreference.CodeCoverage.OutputEncoding.Value
+            ExcludeTests            = $PesterPreference.CodeCoverage.ExcludeTests.Value
+            Path                    = @($paths)
+            RecursePaths            = $PesterPreference.CodeCoverage.RecursePaths.Value
+            TestExtension           = $PesterPreference.Run.TestExtension.Value
+            UseSingleHitBreakpoints = $PesterPreference.CodeCoverage.SingleHitBreakpoints.Value
+            UseBreakpoints          = $PesterPreference.CodeCoverage.UseBreakpoints.Value
+        }
+
+        # Save PluginConfiguration for Coverage
+        $Context.Configuration['Coverage'] = $CodeCoverage
+    } -RunStart {
         param($Context)
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()

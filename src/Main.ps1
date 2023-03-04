@@ -996,51 +996,7 @@ function Invoke-Pester {
             }
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
-                $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
-                        $PesterPreference.CodeCoverage.Path.Value
-                    }
-                    else {
-                        # no paths specific to CodeCoverage were provided, resolve them from
-                        # tests by using the whole directory in which the test or the
-                        # provided directory. We might need another option to disable this convention.
-                        @(foreach ($p in $PesterPreference.Run.Path.Value) {
-                                # this is a bit ugly, but the logic here is
-                                # that we check if the path exists,
-                                # and if it does and is a file then we return the
-                                # parent directory, otherwise we got a directory
-                                # and return just it
-                                $i = & $SafeCommands['Get-Item'] $p
-                                if ($i.PSIsContainer) {
-                                    & $SafeCommands['Join-Path'] $i.FullName "*"
-                                }
-                                else {
-                                    & $SafeCommands['Join-Path'] $i.Directory.FullName "*"
-                                }
-                            })
-                    })
-
-                $outputPath = if ([IO.Path]::IsPathRooted($PesterPreference.CodeCoverage.OutputPath.Value)) {
-                    $PesterPreference.CodeCoverage.OutputPath.Value
-                }
-                else {
-                    & $SafeCommands['Join-Path'] $pwd.Path $PesterPreference.CodeCoverage.OutputPath.Value
-                }
-
-                $CodeCoverage = @{
-                    Enabled                 = $PesterPreference.CodeCoverage.Enabled.Value
-                    OutputFormat            = $PesterPreference.CodeCoverage.OutputFormat.Value
-                    OutputPath              = $outputPath
-                    OutputEncoding          = $PesterPreference.CodeCoverage.OutputEncoding.Value
-                    ExcludeTests            = $PesterPreference.CodeCoverage.ExcludeTests.Value
-                    Path                    = @($paths)
-                    RecursePaths            = $PesterPreference.CodeCoverage.RecursePaths.Value
-                    TestExtension           = $PesterPreference.Run.TestExtension.Value
-                    UseSingleHitBreakpoints = $PesterPreference.CodeCoverage.SingleHitBreakpoints.Value
-                    UseBreakpoints          = $PesterPreference.CodeCoverage.UseBreakpoints.Value
-                }
-
                 $plugins += (Get-CoveragePlugin)
-                $pluginConfiguration["Coverage"] = $CodeCoverage
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
@@ -1087,7 +1043,6 @@ function Invoke-Pester {
                 throw "No test files were found and no scriptblocks were provided. Please ensure that you provided at least one path to a *$($PesterPreference.Run.TestExtension.Value) file, or a directory that contains such file.$(if ($null -ne $PesterPreference.Run.ExcludePath.Value -and 0 -lt @($PesterPreference.Run.ExcludePath.Value).Length) {" And that there is at least one file not excluded by ExcludeFile filter '$($PesterPreference.Run.ExcludePath.Value -join "', '")'."}) Or that you provided a ScriptBlock test container."
                 return
             }
-
 
             $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
