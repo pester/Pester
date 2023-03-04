@@ -94,16 +94,16 @@
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
             Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
         }
-    } -End {
+    } -RunEnd {
         param($Context)
 
         $config = $Context.Configuration['Coverage']
 
-        if (-not $Context.TestRun.PluginData.ContainsKey("Coverage")) {
+        if (-not $Context.Data.ContainsKey("Coverage")) {
             return
         }
 
-        $coverageData = $Context.TestRun.PluginData.Coverage
+        $coverageData = $Context.Data.Coverage
 
         if (-not $config.UseBreakpoints) {
             Stop-TraceScript -Patched $coverageData.Patched
