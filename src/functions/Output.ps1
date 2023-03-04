@@ -768,18 +768,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
-        if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'None', 'FirstLine', 'Filtered', 'Full') {
-            throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
-        }
-
-        if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
-            throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
-        }
-
-        if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
-            throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
-        }
-
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
@@ -1179,6 +1167,10 @@ function Write-BlockToScreen {
 
 # This is not a plugin-step due to Output-features being dependencies in Invoke-PluginStep etc for error/debug
 function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
+    if ($PesterPreference.Output.Verbosity.Value -notin 'None', 'Normal', 'Detailed', 'Diagnostic') {
+        throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
+    }
+
     if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
         throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
     }
@@ -1195,7 +1187,10 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         }
     }
 
-    if ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
+    if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
+        throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
+    }
+    elseif ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
         # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
         # Do not fix this to check for boolean value, the value is set to literal string 'True'
         if ($env:TF_BUILD -eq 'True') {
@@ -1212,6 +1207,10 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         }
     }
 
+    if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
+        throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
+    }
+
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
         # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
         $PesterPreference.Debug.WriteDebugMessages = $true
@@ -1225,5 +1224,9 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
 
     if ($PesterPreference.Debug.ShowFullErrors.Value) {
         $PesterPreference.Output.StackTraceVerbosity = 'Full'
+    }
+
+    if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'None', 'FirstLine', 'Filtered', 'Full') {
+        throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
     }
 }
