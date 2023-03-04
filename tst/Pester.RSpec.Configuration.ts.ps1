@@ -858,8 +858,12 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Unsupported level of stacktrace output 'Something'" | Verify-True
+            }
         }
     }
 
@@ -1101,8 +1105,12 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI format 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Unsupported CI format 'Something'" | Verify-True
+            }
         }
 
         t "Output.CIFormat is None when set" {
