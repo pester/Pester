@@ -762,13 +762,7 @@ function Invoke-Pester {
             }
 
             $plugins.Add((Get-MockPlugin))
-
-            if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
-                throw "Unsupported Run.SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
-            }
-            else {
-                $plugins.Add((Get-SkipRemainingOnFailurePlugin))
-            }
+            $plugins.Add((Get-SkipRemainingOnFailurePlugin))
 
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $plugins.Add((Get-CoveragePlugin))

@@ -14,11 +14,14 @@ function Get-SkipRemainingOnFailurePlugin {
         Name = "SkipRemainingOnFailure"
     }
 
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.Start = {
-            param ($Context)
-            $Context.Configuration.SkipRemainingOnFailureCount = 0
+    $p.Start = {
+        param ($Context)
+
+        if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin 'None', 'Block', 'Container', 'Run') {
+            throw "Unsupported Run.SkipRemainingOnFailure option '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
         }
+
+        $Context.Configuration.SkipRemainingOnFailureCount = 0
     }
 
     if ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Block') {
