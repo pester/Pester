@@ -1303,12 +1303,12 @@ function Assert-Success {
     $anyFailed = $false
     $err = ""
     foreach ($r in $InvocationResult) {
+        $rc++
         $ec = 0
         if ($null -ne $r.ErrorRecord -and $r.ErrorRecord.Length -gt 0) {
-            $err += "Result $($rc++):"
             $anyFailed = $true
             foreach ($e in $r.ErrorRecord) {
-                $err += "Error $($ec++):"
+                $err += "$([Environment]::NewLine)Result $rc - Error $((++$ec)):"
                 $err += & $SafeCommands["Out-String"] -InputObject $e
                 $err += & $SafeCommands["Out-String"] -InputObject $e.ScriptStackTrace
             }
@@ -1316,8 +1316,7 @@ function Assert-Success {
     }
 
     if ($anyFailed) {
-        $Message = $Message + ":`n$err"
-        Write-PesterHostMessage -ForegroundColor Red $Message
+        $Message = $Message + ":$err"
         throw $Message
     }
 }
