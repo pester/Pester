@@ -39,8 +39,13 @@ function Write-NUnit3TestRunAttributes($Result, [System.Xml.XmlWriter] $XmlWrite
     $XmlWriter.WriteAttributeString('random-seed', (Get-Random)) # required attr. in schema, but not in docs or nunit-console output...
 }
 
-function Write-NUnit3TestRunChildNode($Result, [System.Xml.XmlWriter] $XmlWriter) {
-    # Used by Get-NUnit3NodeId
+function Write-NUnit3TestRunChildNode {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','reportIds',Justification = 'Used by Get-NUnit3NodeId')]
+    param(
+        $Result,
+        [System.Xml.XmlWriter] $XmlWriter
+    )
+
     $reportIds = @{ Assembly = 1; Node = 1000 }
 
     # Single Assembly-suite for whole run to avoid duplicate environment-nodes per container
@@ -86,7 +91,6 @@ function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter) {
 }
 
 function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter) {
-    # TODO: Parameterized containers (add properties for Data ?)
     $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node
 
     $XmlWriter.WriteStartElement('test-suite')
@@ -94,7 +98,8 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
     $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
     Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
 
-    if ($Node.FrameworkData -or $Node.Tag) {
+    $hasData = $Node.Data -is [System.Collections.IDictionary] -and $Node.Data.Keys.Count -gt 0
+    if ($Node.FrameworkData -or $Node.Tag -or $hasData) {
         $XmlWriter.WriteStartElement('properties')
         if ($Node.FrameworkData) {
             # Only available when testresults are generated as part of Invoke-Pester
@@ -103,6 +108,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
             $XmlWriter.WriteAttributeString('value', $Node.FrameworkData.CommandUsed)
             $XmlWriter.WriteEndElement() # Close property
         }
+        if ($hasData) { Write-NUnit3DataProperty -Data $Node.Data -XmlWriter $XmlWriter }
         if ($Node.Tag) { Write-NUnit3CategoryProperty -Tag $Node.Tag -XmlWriter $XmlWriter }
         $XmlWriter.WriteEndElement() # Close properties
     }
@@ -443,9 +449,13 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
     Write-NUnit3TestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter
 
     # tests with testcases/foreach (has .Id) has tags on ParameterizedMethod-node
-    if ((-not $TestResult.Id) -and $TestResult.Tag) {
+    $includeTags = (-not $TestResult.Id) -and $TestResult.Tag
+    $hasData = $TestResult.Data -is [System.Collections.IDictionary] -and $TestResult.Data.Keys.Count -gt 0
+
+    if ($includeTags -or $hasData) {
         $XmlWriter.WriteStartElement('properties')
-        Write-NUnit3CategoryProperty -Tag $TestResult.Tag -XmlWriter $XmlWriter
+        if ($hasData) { Write-NUnit3DataProperty -Data $TestResult.Data -XmlWriter $XmlWriter }
+        if ($includeTags) { Write-NUnit3CategoryProperty -Tag $TestResult.Tag -XmlWriter $XmlWriter }
         $XmlWriter.WriteEndElement() # Close properties
     }
 
@@ -464,16 +474,19 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
 }
 
 function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
-    # add parameters to name for testcase with data when not using variables in name
-    if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
-        $paramString = Get-NUnit3ParamString -Node $TestResult
-        #$name = "$($TestResult.Name)$paramString"
-        $fullname = "$($TestResult.ExpandedPath)$paramString"
-    }
-    else {
-        #$name = $TestResult.ExpandedName
-        $fullname = $TestResult.ExpandedPath
-    }
+    # Disabled initially, but included commented tests for desired behavior if implemented.
+    # Users should write distinguishable names using <variables> since generated ParamString can be long and complex
+    #
+    # # add parameters to name for testcase with data when not using variables in name
+    # if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
+    #     $paramString = Get-NUnit3ParamString -Node $TestResult
+    #     #$name = "$($TestResult.Name)$paramString"
+    #     $fullname = "$($TestResult.ExpandedPath)$paramString"
+    # }
+    # else {
+    #$name = $TestResult.ExpandedName
+    $fullname = $TestResult.ExpandedPath
+    # }
 
     # Skip during test-execution is still runnable test-case
     $runstate = if ($TestResult.Skip) { 'Ignored' } else { 'Runnable' }
@@ -552,6 +565,24 @@ function Write-NUnit3CategoryProperty ([string[]]$Tag, [System.Xml.XmlWriter] $X
         $XmlWriter.WriteStartElement('property')
         $XmlWriter.WriteAttributeString('name', 'Category')
         $XmlWriter.WriteAttributeString('value', $t)
+        $XmlWriter.WriteEndElement() # Close property
+    }
+}
+
+function Write-NUnit3DataProperty ([System.Collections.IDictionary]$Data, [System.Xml.XmlWriter] $XmlWriter) {
+    foreach ($d in $Data.GetEnumerator()) {
+        $dataValue = if ($null -eq $d.Value) {
+            'null'
+        }
+        else {
+            #do not use .ToString() it uses the current culture settings
+            #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
+            [string]$d.Value
+        }
+
+        $XmlWriter.WriteStartElement('property')
+        $XmlWriter.WriteAttributeString('name', $d.Key)
+        $XmlWriter.WriteAttributeString('value', $dataValue)
         $XmlWriter.WriteEndElement() # Close property
     }
 }
