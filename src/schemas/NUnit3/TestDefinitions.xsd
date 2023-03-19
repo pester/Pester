@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Source: https://github.com/nunit/nunit/tree/master/src/NUnitFramework/framework/Schemas -->
 <xs:schema elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:annotation>
     <xs:documentation>This is document is descriptive, rather than a guarantee of future decisions.</xs:documentation>
@@ -50,7 +51,7 @@
   <xs:attributeGroup name="TestCaseAttributeGroup">
     <xs:attributeGroup ref="TestBaseAttributeGroup" />
     <xs:attribute name="seed" type="xs:string" use="required" />
-  </xs:attributeGroup> 
+  </xs:attributeGroup>
 
   <!-- NUnit.Framework.Internal.TestSuite.AddToXml -->
   <xs:complexType name="TestSuiteElementType">
