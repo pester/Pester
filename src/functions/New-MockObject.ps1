@@ -12,7 +12,7 @@
     The .NET type to create. This creates the object without calling any of its constructors or initializers. Use this to instantiate an object that does not have a public constructor. If your object has a constructor, or is giving you errors, try using the constructor and provide the object using the InputObject parameter to decorate it.
 
     .PARAMETER InputObject
-    An already constructed object to decorate. Use `New-Object` or `::new` to create it.
+    An already constructed object to decorate. Use `New-Object` or `[typeName]::new()` to create it.
 
     .PARAMETER Properties
     Properties to define, specified as a hashtable, in format `@{ PropertyName = value }`.
