@@ -40,7 +40,16 @@ function Write-NUnit3TestRunAttributes($Result, [System.Xml.XmlWriter] $XmlWrite
 }
 
 function Write-NUnit3TestRunChildNode($Result, [System.Xml.XmlWriter] $XmlWriter) {
-    $reportIds = @{ Assembly = 0; Node = 1000 }
+    # Used by Get-NUnit3NodeId
+    $reportIds = @{ Assembly = 1; Node = 1000 }
+
+    # Single Assembly-suite for whole run to avoid duplicate environment-nodes per container
+    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Result
+    $suiteInfo.name = $suiteInfo.fullname = $Result.Configuration.TestResult.TestSuiteName.Value
+
+    $XmlWriter.WriteStartElement('test-suite')
+    Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType 'Assembly'
+    Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter
 
     foreach ($container in $Result.Containers) {
         if (-not $container.ShouldRun) {
@@ -48,11 +57,10 @@ function Write-NUnit3TestRunChildNode($Result, [System.Xml.XmlWriter] $XmlWriter
             continue
         }
 
-        # Incremenet assembly-id per container and reset node-counter
-        $reportIds.Assembly++
-        $reportIds.Node = 1000
         Write-NUnit3TestSuiteElements -XmlWriter $XmlWriter -Node $container
     }
+
+    $XmlWriter.WriteEndElement()
 }
 
 function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter) {
@@ -83,32 +91,26 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteStartElement('test-suite')
 
-    if ($Node -is [Pester.Container]) {
-        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType 'Assembly'
-        Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter
-    }
-    else {
-        $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
-        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
+    $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
+    Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
 
-        if ($Node.FrameworkData -or $Node.Tag) {
-            $XmlWriter.WriteStartElement('properties')
-            if ($Node.FrameworkData) {
-                # Only available when testresults are generated as part of Invoke-Pester
-                $XmlWriter.WriteStartElement('property')
-                $XmlWriter.WriteAttributeString('name', '_TYPE')
-                $XmlWriter.WriteAttributeString('value', $Node.FrameworkData.CommandUsed)
-                $XmlWriter.WriteEndElement() # Close property
-            }
-            if ($Node.Tag) { Write-NUnit3CategoryProperty -Tag $Node.Tag -XmlWriter $XmlWriter }
-            $XmlWriter.WriteEndElement() # Close properties
+    if ($Node.FrameworkData -or $Node.Tag) {
+        $XmlWriter.WriteStartElement('properties')
+        if ($Node.FrameworkData) {
+            # Only available when testresults are generated as part of Invoke-Pester
+            $XmlWriter.WriteStartElement('property')
+            $XmlWriter.WriteAttributeString('name', '_TYPE')
+            $XmlWriter.WriteAttributeString('value', $Node.FrameworkData.CommandUsed)
+            $XmlWriter.WriteEndElement() # Close property
         }
-
-        # likely a BeforeAll/AfterAll error
-        if ($Node.ErrorRecord.Count -gt 0) { Write-NUnit3FailureElement -TestResult $Node -XmlWriter $XmlWriter }
-
-        if ($Node.StandardOutput) { Write-NUnit3OutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
+        if ($Node.Tag) { Write-NUnit3CategoryProperty -Tag $Node.Tag -XmlWriter $XmlWriter }
+        $XmlWriter.WriteEndElement() # Close properties
     }
+
+    # likely a BeforeAll/AfterAll error
+    if ($Node.ErrorRecord.Count -gt 0) { Write-NUnit3FailureElement -TestResult $Node -XmlWriter $XmlWriter }
+
+    if ($Node.StandardOutput) { Write-NUnit3OutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
 
     $blockGroups = @(
         # Blocks only have Id if parameterized (using -ForEach). All other blocks are put in group with '' value
@@ -293,8 +295,7 @@ function Get-NUnit3TestSuiteInfo ($TestSuite) {
 
 function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter) {
     <# TestSuiteType mapping
-     Assembly = Container
-     TestSuite = Block without tests
+     TestSuite = Block without direct tests OR container
      ParameterizedFixture = Parameterized block (wrapper)
      TestFixture = Block with tests
      ParameterizedMethod = Parameterized test (wrapper)
