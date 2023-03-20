@@ -569,20 +569,26 @@ function Write-NUnit3CategoryProperty ([string[]]$Tag, [System.Xml.XmlWriter] $X
     }
 }
 
-function Write-NUnit3DataProperty ([System.Collections.IDictionary]$Data, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [System.Xml.XmlWriter] $XmlWriter) {
     foreach ($d in $Data.GetEnumerator()) {
-        $dataValue = if ($null -eq $d.Value) {
+        $name = $d.Key
+        $value = $d.Value
+
+        $formattedValue = if ($null -eq $value) {
             'null'
+        }
+        elseif ($value.GetType() -match 'System.DateTime') {
+            Get-UTCTimeString $value
         }
         else {
             #do not use .ToString() it uses the current culture settings
             #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
-            [string]$d.Value
+            [string]$value
         }
 
         $XmlWriter.WriteStartElement('property')
-        $XmlWriter.WriteAttributeString('name', $d.Key)
-        $XmlWriter.WriteAttributeString('value', $dataValue)
+        $XmlWriter.WriteAttributeString('name', $name)
+        $XmlWriter.WriteAttributeString('value', $formattedValue)
         $XmlWriter.WriteEndElement() # Close property
     }
 }

@@ -496,7 +496,7 @@ i -PassThru:$PassThru {
                         $true | Should -Be $true
                     }
                     # supported
-                    It 'TestcaseDictionary' -ForEach @(@{ Value = 123 }) {
+                    It 'TestcaseDictionary' -ForEach @(@{ MyParam = 123 }) {
                         $true | Should -Be $true
                     }
                 }
@@ -509,11 +509,11 @@ i -PassThru:$PassThru {
 
             $xmlTest1 = $xmlDescribe.'test-suite'[0].'test-case'
             $xmlTest1.methodname | Verify-Equal 'TestcaseArray'
-            $xmlTest1.properties.property | Verify-Null
+            $xmlTest1.psobject.Properties['properties'] | Verify-Null
 
             $xmlTest2 = $xmlDescribe.'test-suite'[1].'test-case'
             $xmlTest2.methodname | Verify-Equal 'TestcaseDictionary'
-            $xmlTest2.properties.property | Where-Object name -EQ 'Value' | Select-Object -ExpandProperty Value | Verify-Equal 123
+            ($xmlTest2.properties.property | Where-Object name -EQ 'MyParam').value | Verify-Equal 123
         }
 
         t 'should add test tags as Category-properties to ParameterizedMethod suite only' {
@@ -539,8 +539,7 @@ i -PassThru:$PassThru {
             $xmlTests = $xmlParameterized.'test-case'
             $xmlTests[0].name | Verify-Equal 'Describe.Testcase 1'
             $xmlTests[0].methodname | Verify-Equal 'Testcase <_>'
-            $testCategories = @($xmlTests[0].properties.property | Where-Object name -EQ 'Category')
-            $testCategories.Count | Verify-Equal 0
+            $xmlTests[0].psobject.Properties['properties'] | Verify-Null
         }
     }
 
@@ -656,7 +655,7 @@ i -PassThru:$PassThru {
                     }
                 }
                 # supported
-                Describe 'Describe Dictionary' -ForEach @(@{ Value = 123 }) {
+                Describe 'Describe Dictionary' -ForEach @(@{ MyParam = 123 }) {
                     It 'Testcase' {
                         $true | Should -Be $true
                     }
@@ -669,12 +668,12 @@ i -PassThru:$PassThru {
             $xmlDescribeArray = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[0].'test-suite'
             $xmlDescribeArray.name | Verify-Equal 'Describe Array'
             $xmlDescribeArray.type | Verify-Equal 'TestFixture'
-            $xmlDescribeArray.properties.property | Verify-Null
+            $xmlDescribeArray.psobject.Properties['properties'] | Verify-Null
 
             $xmlDescribeDictionary = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[1].'test-suite'
             $xmlDescribeDictionary.name | Verify-Equal 'Describe Dictionary'
             $xmlDescribeDictionary.type | Verify-Equal 'TestFixture'
-            $xmlDescribeDictionary.properties.property | Where-Object name -EQ 'Value' | Select-Object -ExpandProperty Value | Verify-Equal 123
+            ($xmlDescribeDictionary.properties.property | Where-Object name -EQ 'MyParam').value | Verify-Equal 123
         }
 
         t 'should add tags as Category-properties on child test-suites only' {
@@ -693,8 +692,7 @@ i -PassThru:$PassThru {
             $xmlParameterized = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
             $xmlParameterized.name | Verify-Equal 'Describe <_>'
             $xmlParameterized.type | Verify-Equal 'ParameterizedFixture'
-            $parameterizedCategories = @($xmlParameterized.properties.property | Where-Object name -EQ 'Category')
-            $parameterizedCategories.Count | Verify-Equal 0
+            $xmlParameterized.psobject.Properties['properties'] | Verify-Null
 
             $xmlDescribes = @($xmlParameterized.'test-suite')
             $xmlDescribes[0].name | Verify-Equal 'Describe 1'
