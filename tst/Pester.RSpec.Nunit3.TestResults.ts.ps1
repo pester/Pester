@@ -257,7 +257,7 @@ i -PassThru:$PassThru {
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-            $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
@@ -275,7 +275,7 @@ i -PassThru:$PassThru {
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
 
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-            $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
@@ -444,7 +444,7 @@ i -PassThru:$PassThru {
 
         #     # verify against schema
         #     $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-        #     $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+        #     $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
         #     $xmlResult.Schemas.Add($null, $schemePath) > $null
         #     $xmlResult.Validate( { throw $args[1].Exception })
         # }
@@ -483,7 +483,7 @@ i -PassThru:$PassThru {
 
             # verify against schema
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-            $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
@@ -590,7 +590,7 @@ i -PassThru:$PassThru {
 
         #     # verify against schema
         #     $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-        #     $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+        #     $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
         #     $xmlResult.Schemas.Add($null, $schemePath) > $null
         #     $xmlResult.Validate( { throw $args[1].Exception })
         # }
@@ -641,7 +641,7 @@ i -PassThru:$PassThru {
 
             # verify against schema
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-            $xmlResult.Schemas.XmlResolver = [System.Xml.XmlUrlResolver]::new()
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
