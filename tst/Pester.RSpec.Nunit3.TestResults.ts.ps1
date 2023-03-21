@@ -66,7 +66,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-case'
+            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
             $xmlTestCase.name | Verify-Equal 'Describe.Successful testcase'
             $xmlTestCase.methodname | Verify-Equal 'Successful testcase'
             $xmlTestCase.classname | Verify-Equal 'Describe'
@@ -86,7 +86,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-case'
+            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
             $xmlTestCase.name | Verify-Equal 'Describe.Failed testcase'
             $xmlTestCase.result | Verify-Equal 'Failed'
             $xmlTestCase.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
@@ -121,7 +121,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-case'
+            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
             $xmlTestCase.name | Verify-Equal 'Describe.Failed testcase'
             $xmlTestCase.result | Verify-Equal 'Failed'
             $xmlTestCase.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
@@ -180,7 +180,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestResult = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlTestResult = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlTestResult.type | Verify-Equal 'TestFixture'
             $xmlTestResult.name | Verify-Equal 'Describe'
             $xmlTestResult.classname | Verify-Equal 'Describe'
@@ -205,13 +205,13 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestSuite1 = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[0]
+            $xmlTestSuite1 = $xmlResult.'test-run'.'test-suite'.'test-suite'[0]
             $xmlTestSuite1.name | Verify-Equal 'Describe #1'
             $xmlTestSuite1.classname | Verify-Equal 'Describe #1'
             $xmlTestSuite1.result | Verify-Equal 'Passed'
             $xmlTestSuite1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Duration
 
-            $xmlTestSuite2 = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[1]
+            $xmlTestSuite2 = $xmlResult.'test-run'.'test-suite'.'test-suite'[1]
             $xmlTestSuite2.name | Verify-Equal 'Describe #2'
             $xmlTestSuite2.classname | Verify-Equal 'Describe #2'
             $xmlTestSuite2.result | Verify-Equal 'Failed'
@@ -219,7 +219,12 @@ i -PassThru:$PassThru {
         }
 
         t 'should write the environment information' {
-            $sb = { }
+            # Environment-element is written per assembly-suite (container)
+            $sb = {
+                Describe 'd' {
+                    It 'i' { 1 | Should -Be 1 }
+                }
+            }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
@@ -248,7 +253,7 @@ i -PassThru:$PassThru {
 
                 Describe 'Describe #2' {
                     It 'Failed testcase' {
-                        $false | Should -Be $true 5
+                        $false | Should -Be $true
                     }
                 }
             }
@@ -304,7 +309,7 @@ i -PassThru:$PassThru {
             $xmlRun = $xmlResult.'test-run'
             $xmlRun.name | Verify-Equal $Name
 
-            $xmlAssembly = $xmlResult.'test-run'.'test-suite'
+            $xmlAssembly = $xmlResult.'test-run'
             $xmlAssembly.name | Verify-Equal $Name
         }
 
@@ -320,7 +325,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlDescribe.name | Verify-Equal 'Describe'
             $describeCategories = @($xmlDescribe.properties.property | Where-Object name -EQ 'Category')
             $describeCategories[0].value | Verify-Equal 'abc'
@@ -348,7 +353,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlDescribe.name | Verify-Equal 'Describe'
             $xmlDescribe.output.'#cdata-section' | Verify-Equal 'block output'
 
@@ -385,7 +390,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlDescribe = @($xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite')
+            $xmlDescribe = @($xmlResult.'test-run'.'test-suite'.'test-suite')
             $xmlDescribe.Count | Verify-Equal 3
 
             $xmlDescribe[0].name | Verify-Equal 'FailedTest'
@@ -424,7 +429,7 @@ i -PassThru:$PassThru {
         #     $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
         #     $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-suite'
+        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
         #     $xmlTestSuite.fullname | Verify-Equal 'Describe.Parameterized Testcase'
         #     $xmlTestSuite.name | Verify-Equal 'Parameterized Testcase'
         #     $xmlTestSuite.type | Verify-Equal 'ParameterizedMethod'
@@ -463,7 +468,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-suite'
+            $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
             $xmlTestSuite.fullname | Verify-Equal 'Describe.Parameterized Testcase Value: <value>'
             $xmlTestSuite.name | Verify-Equal 'Parameterized Testcase Value: <value>'
             $xmlTestSuite.type | Verify-Equal 'ParameterizedMethod'
@@ -505,7 +510,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
 
             $xmlTest1 = $xmlDescribe.'test-suite'[0].'test-case'
             $xmlTest1.methodname | Verify-Equal 'TestcaseArray'
@@ -529,7 +534,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlParameterized = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-suite'
+            $xmlParameterized = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
             $xmlParameterized.name | Verify-Equal 'Testcase <_>'
             $xmlParameterized.type | Verify-Equal 'ParameterizedMethod'
             $parameterizedCategories = @($xmlParameterized.properties.property | Where-Object name -EQ 'Category')
@@ -558,7 +563,7 @@ i -PassThru:$PassThru {
         #     $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
         #     $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'
         #     $xmlTestSuite.fullname | Verify-Equal 'Describe'
         #     $xmlTestSuite.name | Verify-Equal 'Describe'
         #     $xmlTestSuite.type | Verify-Equal 'ParameterizedFixture'
@@ -609,7 +614,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlParameterizedFixture = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlParameterizedFixture = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlParameterizedFixture.fullname | Verify-Equal 'Describe <value>'
             $xmlParameterizedFixture.name | Verify-Equal 'Describe <value>'
             $xmlParameterizedFixture.type | Verify-Equal 'ParameterizedFixture'
@@ -665,12 +670,12 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlDescribeArray = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[0].'test-suite'
+            $xmlDescribeArray = $xmlResult.'test-run'.'test-suite'.'test-suite'[0].'test-suite'
             $xmlDescribeArray.name | Verify-Equal 'Describe Array'
             $xmlDescribeArray.type | Verify-Equal 'TestFixture'
             $xmlDescribeArray.psobject.Properties['properties'] | Verify-Null
 
-            $xmlDescribeDictionary = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[1].'test-suite'
+            $xmlDescribeDictionary = $xmlResult.'test-run'.'test-suite'.'test-suite'[1].'test-suite'
             $xmlDescribeDictionary.name | Verify-Equal 'Describe Dictionary'
             $xmlDescribeDictionary.type | Verify-Equal 'TestFixture'
             ($xmlDescribeDictionary.properties.property | Where-Object name -EQ 'MyParam').value | Verify-Equal 123
@@ -689,7 +694,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlParameterized = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlParameterized = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlParameterized.name | Verify-Equal 'Describe <_>'
             $xmlParameterized.type | Verify-Equal 'ParameterizedFixture'
             $xmlParameterized.psobject.Properties['properties'] | Verify-Null
@@ -720,13 +725,13 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-            $xmlTestSuite1 = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[0]
+            $xmlTestSuite1 = $xmlResult.'test-run'.'test-suite'.'test-suite'[0]
 
             $xmlTestSuite1.name | Verify-Equal 'Describe #1'
             $xmlTestSuite1.result | Verify-Equal 'Passed'
             $xmlTestSuite1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Duration
 
-            $xmlTestSuite2 = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'[1]
+            $xmlTestSuite2 = $xmlResult.'test-run'.'test-suite'.'test-suite'[1]
             $xmlTestSuite2.name | Verify-Equal 'Describe #2'
             $xmlTestSuite2.result | Verify-Equal 'Failed'
             $xmlTestSuite2.duration | Verify-XmlTime $r.Containers[1].Blocks[0].Duration
@@ -774,7 +779,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            $xmlSuites = @($xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite')
+            $xmlSuites = @($xmlResult.'test-run'.'test-suite'.'test-suite')
             $xmlSuites.Count | Verify-Equal 1 # there should be only 1 suite, the others are excluded
             $xmlSuites[0].'fullname' | Verify-Equal 'Included describe'
             $xmlSuites[0].'test-case'.'methodname' | Verify-Equal 'Included test'
@@ -812,13 +817,13 @@ i -PassThru:$PassThru {
                     })
 
                 $xmlResult = [xml] (Get-Content $xml -Raw)
-                $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'.'test-case'
+                $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
                 $xmlTestCase.fullname | Verify-Equal 'Describe.Successful testcase'
                 $xmlTestCase.result | Verify-Equal 'Passed'
                 $xmlTestCase.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
                 # check block type is logged for suite. doing it here as it only works on xml-output from Invoke-Pester
-                $xmlSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+                $xmlSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'
                 ($xmlSuite.properties.property | Where-Object name -EQ '_TYPE').value | Verify-Equal 'Describe'
             }
             finally {

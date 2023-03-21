@@ -40,21 +40,16 @@ function Write-NUnit3TestRunAttributes($Result, [System.Xml.XmlWriter] $XmlWrite
 }
 
 function Write-NUnit3TestRunChildNode {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','reportIds',Justification = 'Used by Get-NUnit3NodeId')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','runtimeEnvironment',Justification = 'Used for calls to Write-NUnit3EnvironmentInformation')]
     param(
         $Result,
         [System.Xml.XmlWriter] $XmlWriter
     )
 
-    $reportIds = @{ Assembly = 1; Node = 1000 }
-
-    # Single Assembly-suite for whole run to avoid duplicate environment-nodes per container
-    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Result
-    $suiteInfo.name = $suiteInfo.fullname = $Result.Configuration.TestResult.TestSuiteName.Value
-
-    $XmlWriter.WriteStartElement('test-suite')
-    Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType 'Assembly'
-    Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter
+    # Used by Get-NUnit3NodeId
+    $reportIds = @{ Assembly = 0; Node = 1000 }
+    # Caching this to avoid call per assembly-suite (container). It uses external commands, CIM/WMI etc. which could be slow.
+    $runtimeEnvironment = Get-RunTimeEnvironment
 
     foreach ($container in $Result.Containers) {
         if (-not $container.ShouldRun) {
@@ -62,17 +57,17 @@ function Write-NUnit3TestRunChildNode {
             continue
         }
 
+        # Incremenet assembly-id per container and reset node-counter
+        $reportIds.Assembly++
+        $reportIds.Node = 1000
         Write-NUnit3TestSuiteElements -XmlWriter $XmlWriter -Node $container
     }
-
-    $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [System.Collections.IDictionary] $Environment = (Get-RunTimeEnvironment)) {
     $XmlWriter.WriteStartElement('environment')
 
-    $environment = Get-RunTimeEnvironment
-    foreach ($keyValuePair in $environment.GetEnumerator()) {
+    foreach ($keyValuePair in $Environment.GetEnumerator()) {
         if ($keyValuePair.Name -in 'junit-version', 'nunit-version') {
             continue
         }
@@ -95,28 +90,34 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteStartElement('test-suite')
 
-    $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
-    Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
-
-    $hasData = $Node.Data -is [System.Collections.IDictionary] -and $Node.Data.Keys.Count -gt 0
-    if ($Node.FrameworkData -or $Node.Tag -or $hasData) {
-        $XmlWriter.WriteStartElement('properties')
-        if ($Node.FrameworkData) {
-            # Only available when testresults are generated as part of Invoke-Pester
-            $XmlWriter.WriteStartElement('property')
-            $XmlWriter.WriteAttributeString('name', '_TYPE')
-            $XmlWriter.WriteAttributeString('value', $Node.FrameworkData.CommandUsed)
-            $XmlWriter.WriteEndElement() # Close property
-        }
-        if ($hasData) { Write-NUnit3DataProperty -Data $Node.Data -XmlWriter $XmlWriter }
-        if ($Node.Tag) { Write-NUnit3CategoryProperty -Tag $Node.Tag -XmlWriter $XmlWriter }
-        $XmlWriter.WriteEndElement() # Close properties
+    if ($Node -is [Pester.Container]) {
+        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType 'Assembly'
+        Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter -Environment $runtimeEnvironment
     }
+    else {
+        $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
+        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
 
-    # likely a BeforeAll/AfterAll error
-    if ($Node.ErrorRecord.Count -gt 0) { Write-NUnit3FailureElement -TestResult $Node -XmlWriter $XmlWriter }
+        $hasData = $Node.Data -is [System.Collections.IDictionary] -and $Node.Data.Keys.Count -gt 0
+        if ($Node.FrameworkData -or $Node.Tag -or $hasData) {
+            $XmlWriter.WriteStartElement('properties')
+            if ($Node.FrameworkData) {
+                # Only available when testresults are generated as part of Invoke-Pester
+                $XmlWriter.WriteStartElement('property')
+                $XmlWriter.WriteAttributeString('name', '_TYPE')
+                $XmlWriter.WriteAttributeString('value', $Node.FrameworkData.CommandUsed)
+                $XmlWriter.WriteEndElement() # Close property
+            }
+            if ($hasData) { Write-NUnit3DataProperty -Data $Node.Data -XmlWriter $XmlWriter }
+            if ($Node.Tag) { Write-NUnit3CategoryProperty -Tag $Node.Tag -XmlWriter $XmlWriter }
+            $XmlWriter.WriteEndElement() # Close properties
+        }
 
-    if ($Node.StandardOutput) { Write-NUnit3OutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
+        # likely a BeforeAll/AfterAll error
+        if ($Node.ErrorRecord.Count -gt 0) { Write-NUnit3FailureElement -TestResult $Node -XmlWriter $XmlWriter }
+
+        if ($Node.StandardOutput) { Write-NUnit3OutputElement -Output $Node.StandardOutput -XmlWriter $XmlWriter }
+    }
 
     $blockGroups = @(
         # Blocks only have Id if parameterized (using -ForEach). All other blocks are put in group with '' value
@@ -301,7 +302,8 @@ function Get-NUnit3TestSuiteInfo ($TestSuite) {
 
 function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter) {
     <# TestSuiteType mapping
-     TestSuite = Block without direct tests OR container
+     Assembly = Container
+     TestSuite = Block without direct tests
      ParameterizedFixture = Parameterized block (wrapper)
      TestFixture = Block with tests
      ParameterizedMethod = Parameterized test (wrapper)
