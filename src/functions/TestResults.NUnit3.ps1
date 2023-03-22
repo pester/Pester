@@ -40,7 +40,6 @@ function Write-NUnit3TestRunAttributes($Result, [System.Xml.XmlWriter] $XmlWrite
 }
 
 function Write-NUnit3TestRunChildNode {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','runtimeEnvironment',Justification = 'Used for calls to Write-NUnit3EnvironmentInformation')]
     param(
         $Result,
         [System.Xml.XmlWriter] $XmlWriter
@@ -49,7 +48,7 @@ function Write-NUnit3TestRunChildNode {
     # Used by Get-NUnit3NodeId
     $reportIds = @{ Assembly = 0; Node = 1000 }
     # Caching this to avoid call per assembly-suite (container). It uses external commands, CIM/WMI etc. which could be slow.
-    $runtimeEnvironment = Get-RunTimeEnvironment
+    $RuntimeEnvironment = Get-RunTimeEnvironment
 
     foreach ($container in $Result.Containers) {
         if (-not $container.ShouldRun) {
@@ -60,7 +59,7 @@ function Write-NUnit3TestRunChildNode {
         # Incremenet assembly-id per container and reset node-counter
         $reportIds.Assembly++
         $reportIds.Node = 1000
-        Write-NUnit3TestSuiteElements -XmlWriter $XmlWriter -Node $container
+        Write-NUnit3TestSuiteElements -XmlWriter $XmlWriter -Node $container -RuntimeEnvironment $RuntimeEnvironment
     }
 }
 
@@ -85,18 +84,17 @@ function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter) {
-    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node
-
+function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath = '', [System.Collections.IDictionary] $RuntimeEnvironment) {
     $XmlWriter.WriteStartElement('test-suite')
 
+    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node
+
     if ($Node -is [Pester.Container]) {
-        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType 'Assembly'
-        Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter -Environment $runtimeEnvironment
+        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
+        Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter -Environment $RuntimeEnvironment
     }
     else {
-        $type = if ($Node.OwnTotalCount -gt 0) { 'TestFixture' } else { 'TestSuite' }
-        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter -TestSuiteType $type
+        Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
 
         $hasData = $Node.Data -is [System.Collections.IDictionary] -and $Node.Data.Keys.Count -gt 0
         if ($Node.FrameworkData -or $Node.Tag -or $hasData) {
@@ -137,7 +135,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
 
             $parameterizedSuiteInfo = Get-NUnit3ParameterizedFixtureSuiteInfo -TestSuiteGroup $group
             $XmlWriter.WriteStartElement('test-suite')
-            Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -TestSuiteType 'ParameterizedFixture' -XmlWriter $XmlWriter
+            Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -Type 'ParameterizedFixture' -XmlWriter $XmlWriter
             # Not adding tag/category on ParameterizedFixture, but on child TestSuite/TestFixture covered above. (NUnit3-console runner used as example)
         }
 
@@ -174,7 +172,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
             $parameterizedSuiteInfo = Get-NUnit3ParameterizedMethodSuiteInfo -TestSuiteGroup $group
 
             $XmlWriter.WriteStartElement('test-suite')
-            Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -TestSuiteType 'ParameterizedMethod' -XmlWriter $XmlWriter
+            Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -Type 'ParameterizedMethod' -XmlWriter $XmlWriter
 
             # Add to ParameterizedMethod, but not each test-case. (NUnit3-console runner used as example)
             if ($group.Group[0].Tag) {
@@ -190,7 +188,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
                 continue
             }
 
-            Write-NUnit3TestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.')
+            Write-NUnit3TestCaseElement -TestResult $testCase -XmlWriter $XmlWriter
         }
 
         if ($testGroupId -and $parameterizedSuiteInfo.ShouldRun) {
@@ -202,7 +200,24 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter)
     $XmlWriter.WriteEndElement()
 }
 
-function Get-NUnit3TestSuiteInfo ($TestSuite) {
+function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType) {
+
+    if (-not $SuiteType) {
+        <# test-suite type-attribute mapping
+         Assembly = Container
+         TestSuite = Block without direct tests
+         ParameterizedFixture = Parameterized block (wrapper) - Provided as parameter
+         TestFixture = Block with tests
+         ParameterizedMethod = Parameterized test (wrapper) - Provided as parameter
+        #>
+
+        $SuiteType = switch ($TestSuite) {
+            { $TestSuite -is [Pester.Container] } { 'Assembly'; break }
+            { $TestSuite.OwnTotalCount -gt 0 } { 'TestFixture'; break }
+            default { 'TestSuite' }
+        }
+    }
+
     if ($TestSuite -is [Pester.Container]) {
         switch ($TestSuite.Type) {
             'File' {
@@ -252,34 +267,24 @@ function Get-NUnit3TestSuiteInfo ($TestSuite) {
         }
 
         # If failed and not in test, decide if it was SetUp (BeforeAll), TearDown (AfterAll), Parent or Child
-        $site = if ($null -ne $block) {
-            if ((-not $block.Passed) -and $block.OwnPassed) {
-                'Child'
-            }
-            elseif ($block.ShouldRun -and (-not $block.Executed)) {
-                'Parent'
-            }
-            elseif (-not $block.OwnPassed) {
-                if (@($block.Order.ShouldRun) -contains $true -and @($block.Order.Executed) -notcontains $true) {
+        $site = switch ($block) {
+            { $null -eq $_ } { break }
+            { (-not $_.Passed) -and $_.OwnPassed } { 'Child'; break }
+            { $_.ShouldRun -and (-not $_.Executed) } { 'Parent'; break }
+            { -not $_.OwnPassed } {
+                if (@($_.Order.ShouldRun) -contains $true -and @($_.Order.Executed) -notcontains $true) {
                     'SetUp'
                 }
-                elseif (@($block.Order.ShouldRun) -contains $true) {
+                elseif (@($_.Order.ShouldRun) -contains $true) {
                     'TearDown'
                 }
-                else {
-                    ''
-                }
+                break
             }
         }
-        else {
-            ''
-        }
-    }
-    else {
-        $site = ''
     }
 
     $suiteInfo = @{
+        type          = $SuiteType
         name          = $name
         fullname      = $fullname
         classname     = $classname
@@ -300,20 +305,12 @@ function Get-NUnit3TestSuiteInfo ($TestSuite) {
     $suiteInfo
 }
 
-function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter) {
-    <# TestSuiteType mapping
-     Assembly = Container
-     TestSuite = Block without direct tests
-     ParameterizedFixture = Parameterized block (wrapper)
-     TestFixture = Block with tests
-     ParameterizedMethod = Parameterized test (wrapper)
-    #>
-
-    $XmlWriter.WriteAttributeString('type', $TestSuiteType)
+function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $ParentPath = '', [System.Xml.XmlWriter] $XmlWriter) {
+    $XmlWriter.WriteAttributeString('type', $TestSuiteInfo.type)
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
     $XmlWriter.WriteAttributeString('fullname', $TestSuiteInfo.fullname)
-    if ($TestSuiteType -in 'TestFixture','ParameterizedMethod') {
+    if ($TestSuiteInfo.type -in 'TestFixture','ParameterizedMethod') {
         $XmlWriter.WriteAttributeString('classname', $TestSuiteInfo.classname)
     }
     $XmlWriter.WriteAttributeString('runstate', $TestSuiteInfo.runstate)
@@ -382,24 +379,16 @@ function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.
 
         $node.TotalCount++
         switch ($testCase.Result) {
-            Passed {
-                $node.PassedCount++; break;
-            }
-            Failed {
-                $node.FailedCount++; break;
-            }
-            Skipped {
-                $node.SkippedCount++; break;
-            }
-            NotRun {
-                $node.NotRunCount++; break;
-            }
+            Passed { $node.PassedCount++; break; }
+            Failed { $node.FailedCount++; break; }
+            Skipped { $node.SkippedCount++; break; }
+            NotRun { $node.NotRunCount++; break; }
         }
 
         $node.Duration += $testCase.Duration
     }
 
-    return Get-NUnit3TestSuiteInfo -TestSuite $node
+    return Get-NUnit3TestSuiteInfo -TestSuite $node -SuiteType 'ParameterizedMethod'
 }
 
 function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
@@ -442,7 +431,7 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands
         $node.Duration += $block.Duration
     }
 
-    return Get-NUnit3TestSuiteInfo -TestSuite $node
+    return Get-NUnit3TestSuiteInfo -TestSuite $node -SuiteType 'ParameterizedFixture'
 }
 
 function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
@@ -475,7 +464,7 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestCaseAttributes ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestCaseAttributes ($TestResult, [string] $ParentPath = '', [System.Xml.XmlWriter] $XmlWriter) {
     # Disabled initially, but included commented tests for desired behavior if implemented.
     # Users should write distinguishable names using <variables> since generated ParamString can be long and complex
     #
@@ -579,7 +568,7 @@ function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [Syst
         $formattedValue = if ($null -eq $value) {
             'null'
         }
-        elseif ($value.GetType() -match 'System.DateTime') {
+        elseif ($value -is [datetime]) {
             Get-UTCTimeString $value
         }
         else {
@@ -597,35 +586,31 @@ function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [Syst
 
 function Get-NUnit3NodeId {
     # depends on inhertied $reportIds created in Write-NUnit3TestRunChildNode
-    if ($null -ne $reportIds) {
-        # Unique id (string), often <asemmblyid>-<counter>
-        # Increment node-id for next node
-        '{0}-{1}' -f $reportIds.Assembly, $reportIds.Node++
-    }
-    else { '' }
+    if ($null -eq $reportIds) { return '' }
+
+    # Unique id (string):  <asemmblyid>-<counter>
+    # Increment node-id for next node
+    '{0}-{1}' -f $reportIds.Assembly, $reportIds.Node++
 }
 
 function Get-NUnit3ParamString ($Node) {
-    $paramString = ''
-    if ($null -ne $Node.Data) {
-        $params = @(
-            foreach ($value in $Node.Data.Values) {
-                if ($null -eq $value) {
-                    'null'
-                }
-                elseif ($value -is [string]) {
-                    '"{0}"' -f $value
-                }
-                else {
-                    #do not use .ToString() it uses the current culture settings
-                    #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
-                    [string]$value
-                }
+    if ($null -eq $Node.Data) { return '' }
+
+    $params = @(
+        foreach ($value in $Node.Data.Values) {
+            if ($null -eq $value) {
+                'null'
             }
-        )
+            elseif ($value -is [string]) {
+                '"{0}"' -f $value
+            }
+            else {
+                #do not use .ToString() it uses the current culture settings
+                #and we need to use en-US culture, which [string] or .ToString([Globalization.CultureInfo]'en-us') uses
+                [string]$value
+            }
+        }
+    )
 
-        $paramString = "($($params -join ','))"
-    }
-
-    $paramString
+    return "($($params -join ','))"
 }
