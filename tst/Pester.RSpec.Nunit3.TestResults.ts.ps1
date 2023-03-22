@@ -415,44 +415,44 @@ i -PassThru:$PassThru {
     }
 
     b 'Exporting Parameterized Tests' {
-        # t 'should append test case data to name when <parameter> tags are not used' {
-        #     $sb = {
-        #         Describe 'Describe' {
-        #             It 'Parameterized Testcase' -TestCases @(
-        #                 @{ Value = 1 }
-        #                 [ordered] @{ Value = 2; StringParameter = 'two'; NullParameter = $null; NumberParameter = -42.67 }
-        #             ) {
-        #                 $Value | Should -Be 1
-        #             }
-        #         }
-        #     }
-        #     $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+        t 'should append test case data to name when <parameter> tags are not used and Data is dictionary' {
+            $sb = {
+                Describe 'Describe' {
+                    It 'Parameterized Testcase' -TestCases @(
+                        @{ Value = 1 }
+                        [ordered] @{ Value = 2; StringParameter = 'two'; NullParameter = $null; NumberParameter = -42.67 }
+                    ) {
+                        $Value | Should -Be 1
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
-        #     $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
-        #     $xmlTestSuite.fullname | Verify-Equal 'Describe.Parameterized Testcase'
-        #     $xmlTestSuite.name | Verify-Equal 'Parameterized Testcase'
-        #     $xmlTestSuite.type | Verify-Equal 'ParameterizedMethod'
-        #     $xmlTestSuite.result | Verify-Equal 'Failed'
-        #     $xmlTestSuite.duration | Verify-XmlTime (
-        #         $r.Containers[0].Blocks[0].Tests[0].Duration +
-        #         $r.Containers[0].Blocks[0].Tests[1].Duration)
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-suite'
+            $xmlTestSuite.fullname | Verify-Equal 'Describe.Parameterized Testcase'
+            $xmlTestSuite.name | Verify-Equal 'Parameterized Testcase'
+            $xmlTestSuite.type | Verify-Equal 'ParameterizedMethod'
+            $xmlTestSuite.result | Verify-Equal 'Failed'
+            $xmlTestSuite.duration | Verify-XmlTime (
+                $r.Containers[0].Blocks[0].Tests[0].Duration +
+                $r.Containers[0].Blocks[0].Tests[1].Duration)
 
-        #     $testCase1 = $xmlTestSuite.'test-case'[0]
-        #     $testCase2 = $xmlTestSuite.'test-case'[1]
+            $testCase1 = $xmlTestSuite.'test-case'[0]
+            $testCase2 = $xmlTestSuite.'test-case'[1]
 
-        #     $testCase1.name | Verify-Equal 'Describe.Parameterized Testcase(1)'
-        #     $testCase1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            $testCase1.name | Verify-Equal 'Describe.Parameterized Testcase(1)'
+            $testCase1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
-        #     $testCase2.name | Verify-Equal 'Describe.Parameterized Testcase(2,"two",null,-42.67)'
-        #     $testCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
+            $testCase2.name | Verify-Equal 'Describe.Parameterized Testcase(2,"two",null,-42.67)'
+            $testCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
-        #     # verify against schema
-        #     $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-        #     $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-        #     $xmlResult.Schemas.Add($null, $schemePath) > $null
-        #     $xmlResult.Validate( { throw $args[1].Exception })
-        # }
+            # verify against schema
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
 
         t 'should expand original test name when <parameter> tags are used' {
             $sb = {
@@ -549,56 +549,56 @@ i -PassThru:$PassThru {
     }
 
     b 'Exporting Parameterized Blocks' {
-        # t 'should append data to name when <parameter> tags are not used' {
-        #     $sb = {
-        #         Describe 'Describe' -ForEach @(
-        #             @{ Value = 1 }
-        #             [ordered] @{ Value = 2; StringParameter = 'two'; NullParameter = $null; NumberParameter = -42.67 }
-        #         ) {
-        #             It 'Testcase' {
-        #                 $Value | Should -Be 1
-        #             }
-        #         }
-        #     }
-        #     $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+        t 'should append data to name when <parameter> tags are not used and Data is dictionary' {
+            $sb = {
+                Describe 'Describe' -ForEach @(
+                    @{ Value = 1 }
+                    [ordered] @{ Value = 2; StringParameter = 'two'; NullParameter = $null; NumberParameter = -42.67 }
+                ) {
+                    It 'Testcase' {
+                        $Value | Should -Be 1
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
-        #     $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
-        #     $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'
-        #     $xmlTestSuite.fullname | Verify-Equal 'Describe'
-        #     $xmlTestSuite.name | Verify-Equal 'Describe'
-        #     $xmlTestSuite.type | Verify-Equal 'ParameterizedFixture'
-        #     $xmlTestSuite.result | Verify-Equal 'Failed'
-        #     $xmlTestSuite.duration | Verify-XmlTime (
-        #         $r.Containers[0].Blocks[0].Duration +
-        #         $r.Containers[0].Blocks[1].Duration)
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'
+            $xmlTestSuite.fullname | Verify-Equal 'Describe'
+            $xmlTestSuite.name | Verify-Equal 'Describe'
+            $xmlTestSuite.type | Verify-Equal 'ParameterizedFixture'
+            $xmlTestSuite.result | Verify-Equal 'Failed'
+            $xmlTestSuite.duration | Verify-XmlTime (
+                $r.Containers[0].Blocks[0].Duration +
+                $r.Containers[0].Blocks[1].Duration)
 
-        #     $testSuite1 = $xmlTestSuite.'test-suite'[0]
-        #     $testSuite2 = $xmlTestSuite.'test-suite'[1]
+            $testSuite1 = $xmlTestSuite.'test-suite'[0]
+            $testSuite2 = $xmlTestSuite.'test-suite'[1]
 
-        #     $testSuite1.name | Verify-Equal 'Describe(1)'
-        #     $testSuite1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Duration
+            $testSuite1.name | Verify-Equal 'Describe(1)'
+            $testSuite1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Duration
 
-        #     $testSuite2.name | Verify-Equal 'Describe(2,"two",null,-42.67)'
-        #     $testSuite2.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Duration
+            $testSuite2.name | Verify-Equal 'Describe(2,"two",null,-42.67)'
+            $testSuite2.duration | Verify-XmlTime $r.Containers[0].Blocks[1].Duration
 
-        #     # verify generated paramstring is included for block in test fullname
-        #     $testCase1 = $testSuite1.'test-case'
-        #     $testCase2 = $testSuite2.'test-case'
+            # verify generated paramstring is included for block in test fullname
+            $testCase1 = $testSuite1.'test-case'
+            $testCase2 = $testSuite2.'test-case'
 
-        #     $testCase1.name | Verify-Equal 'Describe(1).Testcase'
-        #     $testCase1.fullname | Verify-Equal 'Describe(1).Testcase'
-        #     $testCase1.classname | Verify-Equal 'Describe'
+            $testCase1.name | Verify-Equal 'Describe(1).Testcase'
+            $testCase1.fullname | Verify-Equal 'Describe(1).Testcase'
+            $testCase1.classname | Verify-Equal 'Describe'
 
-        #     $testCase2.name | Verify-Equal 'Describe(2,"two",null,-42.67).Testcase'
-        #     $testCase2.fullname | Verify-Equal 'Describe(2,"two",null,-42.67).Testcase'
-        #     $testCase2.classname | Verify-Equal 'Describe'
+            $testCase2.name | Verify-Equal 'Describe(2,"two",null,-42.67).Testcase'
+            $testCase2.fullname | Verify-Equal 'Describe(2,"two",null,-42.67).Testcase'
+            $testCase2.classname | Verify-Equal 'Describe'
 
-        #     # verify against schema
-        #     $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
-        #     $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-        #     $xmlResult.Schemas.Add($null, $schemePath) > $null
-        #     $xmlResult.Validate( { throw $args[1].Exception })
-        # }
+            # verify against schema
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
 
         t 'should expand name when <parameter> tags are used' {
             $sb = {
@@ -676,7 +676,7 @@ i -PassThru:$PassThru {
             $xmlDescribeArray.psobject.Properties['properties'] | Verify-Null
 
             $xmlDescribeDictionary = $xmlResult.'test-run'.'test-suite'.'test-suite'[1].'test-suite'
-            $xmlDescribeDictionary.name | Verify-Equal 'Describe Dictionary'
+            $xmlDescribeDictionary.name | Verify-Equal 'Describe Dictionary(123)'
             $xmlDescribeDictionary.type | Verify-Equal 'TestFixture'
             ($xmlDescribeDictionary.properties.property | Where-Object name -EQ 'MyParam').value | Verify-Equal 123
         }

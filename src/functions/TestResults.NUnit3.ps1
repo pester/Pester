@@ -84,16 +84,17 @@ function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath = '', [System.Collections.IDictionary] $RuntimeEnvironment) {
+function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath, [System.Collections.IDictionary] $RuntimeEnvironment) {
     $XmlWriter.WriteStartElement('test-suite')
-
-    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node
+    $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node -ParentPath $ParentPath
 
     if ($Node -is [Pester.Container]) {
+        $CurrentPath = $null # child suites shouldn't use assembly-name in path
         Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
         Write-NUnit3EnvironmentInformation -XmlWriter $XmlWriter -Environment $RuntimeEnvironment
     }
     else {
+        $CurrentPath = $suiteInfo.fullname
         Write-NUnit3TestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
 
         $hasData = $Node.Data -is [System.Collections.IDictionary] -and $Node.Data.Keys.Count -gt 0
@@ -133,7 +134,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
                 continue
             }
 
-            $parameterizedSuiteInfo = Get-NUnit3ParameterizedFixtureSuiteInfo -TestSuiteGroup $group
+            $parameterizedSuiteInfo = Get-NUnit3ParameterizedFixtureSuiteInfo -TestSuiteGroup $group -ParentPath $CurrentPath
             $XmlWriter.WriteStartElement('test-suite')
             Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -Type 'ParameterizedFixture' -XmlWriter $XmlWriter
             # Not adding tag/category on ParameterizedFixture, but on child TestSuite/TestFixture covered above. (NUnit3-console runner used as example)
@@ -145,7 +146,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
                 continue
             }
 
-            Write-NUnit3TestSuiteElements -Node $block -XmlWriter $XmlWriter -Path $block.ExpandedPath
+            Write-NUnit3TestSuiteElements -Node $block -XmlWriter $XmlWriter -ParentPath $CurrentPath
         }
 
         if ($blockGroupId) {
@@ -169,7 +170,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
                 # no tests executed, skip group to avoid creating empty ParameterizedMethod
                 continue
             }
-            $parameterizedSuiteInfo = Get-NUnit3ParameterizedMethodSuiteInfo -TestSuiteGroup $group
+            $parameterizedSuiteInfo = Get-NUnit3ParameterizedMethodSuiteInfo -TestSuiteGroup $group -ParentPath $CurrentPath
 
             $XmlWriter.WriteStartElement('test-suite')
             Write-NUnit3TestSuiteAttributes -TestSuiteInfo $parameterizedSuiteInfo -Type 'ParameterizedMethod' -XmlWriter $XmlWriter
@@ -188,7 +189,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
                 continue
             }
 
-            Write-NUnit3TestCaseElement -TestResult $testCase -XmlWriter $XmlWriter
+            Write-NUnit3TestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -ParentPath $CurrentPath
         }
 
         if ($testGroupId -and $parameterizedSuiteInfo.ShouldRun) {
@@ -200,8 +201,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
     $XmlWriter.WriteEndElement()
 }
 
-function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType) {
-
+function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType, [string] $ParentPath) {
     if (-not $SuiteType) {
         <# test-suite type-attribute mapping
          Assembly = Container
@@ -237,8 +237,16 @@ function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType) {
         $classname = ''
     }
     else {
-        $name = $TestSuite.ExpandedName
-        $fullname = $TestSuite.ExpandedPath
+        # add parameters to name for block with data when not using variables in name
+        if ($TestSuite -is [Pester.Block] -and $TestSuite.Data -and ($TestSuite.Name -eq $TestSuite.ExpandedName)) {
+            $paramString = Get-NUnit3ParamString -Node $TestSuite
+            $name = "$($TestSuite.Name)$paramString"
+        }
+        else {
+            $name = $TestSuite.ExpandedName
+        }
+
+        $fullname = if ($ParentPath) { "$($ParentPath).$name" } else { $name }
         $classname = $TestSuite.Path -join '.'
     }
 
@@ -254,33 +262,9 @@ function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType) {
     }
 
     $result = Get-NUnit3Result $TestSuite
-    if ($TestSuite -isnot [Pester.Run] -and $TestSuite.ShouldRun -and $result -in 'Failed', 'Skipped') {
-        $block = if ($TestSuite -is [Pester.Container] -and $TestSuite.Blocks.Count -gt 0) {
-            $TestSuite.Blocks[0].Root
-        }
-        elseif ($TestSuite -is [Pester.Block]) {
-            $TestSuite
-        }
-        else {
-            # Empty container
-            # or ParameterizedMethod / ParameterizedFixture
-        }
-
+    $site = if ($TestSuite -isnot [Pester.Run] -and $TestSuite.ShouldRun -and $result -in 'Failed', 'Skipped') {
         # If failed and not in test, decide if it was SetUp (BeforeAll), TearDown (AfterAll), Parent or Child
-        $site = switch ($block) {
-            { $null -eq $_ } { break }
-            { (-not $_.Passed) -and $_.OwnPassed } { 'Child'; break }
-            { $_.ShouldRun -and (-not $_.Executed) } { 'Parent'; break }
-            { -not $_.OwnPassed } {
-                if (@($_.Order.ShouldRun) -contains $true -and @($_.Order.Executed) -notcontains $true) {
-                    'SetUp'
-                }
-                elseif (@($_.Order.ShouldRun) -contains $true) {
-                    'TearDown'
-                }
-                break
-            }
-        }
+        Get-NUnit3Site
     }
 
     $suiteInfo = @{
@@ -305,7 +289,7 @@ function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType) {
     $suiteInfo
 }
 
-function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $ParentPath = '', [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteAttributeString('type', $TestSuiteInfo.type)
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
@@ -347,7 +331,37 @@ function Get-NUnit3Result ($InputObject) {
     }
 }
 
-function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
+function Get-NUnit3Site ($Node) {
+    $block = if ($TestSuite -is [Pester.Container] -and $TestSuite.Blocks.Count -gt 0) {
+        $TestSuite.Blocks[0].Root
+    }
+    elseif ($TestSuite -is [Pester.Block]) {
+        $TestSuite
+    }
+    else {
+        # Empty container or ParameterizedMethod / ParameterizedFixture
+        return
+    }
+
+    $site = switch ($block) {
+        { $null -eq $_ } { break }
+        { (-not $_.Passed) -and $_.OwnPassed } { 'Child'; break }
+        { $_.ShouldRun -and (-not $_.Executed) } { 'Parent'; break }
+        { -not $_.OwnPassed } {
+            if (@($_.Order.ShouldRun) -contains $true -and @($_.Order.Executed) -notcontains $true) {
+                'SetUp'
+            }
+            elseif (@($_.Order.ShouldRun) -contains $true) {
+                'TearDown'
+            }
+            break
+        }
+    }
+
+    return $site
+}
+
+function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath) {
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
 
     # Using the Name from the first test as the name of the test group, even though we are grouping at
@@ -358,18 +372,20 @@ function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.
 
     $sampleTest = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
-        ExpandedName = $sampleTest.Name
-        ExpandedPath = ($sampleTest.Path -join '.')
-        Path         = $sampleTest.Block.Path -join '.' # used for classname -> block path
-        TotalCount   = 0
-        Duration     = [timespan]0
-        ExecutedAt   = [datetime]::MinValue
-        PassedCount  = 0
-        FailedCount  = 0
-        SkippedCount = 0
-        NotRunCount  = 0
-        ShouldRun    = $true
-        Skip         = $sampleTest.Skip
+        Name          = $sampleTest.Name
+        ExpandedName  = $sampleTest.Name
+        Path          = $sampleTest.Block.Path # used for classname -> block path
+        Data          = $null
+        TotalCount    = 0
+        Duration      = [timespan]0
+        ExecutedAt    = [datetime]::MinValue
+        PassedCount   = 0
+        FailedCount   = 0
+        SkippedCount  = 0
+        NotRunCount   = 0
+        OwnTotalCount = 0
+        ShouldRun     = $true
+        Skip          = $sampleTest.Skip
     }
 
     foreach ($testCase in $TestSuiteGroup.Group) {
@@ -388,10 +404,10 @@ function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.
         $node.Duration += $testCase.Duration
     }
 
-    return Get-NUnit3TestSuiteInfo -TestSuite $node -SuiteType 'ParameterizedMethod'
+    return Get-NUnit3TestSuiteInfo -TestSuite $node -ParentPath $ParentPath -SuiteType 'ParameterizedMethod'
 }
 
-function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
+function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath) {
     # this is generating info for a group of blocks that were generated from the same block when ForEach are used
 
     # Using the Name from the first block as the name of the block group, even though we are grouping at
@@ -402,18 +418,20 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands
 
     $sampleBlock = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
-        ExpandedName = $sampleBlock.Name
-        ExpandedPath = ($sampleBlock.Path -join '.')
-        Path         = ''
-        TotalCount   = 0
-        Duration     = [timespan]0
-        ExecutedAt   = [datetime]::MinValue
-        PassedCount  = 0
-        FailedCount  = 0
-        SkippedCount = 0
-        NotRunCount  = 0
-        ShouldRun    = $true
-        Skip         = $false # ParameterizedFixture are always Runnable, even with -Skip
+        Name          = $sampleBlock.Name
+        ExpandedName  = $sampleBlock.Name
+        Path          = $sampleBlock.Path
+        Data          = $null
+        TotalCount    = 0
+        Duration      = [timespan]0
+        ExecutedAt    = [datetime]::MinValue
+        PassedCount   = 0
+        FailedCount   = 0
+        SkippedCount  = 0
+        NotRunCount   = 0
+        OwnTotalCount = 0
+        ShouldRun     = $true
+        Skip          = $false # ParameterizedFixture are always Runnable, even with -Skip
     }
 
     foreach ($block in $TestSuiteGroup.Group) {
@@ -431,13 +449,13 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands
         $node.Duration += $block.Duration
     }
 
-    return Get-NUnit3TestSuiteInfo -TestSuite $node -SuiteType 'ParameterizedFixture'
+    return Get-NUnit3TestSuiteInfo -TestSuite $node -ParentPath $ParentPath -SuiteType 'ParameterizedFixture'
 }
 
-function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestCaseElement ($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteStartElement('test-case')
 
-    Write-NUnit3TestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter
+    Write-NUnit3TestCaseAttributes -TestResult $TestResult -ParentPath $ParentPath -XmlWriter $XmlWriter
 
     # tests with testcases/foreach (has .Id) has tags on ParameterizedMethod-node
     $includeTags = (-not $TestResult.Id) -and $TestResult.Tag
@@ -464,21 +482,17 @@ function Write-NUnit3TestCaseElement ($TestResult, [System.Xml.XmlWriter] $XmlWr
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestCaseAttributes ($TestResult, [string] $ParentPath = '', [System.Xml.XmlWriter] $XmlWriter) {
-    # Disabled initially, but included commented tests for desired behavior if implemented.
-    # Users should write distinguishable names using <variables> since generated ParamString can be long and complex
-    #
-    # # add parameters to name for testcase with data when not using variables in name
-    # if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
-    #     $paramString = Get-NUnit3ParamString -Node $TestResult
-    #     #$name = "$($TestResult.Name)$paramString"
-    #     $fullname = "$($TestResult.ExpandedPath)$paramString"
-    # }
-    # else {
-    #$name = $TestResult.ExpandedName
-    $fullname = $TestResult.ExpandedPath
-    # }
+function Write-NUnit3TestCaseAttributes ($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
+    # add parameters to name for testcase with data when not using variables in name
+    if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
+        $paramString = Get-NUnit3ParamString -Node $TestResult
+        $name = "$($TestResult.Name)$paramString"
+    }
+    else {
+        $name = $TestResult.ExpandedName
+    }
 
+    $fullname = "$($ParentPath).$name"
     # Skip during test-execution is still runnable test-case
     $runstate = if ($TestResult.Skip) { 'Ignored' } else { 'Runnable' }
 
@@ -594,7 +608,7 @@ function Get-NUnit3NodeId {
 }
 
 function Get-NUnit3ParamString ($Node) {
-    if ($null -eq $Node.Data) { return '' }
+    if ($Node.Data -isnot [System.Collections.IDictionary]) { return }
 
     $params = @(
         foreach ($value in $Node.Data.Values) {
@@ -612,5 +626,5 @@ function Get-NUnit3ParamString ($Node) {
         }
     )
 
-    return "($($params -join ','))"
+    "($($params -join ','))"
 }
