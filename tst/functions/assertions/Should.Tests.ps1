@@ -124,4 +124,26 @@ InPesterModuleScope {
             Get-Command Should -Syntax | Should -Not -BeNullOrEmpty
         }
     }
+
+    Describe 'Legacy syntax exception' {
+        It 'Throws when legacy syntax is used' {
+            { 1 | Should Be 1 } | Should -Throw '*Legacy Should syntax*is not supported*'
+        }
+
+        It 'Does not throw when using linebreak before operator-switch' {
+            # https://github.com/pester/Pester/issues/2138
+            1 + 1 | Should `
+                -Be 2
+        }
+
+        It 'Does not throw when using splatting' {
+            $p = @{
+                Be            = $true
+                ExpectedValue = 2
+            }
+            1 + 1 | Should @p
+        }
+
+        # will throw on positional parameters before -<Operator> but that's more obvious user error.
+    }
 }
