@@ -125,6 +125,11 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return Format-ScriptBlock -Value $Value
     }
 
+    # Check collection before Is-Value to format single item arrays
+    if (Is-Collection -Value $Value) {
+        return Format-Collection -Value $Value -Pretty:$Pretty
+    }
+
     if (Is-Value -Value $Value) {
         return $Value
     }
@@ -139,10 +144,6 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         # no advanced formatting of objects in the first version, till I balance it
         return [string]$Value
         #return Format-Dictionary -Value $Value
-    }
-
-    if (Is-Collection -Value $Value) {
-        return Format-Collection -Value $Value -Pretty:$Pretty
     }
 
     # no advanced formatting of objects in the first version, till I balance it
