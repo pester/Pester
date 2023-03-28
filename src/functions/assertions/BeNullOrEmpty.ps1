@@ -1,5 +1,5 @@
 ﻿
-function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
+function Should-BeNullOrEmpty($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks values for null or empty (strings).
@@ -30,6 +30,7 @@ function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string
     }
     elseif ($ActualValue.Count -eq 1) {
         $expandedValue = $ActualValue[0]
+        $singleValue = $true
         if ($expandedValue -is [hashtable]) {
             $succeeded = $expandedValue.Count -eq 0
         }
@@ -52,7 +53,8 @@ function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string
             $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
         }
         else {
-            $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $ActualValue -Because $Because
+            $valueToFormat = if ($singleValue) { $expandedValue } else { $ActualValue }
+            $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $valueToFormat -Because $Because
         }
     }
 
