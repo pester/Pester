@@ -282,6 +282,13 @@ InPesterModuleScope {
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, with aliases 'Second' and 'Third', but it didn't have the aliases 'Second' and 'Third'."
         }
 
+        It "throws ArgumentException when expected type isn't a loaded type" {
+            $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter MandatoryParam -Type UnknownType } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
+            # Verify expected type is included in error message
+            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
+        }
+
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "fails if the parameter <ParameterName> does not exist, is not of type <ExpectedType>, has a default value other than '<ExpectedValue>' or has not an ArgumentCompleter" -TestCases @(
                 @{ParameterName = "MandatoryParam"; ExpectedType = [Object]; ExpectedValue = "" }
