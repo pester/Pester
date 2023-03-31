@@ -26,7 +26,7 @@
     Allows data driven tests to be written.
     Takes an array of data and generates one block for each item in the array, and makes the item
     available as $_ in all child blocks. When the array is an array of hashtables, it additionally
-    defines each key in the hashatble as variable.
+    defines each key in the hashtable as variable.
 
     .EXAMPLE
     ```powershell

@@ -34,12 +34,11 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
         . $ScriptBlock
     }.ToString()
 
-    # we need to escape " with \" because otherwise the " are eaten when the process we are starting receives them
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
-    & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
+    # using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
+    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
+    $encodedcommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+    & $powershell -NoProfile -ExecutionPolicy Bypass -encodedCommand $encodedcommand
 }
-
-
 
 i -PassThru:$PassThru {
     b 'Output in VSCode mode' {
@@ -203,7 +202,7 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','both' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
+                'Hello', 'both' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
                 'green' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green
                 'blue' | & $cmd -RenderMode 'Ansi'  -BackgroundColor Blue
                 & $cmd 'NoColorsOnlyReset' -RenderMode 'Ansi'
@@ -243,17 +242,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | & $cmd -RenderMode 'Ansi'
-                'No','NewLine' | & $cmd -RenderMode 'Ansi' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'Ansi'
-                'hello',('no','newline') | & $cmd -RenderMode 'Ansi' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'Ansi' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'Ansi'
+                'No', 'NewLine' | & $cmd -RenderMode 'Ansi' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'Ansi'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'Ansi' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'Ansi' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -268,17 +267,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | & $cmd -RenderMode 'Plaintext'
-                'No','NewLine' | & $cmd -RenderMode 'Plaintext' -NoNewline
-                'hello',('foo','bar') | & $cmd -RenderMode 'Plaintext'
-                'hello',('no','newline') | & $cmd -RenderMode 'Plaintext' -NoNewline
-                & $cmd -RenderMode 'Plaintext' -Object 'foo','bar' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'Plaintext'
+                'No', 'NewLine' | & $cmd -RenderMode 'Plaintext' -NoNewline
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'Plaintext'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'Plaintext' -NoNewline
+                & $cmd -RenderMode 'Plaintext' -Object 'foo', 'bar' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -293,17 +292,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | Write-Host
-                'No','NewLine' | Write-Host -NoNewLine
-                'hello',('foo','bar') | Write-Host
-                'hello',('no','newline') | Write-Host -NoNewLine
-                Write-Host -Object 'foo','bar' -Separator ';'
+                'Hello', 'world' | Write-Host
+                'No', 'NewLine' | Write-Host -NoNewLine
+                'hello', ('foo', 'bar') | Write-Host
+                'hello', ('no', 'newline') | Write-Host -NoNewLine
+                Write-Host -Object 'foo', 'bar' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb

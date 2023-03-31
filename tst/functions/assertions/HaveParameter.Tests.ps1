@@ -154,6 +154,17 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
+        It "passes if the paramblock has opening parenthesis on new line and parameter has a default value" {
+            function Test-Paramblock {
+                param
+                (
+                    $Name = 'test'
+                )
+            }
+
+            Get-Command -Name 'Test-Paramblock' | Should -HaveParameter -ParameterName 'Name' -DefaultValue 'test'
+        }
+
         It "passes if the parameter <ParameterName> exists, is of type <ExpectedType> and has a default value '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)" }
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
@@ -269,6 +280,13 @@ InPesterModuleScope {
         It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' and no alias 'Third'" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second, Third } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, with aliases 'Second' and 'Third', but it didn't have the aliases 'Second' and 'Third'."
+        }
+
+        It "throws ArgumentException when expected type isn't a loaded type" {
+            $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter MandatoryParam -Type UnknownType } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
+            # Verify expected type is included in error message
+            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
@@ -474,5 +492,28 @@ InPesterModuleScope {
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and has ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and has ArgumentCompletion."
             }
         }
+    }
+}
+
+Describe 'Using Should -HaveParameter with alias for local function or mock' {
+    # https://github.com/pester/Pester/issues/1431
+    It 'throws when testing mock without workaround' {
+        function TestFunction($Parameter1) { }
+        Mock TestFunction {}
+
+        { Get-Command TestFunction | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for mock TestFunction. This is a known issue with Get-Command in PowerShell. Try 'Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter 'Parameter1'
+    }
+
+    It 'throws when testing alias for function defined in local script scope' {
+        function TestFunction2($Parameter1) { }
+        Set-Alias -Name LocalAlias -Value TestFunction2
+
+        { Get-Command LocalAlias | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for alias LocalAlias. This is a known issue with Get-Command in PowerShell. Try using the actual command name. For example: 'Get-Command TestFunction2 | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction2 | Should -HaveParameter 'Parameter1'
     }
 }

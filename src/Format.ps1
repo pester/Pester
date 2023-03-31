@@ -15,9 +15,13 @@ function Format-Collection ($Value, [switch]$Pretty) {
     $trimmed = $count -gt $Limit
 
     $formattedCollection = @()
-    for ($i = 0; $i -lt [System.Math]::Min($count, $Limit); $i++) {
-        $formattedValue = Format-Nicely -Value $Value[$i] -Pretty:$Pretty
+    # Using foreach to support ICollection
+    $i = 0
+    foreach ($v in $Value) {
+        if ($i -eq $Limit) { break }
+        $formattedValue = Format-Nicely -Value $v -Pretty:$Pretty
         $formattedCollection += $formattedValue
+        $i++
     }
 
     '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'

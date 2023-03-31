@@ -28,9 +28,10 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
         . $ScriptBlock
     }.ToString()
 
-    # we need to escape " with \" because otherwise the " are eaten when the process we are starting receives them
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
-    & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
+    # using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
+    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
+    $encodedcommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+    & $powershell -NoProfile -ExecutionPolicy Bypass -encodedCommand $encodedcommand
 }
 
 i -PassThru:$PassThru {
@@ -392,7 +393,7 @@ i -PassThru:$PassThru {
             $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
             try {
                 $ps = [PowerShell]::Create()
-                $ps.AddCommand('Set-StrictMode').AddParameter('Version','Latest') > $null
+                $ps.AddCommand('Set-StrictMode').AddParameter('Version', 'Latest') > $null
                 $ps.AddStatement().AddScript("Import-Module '$pesterPath' -Force") > $null
                 $ps.AddStatement().AddScript("Invoke-Pester -Container (New-PesterContainer -ScriptBlock { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }) -PassThru") > $null
                 $res = $ps.Invoke()
@@ -402,7 +403,8 @@ i -PassThru:$PassThru {
                 $res.PassedCount | Verify-Equal 1
                 # Information-stream introduced in PSv5 for Write-Host output
                 if ($PSVersionTable.PSVersion.Major -ge 5) { $ps.Streams.Information -match 'Describe' | Verify-NotNull }
-            } finally {
+            }
+            finally {
                 $ps.Dispose()
             }
         }

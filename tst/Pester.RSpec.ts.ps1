@@ -1107,6 +1107,64 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
         }
+
+        t 'Each container gets own copy of Data' {
+            # https://github.com/pester/Pester/issues/2073
+            # Default values for script parameters used to leak into other containers due to shared Data-reference.
+            $sb1 = {
+                param ($Value = 1)
+
+                Describe 'd1' {
+                    It 't1' {
+                        if ($Value -ne 1) {
+                            throw "Expected `$Value to be 1 but it is '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $sb2 = {
+                param ($Value = 2)
+
+                Describe 'd2' {
+                    It 't2' {
+                        if ($Value -ne 2) {
+                            throw "Expected `$Value to be 2 but it is '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb1, $sb2 -Data @{ }
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+            $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+        }
+
+        t 'Works with different dictionary types as Data' {
+            $sb = {
+                param ($Value)
+
+                Describe 'd1' {
+                    It 't1' {
+                        if ($Value -ne 1) {
+                            throw "Expected `$Value to be 1 but it is '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $ht = @{ Value = 1 }
+            $ordered = [ordered]@{ Value = 1 }
+            $generic =  New-Object 'System.Collections.Generic.Dictionary[string,int]'
+            $generic.Add('Value', 1)
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @($ht, $ordered, $generic)
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+            $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+            $r.Containers[2].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+        }
     }
 
     b "Default values in parametric scripts" {
