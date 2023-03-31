@@ -189,7 +189,21 @@
     $buts = @()
     $filters = @()
 
-    $null = $ActualValue.Parameters # necessary for PSv2
+    $null = $ActualValue.Parameters # necessary for PSv2. Keeping just in case
+    if ($null -eq $ActualValue.Parameters -and $ActualValue -is [System.Management.Automation.AliasInfo]) {
+        # PowerShell doesn't resolve alias parameters properly in Get-Command when function is defined in a local scope in a different session state.
+        # https://github.com/pester/Pester/issues/1431 and https://github.com/PowerShell/PowerShell/issues/17629
+        if ($ActualValue.Definition -match '^PesterMock_') {
+            $type = 'mock'
+            $suggestion = "'Get-Command $($ActualValue.Name) | Where-Object Parameters | Should -HaveParameter ...'"
+        } else {
+            $type = 'alias'
+            $suggestion = "using the actual command name. For example: 'Get-Command $($ActualValue.Definition) | Should -HaveParameter ...'"
+        }
+
+        throw "Could not retrieve parameters for $type $($ActualValue.Name). This is a known issue with Get-Command in PowerShell. Try $suggestion"
+    }
+
     $hasKey = $ActualValue.Parameters.PSBase.ContainsKey($ParameterName)
     $filters += "to$(if ($Negate) {" not"}) have a parameter $ParameterName"
 
