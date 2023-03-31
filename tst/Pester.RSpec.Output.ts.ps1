@@ -34,12 +34,11 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
         . $ScriptBlock
     }.ToString()
 
-    # we need to escape " with \" because otherwise the " are eaten when the process we are starting recieves them
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
-    & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
+    # using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
+    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
+    $encodedcommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+    & $powershell -NoProfile -ExecutionPolicy Bypass -encodedCommand $encodedcommand
 }
-
-
 
 i -PassThru:$PassThru {
     b 'Output in VSCode mode' {
