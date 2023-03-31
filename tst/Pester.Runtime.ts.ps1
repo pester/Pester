@@ -2234,8 +2234,6 @@ i -PassThru:$PassThru {
 
 
         t "total time is roughly the same as time measured externally (measured on a second test)" {
-            # this is the same as above, if I add one time setups then the framework time should grow
-            # but not the user code time
             $container = @{
                 Test   = $null
                 Block  = $null
@@ -2298,8 +2296,6 @@ i -PassThru:$PassThru {
         }
 
         t "total time is roughly the same as time measured externally (on many tests)" {
-            # this is the same as above, if I add one time setups then the framework time should grow
-            # but not the user code time
             $container = @{
                 Test   = $null
                 Block  = $null
@@ -2356,6 +2352,54 @@ i -PassThru:$PassThru {
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
 
             # TODO: revisit the difference on many tests, it is still missing some parts of the common discovery processing I guess (replicates on 10k tests)
+        }
+
+        t "OneTimeTestSetup and OneTimeTestTeardown is measured as user code in block" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name 'b1' {
+                        New-OneTimeTestSetup {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-OneTimeTestTeardown {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-Test 't1' {
+                            $true
+                        }
+                    }
+                }
+            )
+
+            $actual.UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].OwnDuration.TotalMilliseconds -ge 100 | Verify-True
+            # test should not include time spent in block setup/teardown
+            $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds -lt 100 | Verify-True
+        }
+
+        t "EachTestSetup and EachTestTeardown is measured as user code in test" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name 'b1' {
+                        New-EachTestSetup {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-EachTestTeardown {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-Test 't1' {
+                            $true
+                        }
+                    }
+                }
+            )
+
+            $actual.UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            # block is not responsible for setup/teardown per test.
+            $actual.Blocks[0].OwnDuration.TotalMilliseconds -lt 100 | Verify-True
+            $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
         }
     }
 
