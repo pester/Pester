@@ -1573,31 +1573,40 @@ function Test-IsClosure {
 }
 
 function Remove-MockFunctionsAndAliases ($SessionState) {
-    # When a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
-    # the aliases and bootstrap functions for the currently mocked functions will remain in place.
+    # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
+    # the aliases and bootstrap functions for the currently mocked functions will remain in place
     # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
     # because there is still an alias associated with it, and the test will fail.
     # So before putting Pester state in place we should make sure that all Pester mocks are gone
-    # by deleting every alias pointing to a function that starts with PesterMock_.
-    # As a perf optimization we don't delete the bootstrap functions because running Get-Command
-    # in every loaded module has significant overhead (https://github.com/pester/Pester/discussions/2331)
-    # and the PesterMock_ function won't be picked up without an alias.
+    # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
+    # bootstrap function.
+    #
+    # Avoid using Get-Command to find mock functions, it is slow. https://github.com/pester/Pester/discussions/2331
     $Get_Alias = $script:SafeCommands['Get-Alias']
+    $Get_ChildItem = $script:SafeCommands['Get-ChildItem']
     $Remove_Item = $script:SafeCommands['Remove-Item']
     foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
         & $Remove_Item "alias:/$($alias.Name)"
     }
 
+    foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+    }
+
     $ScriptBlock = {
-        param ($Get_Alias, $Remove_Item)
+        param ($Get_Alias, $Get_ChildItem, $Remove_Item)
         foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
             & $Remove_Item "alias:/$($alias.Name)"
+        }
+
+        foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+            & $Remove_Item "function:/$($bootstrapFunction.Name)"
         }
     }
 
     # clean up in caller session state
     Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
-    & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+    & $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
 
     # clean up also in all loaded script and manifest modules
     $modules = & $script:SafeCommands['Get-Module']
@@ -1611,7 +1620,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
         if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
-            & ($module) $ScriptBlock $Get_Alias $Remove_Item
+            & ($module) $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
         }
     }
 }
