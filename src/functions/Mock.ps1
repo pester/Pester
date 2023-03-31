@@ -1590,7 +1590,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
     }
 
     foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
-        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+        & $Remove_Item "function:/$($bootstrapFunction.Name)" -Force -Confirm:$false
     }
 
     $ScriptBlock = {
@@ -1600,7 +1600,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
         }
 
         foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
-            & $Remove_Item "function:/$($bootstrapFunction.Name)"
+            & $Remove_Item "function:/$($bootstrapFunction.Name)" -Force -Confirm:$false
         }
     }
 
