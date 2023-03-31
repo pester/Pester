@@ -12,22 +12,22 @@
     The .NET type to create. This creates the object without calling any of its constructors or initializers. Use this to instantiate an object that does not have a public constructor. If your object has a constructor, or is giving you errors, try using the constructor and provide the object using the InputObject parameter to decorate it.
 
     .PARAMETER InputObject
-    An already constructed object to decorate. Use New-Object or ::new to create it.
+    An already constructed object to decorate. Use `New-Object` or `[typeName]::new()` to create it.
 
     .PARAMETER Properties
-    Properties to define, specified as a hashtable, in format @{ PropertyName = value }.
+    Properties to define, specified as a hashtable, in format `@{ PropertyName = value }`.
 
     .PARAMETER Methods
-    Methods to define, specified as a hashtable, in format @{ MethodName = scriptBlock }.
+    Methods to define, specified as a hashtable, in format `@{ MethodName = scriptBlock }`.
 
     ScriptBlock can define param block, and it will receive arguments that were provided to the function call based on order.
 
     Method overloads are not supported because ScriptMethods are used to decorate the object, and ScriptMethods do not support method overloads.
 
-    For each method a property named _MethodName (if using default -MethodHistoryPrefix) is defined which holds history of the invocations of the method and the arguments that were provided.
+    For each method a property named `_MethodName` (if using default `-MethodHistoryPrefix`) is defined which holds history of the invocations of the method and the arguments that were provided.
 
     .PARAMETER MethodHistoryPrefix
-    Prefix for the history-property created for each mocked method. Default is '_' which would create the property ' _MethodName'.
+    Prefix for the history-property created for each mocked method. Default is '_' which would create the property '_MethodName'.
 
     .EXAMPLE
     ```powershell
@@ -56,13 +56,13 @@
 
     Call Arguments
     ---- ---------
-    1 {}
-    2 {True}
-    3 {False}
+       1 {}
+       2 {True}
+       3 {False}
     ```
 
-    Create a mock of a process-object and mocks the object's Kill()-method. The mocked method will keep a history
-    of any call and the associated arguments in a key named <_<MethodName
+    Create a mock of a process-object and mocks the object's `Kill()`-method. The mocked method will keep a history
+    of any call and the associated arguments in a property named `_Kill`
 
     .LINK
     https://pester.dev/docs/commands/New-MockObject
