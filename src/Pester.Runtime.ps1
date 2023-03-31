@@ -2423,7 +2423,14 @@ function New-BlockContainerObject {
         $Data
     )
 
-    if ($null -eq $Data) { $Data = @{} }
+    # Data is null or IDictionary, but all IDictionary does not work with ContainsKey()
+    # Contains() requires interface-casting for some types, ex. generic dictionary.
+    # Instead we're merging to a controlled data structure to have consistent API internally
+    # Also works as a shallow clone to avoid leaking default parameter values between containers with same Data
+    $ContainerData = @{ }
+    if ($Data -is [System.Collections.IDictionary]) {
+        Merge-Hashtable -Destination $ContainerData -Source $Data
+    }
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
         "ScriptBlock" { "ScriptBlock", $ScriptBlock }
@@ -2435,7 +2442,7 @@ function New-BlockContainerObject {
     $c = [Pester.ContainerInfo]::Create()
     $c.Type = $type
     $c.Item = $item
-    $c.Data = $Data
+    $c.Data = $ContainerData
     $c
 }
 
