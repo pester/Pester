@@ -154,6 +154,17 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
+        It "passes if the paramblock has opening parenthesis on new line and parameter has a default value" {
+            function Test-Paramblock {
+                param
+                (
+                    $Name = 'test'
+                )
+            }
+
+            Get-Command -Name 'Test-Paramblock' | Should -HaveParameter -ParameterName 'Name' -DefaultValue 'test'
+        }
+
         It "passes if the parameter <ParameterName> exists, is of type <ExpectedType> and has a default value '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)" }
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
