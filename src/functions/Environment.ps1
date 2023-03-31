@@ -8,13 +8,13 @@ function GetPesterOs {
     if ((GetPesterPsVersion) -lt 6) {
         'Windows'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'Ignore' -ValueOnly ) {
         'Windows'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsMacOS' -ErrorAction 'Ignore' -ValueOnly ) {
         'macOS'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'Ignore' -ValueOnly ) {
         'Linux'
     }
     else {

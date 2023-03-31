@@ -24,7 +24,7 @@
         }
 
         $scope = 0
-        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction SilentlyContinue)) {
+        while ($null -eq (& $safeGetVariable -Name Error -Scope $scope -ErrorAction Ignore)) {
             $scope++
         }
 
