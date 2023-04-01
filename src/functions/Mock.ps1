@@ -1580,31 +1580,33 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
     # So before putting Pester state in place we should make sure that all Pester mocks are gone
     # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
     # bootstrap function.
+    #
+    # Avoid using Get-Command to find mock functions, it is slow. https://github.com/pester/Pester/discussions/2331
     $Get_Alias = $script:SafeCommands['Get-Alias']
-    $Get_Command = $script:SafeCommands['Get-Command']
+    $Get_ChildItem = $script:SafeCommands['Get-ChildItem']
     $Remove_Item = $script:SafeCommands['Remove-Item']
     foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
         & $Remove_Item "alias:/$($alias.Name)"
     }
 
-    foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
-        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+    foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+        & $Remove_Item "function:/$($bootstrapFunction)" -Recurse -Force -Confirm:$false
     }
 
     $ScriptBlock = {
-        param ($Get_Alias, $Get_Command, $Remove_Item)
+        param ($Get_Alias, $Get_ChildItem, $Remove_Item)
         foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
             & $Remove_Item "alias:/$($alias.Name)"
         }
 
-        foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
-            & $Remove_Item "function:/$($bootstrapFunction.Name)"
+        foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+            & $Remove_Item "function:/$($bootstrapFunction)" -Recurse -Force -Confirm:$false
         }
     }
 
     # clean up in caller session state
     Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
-    & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+    & $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
 
     # clean up also in all loaded script and manifest modules
     $modules = & $script:SafeCommands['Get-Module']
@@ -1618,7 +1620,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
         if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
-            & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+            & ($module) $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
         }
     }
 }
@@ -1823,13 +1825,13 @@ function Repair-EnumParameters {
     # https://github.com/PowerShell/PowerShell/issues/17546
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
     $brokenValidateRange = $ast.FindAll({
-        param($node)
-        $node -is [System.Management.Automation.Language.AttributeAst] -and
-        $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
-        $node.NamedArguments.Count -gt 0 -and
-        # triple checking for broken argument - it won't have a value/expression
-        $node.NamedArguments.ExpressionOmitted -notcontains $false
-    }, $false)
+            param($node)
+            $node -is [System.Management.Automation.Language.AttributeAst] -and
+            $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
+            $node.NamedArguments.Count -gt 0 -and
+            # triple checking for broken argument - it won't have a value/expression
+            $node.NamedArguments.ExpressionOmitted -notcontains $false
+        }, $false)
 
     if ($brokenValidateRange.Count -eq 0) {
         # No errors found. Return original string
