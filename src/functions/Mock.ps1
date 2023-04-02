@@ -1663,7 +1663,7 @@ function Repair-ConflictingParameters {
             $repairedMetadata.Parameters.Add($newName, $paramMetadata)
         }
 
-        $attrIndexesToRemove = [System.Collections.Generic.List[object]]@()
+        $attrIndexesToRemove = [System.Collections.Generic.List[int]]@()
 
         if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
@@ -1686,6 +1686,9 @@ function Repair-ConflictingParameters {
             }
         }
 
+        # remove attributes in reverse order to avoid index shifting
+        $attrIndexesToRemove.Sort()
+        $attrIndexesToRemove.Reverse()
         foreach ($index in $attrIndexesToRemove) {
             $null = $paramMetadata.Attributes.RemoveAt($index)
         }
