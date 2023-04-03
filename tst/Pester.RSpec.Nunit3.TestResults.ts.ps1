@@ -264,7 +264,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t "handles special characters well -!@#$%^&*()_+`1234567890[];',./""- " {
@@ -282,7 +282,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t 'should use TestResult.TestSuiteName configuration value as name-attribute for run and root Assembly test-suite' {
@@ -451,7 +451,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t 'should expand original test name when <parameter> tags are used' {
@@ -490,7 +490,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t 'should add properties for Data when Data is dictionary' {
@@ -597,7 +597,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t 'should expand name when <parameter> tags are used' {
@@ -648,7 +648,7 @@ i -PassThru:$PassThru {
             $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
             $xmlResult.Schemas.Add($null, $schemePath) > $null
-            $xmlResult.Validate( { throw $args[1].Exception })
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
 
         t 'should add properties for Data when Data is dictionary' {

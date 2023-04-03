@@ -18,9 +18,9 @@ function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestRunAttributes($Result, [System.Xml.XmlWriter] $XmlWriter) {
-    # $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
-    # $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'TestResult.xsd')
+function Write-NUnit3TestRunAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
     $XmlWriter.WriteAttributeString('id', '0')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
     $XmlWriter.WriteAttributeString('fullname', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
@@ -59,7 +59,7 @@ function Write-NUnit3TestRunChildNode {
         # Incremenet assembly-id per container and reset node-counter
         $reportIds.Assembly++
         $reportIds.Node = 1000
-        Write-NUnit3TestSuiteElements -XmlWriter $XmlWriter -Node $container -RuntimeEnvironment $RuntimeEnvironment
+        Write-NUnit3TestSuiteElement -XmlWriter $XmlWriter -Node $container -RuntimeEnvironment $RuntimeEnvironment
     }
 }
 
@@ -84,7 +84,7 @@ function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath, [System.Collections.IDictionary] $RuntimeEnvironment) {
+function Write-NUnit3TestSuiteElement($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath, [System.Collections.IDictionary] $RuntimeEnvironment) {
     $XmlWriter.WriteStartElement('test-suite')
     $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node -ParentPath $ParentPath
 
@@ -146,7 +146,7 @@ function Write-NUnit3TestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter,
                 continue
             }
 
-            Write-NUnit3TestSuiteElements -Node $block -XmlWriter $XmlWriter -ParentPath $CurrentPath
+            Write-NUnit3TestSuiteElement -Node $block -XmlWriter $XmlWriter -ParentPath $CurrentPath
         }
 
         if ($blockGroupId) {
@@ -289,7 +289,9 @@ function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType, [string] $Par
     $suiteInfo
 }
 
-function Write-NUnit3TestSuiteAttributes($TestSuiteInfo, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestSuiteAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter)
     $XmlWriter.WriteAttributeString('type', $TestSuiteInfo.type)
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
@@ -482,7 +484,9 @@ function Write-NUnit3TestCaseElement ($TestResult, [string] $ParentPath, [System
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestCaseAttributes ($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestCaseAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter)
     # add parameters to name for testcase with data when not using variables in name
     if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
         $paramString = Get-NUnit3ParamString -Node $TestResult
