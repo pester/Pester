@@ -693,7 +693,7 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
     It "Should throw and list all commands" {
         $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
-    
+
     It 'Should include reason when -Because is used' {
         try {
             Should -InvokeVerifiable -Because 'of reasons'
@@ -2861,6 +2861,23 @@ Describe 'RemoveParameterValidation' {
         Mock Test-Validation -RemoveParameterValidation Count { "mock" }
 
         Test-Validation -Count -1 | Should -Be "mock"
+    }
+}
+
+Describe 'Removing multiple attributes for same parameter' {
+    It 'Removes parameter type and validation for simple function' {
+        # Making sure attributes are removed correctly regardless of order
+        function t {
+            param(
+                [Alias('Number2')]
+                [ValidateSet(1)]
+                [PSTypeName('SomeType')]
+                $Number1
+            )
+            $Number1
+        }
+        Mock t -RemoveParameterType 'Number1' -RemoveParameterValidation 'Number1'
+        { t -Number1 2 } | Should -Not -Throw
     }
 }
 
