@@ -816,7 +816,7 @@ i -PassThru:$PassThru {
                         }
                     })
 
-                $xmlResult = [xml] (Get-Content $xml -Raw)
+                $xmlResult = [xml](Get-Content $xml -Raw)
                 $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
                 $xmlTestCase.fullname | Verify-Equal 'Describe.Successful testcase'
                 $xmlTestCase.result | Verify-Equal 'Passed'
@@ -835,6 +835,35 @@ i -PassThru:$PassThru {
                     Remove-Item $xml -Force -ErrorAction Ignore
                 }
             }
+        }
+    }
+
+    b 'Blocks with test and child-blocks' {
+        t 'Should validate against the nunit 3 schema' {
+            # https://github.com/pester/Pester/issues/2143
+            # Works without wrapper test-suite in NUnit3
+            $sb = {
+                Describe 'Describe' {
+                    It 'Successful testcase' {
+                        $true | Should -Be $true
+                    }
+
+                    Context 'Child Context' {
+                        It 'Another testcase' {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+
+            # verify against schema
+            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Validate({ throw $args[1].Exception })
         }
     }
 }
