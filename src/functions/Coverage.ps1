@@ -246,7 +246,7 @@ function Get-CodeCoverageFilePaths {
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
         elseif (-not $item.PsIsContainer) {
-            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
+            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documentation and so on when using "folder/*" wildcard
             # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
     }
@@ -674,7 +674,7 @@ function Get-CoverageReport {
     if ($null -ne $Measure) {
 
         # re-key the measures to use columns that are corrected for BP placement
-        # also 1 column in tracer can map to multiple columns for BP, when there are assignements, so expand them
+        # also 1 column in tracer can map to multiple columns for BP, when there are assignments, so expand them
         $bpm = @{}
         foreach ($path in $Measure.Keys) {
             $lines = @{}

@@ -155,7 +155,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     # MockCallState initialization is injected only into the begin block by the code that generates this prototype
     # also it is not a good idea to share it via the function local data because then it will get overwritten by nested
-    # mock if there is any, instead it should be a varible that gets defined in begin and so it survives during the whole
+    # mock if there is any, instead it should be a variable that gets defined in begin and so it survives during the whole
     # pipeline, but does not overwrite other variables, because we are running in different scopes. Mindblowing.
     & `$MyInvocation.MyCommand.Mock.Invoke_Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' ```
         -BoundParameters `$PSBoundParameters ```
@@ -237,12 +237,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $defineFunctionAndAliases = {
         param($___Mock___parameters)
         # Make sure the you don't use _______parameters variable here, otherwise you overwrite
-        # the variable that is defined in the same scope and the subsequent invocation of scrips will
+        # the variable that is defined in the same scope and the subsequent invocation of scripts will
         # be seriously broken (e.g. you will start resolving setups). But such is life of running in once scope.
         # from upper scope for no reason. But the reason is that you deleted ______param in this scope,
         # and so ______param from the parent scope was inherited
 
-        ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND COSUME
+        ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME
 
 
         # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
@@ -513,7 +513,7 @@ function Remove-MockHook {
             }
         }
         else {
-            # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+            # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarily
             # if ($Write_Debug_Enabled) {
             #     & $Write_Debug -Scope Mock -Message "ERROR: Function $($CommandName) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
             # }
@@ -527,7 +527,7 @@ function Remove-MockHook {
                 }
             }
             else {
-                # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+                # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarily
                 # if ($Write_Debug_Enabled) {
                 #     & $Write_Debug -Scope Mock -Message "ERROR: Alias $($alias) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
                 # }
@@ -646,7 +646,7 @@ function Resolve-Command {
     else {
         # we used to fallback to the script scope when command was not found in the module, we no longer do that
         # now we just search the script scope when module name is not specified. This was probably needed because of
-        # some incosistencies of resolving the mocks. But it never made sense to me.
+        # some inconsistencies of resolving the mocks. But it never made sense to me.
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the script scope."
@@ -689,7 +689,7 @@ function Resolve-Command {
             # true if we inserted the mock into a module
             IsFromModule            = $null -ne $module
             TargetModule            = $ModuleName
-            # true if the commmand comes from the target module
+            # true if the command comes from the target module
             IsFromTargetModule      = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
             IsMockBootstrapFunction = $true
             Hook                    = $command.Mock.Hook
@@ -1573,7 +1573,7 @@ function Test-IsClosure {
 }
 
 function Remove-MockFunctionsAndAliases ($SessionState) {
-    # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
+    # when a test is terminated (e.g. by stopping at a breakpoint and then stopping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
     # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
     # because there is still an alias associated with it, and the test will fail.
@@ -1616,7 +1616,7 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
             continue
         }
 
-        # some script modules aparently can have no session state
+        # some script modules apparently can have no session state
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
         if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
@@ -1651,7 +1651,7 @@ function Repair-ConflictingParameters {
             continue
         }
 
-        # rewrite the metadata to avoid defining confliting parameters
+        # rewrite the metadata to avoid defining conflicting parameters
         # in the function such as $PSEdition
         if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name

@@ -1370,7 +1370,7 @@ i -PassThru:$PassThru {
                 # Should include parameters with default value of $null
                 $r.Containers[0].Data.ContainsKey('MyNullParam') | Verify-True
                 $r.Containers[0].Data['MyNullParam'] | Verify-Null
-                # Includes the evalutated default value, not the expression
+                # Includes the evaluated default value, not the expression
                 $r.Containers[0].Data.ContainsKey('ExpressionParam') | Verify-True
                 $r.Containers[0].Data['ExpressionParam'] | Verify-Equal 1
 

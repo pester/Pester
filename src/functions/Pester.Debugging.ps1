@@ -125,7 +125,7 @@ function Set-SessionStateHint {
     }
 
     # in all places where we capture SessionState we mark its internal state with a hint
-    # the internal state does not change and we use it to invoke scriptblock in diferent
+    # the internal state does not change and we use it to invoke scriptblock in different
     # states, setting the hint on SessionState is only secondary to make is easier to debug
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)

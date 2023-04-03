@@ -733,7 +733,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.EachTestSetupStart = {
             param ($Context)
-            # we posponed writing the Describe / Context to grab the Expanded name, because that is done
+            # we postponed writing the Describe / Context to grab the Expanded name, because that is done
             # during execution to get all the variables in scope, if we are the first test then write it
             if ($Context.Test.First) {
                 Write-BlockToScreen $Context.Test.Block

@@ -156,9 +156,9 @@ function Invoke-Interactively ($CommandUsed, $ScriptName, $SessionState, $BoundP
 
         # there is a number of problems with this that I don't know how to solve right now
         # - the scripblock below will be discovered which shows a weird message in the console (maybe just suppress?)
-        # every block will get it's own summary if we ar running multiple of them (can we somehow get to the actuall executed code?) or know which one is the last one?
+        # every block will get it's own summary if we ar running multiple of them (can we somehow get to the actual executed code?) or know which one is the last one?
 
-        # use an intermediate module to carry the bound paremeters
+        # use an intermediate module to carry the bound parameters
         # but don't touch the session state the scriptblock is attached
         # to, this way we are still running the provided scriptblocks where
         # they are coming from (in the SessionState they are attached to),
