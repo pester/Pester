@@ -102,5 +102,13 @@ namespace Pester.Tracing
 
             lineColumn[key2] = points;
         }
+
+#pragma warning disable IDE0060
+        // Profiler v3.1 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock _, int __) => Trace(null, extent, _, __);
+
+        // Profiler v4 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock _, int __, string ___, string ____) => Trace(null, extent, _, __);
+#pragma warning restore IDE0060
     }
 }
