@@ -363,7 +363,7 @@ function New-PesterConfiguration {
       Default value: $true
 
     TestResult:
-      Enabled: Enable TestResult.
+      Enabled: Enable the exporting of TestResults to file specified in `OutputPath`.
       Default value: $false
 
       OutputFormat: Format to use for test result report. Possible values: NUnitXml, NUnit2.5 or JUnitXml

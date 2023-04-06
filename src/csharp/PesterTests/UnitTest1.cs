@@ -9,8 +9,11 @@ namespace PesterTests
         public void Test1()
         {
             var c = PesterConfiguration.Default;
-            c.Filter.FullName = null;
-            c.Run.Path = null;
+            c.TestResult.Enabled = false;
+            c.TestResult.OutputPath = "sfsfs";
+
+            Assert.False(c.TestResult.Enabled.Value);
+
         }
     }
 }

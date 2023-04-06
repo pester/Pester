@@ -342,6 +342,38 @@ i -PassThru:$PassThru {
             $config = [PesterConfiguration]@{ Run = $null }
             $config.Run | Verify-NotNull
         }
+
+        t "TestResult.Enabled is set if TestResult.OutputPath not originalValue even with the Default value" {
+            $config = [PesterConfiguration]::Default
+            $config.TestResult.Enabled.Value | Verify-False
+            $config.TestResult.OutputPath = $config.TestResult.OutputPath.Default
+            $config.TestResult.Enabled.Value | Verify-True
+        }
+        t "TestResult.Enabled is set if TestResult.OutputFormat not originalValue even with the Default value" {
+            $config = [PesterConfiguration]::Default
+            $config.TestResult.Enabled.Value | Verify-False
+            $config.TestResult.OutputFormat = $config.TestResult.OutputFormat.Default
+            $config.TestResult.Enabled.Value | Verify-True
+        }
+        t "TestResult.Enabled is set if TestResult.OutputEncoding not originalValue even with the Default value" {
+            $config = [PesterConfiguration]::Default
+            $config.TestResult.Enabled.Value | Verify-False
+            $config.TestResult.OutputEncoding = $config.TestResult.OutputEncoding.Default
+            $config.TestResult.Enabled.Value | Verify-True
+        }
+        t "TestResult.Enabled is set if TestResult.TestSuiteName not originalValue even with the Default value" {
+            $config = [PesterConfiguration]::Default
+            $config.TestResult.Enabled.Value | Verify-False
+            $config.TestResult.TestSuiteName = $config.TestResult.TestSuiteName.Default
+            $config.TestResult.Enabled.Value | Verify-True
+        }
+        t "TestResult.Enabled is not set if TestResult.TestSuiteName not originalValue but TestResult.Enabled has been changed" {
+            $config = [PesterConfiguration]::Default
+            $config.TestResult.Enabled.Value | Verify-False
+            $config.TestResult.Enabled = $false
+            $config.TestResult.TestSuiteName = $config.TestResult.TestSuiteName.Default
+            $config.TestResult.Enabled.Value | Verify-False
+        }
     }
 
     b "Cloning" {
