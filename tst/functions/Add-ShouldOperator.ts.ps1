@@ -75,6 +75,10 @@ i -PassThru:$PassThru {
         Import-Module "$PSScriptRoot\..\..\bin\Pester.psd1"
         ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
 
+        # Enable help for operator switch-parameters in Should.
+        # Internal feature only used by generate-command-reference in docs-repo. Adds 3-4sec to module import time.
+        $env:PESTER_GENERATE_HELP_FOR_SHOULDOPERATORS = 1
+
         t 'Adds empty HelpMessage for Should operator without synopsis' {
             function WithoutSynopsis {
                 param($ActualValue, $Param1)
@@ -99,5 +103,8 @@ i -PassThru:$PassThru {
             Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis
             (Get-Command -Name Should).Parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Verify-Equal 'Here I am'
         }
+
+        # Revert to default behavior to avoid import perf hit
+        $env:PESTER_GENERATE_HELP_FOR_SHOULDOPERATORS = 0
     }
 }

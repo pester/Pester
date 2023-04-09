@@ -163,11 +163,17 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
-    # Add synopsis as HelpMessage to show in online help for Should parameters.
-    $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
-    # Ignore functions without synopsis defined (they show syntax)
-    if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
-        $attribute.HelpMessage = $assertHelp.Synopsis
+    # Code below is only used to generate command ref in docs-repo (website).
+    # Adds 3-4sec to module import when inline build and comment-help, so using a flag.
+    # https://github.com/pester/Pester/issues/2335.
+    # Remove if/when migrated to external help (markdown as source).
+    if ($env:PESTER_GENERATE_HELP_FOR_SHOULDOPERATORS -eq '1') {
+        # Add synopsis as HelpMessage to show in online help for Should parameters.
+        $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
+        # Ignore functions without synopsis defined (they show syntax)
+        if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
+            $attribute.HelpMessage = $assertHelp.Synopsis
+        }
     }
 
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
@@ -241,7 +247,8 @@ function Add-AssertionDynamicParameterSet {
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
-        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` for help.'
+        # Only visible in command reference on https://pester.dev. Remove if/when migrated to external help (markdown as source).
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` or https://pester.dev/docs/assertions/ for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }
