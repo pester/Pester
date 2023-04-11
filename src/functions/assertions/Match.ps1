@@ -54,6 +54,9 @@ function NotShouldMatchFailureMessage($ActualValue, $RegularExpression, $Because
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Match `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Match `
     -InternalName Should-Match `
     -Test         ${function:Should-Match}
+
+Set-ShouldOperatorHelpMessage -OperatorName Match `
+    -HelpMessage 'Uses a regular expression to compare two objects. This comparison is not case sensitive.'

@@ -58,15 +58,21 @@ function Should-BeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [s
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeGreaterThan `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeGreaterThan `
     -InternalName Should-BeGreaterThan `
     -Test         ${function:Should-BeGreaterThan} `
     -Alias        'GT'
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLessOrEqual `
+Set-ShouldOperatorHelpMessage -OperatorName BeGreaterThan `
+    -HelpMessage "Asserts that a number (or other comparable value) is greater than an expected value. Uses PowerShell's -gt operator to compare the two values."
+
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeLessOrEqual `
     -InternalName Should-BeLessOrEqual `
     -Test         ${function:Should-BeLessOrEqual} `
     -Alias        'LE'
+
+Set-ShouldOperatorHelpMessage -OperatorName BeLessOrEqual `
+    -HelpMessage "Asserts that a number (or other comparable value) is lower than, or equal to an expected value. Uses PowerShell's -le operator to compare the two values."
 
 #keeping tests happy
 function ShouldBeGreaterThanFailureMessage() {

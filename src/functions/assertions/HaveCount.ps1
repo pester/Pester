@@ -70,10 +70,13 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         HaveCount `
+& $script:SafeCommands['Add-ShouldOperator'] -Name HaveCount `
     -InternalName Should-HaveCount `
     -Test         ${function:Should-HaveCount} `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName HaveCount `
+    -HelpMessage 'Asserts that a collection has the expected amount of items.'
 
 function ShouldHaveCountFailureMessage() {
 }

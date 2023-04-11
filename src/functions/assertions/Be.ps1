@@ -63,11 +63,14 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               Be `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Be `
     -InternalName       Should-Be `
     -Test               ${function:Should-Be} `
     -Alias              'EQ' `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName Be `
+    -HelpMessage 'Compares one object with another for equality and throws if the two objects are not the same.'
 
 #BeExactly
 function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
@@ -133,12 +136,14 @@ function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got exactly the same value."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               BeExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeExactly `
     -InternalName       Should-BeExactly `
     -Test               ${function:Should-BeExactly} `
     -Alias              'CEQ' `
     -SupportsArrayInput
 
+Set-ShouldOperatorHelpMessage -OperatorName BeExactly `
+    -HelpMessage 'Compares one object with another for equality and throws if the two objects are not the same. This comparison is case sensitive.'
 
 #common functions
 function Get-CompareStringMessage {

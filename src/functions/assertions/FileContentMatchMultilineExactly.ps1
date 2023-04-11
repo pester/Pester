@@ -74,6 +74,9 @@ function NotShouldFileContentMatchMultilineExactlyFailureMessage($ActualValue, $
     return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatchMultilineExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatchMultilineExactly `
     -InternalName Should-FileContentMatchMultilineExactly `
     -Test         ${function:Should-FileContentMatchMultilineExactly}
+
+Set-ShouldOperatorHelpMessage -OperatorName FileContentMatchMultilineExactly `
+    -HelpMessage 'As opposed to FileContentMatch and FileContentMatchExactly operators, FileContentMatchMultilineExactly presents content of the file being tested as one string object, so that the case sensitive expression you are comparing it to can consist of several lines.'

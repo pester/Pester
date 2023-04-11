@@ -119,6 +119,54 @@ function Add-ShouldOperator {
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
 
+function Set-ShouldOperatorHelpMessage {
+    <#
+    .SYNOPSIS
+    Sets the helpmessage for a Should-operator. Used in Should's online help for the switch-parameter.
+    .NOTES
+    Internal function as it's only useful for built-in Should operators/assertion atm. to improve online docs.
+    Can be merged into Add-ShouldOperator later if we'd like to make it pulic and include value in Get-ShouldOperator
+
+    https://github.com/pester/Pester/issues/2335
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string] $HelpMessage
+    )
+    DynamicParam {
+        $ParameterName = 'OperatorName'
+        $RuntimeParameterDictionary = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
+        $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
+        $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
+        $ParameterAttribute.Position = 0
+        $ParameterAttribute.Mandatory = $true
+        $ParameterAttribute.HelpMessage = 'The name of the assertion/operator'
+        $AttributeCollection.Add($ParameterAttribute)
+
+        $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($script:AssertionOperators.Keys)
+        $AttributeCollection.Add($ValidateSetAttribute)
+
+        $RuntimeParameter = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+        $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
+        return $RuntimeParameterDictionary
+    }
+
+    begin {
+        # Bind the parameter to a friendly variable
+        $OperatorName = $PsBoundParameters[$ParameterName]
+    }
+
+    end {
+        $OperatorParam = $script:AssertionDynamicParams[$OperatorName]
+        foreach ($attr in $OperatorParam.Attributes) {
+            if ($attr -is [System.Management.Automation.ParameterAttribute]) {
+                $attr.HelpMessage = $HelpMessage
+            }
+        }
+    }
+}
+
 function Test-AssertionOperatorIsDuplicate {
     param (
         [psobject] $Operator
@@ -163,18 +211,6 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
-    # Code below is only used to generate command ref in docs-repo (website).
-    # Adds 3-4sec to module import when inline build and comment-help, so using a flag.
-    # https://github.com/pester/Pester/issues/2335.
-    # Remove if/when migrated to external help (markdown as source).
-    if ($env:PESTER_GENERATE_HELP_FOR_SHOULDOPERATORS -eq '1') {
-        # Add synopsis as HelpMessage to show in online help for Should parameters.
-        $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
-        # Ignore functions without synopsis defined (they show syntax)
-        if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
-            $attribute.HelpMessage = $assertHelp.Synopsis
-        }
-    }
 
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
