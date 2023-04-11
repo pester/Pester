@@ -123,6 +123,10 @@ function Set-ShouldOperatorHelpMessage {
     <#
     .SYNOPSIS
     Sets the helpmessage for a Should-operator. Used in Should's online help for the switch-parameter.
+    .PARAMETER OperatorName
+    The name of the assertion/operator.
+    .PARAMETER HelpMessage
+    Help message for switch-parameter for the operator in Should.
     .NOTES
     Internal function as it's only useful for built-in Should operators/assertion atm. to improve online docs.
     Can be merged into Add-ShouldOperator later if we'd like to make it pulic and include value in Get-ShouldOperator
@@ -131,34 +135,19 @@ function Set-ShouldOperatorHelpMessage {
     #>
     [CmdletBinding()]
     param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $OperatorName,
         [Parameter(Mandatory = $true, Position = 1)]
         [string] $HelpMessage
     )
-    DynamicParam {
-        $ParameterName = 'OperatorName'
-        $RuntimeParameterDictionary = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
-        $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
-        $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
-        $ParameterAttribute.Position = 0
-        $ParameterAttribute.Mandatory = $true
-        $ParameterAttribute.HelpMessage = 'The name of the assertion/operator'
-        $AttributeCollection.Add($ParameterAttribute)
-
-        $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($script:AssertionOperators.Keys)
-        $AttributeCollection.Add($ValidateSetAttribute)
-
-        $RuntimeParameter = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
-        $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
-        return $RuntimeParameterDictionary
-    }
-
-    begin {
-        # Bind the parameter to a friendly variable
-        $OperatorName = $PsBoundParameters[$ParameterName]
-    }
 
     end {
         $OperatorParam = $script:AssertionDynamicParams[$OperatorName]
+
+        if ($null -eq $OperatorParam) {
+            throw "Should operator '$OperatorName' is not registered"
+        }
+
         foreach ($attr in $OperatorParam.Attributes) {
             if ($attr -is [System.Management.Automation.ParameterAttribute]) {
                 $attr.HelpMessage = $HelpMessage
