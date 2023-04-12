@@ -1287,9 +1287,6 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
-        InPesterModuleScope {
-            $global:calls = $mockTable['||Test-Path'].CallHistory
-        }
         Should -Invoke Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
     }
 }
@@ -3136,5 +3133,40 @@ Describe 'Mocking in manifest modules' {
         Mock -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -MockWith { 'mocked private' }
         myManifestPublicFunction | Should -Be 'mocked private'
         Should -Invoke -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -Exactly -Times 1
+    }
+}
+
+Describe 'Mocking with nested Pester runs' {
+    BeforeAll {
+        Mock Get-Date { 1 }
+
+        $innerRun = Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
+                Describe 'inner' {
+                    It 'local mock works' {
+                        Mock Get-Command { 2 }
+                        Get-Command | Should -Be 2
+                    }
+
+                    It 'outer mock is not available' {
+                        Get-Date | Should -Not -Be 1
+                    }
+                }
+            }) -Output None -PassThru
+    }
+
+    It 'Mocks in outer run works after nested Invoke-Pester' {
+        # https://github.com/pester/Pester/issues/2074
+        Get-Date | Should -Be 1
+        # Outer mock should not have been called from nested run
+        Should -Invoke Get-Date -Exactly -Times 1
+    }
+
+    It 'Mocking works in nested run' {
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 2
+    }
+
+    It 'Mocks in nested run do not leak to outside' {
+        Get-Command Get-ChildItem | Should -Not -Be 2
     }
 }
