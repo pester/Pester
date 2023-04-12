@@ -1195,7 +1195,9 @@ function Invoke-Mock {
     # if we are targeting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
     # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
     # then the default mock for Remove-Item should be effective.
-    $behaviors = if ($targettingAModule) {
+
+    # using @() to always get array. This avoids null error in Invoke-MockInternal when no behaviors where found (if-else unwraps the lists)
+    $behaviors = @(if ($targettingAModule) {
         # we have default module behavior add it to the filtered behaviors if there are any
         if ($null -ne $moduleDefaultBehavior) {
             $moduleBehaviors.Add($moduleDefaultBehavior)
@@ -1217,7 +1219,7 @@ function Invoke-Mock {
         }
 
         $nonModuleBehaviors
-    }
+    })
 
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
