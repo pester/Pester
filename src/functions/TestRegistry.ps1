@@ -131,10 +131,6 @@ function Remove-TestRegistry ($TestRegistryPath) {
     if (& $SafeCommands['Test-Path'] -Path $path -PathType Container) {
         & $SafeCommands['Remove-Item'] -Path $path -Force -Recurse
     }
-
-    if (& $SafeCommands['Get-Variable'] -Name $DriveName -Scope Global -ErrorAction Ignore) {
-        & $SafeCommands['Remove-Variable'] -Scope Global -Name $DriveName -Force
-    }
 }
 
 
