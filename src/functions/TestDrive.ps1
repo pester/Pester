@@ -1,10 +1,16 @@
 ﻿function Get-TestDrivePlugin {
-    New-PluginObject -Name "TestDrive" -Start {
+    $p = @{
+        Name = 'TestDrive'
+    }
+
+    $p.Start = {
         if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
             & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
             & $SafeCommands['Remove-PSDrive'] TestDrive
         }
-    } -EachBlockSetupStart {
+    }
+
+    $p.EachBlockSetupStart = {
         param($Context)
 
         if ($Context.Block.IsRoot) {
@@ -24,7 +30,9 @@
                     TestDrivePath    = $testDrivePath
                 })
         }
-    } -EachBlockTearDownEnd {
+    }
+
+    $p.EachBlockTearDownEnd = {
         param($Context)
 
         if ($Context.Block.IsRoot) {
@@ -35,6 +43,8 @@
             Clear-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent )
         }
     }
+
+    New-PluginObject @p
 }
 
 function New-TestDrive ([Switch]$PassThru, [string] $Path) {

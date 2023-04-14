@@ -139,12 +139,18 @@ function Remove-TestRegistry ($TestRegistryPath) {
 
 
 function Get-TestRegistryPlugin {
-    New-PluginObject -Name "TestRegistry" -Start {
+    $p = @{
+        Name = 'TestRegistry'
+    }
+
+    $p.Start = {
         if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
             & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
             & $SafeCommands['Remove-PSDrive'] TestRegistry
         }
-    } -EachBlockSetupStart {
+    }
+
+    $p.EachBlockSetupStart = {
         param($Context)
 
         if ($Context.Block.IsRoot) {
@@ -164,7 +170,10 @@ function Get-TestRegistryPlugin {
                     TestRegistryPath    = $testRegistryPath
                 })
         }
-    } -EachBlockTearDownEnd {
+    }
+
+    $p.EachBlockTearDownEnd = {
+        param($Context)
 
         if ($Context.Block.IsRoot) {
             # this is top-level block remove test drive
@@ -174,4 +183,6 @@ function Get-TestRegistryPlugin {
             Clear-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath -Exclude ( $Context.Block.PluginData.TestRegistry.TestRegistryContent )
         }
     }
+
+    New-PluginObject @p
 }
