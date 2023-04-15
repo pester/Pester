@@ -4,8 +4,21 @@ function Get-TestDrivePlugin {
     }
 
     $p.Start = {
+        param($Context)
+
         if (& $script:SafeCommands['Test-Path'] TestDrive:\) {
-            & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop).Root -Force -Recurse -Confirm:$false
+            $existingDrive = & $SafeCommands['Get-PSDrive'] TestDrive -ErrorAction Stop
+            $existingDriveRoot = "$($existingDrive.Provider)::$($existingDrive.Root)"
+
+            if ($runningPesterInPester) {
+                # If nested run, store location and only remove PSDrive so we can re-attach it during End-step
+                $Context.GlobalPluginData.TestDrive = @{
+                    ExistingTestDrivePath = $existingDriveRoot
+                }
+            }
+            else {
+                & $SafeCommands['Remove-Item'] $existingDriveRoot -Force -Recurse -Confirm:$false
+            }
             & $SafeCommands['Remove-PSDrive'] TestDrive
         }
     }
@@ -35,12 +48,26 @@ function Get-TestDrivePlugin {
     $p.EachBlockTearDownEnd = {
         param($Context)
 
+        # Remap drive and variable if missing/wrong? Ex. if nested run was cancelled and didn't re-attach this drive
+        if (-not (& $script:SafeCommands['Test-Path'] TestDrive:\)) {
+            New-TestDrive -Path $Context.Block.PluginData.TestDrive.TestDrivePath
+        }
+
         if ($Context.Block.IsRoot) {
             # this is top-level block remove test drive
             Remove-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath
         }
         else {
-            Clear-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath -Exclude ( $Context.Block.PluginData.TestDrive.TestDriveContent )
+            Clear-TestDrive -TestDrivePath $Context.Block.PluginData.TestDrive.TestDrivePath -Exclude ($Context.Block.PluginData.TestDrive.TestDriveContent)
+        }
+    }
+
+    $p.End = {
+        param($Context)
+
+        if ($Context.GlobalPluginData.TestDrive.ExistingTestDrivePath) {
+            # If nested run, reattach previous TestDrive PSDrive and variable
+            New-TestDrive -Path $Context.GlobalPluginData.TestDrive.ExistingTestDrivePath
         }
     }
 

@@ -127,8 +127,22 @@ function Get-TestRegistryPlugin {
     }
 
     $p.Start = {
+        param($Context)
+
         if (& $script:SafeCommands['Test-Path'] TestRegistry:\) {
-            & $SafeCommands['Remove-Item'] (& $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop).Root -Force -Recurse -Confirm:$false -ErrorAction Ignore
+            $existingDrive = & $SafeCommands['Get-PSDrive'] TestRegistry -ErrorAction Stop
+            $existingDriveRoot = "$($existingDrive.Provider)::$($existingDrive.Root)"
+
+            if ($runningPesterInPester) {
+                # If nested run, store location and only remove PSDrive so we can re-attach it during End-step
+                $Context.GlobalPluginData.TestRegistry = @{
+                    ExistingTestRegistryPath = $existingDriveRoot
+                }
+            }
+            else {
+                & $SafeCommands['Remove-Item'] $existingDriveRoot -Force -Recurse -Confirm:$false -ErrorAction Ignore
+            }
+
             & $SafeCommands['Remove-PSDrive'] TestRegistry
         }
     }
@@ -158,13 +172,28 @@ function Get-TestRegistryPlugin {
     $p.EachBlockTearDownEnd = {
         param($Context)
 
+        # Remap drive if missing/wrong? Ex. if nested run was cancelled and didn't re-attach this drive
+        if (-not (& $script:SafeCommands['Test-Path'] TestRegistry:\)) {
+            New-TestRegistry -Path $Context.Block.PluginData.TestRegistry.TestRegistryPath
+        }
+
         if ($Context.Block.IsRoot) {
             # this is top-level block remove test drive
             Remove-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath
         }
         else {
-            Clear-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath -Exclude ( $Context.Block.PluginData.TestRegistry.TestRegistryContent )
+            Clear-TestRegistry -TestRegistryPath $Context.Block.PluginData.TestRegistry.TestRegistryPath -Exclude ($Context.Block.PluginData.TestRegistry.TestRegistryContent)
         }
+    }
+
+    $p.End = {
+        param($Context)
+
+        if ($Context.GlobalPluginData.TestRegistry.ExistingTestRegistryPath) {
+            # If nested run, reattach previous TestRegistry PSDrive
+            New-TestRegistry -Path $Context.GlobalPluginData.TestRegistry.ExistingTestRegistryPath
+        }
+
     }
 
     New-PluginObject @p
