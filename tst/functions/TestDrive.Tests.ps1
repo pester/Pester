@@ -102,6 +102,40 @@ InPesterModuleScope {
     }
 }
 
+Describe 'Repair missing TestDrive' {
+    BeforeAll {
+        $tempFileName = 'missingDrive.txt'
+        $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
+        'Hello' | Set-Content -Path $tempFilePath
+    }
+
+    Context 'Broken' {
+        It 'Removes TestDrive' {
+            Should -Exist -ActualValue $tempFilePath
+            Get-Content -Path $tempFilePath | Should -Be 'Hello'
+
+            # Remove PSDrive
+            Remove-PSDrive -Name 'TestDrive'
+            { Get-PSDrive -Name 'TestDrive' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+
+            # Remove variable
+            Set-Variable -Name TestDrive -Scope Global -Value $null
+            $TestDrive | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Fixed' {
+        It 'TestDrive exists again' {
+            # Verify variable works again
+            $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
+            Should -Exist -ActualValue $tempFilePath
+
+            # Verify PSDrive
+            Get-Content -Path "TestDrive:/$tempFileName" | Should -Be 'Hello'
+        }
+    }
+}
+
 Describe 'Running Pester in Pester' {
     BeforeAll {
         $tempFileName = 'testing.txt'

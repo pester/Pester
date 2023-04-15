@@ -59,6 +59,27 @@ Describe "TestRegistry scoping" {
     }
 }
 
+Describe 'Repair missing TestRegistry' {
+    BeforeAll {
+        $tempValueName = 'MyValue'
+        $tempValue = New-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName -Value 1
+    }
+
+    Context 'Broken' {
+        It 'Removes TestRegistry' {
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+            Remove-PSDrive -Name 'TestRegistry'
+            { Get-PSDrive -Name 'TestRegistry' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+        }
+    }
+
+    Context 'Fixed' {
+        It 'TestRegistry exists again' {
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+        }
+    }
+}
+
 Describe 'Running Pester in Invoke-Pester' {
     BeforeAll {
         $tempValueName = 'OuterValue'
