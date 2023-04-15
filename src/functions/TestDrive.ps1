@@ -1,4 +1,4 @@
-﻿function Get-TestDrivePlugin {
+function Get-TestDrivePlugin {
     $p = @{
         Name = 'TestDrive'
     }
@@ -47,15 +47,30 @@
     New-PluginObject @p
 }
 
-function New-TestDrive ([Switch]$PassThru, [string] $Path) {
-    $directory = New-RandomTempDirectory
-    $DriveName = "TestDrive"
-    $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description "Pester test drive"
+function New-TestDrive {
+    param(
+        [string] $Path
+    )
 
-    #publish the global TestDrive variable used in few places within the module
-    if (-not (& $SafeCommands['Test-Path'] "Variable:Global:$DriveName")) {
-        & $SafeCommands['New-Variable'] -Name $DriveName -Scope Global -Value $directory
+    if ($Path -notmatch '\S') {
+        $directory = New-RandomTempDirectory
     }
+    else {
+        # We have a path, so probably a remap after losing the PSDrive (ex. cancelled nested Pester run)
+        if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
+            # If this runs, something deleted the container-specific folder, so we create a new folder
+            $null = & $SafeCommands['New-Item'] -Path $Path -ItemType Directory -ErrorAction Stop
+        }
+
+        $directory = & $SafeCommands['Get-Item'] $Path
+    }
+
+    $DriveName = 'TestDrive'
+    $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider FileSystem -Root $directory -Scope Global -Description 'Pester test drive'
+
+    # publish the global TestDrive variable used in few places within the module.
+    # using Set-Variable to support new variable + override existing (remap)
+    & $SafeCommands['Set-Variable'] -Name $DriveName -Scope Global -Value $directory
 
     $directory
 }

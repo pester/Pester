@@ -1,38 +1,25 @@
-﻿function New-TestRegistry {
+function New-TestRegistry {
     param(
-        [Switch]
-        $PassThru,
-
-        [string]
-        $Path
+        [string] $Path
     )
 
     if ($Path -notmatch '\S') {
-        $directory = New-RandomTempRegistry
+        $key = New-RandomTempRegistry
     }
     else {
         if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
-            # the pester registry root path HKCU:\Pester is created once
-            # and then stays in place, in TestDrive we use system Temp folder,
-            # but no such folder exists for registry so we create our own.
-            # removing the folder after test run would be possible but we potentially
-            # running into conflict with other instance of Pester that is running
-            # so keeping it in place is a small price to pay for being able to run
-            # parallel pester sessions easily.
-            # Also don't use -Force parameter here
-            # because that deletes the folder and creates a race condition see
-            # https://github.com/pester/Pester/issues/1181
+            # We have a path (typically remapping), so we expect Pester root key (HKCU:\Software\Pester) to exist
+            # If this runs, something deleted the container-specific key, so we create a new.
             $null = & $SafeCommands['New-Item'] -Path $Path
         }
 
-        $directory = & $SafeCommands['Get-Item'] $Path
+        $key = & $SafeCommands['Get-Item'] $Path
     }
 
-    $DriveName = "TestRegistry"
-    #setup the test drive
-    if ( -not (& $SafeCommands['Test-Path'] "${DriveName}:\") ) {
+    $DriveName = 'TestRegistry'
+    if (-not (& $SafeCommands['Test-Path'] "${DriveName}:\")) {
         try {
-            $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $directory -Scope Global -Description "Pester test registry" -ErrorAction Stop
+            $null = & $SafeCommands['New-PSDrive'] -Name $DriveName -PSProvider Registry -Root $key -Scope Global -Description 'Pester test registry' -ErrorAction Stop
         }
         catch {
             if ($_.FullyQualifiedErrorId -like 'DriveAlreadyExists*') {
@@ -51,7 +38,7 @@
         }
     }
 
-    $directory.PSPath
+    $key.PSPath
 }
 
 function Clear-TestRegistry {
