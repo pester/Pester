@@ -69,7 +69,7 @@ Describe 'Running Pester in Invoke-Pester' {
         (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
     }
 
-    It 'Nested run' {
+    It 'Works in nested run' {
         $sb = {
             Describe 'Nested' {
                 It 'Value created in outer run are available using absolute path' {
@@ -83,7 +83,7 @@ Describe 'Running Pester in Invoke-Pester' {
         }
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempKeyPath = $tempValue.PSPath; TempValueName = $tempValueName }
-        $innerRun = Invoke-Pester -Container $c -PassThru
+        $innerRun = Invoke-Pester -Container $c -PassThru -Output None
         $innerRun.Result | Should -Be 'Passed'
         $innerRun.PassedCount | Should -Be 2
     }

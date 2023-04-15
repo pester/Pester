@@ -1,4 +1,4 @@
-function New-TestRegistry {
+﻿function New-TestRegistry {
     param(
         [string] $Path
     )
@@ -43,14 +43,14 @@ function New-TestRegistry {
 
 function Clear-TestRegistry {
     param(
-        [String[]]$Exclude,
-        [string]$TestRegistryPath
+        [String[]] $Exclude,
+        [string] $TestRegistryPath
     )
 
     # if the setup fails before we mark test registry added
     # we would be trying to teardown something that does not
     # exist and fail in Get-TestRegistryPath
-    if (-not (& $SafeCommands['Test-Path'] "TestRegistry:\")) {
+    if (-not (& $SafeCommands['Test-Path'] 'TestRegistry:\')) {
         return
     }
 
@@ -59,7 +59,7 @@ function Clear-TestRegistry {
     if ($null -ne $path -and (& $SafeCommands['Test-Path'] -Path $Path)) {
         #Get-ChildItem -Exclude did not seem to work with full paths
         & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
-            & $SafeCommands['Sort-Object'] -Descending  -Property 'PSPath' |
+            & $SafeCommands['Sort-Object'] -Descending -Property 'PSPath' |
             & $SafeCommands['Where-Object'] { $Exclude -NotContains $_.PSPath } |
             & $SafeCommands['Remove-Item'] -Force -Recurse
     }
@@ -81,11 +81,11 @@ function New-RandomTempRegistry {
             & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
         }
         catch [System.IO.IOException] {
-                # when running in parallel this occasionally triggers
-                # IOException: No more data is available
-                # let's just retry the operation
-                & $SafeCommands['Write-Warning'] "IO exception during creating path $path"
-                & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
+            # when running in parallel this occasionally triggers
+            # IOException: No more data is available
+            # let's just retry the operation
+            & $SafeCommands['Write-Warning'] "IO exception during creating path $path"
+            & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
         }
     }
     catch [Exception] {
@@ -94,7 +94,7 @@ function New-RandomTempRegistry {
 }
 
 function Remove-TestRegistry ($TestRegistryPath) {
-    $DriveName = "TestRegistry"
+    $DriveName = 'TestRegistry'
     $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     if ($null -eq $Drive) {
         # the drive does not exist, someone must have removed it instead of us,
@@ -105,14 +105,14 @@ function Remove-TestRegistry ($TestRegistryPath) {
 
     $path = $TestRegistryPath
 
-    if ($pwd -like "$DriveName*" ) {
+    if ($pwd -like "$DriveName*") {
         #will staying in the test drive cause issues?
         #TODO: review this
         & $SafeCommands['Write-Warning'] -Message "Your current path is set to ${pwd}:. You should leave ${DriveName}:\ before leaving Describe."
     }
 
-    if ( $Drive ) {
-        $Drive | & $SafeCommands['Remove-PSDrive'] -Force #This should fail explicitly as it impacts future pester runs
+    if ($Drive) {
+        $Drive | & $SafeCommands['Remove-PSDrive'] -Force   #This should fail explicitly as it impacts future pester runs
     }
 
     if (& $SafeCommands['Test-Path'] -Path $path -PathType Container) {
@@ -193,7 +193,6 @@ function Get-TestRegistryPlugin {
             # If nested run, reattach previous TestRegistry PSDrive
             New-TestRegistry -Path $Context.GlobalPluginData.TestRegistry.ExistingTestRegistryPath
         }
-
     }
 
     New-PluginObject @p

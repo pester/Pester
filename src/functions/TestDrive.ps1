@@ -1,4 +1,4 @@
-function Get-TestDrivePlugin {
+﻿function Get-TestDrivePlugin {
     $p = @{
         Name = 'TestDrive'
     }
@@ -103,12 +103,16 @@ function New-TestDrive {
 }
 
 
-function Clear-TestDrive ([String[]]$Exclude, [string]$TestDrivePath) {
+function Clear-TestDrive {
+    param(
+        [String[]] $Exclude,
+        [string] $TestDrivePath
+    )
     if ([IO.Directory]::Exists($TestDrivePath)) {
 
         Remove-TestDriveSymbolicLinks -Path $TestDrivePath
 
-        foreach ($i in [IO.Directory]::GetFileSystemEntries($TestDrivePath, "*.*", [System.IO.SearchOption]::AllDirectories)) {
+        foreach ($i in [IO.Directory]::GetFileSystemEntries($TestDrivePath, '*.*', [System.IO.SearchOption]::AllDirectories)) {
             if ($Exclude -contains $i) {
                 continue
             }
@@ -129,7 +133,7 @@ function New-RandomTempDirectory {
 
 function Get-TestDriveChildItem ($TestDrivePath) {
     if ([IO.Directory]::Exists($TestDrivePath)) {
-        [IO.Directory]::GetFileSystemEntries($TestDrivePath, "*.*", [System.IO.SearchOption]::AllDirectories)
+        [IO.Directory]::GetFileSystemEntries($TestDrivePath, '*.*', [System.IO.SearchOption]::AllDirectories)
     }
 }
 
@@ -145,23 +149,23 @@ function Remove-TestDriveSymbolicLinks ([String] $Path) {
 
     # issue 621 was fixed before PowerShell 6.1
     # now there is an issue with calling the Delete method in recent (6.1) builds of PowerShell
-    if ( (GetPesterPSVersion) -ge 6) {
+    if ((GetPesterPSVersion) -ge 6) {
         return
     }
 
     # powershell 2-compatible
     $reparsePoint = [System.IO.FileAttributes]::ReparsePoint
-    & $SafeCommands["Get-ChildItem"] -Recurse -Path $Path |
+    & $SafeCommands['Get-ChildItem'] -Recurse -Path $Path |
         & $SafeCommands['Where-Object'] { ($_.Attributes -band $reparsePoint) -eq $reparsePoint } |
         & $SafeCommands['Foreach-Object'] { $_.Delete() }
 }
 
 function Remove-TestDrive ($TestDrivePath) {
-    $DriveName = "TestDrive"
+    $DriveName = 'TestDrive'
     $Drive = & $SafeCommands['Get-PSDrive'] -Name $DriveName -ErrorAction Ignore
     $Path = ($Drive).Root
 
-    if ($pwd -like "$DriveName*" ) {
+    if ($pwd -like "$DriveName*") {
         #will staying in the test drive cause issues?
         #TODO: review this
         & $SafeCommands['Write-Warning'] -Message "Your current path is set to ${pwd}:. You should leave ${DriveName}:\ before leaving Describe."

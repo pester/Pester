@@ -102,7 +102,7 @@ InPesterModuleScope {
     }
 }
 
-Describe 'Running Pester in Invoke-Pester' {
+Describe 'Running Pester in Pester' {
     BeforeAll {
         $tempFileName = 'testing.txt'
         $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
@@ -114,7 +114,7 @@ Describe 'Running Pester in Invoke-Pester' {
         Get-Content -Path $tempFilePath | Should -Be 'Hello'
     }
 
-    It 'Nested run' {
+    It 'Works in nested run' {
         $sb = {
             Describe 'Nested' {
                 It 'Files created in outer run are available using absolute path' {
@@ -134,7 +134,7 @@ Describe 'Running Pester in Invoke-Pester' {
         }
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempFilePath = $tempFilePath }
-        $innerRun = Invoke-Pester -Container $c -PassThru
+        $innerRun = Invoke-Pester -Container $c -PassThru -Output None
         $innerRun.Result | Should -Be 'Passed'
         $innerRun.PassedCount | Should -Be 2
     }
