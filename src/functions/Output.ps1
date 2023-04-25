@@ -150,7 +150,8 @@ function Write-PesterHostMessage {
             $message = "$($message -replace '(?m)^', "$fg$bg")$($ANSIcodes.ResetAll)"
 
             & $SafeCommands['Write-Host'] -Object $message -NoNewLine:$NoNewLine
-        } else {
+        }
+        else {
             if ($RenderMode -eq 'Plaintext') {
                 if ($PSBoundParameters.ContainsKey('ForegroundColor')) {
                     $null = $PSBoundParameters.Remove('ForegroundColor')
@@ -627,7 +628,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -700,7 +701,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
             }
             else {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail $errorHeader
@@ -775,6 +776,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
         }
 
+        if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
+            throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
+        }
+
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
@@ -817,7 +822,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
                     if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                         $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
+                        Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header "$margin[-] $out $humanTime" -Message $errorMessage
                     }
                     else {
                         Write-PesterHostMessage -ForegroundColor $ReportTheme.Fail "$margin[-] $out" -NoNewLine
@@ -920,7 +925,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
             $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -Header $errorHeader -Message $errorMessage
+            Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorHeader -Message $errorMessage
         }
         else {
             Write-PesterHostMessage -ForegroundColor $ReportTheme.BlockFail $errorHeader
@@ -946,6 +951,10 @@ function Format-CIErrorMessage {
         [string] $CIFormat,
 
         [Parameter(Mandatory)]
+        [ValidateSet('Error', 'Warning', IgnoreCase)]
+        [string] $CILogLevel,
+
+        [Parameter(Mandatory)]
         [string] $Header,
 
         # [Parameter(Mandatory)]
@@ -962,20 +971,33 @@ function Format-CIErrorMessage {
 
         # header task issue error, so it gets reported to build log
         # https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-an-error
-        $headerTaskIssueError = "##vso[task.logissue type=error] $Header"
-        $lines.Add($headerTaskIssueError)
+        # https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands?view=azure-devops&tabs=powershell#example-log-a-warning-about-a-specific-place-in-a-file
+        switch ($CILogLevel) {
+            "Error" { $logIssueType = 'error' }
+            "Warning" { $logIssueType = 'warning' }
+            Default { $logIssueType = 'error' }
+        }
+
+        $headerLoggingCommand = "##vso[task.logissue type=$logIssueType] $Header"
+        $lines.Add($headerLoggingCommand)
 
         # Add subsequent messages as errors, but do not get reported to build log
         foreach ($line in $Message) {
-            $lines.Add("##[error] $line")
+            $lines.Add("##[$logIssueType] $line")
         }
     }
     elseif ($CIFormat -eq 'GithubActions') {
 
         # header error, so it gets reported to build log
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-error-message
-        $headerError = "::error::$($Header.TrimStart())"
-        $lines.Add($headerError)
+        # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-a-warning-message
+        switch ($CILogLevel) {
+            "Error" { $headerWorkflowCommand = "::error::$($Header.TrimStart())" }
+            "Warning" { $headerWorkflowCommand = "::warning::$($Header.TrimStart())" }
+            Default { $headerWorkflowCommand = "::error::$($Header.TrimStart())" }
+        }
+
+        $lines.Add($headerWorkflowCommand)
 
         # Add rest of messages inside expandable group
         # https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#grouping-log-lines
@@ -997,6 +1019,10 @@ function Write-CIErrorToScreen {
         [Parameter(Mandatory)]
         [ValidateSet('AzureDevops', 'GithubActions', IgnoreCase)]
         [string] $CIFormat,
+
+        [Parameter(Mandatory)]
+        [ValidateSet('Error', 'Warning', IgnoreCase)]
+        [string] $CILogLevel,
 
         [Parameter(Mandatory)]
         [string] $Header,

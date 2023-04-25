@@ -98,6 +98,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
         }
 
+        t "Output.CILogLevel is Error" {
+            [PesterConfiguration]::Default.Output.CILogLevel.Value | Verify-Equal 'Error'
+        }
+
         t "Output.RenderMode is Auto" {
             [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
         }
@@ -1115,6 +1119,45 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+        }
+    }
+
+    b "Output.CILogLevel" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in "Error", "Warning") {
+                $c.Output.CILogLevel = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CILogLevel.Value | Verify-Equal $option
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                    Throw       = $true
+                }
+                Output = @{
+                    CIFormat = 'None'
+                    CILogLevel = 'Something'
+                }
+            }
+
+            { Invoke-Pester -Configuration $c } | Verify-Throw
         }
     }
 
