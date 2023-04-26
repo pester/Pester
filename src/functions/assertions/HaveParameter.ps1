@@ -17,8 +17,13 @@
 
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
+    .EXAMPLE
+        Get-Command "Invoke-WebRequest" | Should -HaveParameter Method -Mandatory:$false
+
+        This test passes, because it expected the parameter Method to exist and to
+        not be mandatory/required.
     .NOTES
-        The attribute [ArgumentCompleter] was added with PSv5. Previouse this
+        The attribute [ArgumentCompleter] was added with PSv5. Previous this
         assertion will not be able to use the -HasArgumentCompleter parameter
         if the attribute does not exist.
     #>
@@ -195,15 +200,26 @@
     else {
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
 
-        if ($Mandatory) {
+        if ($PSBoundParameters.ContainsKey('Mandatory')) {
             $testMandatory = $attributes | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
-            $filters += "which is$(if ($Negate) {" not"}) mandatory"
+            $filters += "which is$(if ($Negate -or $Mandatory -eq $false) {' not'}) mandatory"
 
-            if (-not $Negate -and -not $testMandatory) {
-                $buts += "it wasn't mandatory"
+            if ($Negate) {
+                if ($Mandatory -and $testMandatory) {
+                    # -Not -Mandatory + was actually mandatory
+                    $buts += 'it was mandatory'
+                }
+                # -Not -Mandatory:$false ignored as it makes no sense to use
             }
-            elseif ($Negate -and $testMandatory) {
-                $buts += "it was mandatory"
+            else {
+                if ($Mandatory -and -not $testMandatory ) {
+                    # -Mandatory + was not mandatory
+                    $buts += "it wasn't mandatory"
+                }
+                elseif (-not $Mandatory -and $testMandatory) {
+                    # -Mandatory:$false + was actually mandatory
+                    $buts += 'it was mandatory'
+                }
             }
         }
 
@@ -213,7 +229,7 @@
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
             $testType = ($Type -eq $actualType)
-            $filters += "$(if ($Negate) { "not " })of type [$($Type.FullName)]"
+            $filters += "$(if ($Negate) { 'not ' })of type [$($Type.FullName)]"
 
             if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
@@ -223,7 +239,7 @@
             }
         }
 
-        if ($PSBoundParameters.Keys -contains "DefaultValue") {
+        if ($PSBoundParameters.ContainsKey('DefaultValue')) {
             $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
             $actualDefault = if ($parameterMetadata.DefaultValue) {
                 $parameterMetadata.DefaultValue
@@ -242,19 +258,30 @@
             }
         }
 
-        if ($HasArgumentCompleter) {
+        if ($PSBoundParameters.ContainsKey('HasArgumentCompleter')) {
             $testArgumentCompleter = $attributes | & $SafeCommands['Where-Object'] { $_ -is [ArgumentCompleter] }
 
             if (-not $testArgumentCompleter) {
                 $testArgumentCompleter = Get-ArgumentCompleter -CommandName $ActualValue.Name -ParameterName $ParameterName
             }
-            $filters += "has ArgumentCompletion"
+            $filters += "with$(if ($Negate -or $HasArgumentCompleter -eq $false) {'out'}) ArgumentCompletion"
 
-            if (-not $Negate -and -not $testArgumentCompleter) {
-                $buts += "has no ArgumentCompletion"
+            if ($Negate) {
+                if ($HasArgumentCompleter -and $testArgumentCompleter) {
+                    # -Not -HasArgumentCompleter but it did
+                    $buts += 'it has ArgumentCompletion'
+                }
+                # -Not -HasArgumentCompleter:$false ignored as it makes no sense to use
             }
-            elseif ($Negate -and $testArgumentCompleter) {
-                $buts += "has ArgumentCompletion"
+            else {
+                if ($HasArgumentCompleter -and -not $testArgumentCompleter ) {
+                    # -HasArgumentCompleter but it did not
+                    $buts += 'it has no ArgumentCompletion'
+                }
+                elseif (-not $HasArgumentCompleter -and $testArgumentCompleter) {
+                    # -HasArgumentCompleter:$false but it did
+                    $buts += 'it has ArgumentCompletion'
+                }
             }
         }
 
