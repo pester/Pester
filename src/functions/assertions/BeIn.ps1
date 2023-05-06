@@ -34,10 +34,12 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeIn `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeIn `
     -InternalName Should-BeIn `
     -Test         ${function:Should-BeIn}
 
+Set-ShouldOperatorHelpMessage -OperatorName BeIn `
+    -HelpMessage "Asserts that a collection of values contain a specific value. Uses PowerShell's -contains operator to confirm."
 
 function ShouldBeInFailureMessage() {
 }

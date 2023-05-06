@@ -65,6 +65,9 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
     return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatch `
+& $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatch `
     -InternalName Should-FileContentMatch `
     -Test         ${function:Should-FileContentMatch}
+
+Set-ShouldOperatorHelpMessage -OperatorName FileContentMatch `
+    -HelpMessage 'Checks to see if a file contains the specified text. This search is not case sensitive and uses regular expressions.'

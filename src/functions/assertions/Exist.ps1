@@ -35,10 +35,12 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Exist `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Exist `
     -InternalName Should-Exist `
     -Test         ${function:Should-Exist}
 
+Set-ShouldOperatorHelpMessage -OperatorName Exist `
+    -HelpMessage "Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider. The object must have valid path syntax. It essentially must pass a Test-Path call."
 
 function ShouldExistFailureMessage() {
 }

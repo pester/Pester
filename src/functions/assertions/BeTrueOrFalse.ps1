@@ -75,15 +75,19 @@ function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
 }
 
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeTrue `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeTrue `
     -InternalName Should-BeTrue `
     -Test         ${function:Should-BeTrue}
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeFalse `
+Set-ShouldOperatorHelpMessage -OperatorName BeTrue `
+    -HelpMessage "Asserts that the value is true, or truthy."
+
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeFalse `
     -InternalName Should-BeFalse `
     -Test         ${function:Should-BeFalse}
 
-
+Set-ShouldOperatorHelpMessage -OperatorName BeFalse `
+    -HelpMessage "Asserts that the value is false, or falsy."
 
 # to keep tests happy
 function ShouldBeTrueFailureMessage($ActualValue) {

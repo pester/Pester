@@ -67,10 +67,13 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
 }
 
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeOfType `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeOfType `
     -InternalName Should-BeOfType `
     -Test         ${function:Should-BeOfType} `
     -Alias        'HaveType'
+
+Set-ShouldOperatorHelpMessage -OperatorName BeOfType `
+    -HelpMessage "Asserts that the actual value should be an object of a specified type (or a subclass of the specified type) using PowerShell's -is operator."
 
 function ShouldBeOfTypeFailureMessage() {
 }

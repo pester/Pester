@@ -119,6 +119,43 @@ function Add-ShouldOperator {
     Add-AssertionDynamicParameterSet -AssertionEntry $entry
 }
 
+function Set-ShouldOperatorHelpMessage {
+    <#
+    .SYNOPSIS
+    Sets the helpmessage for a Should-operator. Used in Should's online help for the switch-parameter.
+    .PARAMETER OperatorName
+    The name of the assertion/operator.
+    .PARAMETER HelpMessage
+    Help message for switch-parameter for the operator in Should.
+    .NOTES
+    Internal function as it's only useful for built-in Should operators/assertion atm. to improve online docs.
+    Can be merged into Add-ShouldOperator later if we'd like to make it pulic and include value in Get-ShouldOperator
+
+    https://github.com/pester/Pester/issues/2335
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string] $OperatorName,
+        [Parameter(Mandatory = $true, Position = 1)]
+        [string] $HelpMessage
+    )
+
+    end {
+        $OperatorParam = $script:AssertionDynamicParams[$OperatorName]
+
+        if ($null -eq $OperatorParam) {
+            throw "Should operator '$OperatorName' is not registered"
+        }
+
+        foreach ($attr in $OperatorParam.Attributes) {
+            if ($attr -is [System.Management.Automation.ParameterAttribute]) {
+                $attr.HelpMessage = $HelpMessage
+            }
+        }
+    }
+}
+
 function Test-AssertionOperatorIsDuplicate {
     param (
         [psobject] $Operator
@@ -163,12 +200,6 @@ function Add-AssertionDynamicParameterSet {
     $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
     $attribute.ParameterSetName = $AssertionEntry.Name
 
-    # Add synopsis as HelpMessage to show in online help for Should parameters.
-    $assertHelp = $commandInfo | & $SafeCommands['Get-Help']
-    # Ignore functions without synopsis defined (they show syntax)
-    if ($assertHelp.Synopsis -notmatch '^\s*__AssertionTest__((\s+\[+?-\w+)|$)') {
-        $attribute.HelpMessage = $assertHelp.Synopsis
-    }
 
     $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
     $null = $attributeCollection.Add($attribute)
@@ -241,7 +272,8 @@ function Add-AssertionDynamicParameterSet {
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
-        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` for help.'
+        # Only visible in command reference on https://pester.dev. Remove if/when migrated to external help (markdown as source).
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` or https://pester.dev/docs/assertions/ for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }

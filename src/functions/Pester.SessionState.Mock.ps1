@@ -669,6 +669,9 @@ function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     -InternalName Should-InvokeVerifiable `
     -Test         ${function:Should-InvokeVerifiable}
 
+Set-ShouldOperatorHelpMessage -OperatorName InvokeVerifiable `
+    -HelpMessage 'Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.'
+
 function Assert-MockCalled {
     <#
     .SYNOPSIS
@@ -1033,6 +1036,9 @@ function Should-Invoke {
 & $script:SafeCommands['Add-ShouldOperator'] -Name Invoke `
     -InternalName Should-Invoke `
     -Test         ${function:Should-Invoke}
+
+Set-ShouldOperatorHelpMessage -OperatorName Invoke `
+    -HelpMessage 'Checks if a Mocked command has been called a certain number of times and throws an exception if it has not.'
 
 function Invoke-Mock {
     [CmdletBinding()]

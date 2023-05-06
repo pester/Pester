@@ -181,6 +181,9 @@ function NotShouldThrowFailureMessage {
     # to make the should tests happy, for now
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Throw `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Throw `
     -InternalName Should-Throw `
     -Test         ${function:Should-Throw}
+
+Set-ShouldOperatorHelpMessage -OperatorName Throw `
+    -HelpMessage 'Checks if an exception was thrown. Enclose input in a scriptblock.'

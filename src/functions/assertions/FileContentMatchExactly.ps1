@@ -48,6 +48,9 @@ function NotShouldFileContentMatchExactlyFailureMessage($ActualValue, $ExpectedC
     return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatchExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatchExactly `
     -InternalName Should-FileContentMatchExactly `
     -Test         ${function:Should-FileContentMatchExactly}
+
+Set-ShouldOperatorHelpMessage -OperatorName FileContentMatchExactly `
+    -HelpMessage 'Checks to see if a file contains the specified text. This search is case sensitive and uses regular expressions to match the text.'

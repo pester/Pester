@@ -42,9 +42,12 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLike `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeLike `
     -InternalName Should-BeLike `
     -Test         ${function:Should-BeLike}
+
+Set-ShouldOperatorHelpMessage -OperatorName BeLike `
+    -HelpMessage "Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator. This comparison is not case-sensitive."
 
 function ShouldBeLikeFailureMessage() {
 }

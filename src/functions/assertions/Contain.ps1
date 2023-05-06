@@ -34,10 +34,13 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Contain `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Contain `
     -InternalName Should-Contain `
     -Test         ${function:Should-Contain} `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName Contain `
+    -HelpMessage "Asserts that collection contains a specific value. Uses PowerShell's -contains operator to confirm."
 
 function ShouldContainFailureMessage() {
 }

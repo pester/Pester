@@ -72,7 +72,10 @@ function NotShouldBeNullOrEmptyFailureMessage ($Because) {
     return "Expected a value,$(Format-Because $Because) but got `$null or empty."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               BeNullOrEmpty `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeNullOrEmpty `
     -InternalName       Should-BeNullOrEmpty `
     -Test               ${function:Should-BeNullOrEmpty} `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName BeNullOrEmpty `
+    -HelpMessage "Checks values for null or empty (strings). The static [String]::IsNullOrEmpty() method is used to do the comparison."

@@ -299,6 +299,9 @@
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         HaveParameter `
+& $script:SafeCommands['Add-ShouldOperator'] -Name HaveParameter `
     -InternalName Should-HaveParameter `
     -Test         ${function:Should-HaveParameter}
+
+Set-ShouldOperatorHelpMessage -OperatorName HaveParameter `
+    -HelpMessage 'Asserts that a command has the expected parameter.'
