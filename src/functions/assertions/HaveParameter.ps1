@@ -2,12 +2,13 @@
     $ActualValue,
     [String] $ParameterName,
     $Type,
-    [String]$DefaultValue,
-    [Switch]$Mandatory,
-    [Switch]$HasArgumentCompleter,
-    [String[]]$Alias,
-    [Switch]$Negate,
-    [String]$Because ) {
+    [String] $DefaultValue,
+    [Switch] $Mandatory,
+    [String] $InParameterSet,
+    [Switch] $HasArgumentCompleter,
+    [String[]] $Alias,
+    [Switch] $Negate,
+    [String] $Because ) {
     <#
     .SYNOPSIS
         Asserts that a command has the expected parameter.
@@ -30,6 +31,7 @@
         throw "The ParameterName can't be empty"
     }
 
+    #region HelperFunctions
     function Get-ParameterInfo {
         param (
             [Parameter(Mandatory = $true)]
@@ -149,6 +151,7 @@
             }
         }
     }
+    #endregion HelperFunctions
 
     if ($Type -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
@@ -160,7 +163,6 @@
 
         $Type = $parsedType
     }
-    #endregion HelperFunctions
 
     $buts = @()
     $filters = @()
@@ -181,7 +183,7 @@
     }
 
     $hasKey = $ActualValue.Parameters.PSBase.ContainsKey($ParameterName)
-    $filters += "to$(if ($Negate) {" not"}) have a parameter $ParameterName"
+    $filters += "to$(if ($Negate) {' not'}) have a parameter $ParameterName$(if ($InParameterSet) { " in parameter set $InParameterSet" })"
 
     if (-not $Negate -and -not $hasKey) {
         $buts += "the parameter is missing"
@@ -189,14 +191,30 @@
     elseif ($Negate -and -not $hasKey) {
         return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
     }
-    elseif ($Negate -and $hasKey -and -not ($Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
+    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
     }
     else {
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
+        $parameterAttributes = $attributes | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.ParameterAttribute] }
+
+        if ($InParameterSet) {
+            $parameterAttributes = $parameterAttributes | & $SafeCommands['Where-Object'] { $_.ParameterSetName -eq $InParameterSet }
+
+            if (-not $Negate -and -not $parameterAttributes) {
+                $buts += 'the parameter is missing'
+            }
+            elseif ($Negate -and $parameterAttributes) {
+                $buts += 'the parameter exists'
+            }
+        }
+    }
+
+    if ($buts.Count -eq 0) {
+        # Parameter exists (in set if specified), assert remaining requirements
 
         if ($Mandatory) {
-            $testMandatory = $attributes | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.ParameterAttribute] -and $_.Mandatory }
+            $testMandatory = $parameterAttributes | & $SafeCommands['Where-Object'] { $_.Mandatory }
             $filters += "which is$(if ($Negate) {" not"}) mandatory"
 
             if (-not $Negate -and -not $testMandatory) {
