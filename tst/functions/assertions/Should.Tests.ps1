@@ -28,6 +28,12 @@ InPesterModuleScope {
             @($item1, $item2) | Should -Not -BeNullOrEmpty
         }
 
+        It 'works consistenly with array-input using pipeline or -ActualValue' {
+            # https://github.com/pester/Pester/issues/2314
+            @(1, 2, 3) | Should -Be -ExpectedValue @(1, 2, 3)
+            Should -Be -ActualValue @(1, 2, 3) -ExpectedValue @(1, 2, 3)
+        }
+
         It "can handle exception thrown assertions" {
             { foo } | Should -Throw
         }
