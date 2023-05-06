@@ -44,6 +44,10 @@ function Export-PesterResults {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
 
+        'NUnit3' {
+            Export-XmlReport -Result $Result -Path $Path -Format $Format
+        }
+
         '*Xml' {
             Export-XmlReport -Result $Result -Path $Path -Format $Format
         }
@@ -63,7 +67,7 @@ function Export-NUnitReport {
     Pester can generate a result-object containing information about all
     tests that are processed in a run. This object can then be exported to an
     NUnit-compatible XML-report using this function. The report is generated
-    using the NUnit 2.5-schema.
+    using the NUnit 2.5-schema (default) or NUnit3-compatible format.
 
     This can be useful for further processing or publishing of test results,
     e.g. as part of a CI/CD pipeline.
@@ -74,6 +78,9 @@ function Export-NUnitReport {
 
     .PARAMETER Path
     The path where the XML-report should  to the ou the XML report as string.
+
+    .PARAMETER Format
+    Specifies the NUnit-schema to be used.
 
     .EXAMPLE
     ```powershell
@@ -95,10 +102,13 @@ function Export-NUnitReport {
         $Result,
 
         [parameter(Mandatory = $true)]
-        [String] $Path
+        [String] $Path,
+
+        [ValidateSet('NUnit2.5', 'NUnit3')]
+        [string] $Format = 'NUnit2.5'
     )
 
-    Export-XmlReport -Result $Result -Path $Path -Format NUnitXml
+    Export-XmlReport -Result $Result -Path $Path -Format $Format
 }
 
 function Export-JUnitReport {
@@ -157,7 +167,7 @@ function Export-XmlReport {
         [String] $Path,
 
         [parameter(Mandatory = $true)]
-        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
+        [ValidateSet('NUnitXml', 'NUnit2.5', 'NUnit3', 'JUnitXml')]
         [string] $Format
     )
 
@@ -184,6 +194,10 @@ function Export-XmlReport {
         switch ($Format) {
             'NUnitXml' {
                 Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+            }
+
+            'NUnit3' {
+                Write-NUnit3Report -XmlWriter $xmlWriter -Result $Result
             }
 
             'JUnitXml' {
@@ -215,13 +229,13 @@ function Export-XmlReport {
 function ConvertTo-NUnitReport {
     <#
     .SYNOPSIS
-    Converts a Pester result-object to an NUnit 2.5-compatible XML-report
+    Converts a Pester result-object to an NUnit 2.5 or 3-compatible XML-report
 
     .DESCRIPTION
     Pester can generate a result-object containing information about all
     tests that are processed in a run. This objects can then be converted to an
     NUnit-compatible XML-report using this function. The report is generated
-    using the NUnit 2.5-schema.
+    using either the NUnit 2.5 or 3-schema.
 
     The function can convert to both XML-object or a string containing the XML.
     This can be useful for further processing or publishing of test results,
@@ -234,6 +248,9 @@ function ConvertTo-NUnitReport {
     .PARAMETER AsString
     Returns the XML-report as a string.
 
+    .PARAMETER Format
+    Specifies the NUnit-schema to be used.
+
     .EXAMPLE
     ```powershell
     $p = Invoke-Pester -Passthru
@@ -242,6 +259,15 @@ function ConvertTo-NUnitReport {
 
     This example runs Pester using the Passthru option to retrieve the result-object and
     converts it to an NUnit 2.5-compatible XML-report. The report is returned as an XML-object.
+
+    .EXAMPLE
+    ```powershell
+    $p = Invoke-Pester -Passthru
+    $p | ConvertTo-NUnitReport -Format NUnit3
+    ```
+
+    This example runs Pester using the Passthru option to retrieve the result-object and
+    converts it to an NUnit 3-compatible XML-report. The report is returned as an XML-object.
 
     .EXAMPLE
     ```powershell
@@ -261,7 +287,10 @@ function ConvertTo-NUnitReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
         $Result,
-        [Switch] $AsString
+        [Switch] $AsString,
+
+        [ValidateSet('NUnit2.5', 'NUnit3')]
+        [string] $Format = 'NUnit2.5'
     )
 
     $settings = [Xml.XmlWriterSettings] @{
@@ -275,7 +304,15 @@ function ConvertTo-NUnitReport {
         $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
-        Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+        switch ($Format) {
+            'NUnit2.5' {
+                Write-NUnitReport -XmlWriter $xmlWriter -Result $Result
+            }
+
+            'NUnit3' {
+                Write-NUnit3Report -XmlWriter $xmlWriter -Result $Result
+            }
+        }
 
         $xmlWriter.Flush()
         $stringWriter.Flush()
@@ -360,7 +397,7 @@ function Write-NUnitEnvironmentInformation($Result, [System.Xml.XmlWriter] $XmlW
 
     $environment = Get-RunTimeEnvironment
     foreach ($keyValuePair in $environment.GetEnumerator()) {
-        if ($keyValuePair.Name -eq 'junit-version') {
+        if ($keyValuePair.Name -in 'junit-version', 'framework-version') {
             continue
         }
 
@@ -397,7 +434,7 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     }
 
     $suites = @(
-        # todo: what is this? is it ordering tests into groups based on which test cases they belong to so we data driven tests in one result?
+        # Tests only have Id if parameterized. All other tests are put in group with '' value
         $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
     )
 
@@ -763,6 +800,10 @@ function Convert-TimeSpan {
     }
 }
 
+function Get-UTCTimeString ([datetime]$DateTime) {
+    $DateTime.ToUniversalTime().ToString('o')
+}
+
 function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
     $name = $TestSuiteInfo.Name
 
@@ -840,6 +881,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -853,6 +895,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
@@ -866,6 +909,7 @@ function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
+            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
             if ($TestResult.FailureMessage) {
                 $XmlWriter.WriteStartElement('reason')
                 $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
@@ -930,7 +974,7 @@ function Get-ErrorForXmlReport ($TestResult) {
     }
 }
 
-function Get-RunTimeEnvironment() {
+function Get-RunTimeEnvironment {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
     $userName = $env:Username
@@ -966,24 +1010,17 @@ function Get-RunTimeEnvironment() {
         }
     }
 
-    if ( ($PSVersionTable.ContainsKey('PSEdition')) -and ($PSVersionTable.PSEdition -eq 'Core')) {
-        $CLrVersion = "Unknown"
-
-    }
-    else {
-        $CLrVersion = [string]$PSVersionTable.ClrVersion
-    }
-
     @{
-        'nunit-version' = '2.5.8.0'
-        'junit-version' = '4'
-        'os-version'    = $osSystemInformation.Version
-        platform        = $osSystemInformation.Name
-        cwd             = $pwd.Path
-        'machine-name'  = $computerName
-        user            = $username
-        'user-domain'   = $env:userDomain
-        'clr-version'   = $CLrVersion
+        'nunit-version'     = '2.5.8.0'
+        'junit-version'     = '4'
+        'os-version'        = $osSystemInformation.Version
+        'platform'          = $osSystemInformation.Name
+        'cwd'               = $pwd.Path
+        'machine-name'      = $computerName
+        'user'              = $username
+        'user-domain'       = $env:userDomain
+        'clr-version'       = [string][System.Environment]::Version
+        'framework-version' = [string]$ExecutionContext.SessionState.Module.Version
     }
 }
 

@@ -170,15 +170,18 @@ function New-ParametrizedBlock {
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
-        [String] $Id,
         [Switch] $Skip,
         $Data
     )
 
+    # using the position of Describe/Context as Id to group data-generated blocks. Should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple blocks with ForEach, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
+    $id = $StartLine
+
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
+        New-Block -Id $id -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
     }
 }
 
@@ -2615,7 +2618,7 @@ function New-ParametrizedTest () {
     )
 
     # using the position of It as Id for the the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
-    # TODO: I don't think the Id is needed anymore
+    # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
     $id = $StartLine
     foreach ($d in $Data) {
         New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
