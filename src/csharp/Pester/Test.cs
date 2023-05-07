@@ -20,12 +20,12 @@ namespace Pester
 
             var runtime = new Hashtable
             {
-                { "Phase", null },
-                { "ExecutionStep", null }
+                ["Phase"] = null,
+                ["ExecutionStep"] = null,
             };
             FrameworkData = new Hashtable
             {
-                { "Runtime", runtime }
+                ["Runtime"] = runtime,
             };
         }
 

@@ -45,11 +45,11 @@ namespace Pester
             // we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
             var targetObject = new Dictionary<string, object>
             {
-                { "Message", message },
-                { "File", file },
-                { "Line", line },
-                { "LineText", lineText },
-                { "Terminating", terminating }
+                ["Message"] = message,
+                ["File"] = file,
+                ["Line"] = line,
+                ["LineText"] = lineText,
+                ["Terminating"] = terminating,
             };
             return new ErrorRecord(exception, errorId, ErrorCategory.InvalidResult, targetObject);
         }
