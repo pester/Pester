@@ -18,11 +18,15 @@ namespace Pester
             PluginData = new Hashtable();
             ErrorRecord = new List<object>();
 
-            var runtime = new Hashtable();
-            runtime.Add("Phase", null);
-            runtime.Add("ExecutionStep", null);
-            FrameworkData = new Hashtable();
-            FrameworkData.Add("Runtime", runtime);
+            var runtime = new Hashtable
+            {
+                ["Phase"] = null,
+                ["ExecutionStep"] = null,
+            };
+            FrameworkData = new Hashtable
+            {
+                ["Runtime"] = runtime,
+            };
         }
 
         public string Name { get; set; }

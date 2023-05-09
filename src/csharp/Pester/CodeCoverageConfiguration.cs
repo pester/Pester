@@ -32,7 +32,6 @@ namespace Pester
         private BoolOption _singleHitBreakpoints;
         private DecimalOption _coveragePercentTarget;
 
-
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
 
         public static CodeCoverageConfiguration ShallowClone(CodeCoverageConfiguration configuration)
@@ -182,7 +181,6 @@ namespace Pester
             }
         }
 
-
         public DecimalOption CoveragePercentTarget
         {
             get { return _coveragePercentTarget; }
@@ -198,7 +196,6 @@ namespace Pester
                 }
             }
         }
-
 
         public BoolOption UseBreakpoints
         {

@@ -198,7 +198,6 @@ namespace Pester
             }
         }
 
-
         public BoolOption SkipRun
         {
             get { return _skipRun; }

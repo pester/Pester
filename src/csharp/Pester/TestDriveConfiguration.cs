@@ -19,10 +19,7 @@ namespace Pester
 
         public TestDriveConfiguration(IDictionary configuration) : this()
         {
-            if (configuration != null)
-            {
-                configuration.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
-            }
+            configuration?.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
         }
 
         public BoolOption Enabled

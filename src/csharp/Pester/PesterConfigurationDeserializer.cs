@@ -8,7 +8,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 {
     public override bool CanConvertFrom(object sourceValue, Type destinationType)
     {
-        if (!(sourceValue is PSObject))
+        if (sourceValue is not PSObject)
             return false;
 
         return ((PSObject)sourceValue).TypeNames.Contains("Deserialized.PesterConfiguration");
@@ -31,15 +31,15 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
     private PesterConfiguration ConvertToPesterConfiguration(object sourceValue)
     {
-        if (sourceValue is IDictionary)
-            return new PesterConfiguration((IDictionary)sourceValue);
+        if (sourceValue is IDictionary dictionary)
+            return new PesterConfiguration(dictionary);
 
         return new PesterConfiguration(ConvertToConfigurationHashtable((PSObject)sourceValue));
     }
 
     private Hashtable ConvertToConfigurationHashtable(PSObject sourceConfiguration)
     {
-        Hashtable configuration = new Hashtable();
+        Hashtable configuration = new();
 
         foreach (var property in sourceConfiguration.Properties)
         {
@@ -57,18 +57,18 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
     private Hashtable ConvertToSectionHashtable(PSObject sourceSection, string sectionName)
     {
-        Hashtable configurationSection = new Hashtable();
+        Hashtable configurationSection = new();
 
         foreach (var property in sourceSection.Properties)
         {
             var IsModified = ((PSObject)property.Value).Properties["IsModified"];
-            
+
             // Doing this instead of IsModified -> Add to be compatible with saved PesterConfigurations from previous versions
             // Consider rewriting in next major release
             if (IsModified != null && !((bool)IsModified.Value)) {
                 continue;
             }
-            
+
             configurationSection.Add(
                 property.Name,
                 GetPropertyValue(
@@ -86,8 +86,8 @@ public class PesterConfigurationDeserializer : PSTypeConverter
     {
         var value = sourceItem.Properties["Value"].Value;
 
-        if (value is PSObject)
-            value = ((PSObject)value).BaseObject;
+        if (value is PSObject pso)
+            value = pso.BaseObject;
 
         if (value == null)
             return null;
@@ -96,7 +96,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         if (expectedType == typeof(ScriptBlock[]))
         {
-            ArrayList scriptBlocks = new ArrayList();
+            ArrayList scriptBlocks = new();
             foreach (string scriptBlock in (ArrayList)value)
             {
                 scriptBlocks.Add(ScriptBlock.Create(scriptBlock));
@@ -106,7 +106,7 @@ public class PesterConfigurationDeserializer : PSTypeConverter
 
         if (expectedType == typeof(ContainerInfo[]))
         {
-            ArrayList containers = new ArrayList();
+            ArrayList containers = new();
             foreach (PSObject container in (ArrayList)value)
             {
                 var containerInfo = Pester.ContainerInfo.Create();
@@ -119,8 +119,8 @@ public class PesterConfigurationDeserializer : PSTypeConverter
             value = containers;
         }
 
-        if (value is ArrayList)
-            value = ((ArrayList)value).ToArray();
+        if (value is ArrayList list)
+            value = list.ToArray();
 
         return value;
     }
