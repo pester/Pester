@@ -675,6 +675,10 @@ function Invoke-Pester {
             # todo: move mock cleanup to BeforeAllBlockContainer when there is any?
             Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
         }
+        else {
+            # this will inherit to child scopes and affect behavior of ex. TestDrive/TestRegistry
+            $runningPesterInPester = $true
+        }
 
         # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
         # already defined because we want a clean state for this Invoke-Pester even if it runs inside another
@@ -1121,7 +1125,7 @@ function Invoke-Pester {
                 Invoke-PluginStep -Plugins $Plugins -Step Start -Context @{
                     Containers               = $containers
                     Configuration            = $pluginConfiguration
-                    GlobalPluginData         = $state.PluginData
+                    GlobalPluginData         = $pluginData
                     WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
                     Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
                 } -ThrowOnFailure
@@ -1165,8 +1169,9 @@ function Invoke-Pester {
             $steps = $Plugins.End
             if ($null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $Plugins -Step End -Context @{
-                    TestRun       = $run
-                    Configuration = $pluginConfiguration
+                    TestRun          = $run
+                    Configuration    = $pluginConfiguration
+                    GlobalPluginData = $pluginData
                 } -ThrowOnFailure
             }
 

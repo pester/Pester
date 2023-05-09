@@ -102,6 +102,87 @@ InPesterModuleScope {
     }
 }
 
+Describe 'Repair missing TestDrive' {
+    BeforeAll {
+        $tempFileName = 'missingDrive.txt'
+        $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
+        'Hello' | Set-Content -Path $tempFilePath
+    }
+
+    Context 'Broken' {
+        It 'Removes TestDrive' {
+            Should -Exist -ActualValue $tempFilePath
+            Get-Content -Path $tempFilePath | Should -Be 'Hello'
+
+            # Remove PSDrive
+            Remove-PSDrive -Name 'TestDrive'
+            { Get-PSDrive -Name 'TestDrive' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+
+            # Remove variable
+            Set-Variable -Name TestDrive -Scope Global -Value $null
+            $TestDrive | Should -BeNullOrEmpty
+        }
+    }
+
+    Context 'Fixed' {
+        It 'TestDrive exists again' {
+            # Verify variable works again
+            $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
+            Should -Exist -ActualValue $tempFilePath
+
+            # Verify PSDrive
+            Get-Content -Path "TestDrive:/$tempFileName" | Should -Be 'Hello'
+        }
+    }
+}
+
+Describe 'Running Pester in Pester' {
+    BeforeAll {
+        $tempFileName = 'testing.txt'
+        $tempFilePath = Join-Path -Path $TestDrive -ChildPath $tempFileName
+        'Hello' | Set-Content -Path $tempFilePath
+    }
+
+    It 'File exists before' {
+        Should -Exist -ActualValue $tempFilePath
+        Get-Content -Path $tempFilePath | Should -Be 'Hello'
+    }
+
+    It 'Works in nested run' {
+        $sb = {
+            Describe 'Nested' {
+                It 'Files created in outer run are available using absolute path' {
+                    Should -Exist -ActualValue $TempFilePath
+                    Get-Content -Path $TempFilePath | Should -Be 'Hello'
+                }
+
+                It 'TestDrive PSDrive and $TestDrive points to clean location' {
+                    # Variable should point to new drive
+                    $outerTestDrive = Split-Path $tempFilePath
+                    $TestDrive | Should -Not -Be $outerTestDrive
+
+                    # TestDrive should be clean in inner run
+                    Get-ChildItem -Path 'TestDrive:/' | Should -BeNullOrEmpty
+                }
+            }
+        }
+
+        $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempFilePath = $tempFilePath }
+        $innerRun = Invoke-Pester -Container $c -PassThru -Output None
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 2
+    }
+
+    It 'TestDrive PSDrive and $TestDrive point to original location' {
+        $originalTestDrive = Split-Path $tempFilePath
+        $TestDrive | Should -Be $originalTestDrive
+
+        $tempFilePath2 = Join-Path -Path 'TestDrive:/' -ChildPath $tempFileName
+        Should -Exist -ActualValue $tempFilePath2
+        Get-Content -Path $tempFilePath2 | Should -Be 'Hello'
+    }
+}
+
 # Tests problematic symlinks, but needs to run as admin
 # InPesterModuleScope {
 
