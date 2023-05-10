@@ -31,7 +31,7 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
     # using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
     $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
     $encodedcommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
-    & $powershell -NoProfile -ExecutionPolicy Bypass -encodedCommand $encodedcommand
+    & $powershell -NoProfile -ExecutionPolicy Bypass  -OutputFormat Text -encodedCommand $encodedcommand
 }
 
 i -PassThru:$PassThru {
