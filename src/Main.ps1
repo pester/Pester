@@ -1092,7 +1092,7 @@ function Invoke-Pester {
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) {$plugins += $script:additionalPlugins}
+            if (defined additionalPlugins) { $plugins += $script:additionalPlugins }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
@@ -1192,10 +1192,13 @@ function Invoke-Pester {
                 $configuration = $run.PluginConfiguration.Coverage
 
                 if ("JaCoCo" -eq $configuration.OutputFormat -or "CoverageGutters" -eq $configuration.OutputFormat) {
-                    [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                    [xml] $coverageXmlReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
+                }
+                elseif ("Cobertura" -eq $configuration.OutputFormat) {
+                    [xml] $coverageXmlReport = [xml] (Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds)
                 }
                 else {
-                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($configuration.OutputFormat), please review your configuration."
+                    throw "CodeCoverage.CoverageFormat must be 'JaCoCo', 'CoverageGutters', or 'Cobertura' but it was $($configuration.OutputFormat), please review your configuration."
                 }
 
                 $settings = [Xml.XmlWriterSettings] @{
@@ -1210,7 +1213,7 @@ function Invoke-Pester {
                     $stringWriter = [Pester.Factory]::CreateStringWriter()
                     $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
-                    $jaCocoReport.WriteContentTo($xmlWriter)
+                    $coverageXmlReport.WriteContentTo($xmlWriter)
 
                     $xmlWriter.Flush()
                     $stringWriter.Flush()

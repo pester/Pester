@@ -1043,6 +1043,225 @@ function Get-JaCoCoReportXml {
     return $xml
 }
 
+function Get-CoberturaReportXml {
+    param (
+        [parameter(Mandatory = $true)]
+        [object] $CoverageReport,
+        [parameter(Mandatory = $true)]
+        [long] $TotalMilliseconds
+    )
+
+    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+        return [string]::Empty
+    }
+
+    $now = & $SafeCommands['Get-Date']
+    $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
+    [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
+    [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
+
+    $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
+
+    $allLines = [System.Collections.Generic.List[object]]@()
+    $null = $allLines.AddRange($CoverageReport.MissedCommands)
+    $null = $allLines.AddRange($CoverageReport.HitCommands)
+    $packages = @{}
+    foreach ($command in $allLines) {
+        $package = & $SafeCommands["Split-Path"] $command.File -Parent
+        if (!$packages[$package]) {
+            $packages[$package] = @{
+                Classes = @{}
+            }
+        }
+
+        $class = $command.File
+        if (!$packages[$package].Classes[$class]) {
+            $packages[$package].Classes[$class] = @{
+                Methods = @{}
+                Lines   = @{}
+            }
+        }
+
+        if (!$packages[$package].Classes[$class].Lines[$command.Line]) {
+            $packages[$package].Classes[$class].Lines[$command.Line] = [ordered]@{ number = $command.Line ; hits = 0 }
+        }
+        $packages[$package].Classes[$class].Lines[$command.Line].hits += $command.HitCount
+
+        $method = $command.Function
+        if (!$method) {
+            continue
+        }
+
+        if (!$packages[$package].Classes[$class].Methods[$method]) {
+            $packages[$package].Classes[$class].Methods[$method] = @{}
+        }
+
+        if (!$packages[$package].Classes[$class].Methods[$method][$command.Line]) {
+            $packages[$package].Classes[$class].Methods[$method][$command.Line] = [ordered]@{ number = $command.Line ; hits = 0 }
+        }
+        $packages[$package].Classes[$class].Methods[$method][$command.Line].hits += $command.HitCount
+    }
+
+    $packages = foreach ($packageGroup in $packages.GetEnumerator()) {
+        $classGroups = $packageGroup.Value.Classes
+        $classes = foreach ($classGroup in $classGroups.GetEnumerator()) {
+            $methodGroups = $classGroup.Value.Methods
+            $methods = foreach ($methodGroup in $methodGroups.GetEnumerator()) {
+                $lines = ([object[]]$methodGroup.Value.Values) | New-LineNode
+                $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
+
+                $method = [ordered]@{
+                    name         = 'method'
+                    attributes   = [ordered]@{
+                        name      = $methodGroup.Name
+                        signature = '()'
+                    }
+                    children     = [ordered]@{
+                        lines = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
+                    }
+                    totalLines   = $lines.Length
+                    coveredLines = $coveredLines.Length
+                }
+
+                $method
+            }
+
+            $lines = ([object[]]$classGroup.Value.Lines.Values) | New-LineNode
+            $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
+
+            $lineRate = Get-LineRate -CoveredLines $coveredLines.Length -TotalLines $lines.Length
+            $filename = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
+
+            $class = [ordered]@{
+                name         = 'class'
+                attributes   = [ordered]@{
+                    name          = (& $SafeCommands["Split-Path"] $classGroup.Name -Leaf)
+                    filename      = $filename
+                    'line-rate'   = $lineRate
+                    'branch-rate' = 1
+                }
+                children     = [ordered]@{
+                    methods = $methods | & $SafeCommands["Sort-Object"] { $_.attributes.name }
+                    lines   = $lines | & $SafeCommands["Sort-Object"] { [int]$_.attributes.number }
+                }
+                totalLines   = $lines.Length
+                coveredLines = $coveredLines.Length
+            }
+
+            $class
+        }
+
+        $totalLines = ($classes.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+        $coveredLines = ($classes.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+        $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+        $packageName = $packageGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
+
+        $package = [ordered]@{
+            name         = 'package'
+            attributes   = [ordered]@{
+                name          = $packageName
+                'line-rate'   = $lineRate
+                'branch-rate' = 0
+            }
+            children     = [ordered]@{
+                classes = $classes | & $SafeCommands["Sort-Object"] { $_.attributes.name }
+            }
+            totalLines   = $totalLines
+            coveredLines = $coveredLines
+        }
+
+        $package
+    }
+
+    $totalLines = ($packages.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+    $coveredLines = ($packages.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
+    $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
+
+    $coverage = [ordered]@{
+        name       = 'coverage'
+        attributes = [ordered]@{
+            'lines-valid'      = $totalLines
+            'lines-covered'    = $coveredLines
+            'line-rate'        = $lineRate
+            'branches-valid'   = 0
+            'branches-covered' = 0
+            'branch-rate'      = 1
+            timestamp          = $startTime
+            version            = 0.1
+        }
+        children   = [ordered]@{
+            sources  = [ordered]@{
+                name  = 'source'
+                value = $commonRoot.Replace('\', '/')
+            }
+            packages = $packages | & $SafeCommands["Sort-Object"] { $_.attributes.name }
+        }
+    }
+
+    $xmlDeclaration = '<?xml version="1.0" ?>'
+    $docType = '<!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">'
+    $coverageXml = ConvertTo-XmlElement -Node $coverage
+    $document = "$xmlDeclaration`n$docType`n$(([System.Xml.XmlElement]$coverageXml).OuterXml)"
+
+    $document
+}
+
+function New-LineNode {
+    param(
+        [parameter(Mandatory = $true, ValueFromPipeline = $true)] [object] $LineObject
+    )
+
+    process {
+        [ordered]@{
+            name       = 'line'
+            attributes = $LineObject
+        }
+    }
+}
+
+function Get-LineRate {
+    param(
+        [parameter(Mandatory = $true)] [int] $CoveredLines,
+        [parameter(Mandatory = $true)] [int] $TotalLines
+    )
+
+    [double]$denominator = if ($TotalLines) { $TotalLines } else { 1 }
+
+    $CoveredLines / $denominator
+}
+
+function ConvertTo-XmlElement {
+    param(
+        [parameter(Mandatory = $true)] [object] $Node
+    )
+
+    $element = ([xml]"<$($Node.name)/>").DocumentElement
+    if ($node.attributes) {
+        $attributes = $node.attributes
+        foreach ($attr in $attributes.GetEnumerator()) {
+            $element.SetAttribute($attr.Name, $attr.Value)
+        }
+    }
+    if ($node.children) {
+        $children = $node.children
+        foreach ($child in $children.GetEnumerator()) {
+            $childElement = ([xml]"<$($child.Name)/>").DocumentElement
+            foreach ($value in $child.Value) {
+                $childXml = ConvertTo-XmlElement $value
+                $importedChildXml = $childElement.OwnerDocument.ImportNode($childXml, $true)
+                $null = $childElement.AppendChild($importedChildXml)
+            }
+            $importedChild = $element.OwnerDocument.ImportNode($childElement, $true)
+            $null = $element.AppendChild($importedChild)
+        }
+    }
+    if ($node.value) {
+        $element.InnerText = $node.value
+    }
+
+    $element
+}
+
 function Add-XmlElement {
     param (
         [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Parent,
@@ -1051,12 +1270,21 @@ function Add-XmlElement {
     )
     $element = $Parent.AppendChild($Parent.OwnerDocument.CreateElement($Name))
     if ($Attributes) {
-        foreach ($key in $Attributes.Keys) {
-            $attribute = $element.Attributes.Append($Parent.OwnerDocument.CreateAttribute($key))
-            $attribute.Value = $Attributes.$key
-        }
+        Add-XmlAttribute -Element $element -Attributes $Attributes
     }
     return $element
+}
+
+function Add-XmlAttribute {
+    param(
+        [parameter(Mandatory = $true)] [System.Xml.XmlNode] $Element,
+        [parameter(Mandatory = $true)] [System.Collections.IDictionary] $Attributes
+    )
+
+    foreach ($key in $Attributes.Keys) {
+        $attribute = $Element.Attributes.Append($Element.OwnerDocument.CreateAttribute($key))
+        $attribute.Value = $Attributes.$key
+    }
 }
 
 function Add-JaCoCoCounter {

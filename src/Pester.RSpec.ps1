@@ -335,7 +335,7 @@ function New-PesterConfiguration {
       Enabled: Enable CodeCoverage.
       Default value: $false
 
-      OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters
+      OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters, Cobertura
       Default value: 'JaCoCo'
 
       OutputPath: Path relative to the current directory where code coverage report is saved.
