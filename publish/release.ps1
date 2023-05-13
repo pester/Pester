@@ -54,22 +54,24 @@ if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
 
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
-
 $files = @(
-    "nunit_schema_2.5.xsd"
-    "junit_schema_4.xsd"
-    "Pester.psd1"
-    "Pester.psm1"
-    "report.dtd"
-    "bin\net452\Pester.dll"
-    "bin\net452\Pester.pdb"
-    "bin\netstandard2.0\Pester.dll"
-    "bin\netstandard2.0\Pester.pdb"
-    "en-US\about_BeforeEach_AfterEach.help.txt"
-    "en-US\about_Mocking.help.txt"
-    "en-US\about_Pester.help.txt"
-    "en-US\about_Should.help.txt"
-    "en-US\about_TestDrive.help.txt"
+    'Pester.psd1'
+    'Pester.psm1'
+    'bin/net452/Pester.dll'
+    'bin/net452/Pester.pdb'
+    'bin/netstandard2.0/Pester.dll'
+    'bin/netstandard2.0/Pester.pdb'
+    'en-US/about_BeforeEach_AfterEach.help.txt'
+    'en-US/about_Mocking.help.txt'
+    'en-US/about_Pester.help.txt'
+    'en-US/about_Should.help.txt'
+    'en-US/about_TestDrive.help.txt'
+    'schemas/JaCoCo/report.dtd'
+    'schemas/JUnit4/junit_schema_4.xsd'
+    'schemas/NUnit25/nunit_schema_2.5.xsd'
+    'schemas/NUnit3/TestDefinitions.xsd'
+    'schemas/NUnit3/TestFilterDefinitions.xsd'
+    'schemas/NUnit3/TestResult.xsd'
 )
 
 $notFound = @()
@@ -83,7 +85,7 @@ if (0 -lt $notFound.Count) {
     throw "Did not find files:`n$($notFound -join "`n")"
 }
 else {
-    "Found all files!"
+    'Found all files!'
 }
 
 # build psgallery module
@@ -104,7 +106,7 @@ $null = New-Item -ItemType Directory -Path $nugetDir
 Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
 Copy-Item "$PSScriptRoot/../LICENSE" $nugetDir -Recurse
 
-Out-File $nugetDir\VERIFICATION.txt -InputObject @"
+Out-File "$nugetDir/VERIFICATION.txt" -InputObject @'
 VERIFICATION
 Verification is intended to assist the Chocolatey moderators and community
 in verifying that this package's contents are trustworthy.
@@ -114,13 +116,13 @@ You can use one of the following methods to obtain the checksum
   - Use chocolatey utility 'checksum.exe'
 
 CHECKSUMS
-"@
+'@
 
-Get-ChildItem -Path $bin -Filter *.dll -Recurse | Foreach-Object {
+Get-ChildItem -Path $bin -Filter *.dll -Recurse | ForEach-Object {
     $path = $_.FullName
     $relativePath = ($path -replace [regex]::Escape($nugetDir.TrimEnd('/').TrimEnd('\'))).TrimStart('/').TrimStart('\')
-    $hash = Get-FileHash  -Path $path -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-    Out-File $nugetDir\VERIFICATION.txt -Append -InputObject @"
+    $hash = Get-FileHash -Path $path -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Out-File "$nugetDir/VERIFICATION.txt" -Append -InputObject @"
     file: $relativePath
     hash: $hash
     algorithm: sha256

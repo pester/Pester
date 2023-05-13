@@ -104,10 +104,10 @@ function Copy-Content ($Content) {
 
 $content = @(
     , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
+    , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
+    , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
     , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
-    , ("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
     , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
