@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -14,32 +15,6 @@ $global:PesterPreference = @{
     }
 }
 $PSDefaultParameterValues = @{}
-
-function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
-    # get the path of the currently loaded Pester to re-import it in the child process
-    $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
-    $powershell = Get-Process -Id $pid | Select-Object -ExpandProperty Path
-    # run any scriptblock in a separate process to be able to grab all the output
-    # doesn't enforce Invoke-Pester usage so we can test other public functions directly
-    $command = {
-        param ($PesterPath, [ScriptBlock] $ScriptBlock)
-        Import-Module $PesterPath
-
-        . $ScriptBlock
-    }.ToString()
-
-    if ($PSVersionTable.PSVersion -ge '6.2') {
-        # Using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
-        $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
-        $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
-        & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand $encodedCommand
-    }
-    else {
-        # Using -Command because -encodedCommand causes CliXML output in Azure DevOps pipeline etc.
-        $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
-        & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $cmd
-    }
-}
 
 i -PassThru:$PassThru {
     b "Interactive execution" {
