@@ -52,6 +52,8 @@ function Verify-XmlTime {
     $Actual
 }
 
+$schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit25/nunit_schema_2.5.xsd'
+
 i -PassThru:$PassThru {
 
     b "Write nunit test results" {
@@ -249,8 +251,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate( {
                     throw $args[1].Exception
                 })
@@ -269,9 +270,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
-
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
 
@@ -337,7 +336,6 @@ i -PassThru:$PassThru {
             $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
-            $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
             $xmlResult.Validate( { throw $args[1].Exception })
         }
@@ -379,7 +377,6 @@ i -PassThru:$PassThru {
             $testCase2.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
-            $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "nunit_schema_2.5.xsd"
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
             $xmlResult.Validate( { throw $args[1].Exception })
         }
