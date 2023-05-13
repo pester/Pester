@@ -1,4 +1,5 @@
-﻿function Write-NUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
+﻿function Write-NUnitReport {
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -11,7 +12,10 @@
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitTestResultAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
@@ -27,7 +31,10 @@ function Write-NUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('time', $Result.ExecutedAt.ToString('HH:mm:ss'))
 }
 
-function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitTestResultChildNodes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+
     Write-NUnitEnvironmentInformation -Result $Result -XmlWriter $XmlWriter
     Write-NUnitCultureInformation -Result $Result -XmlWriter $XmlWriter
 
@@ -62,7 +69,9 @@ function Write-NUnitTestResultChildNodes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitEnvironmentInformation($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitEnvironmentInformation {
+    param([System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteStartElement('environment')
 
     $environment = Get-RunTimeEnvironment
@@ -77,7 +86,9 @@ function Write-NUnitEnvironmentInformation($Result, [System.Xml.XmlWriter] $XmlW
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitCultureInformation($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitCultureInformation {
+    param([System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteStartElement('culture-info')
 
     $XmlWriter.WriteAttributeString('current-culture', ([System.Threading.Thread]::CurrentThread.CurrentCulture).Name)
@@ -86,7 +97,10 @@ function Write-NUnitCultureInformation($Result, [System.Xml.XmlWriter] $XmlWrite
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
+function Write-NUnitTestSuiteElements {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
+
     $suiteInfo = Get-TestSuiteInfo -TestSuite $Node -Path $Path
 
     $XmlWriter.WriteStartElement('test-suite')
@@ -142,7 +156,8 @@ function Write-NUnitTestSuiteElements($Node, [System.Xml.XmlWriter] $XmlWriter, 
     $XmlWriter.WriteEndElement()
 }
 
-function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup) {
+function Get-ParameterizedTestSuiteInfo {
+    param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup)
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
     # I am using the Name from the first test as the name of the test group, even though we are grouping at
     # the Id of the test (which is the line where the ScriptBlock of that test starts). This allows us to have
@@ -186,7 +201,8 @@ function Get-ParameterizedTestSuiteInfo ([Microsoft.PowerShell.Commands.GroupInf
     return Get-TestSuiteInfo -TestSuite $node -Path $node.Path
 }
 
-function Get-TestSuiteInfo ($TestSuite, $Path) {
+function Get-TestSuiteInfo {
+    param($TestSuite, $Path)
     # if (-not $Path) {
     #     $Path = $TestSuite.Name
     # }
@@ -232,7 +248,10 @@ function Get-TestSuiteInfo ($TestSuite, $Path) {
     $suite
 }
 
-function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path) {
+function Write-NUnitTestSuiteAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
+
     $name = $TestSuiteInfo.Name
 
     if ($TestSuiteType -eq 'ParameterizedTest' -and $Path) {
@@ -249,15 +268,19 @@ function Write-NUnitTestSuiteAttributes($TestSuiteInfo, [string] $TestSuiteType 
     $XmlWriter.WriteAttributeString('description', $TestSuiteInfo.Description)
 }
 
-function Write-NUnitTestCaseElement($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
+function Write-NUnitTestCaseElement {
+    param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName)
+
     $XmlWriter.WriteStartElement('test-case')
 
-    Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName -Path $Path
+    Write-NUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ParameterizedSuiteName $ParameterizedSuiteName
 
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName, [string] $Path) {
+function Write-NUnitTestCaseAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName)
 
     $testName = $TestResult.ExpandedPath
 

@@ -1,4 +1,5 @@
-﻿function Write-JUnitReport($Result, [System.Xml.XmlWriter] $XmlWriter) {
+﻿function Write-JUnitReport {
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -21,7 +22,10 @@
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-JUnitTestResultAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
@@ -32,7 +36,10 @@ function Write-JUnitTestResultAttributes($Result, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteAttributeString('time', ($Result.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture)))
 }
 
-function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id) {
+function Write-JUnitTestSuiteElements {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id)
+
     $XmlWriter.WriteStartElement('testsuite')
 
     if ('File' -eq $Container.Type) {
@@ -57,7 +64,10 @@ function Write-JUnitTestSuiteElements($Container, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id) {
+function Write-JUnitTestSuiteAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id)
+
     $environment = Get-RunTimeEnvironment
 
     $XmlWriter.WriteAttributeString('name', $Package)
@@ -87,7 +97,10 @@ function Write-JUnitTestSuiteAttributes($Action, [System.Xml.XmlWriter] $XmlWrit
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $Package) {
+function Write-JUnitTestCaseElements {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $Package)
+
     $XmlWriter.WriteStartElement('testcase')
 
     Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ClassName $Package
@@ -95,7 +108,10 @@ function Write-JUnitTestCaseElements($TestResult, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteEndElement()
 }
 
-function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ClassName) {
+function Write-JUnitTestCaseAttributes {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestResult,[System.Xml.XmlWriter] $XmlWriter, [string] $ClassName)
+
     $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
 
     $statusElementName = switch ($TestResult.Result) {
@@ -122,7 +138,10 @@ function Write-JUnitTestCaseAttributes($TestResult, [System.Xml.XmlWriter] $XmlW
     }
 }
 
-function Write-JUnitTestCaseMessageElements($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName) {
+function Write-JUnitTestCaseMessageElements {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param($TestResult,[System.Xml.XmlWriter] $XmlWriter, [string] $StatusElementName)
+
     $XmlWriter.WriteStartElement($StatusElementName)
 
     $result = Get-ErrorForXmlReport -TestResult $TestResult

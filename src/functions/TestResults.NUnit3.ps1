@@ -21,6 +21,7 @@ function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
 function Write-NUnit3TestRunAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
     param($Result, [System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteAttributeString('id', '0')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
     $XmlWriter.WriteAttributeString('fullname', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
@@ -63,7 +64,12 @@ function Write-NUnit3TestRunChildNode {
     }
 }
 
-function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [System.Collections.IDictionary] $Environment = (Get-RunTimeEnvironment)) {
+function Write-NUnit3EnvironmentInformation {
+    param(
+        [System.Xml.XmlWriter] $XmlWriter,
+        [System.Collections.IDictionary] $Environment = (Get-RunTimeEnvironment)
+    )
+
     $XmlWriter.WriteStartElement('environment')
 
     foreach ($keyValuePair in $Environment.GetEnumerator()) {
@@ -84,7 +90,14 @@ function Write-NUnit3EnvironmentInformation([System.Xml.XmlWriter] $XmlWriter, [
     $XmlWriter.WriteEndElement()
 }
 
-function Write-NUnit3TestSuiteElement($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $ParentPath, [System.Collections.IDictionary] $RuntimeEnvironment) {
+function Write-NUnit3TestSuiteElement {
+    param(
+        $Node,
+        [System.Xml.XmlWriter] $XmlWriter,
+        [string] $ParentPath,
+        [System.Collections.IDictionary] $RuntimeEnvironment
+    )
+
     $XmlWriter.WriteStartElement('test-suite')
     $suiteInfo = Get-NUnit3TestSuiteInfo -TestSuite $Node -ParentPath $ParentPath
 
@@ -201,7 +214,9 @@ function Write-NUnit3TestSuiteElement($Node, [System.Xml.XmlWriter] $XmlWriter, 
     $XmlWriter.WriteEndElement()
 }
 
-function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType, [string] $ParentPath) {
+function Get-NUnit3TestSuiteInfo {
+    param($TestSuite, [string] $SuiteType, [string] $ParentPath)
+
     if (-not $SuiteType) {
         <# test-suite type-attribute mapping
          Assembly = Container
@@ -292,6 +307,7 @@ function Get-NUnit3TestSuiteInfo ($TestSuite, [string] $SuiteType, [string] $Par
 function Write-NUnit3TestSuiteAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
     param($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteAttributeString('type', $TestSuiteInfo.type)
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
@@ -363,7 +379,8 @@ function Get-NUnit3Site ($Node) {
     return $site
 }
 
-function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath) {
+function Get-NUnit3ParameterizedMethodSuiteInfo {
+    param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath)
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
 
     # Using the Name from the first test as the name of the test group, even though we are grouping at
@@ -409,7 +426,8 @@ function Get-NUnit3ParameterizedMethodSuiteInfo ([Microsoft.PowerShell.Commands.
     return Get-NUnit3TestSuiteInfo -TestSuite $node -ParentPath $ParentPath -SuiteType 'ParameterizedMethod'
 }
 
-function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath) {
+function Get-NUnit3ParameterizedFixtureSuiteInfo {
+    param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath)
     # this is generating info for a group of blocks that were generated from the same block when ForEach are used
 
     # Using the Name from the first block as the name of the block group, even though we are grouping at
@@ -454,7 +472,9 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo ([Microsoft.PowerShell.Commands
     return Get-NUnit3TestSuiteInfo -TestSuite $node -ParentPath $ParentPath -SuiteType 'ParameterizedFixture'
 }
 
-function Write-NUnit3TestCaseElement ($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3TestCaseElement {
+    param($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter)
+
     $XmlWriter.WriteStartElement('test-case')
 
     Write-NUnit3TestCaseAttributes -TestResult $TestResult -ParentPath $ParentPath -XmlWriter $XmlWriter
@@ -487,6 +507,7 @@ function Write-NUnit3TestCaseElement ($TestResult, [string] $ParentPath, [System
 function Write-NUnit3TestCaseAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
     param($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter)
+
     # add parameters to name for testcase with data when not using variables in name
     if ($TestResult.Data -and ($TestResult.Name -eq $TestResult.ExpandedName)) {
         $paramString = Get-NUnit3ParamString -Node $TestResult
