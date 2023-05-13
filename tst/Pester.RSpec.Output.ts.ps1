@@ -34,10 +34,17 @@ function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
         . $ScriptBlock
     }.ToString()
 
-    # using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
-    $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
-    & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand $encodedCommand
+    if ($PSVersionTable.PSVersion -ge '6.2') {
+        # Using base64 because we need to escape quotes in $ScriptBlock and previous method using \" stopped working in PS7.3
+        $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $ScriptBlock }"
+        $encodedCommand = [Convert]::ToBase64String([System.Text.Encoding]::Unicode.GetBytes($cmd))
+        & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -OutputFormat Text -EncodedCommand $encodedCommand
+    }
+    else {
+        # Using -Command because -encodedCommand causes CliXML output in Azure DevOps pipeline etc.
+        $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
+        & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $cmd
+    }
 }
 
 i -PassThru:$PassThru {
