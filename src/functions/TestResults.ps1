@@ -1,18 +1,4 @@
-﻿function Get-HumanTime {
-    param( [TimeSpan] $TimeSpan)
-    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
-        $time = [int]($TimeSpan.TotalMilliseconds)
-        $unit = "ms"
-    }
-    else {
-        $time = [math]::Round($TimeSpan.TotalSeconds, 2)
-        $unit = 's'
-    }
-
-    return "$time$unit"
-}
-
-function GetFullPath ([string]$Path) {
+﻿function GetFullPath ([string]$Path) {
     $Folder = & $SafeCommands['Split-Path'] -Path $Path -Parent
     $File = & $SafeCommands['Split-Path'] -Path $Path -Leaf
 
@@ -32,7 +18,7 @@ function GetFullPath ([string]$Path) {
     return $Path
 }
 
-function Export-PesterResults {
+function Export-PesterResult {
     param (
         $Result,
         [string] $Path,
@@ -301,7 +287,7 @@ function ConvertTo-NUnitReport {
     $stringWriter = $null
     $xmlWriter = $null
     try {
-        $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
+        $stringWriter = & $SafeCommands['New-Object'] IO.StringWriter
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
         switch ($Format) {
@@ -388,7 +374,7 @@ function ConvertTo-JUnitReport {
     $stringWriter = $null
     $xmlWriter = $null
     try {
-        $stringWriter = & $SafeCommands["New-Object"] IO.StringWriter
+        $stringWriter = & $SafeCommands['New-Object'] IO.StringWriter
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
         Write-JUnitReport -XmlWriter $xmlWriter -Result $Result
@@ -439,7 +425,7 @@ function Get-UTCTimeString ([datetime]$DateTime) {
 
 function Get-ErrorForXmlReport ($TestResult) {
     $failureMessage = if (($TestResult.ShouldRun -and -not $TestResult.Executed)) {
-        "This test should run but it did not. Most likely a setup in some parent block failed."
+        'This test should run but it did not. Most likely a setup in some parent block failed.'
     }
     else {
         $multipleErrors = 1 -lt $TestResult.ErrorRecord.Count
@@ -487,8 +473,8 @@ function Get-RunTimeEnvironment {
     }
     elseif ($IsMacOS -or $IsLinux) {
         $osSystemInformation = @{
-            Name    = "Unknown"
-            Version = "0.0.0.0"
+            Name    = 'Unknown'
+            Version = '0.0.0.0'
         }
         try {
             if ($null -ne $SafeCommands['uname']) {
@@ -506,8 +492,8 @@ function Get-RunTimeEnvironment {
     }
     else {
         $osSystemInformation = @{
-            Name    = "Unknown"
-            Version = "0.0.0.0"
+            Name    = 'Unknown'
+            Version = '0.0.0.0'
         }
     }
 
@@ -523,10 +509,6 @@ function Get-RunTimeEnvironment {
         'clr-version'       = [string][System.Environment]::Version
         'framework-version' = [string]$ExecutionContext.SessionState.Module.Version
     }
-}
-
-function Exit-WithCode ($FailedCount) {
-    $host.SetShouldExit($FailedCount)
 }
 
 function Get-TestResultPlugin {

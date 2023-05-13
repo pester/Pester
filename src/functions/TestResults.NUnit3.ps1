@@ -1,4 +1,4 @@
-﻿# https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
+﻿# NUnit3 schema docs: https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
 
 function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
