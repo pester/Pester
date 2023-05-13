@@ -55,8 +55,11 @@ if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
 & "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
 
 $files = @(
+    'Pester.ps1'
     'Pester.psd1'
     'Pester.psm1'
+    'Pester.Format.ps1xml'
+    'PesterConfiguration.Format.ps1xml'
     'bin/net452/Pester.dll'
     'bin/net452/Pester.pdb'
     'bin/netstandard2.0/Pester.dll'
