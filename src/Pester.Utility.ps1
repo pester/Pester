@@ -391,3 +391,14 @@ function IsPSEnumerable($Object) {
     $enumerator = [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Object)
     return $null -ne $enumerator
 }
+
+function Get-StringOptionErrorMessage {
+    param (
+        [Parameter(Mandatory)]
+        [string] $OptionPath,
+        [string[]] $SupportedValues = @(),
+        [string] $Value
+    )
+    $supportedValuesString = Join-Or ($SupportedValues -replace '^|$', "'")
+    return "$OptionPath must be $supportedValuesString, but it was '$Value'. Please review your configuration."
+}

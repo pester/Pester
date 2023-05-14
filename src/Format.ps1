@@ -203,13 +203,22 @@ function Format-Type ([Type]$Value) {
 }
 
 function Join-And ($Items, $Threshold = 2) {
-
     if ($null -eq $items -or $items.count -lt $Threshold) {
         $items -join ', '
     }
     else {
         $c = $items.count
         ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
+    }
+}
+
+function Join-Or ($Items, $Threshold = 2) {
+    if ($null -eq $items -or $items.count -lt $Threshold) {
+        $items -join ', '
+    }
+    else {
+        $c = $items.count
+        ($items[0..($c - 2)] -join ', ') + ' or ' + $items[-1]
     }
 }
 
