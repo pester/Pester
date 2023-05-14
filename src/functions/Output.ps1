@@ -765,7 +765,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $out = $_test.ExpandedPath
         }
         else {
-            throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
+            throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
@@ -1166,6 +1166,7 @@ function Write-BlockToScreen {
 }
 
 # This is not a plugin-step due to Output-features being dependencies in Invoke-PluginStep etc for error/debug
+# Output-options are also used for Write-PesterDebugMessage which is independent of WriteScreenPlugin
 function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
     if ($PesterPreference.Output.Verbosity.Value -notin 'None', 'Normal', 'Detailed', 'Diagnostic') {
         throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"

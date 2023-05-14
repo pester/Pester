@@ -738,7 +738,8 @@ function Invoke-Pester {
             $pluginData = @{}
             $plugins = [System.Collections.Generic.List[object]]@()
 
-            # Processing Output-configuration before any use of Write-PesterStart and Write-PesterDebugMessage
+            # Processing Output-configuration before any use of Write-PesterStart and Write-PesterDebugMessage.
+            # Write-PesterDebugMessage is used regardless of WriteScreenPlugin.
             Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
