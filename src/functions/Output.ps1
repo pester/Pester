@@ -1168,12 +1168,14 @@ function Write-BlockToScreen {
 # This is not a plugin-step due to Output-features being dependencies in Invoke-PluginStep etc for error/debug
 # Output-options are also used for Write-PesterDebugMessage which is independent of WriteScreenPlugin
 function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
-    if ($PesterPreference.Output.Verbosity.Value -notin 'None', 'Normal', 'Detailed', 'Diagnostic') {
-        throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
+    $supportedVerbosity = 'None', 'Normal', 'Detailed', 'Diagnostic'
+    if ($PesterPreference.Output.Verbosity.Value -notin $supportedVerbosity) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.Verbosity' -SupportedValues $supportedVerbosity -Value $PesterPreference.Output.Verbosity.Value)
     }
 
-    if ($PesterPreference.Output.RenderMode.Value -notin 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext') {
-        throw "Unsupported Output.RenderMode option '$($PesterPreference.Output.RenderMode.Value)'"
+    $supportedRenderModes = 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext'
+    if ($PesterPreference.Output.RenderMode.Value -notin $supportedRenderModes) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.RenderMode' -SupportedValues $supportedRenderModes -Value $PesterPreference.Output.RenderMode.Value)
     }
     elseif ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
         if ($null -ne $env:NO_COLOR) {
@@ -1188,8 +1190,9 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         }
     }
 
-    if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
-        throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
+    $supportedCIFormats = 'None', 'Auto', 'AzureDevops', 'GithubActions'
+    if ($PesterPreference.Output.CIFormat.Value -notin $supportedCIFormats) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIFormat' -SupportedValues $supportedCIFormats -Value $PesterPreference.Output.CIFormat.Value)
     }
     elseif ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
         # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
@@ -1208,8 +1211,9 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         }
     }
 
-    if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
-        throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
+    $supportedCILogLevels = 'Error', 'Warning'
+    if ($PesterPreference.Output.CILogLevel.Value -notin $supportedCILogLevels) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
     }
 
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
@@ -1227,7 +1231,8 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         $PesterPreference.Output.StackTraceVerbosity = 'Full'
     }
 
-    if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'None', 'FirstLine', 'Filtered', 'Full') {
-        throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
+    $supportedStackTraceLevels = 'None', 'FirstLine', 'Filtered', 'Full'
+    if ($PesterPreference.Output.StackTraceVerbosity.Value -notin $supportedStackTraceLevels) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.StackTraceVerbosity' -SupportedValues $supportedStackTraceLevels -Value $PesterPreference.Output.StackTraceVerbosity.Value)
     }
 }

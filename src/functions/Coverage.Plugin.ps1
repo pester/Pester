@@ -1,14 +1,13 @@
 ﻿function Get-CoveragePlugin {
+    # Validate configuration
+    Resolve-CodeCoverageConfiguration
+
     $p = @{
         Name = 'Coverage'
     }
 
     $p.Start = {
         param($Context)
-
-        if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin 'JaCoCo', 'CoverageGutters') {
-            throw "CodeCoverage.CoverageFormat must be 'JaCoCo' or 'CoverageGutters', but it was $($PesterPreference.CodeCoverage.OutputFormat.Value), please review your configuration."
-        }
 
         $paths = @(if (0 -lt $PesterPreference.CodeCoverage.Path.Value.Count) {
                 $PesterPreference.CodeCoverage.Path.Value
@@ -214,4 +213,11 @@
     }
 
     New-PluginObject @p
+}
+
+function Resolve-CodeCoverageConfiguration {
+    $supportedFormats = 'JaCoCo', 'CoverageGutters'
+    if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
+    }
 }

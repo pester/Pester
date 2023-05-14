@@ -847,7 +847,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Debug  = @{
                     ShowFullErrors = $false
@@ -862,8 +862,10 @@ i -PassThru:$PassThru {
                 Invoke-Pester -Configuration $c
             }
             catch {
-                $_.Exception.Message -match "Unsupported level of stacktrace output 'Something'" | Verify-True
+                $_.Exception.Message -match "Output.StackTraceVerbosity must be .* it was 'Something'" | Verify-True
+                $failed = $true
             }
+            $failed | Verify-True
         }
     }
 
@@ -1098,7 +1100,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Output = @{
                     CIFormat = "Something"
@@ -1109,8 +1111,10 @@ i -PassThru:$PassThru {
                 Invoke-Pester -Configuration $c
             }
             catch {
-                $_.Exception.Message -match "Unsupported CI format 'Something'" | Verify-True
+                $_.Exception.Message -match "Output.CIFormat must be .* it was 'Something'" | Verify-True
+                $failed = $true
             }
+            $failed | Verify-True
         }
 
         t "Output.CIFormat is None when set" {
@@ -1296,9 +1300,12 @@ i -PassThru:$PassThru {
 
             try {
                 Invoke-Pester -Configuration $c
+                $true | Verify-False # Should not get here
             } catch {
-                $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
+                $_.Exception.Message -match "Output.RenderMode must be .* it was 'Something'" | Verify-True
+                $failed = $true
             }
+            $failed | Verify-True
         }
     }
 
