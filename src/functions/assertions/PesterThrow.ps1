@@ -30,7 +30,7 @@
     It does not throw an error, so the test passes.
     #>
     param (
-        [ScriptBlock] $ActualValue,
+        $ActualValue,
         [string] $ExpectedMessage,
         [string] $ErrorId,
         [type] $ExceptionType,
@@ -45,8 +45,8 @@
     $actualException = $null
     $actualExceptionLine = $null
 
-    if ($null -eq $ActualValue) {
-        throw [ArgumentNullException] "Input is not a ScriptBlock. Input to '-Throw' and '-Not -Throw' must be enclosed in curly braces."
+    if ($null -eq $ActualValue -or $ActualValue -isnot [ScriptBlock]) {
+        throw [ArgumentException] "Input is missing or not a ScriptBlock. Input to '-Throw' and '-Not -Throw' must be enclosed in curly braces."
     }
 
     try {
