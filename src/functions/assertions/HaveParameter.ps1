@@ -1,4 +1,4 @@
-﻿function Should-HaveParameter (
+function Should-HaveParameter (
     $ActualValue,
     [String] $ParameterName,
     $Type,
@@ -24,11 +24,15 @@
         if the attribute does not exist.
     #>
     if ($null -eq $ActualValue -or $ActualValue -isnot [Management.Automation.CommandInfo]) {
-        throw "Input value must be non-null CommandInfo object. You can get one by calling Get-Command."
+        throw [ArgumentException]"Input value must be non-null CommandInfo object. You can get one by calling Get-Command."
+    }
+
+    if ($ActualValue -is [Management.Automation.ApplicationInfo]) {
+        throw [ArgumentException]"Input value can not be an ApplicationInfo object."
     }
 
     if ($null -eq $ParameterName) {
-        throw "The ParameterName can't be empty"
+        throw [ArgumentException]"The ParameterName can't be empty"
     }
 
     #region HelperFunctions
