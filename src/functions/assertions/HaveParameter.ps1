@@ -196,7 +196,7 @@
         $buts += "the parameter is missing"
     }
     elseif ($Negate -and -not $hasKey) {
-        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
+        return [PSCustomObject] @{ Succeeded = $true }
     }
     elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
@@ -314,13 +314,13 @@
         $but = Join-And $buts
         $failureMessage = "Expected command $($ActualValue.Name)$filter,$(Format-Because $Because) but $but."
 
-        return & $SafeCommands['New-Object'] PSObject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
     else {
-        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
+        return [PSCustomObject] @{ Succeeded = $true }
     }
 }
 
