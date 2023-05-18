@@ -1,4 +1,4 @@
-function Should-Throw {
+﻿function Should-Throw {
     <#
     .SYNOPSIS
     Checks if an exception was thrown. Enclose input in a script block.
@@ -92,7 +92,7 @@ function Should-Throw {
 
     $filterOnExceptionType = $null -ne $ExceptionType
     if ($filterOnExceptionType) {
-        $filters += "with type $(Format-Nicely $ExceptionType)"
+        $filters += "type $(Format-Nicely $ExceptionType)"
 
         if ($actualExceptionWasThrown -and $actualException -isnot $ExceptionType) {
             $buts += "the exception type was $(Format-Nicely ($actualException.GetType()))"
@@ -101,7 +101,7 @@ function Should-Throw {
 
     $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
     if ($filterOnMessage) {
-        $filters += "with message $(Format-Nicely $ExpectedMessage)"
+        $filters += "message like $(Format-Nicely $ExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
             $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
         }
@@ -109,20 +109,20 @@ function Should-Throw {
 
     $filterOnId = -not [string]::IsNullOrWhitespace($ErrorId)
     if ($filterOnId) {
-        $filters += "with FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
+        $filters += "FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
             $buts += "the FullyQualifiedErrorId was $(Format-Nicely $actualErrorId)"
         }
     }
 
     if (-not $actualExceptionWasThrown) {
-        $buts += "no exception was thrown"
+        $buts += 'no exception was thrown'
     }
 
     if ($buts.Count -ne 0) {
-        $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
+        $filter = Join-And $filters
         $but = Join-And $buts
-        $failureMessage = "Expected an exception,$filter to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
+        $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
         return [PSCustomObject] @{
             Succeeded      = $false
