@@ -178,6 +178,11 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
         }
 
+        It 'parameter DefaultValue works when command is provided using resolvable alias' {
+            Set-Alias -Name dummyalias -Value Invoke-DummyFunction
+            Get-Command dummyalias | Should -HaveParameter ParamWithScriptValidation -DefaultValue "."
+        }
+
         It "passes if the parameter MandatoryParam has an alias 'First'" {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias First
         }
@@ -270,6 +275,11 @@ InPesterModuleScope {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
+        It 'fails if the parameter DefaultValue is used with a binary cmdlet' {
+            $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValue $False } | Verify-Throw
+            $err.Exception.Message | Verify-Equal 'Using -DefaultValue is only supported for scripts and functions.'
+        }
+
         It "fails if the parameter MandatoryParam has no alias 'Second'" {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second } | Verify-AssertionFailed
         }
@@ -289,6 +299,12 @@ InPesterModuleScope {
             $err.Exception | Verify-Type ([ArgumentException])
             # Verify expected type is included in error message
             $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
+        }
+
+        It "throws ArgumentException when provided ApplicationInfo-object as input value" {
+            $err = { Get-Command 'hostname' | Should -HaveParameter MandatoryParam } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
+            $err.Exception.Message | Verify-Equal 'Input value can not be an ApplicationInfo object.'
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
