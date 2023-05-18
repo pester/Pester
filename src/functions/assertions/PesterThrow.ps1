@@ -1,4 +1,4 @@
-﻿function Should-Throw {
+function Should-Throw {
     <#
     .SYNOPSIS
     Checks if an exception was thrown. Enclose input in a script block.
@@ -86,23 +86,6 @@
 
     # the rest is for Should -Throw, we must fail the assertion when no exception is thrown
     # or when the exception does not match our filter
-
-    function Join-And ($Items, $Threshold = 2) {
-
-        if ($null -eq $items -or $items.count -lt $Threshold) {
-            $items -join ', '
-        }
-        else {
-            $c = $items.count
-            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
-        }
-    }
-
-    function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value) {
-            " $Value"
-        }
-    }
 
     $buts = @()
     $filters = @()
