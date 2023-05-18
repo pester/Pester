@@ -156,6 +156,16 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
+        It 'supports validating parameters and default values in functions without param block' {
+            function simple ($param1, $param2 = '123') { }
+            Get-Command simple | Should -HaveParameter 'param2' -DefaultValue '123'
+        }
+
+        It 'supports validating parameters and default values in scripts' {
+            Set-Content -Path 'TestDrive:\ShouldHaveParameterTestFile.ps1' -Value 'param([int]$RetryCount = 3)'
+            Get-Command 'TestDrive:\ShouldHaveParameterTestFile.ps1' | Should -HaveParameter RetryCount -DefaultValue 3 -Type [int]
+        }
+
         It "passes if the paramblock has opening parenthesis on new line and parameter has a default value" {
             function Test-Paramblock {
                 param
@@ -277,7 +287,7 @@ InPesterModuleScope {
 
         It 'fails if the parameter DefaultValue is used with a binary cmdlet' {
             $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValue $False } | Verify-Throw
-            $err.Exception.Message | Verify-Equal 'Using -DefaultValue is only supported for scripts and functions.'
+            $err.Exception.Message | Verify-Equal 'Using -DefaultValue is only supported for functions and scripts.'
         }
 
         It "fails if the parameter MandatoryParam has no alias 'Second'" {

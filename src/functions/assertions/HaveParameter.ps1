@@ -51,14 +51,20 @@
 
         if ($null -eq $ast) {
             # Ast is unavailable, ex. for a binary cmdlet
-            throw [ArgumentException]'Using -DefaultValue is only supported for scripts and functions.'
+            throw [ArgumentException]'Using -DefaultValue is only supported for functions and scripts.'
         }
 
         if ($null -ne $ast.Parameters) {
+            # Functions without paramblock
             $parameters = $ast.Parameters
         }
         elseif ($null -ne $ast.Body.ParamBlock) {
+            # Functions with paramblock
             $parameters = $ast.Body.ParamBlock.Parameters
+        }
+        elseif ($null -ne $ast.ParamBlock) {
+            # Script paramblock
+            $parameters = $ast.ParamBlock.Parameters
         }
         else {
             return
