@@ -1540,6 +1540,48 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        t "Parameter default values aren't overriden by changes in BeforeDiscovery" {
+            # https://github.com/pester/Pester/issues/2359
+            $sb = {
+                param (
+                    [int] $Value = 123
+                )
+
+                if ($Value -ne 123) {
+                    throw "Expected `$Value to be 123, but it is, '$Value'"
+                }
+
+                # KNOWN ISSUE: Changes to $Value here, outside BeforeDiscovery, would be used as parameter default value in Data.
+                # Can't fix as we don't have a hook beetween script execution and first call to a Pester-function
+
+                BeforeDiscovery {
+                    $Value = 456 # Should not override default value in Data
+                }
+
+                BeforeAll {
+                    if ($Value -ne 123) {
+                        throw "Expected `$Value to be 123 but it is, '$Value'"
+                    }
+                }
+
+                Describe 'd1' {
+                    It 't1' {
+                        if ($Value -ne 123) {
+                            throw "Expected `$Value to be 123 but it is, '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb -Data @{ }
+            $r = Invoke-Pester -Container $container -PassThru
+
+            $r.Containers[0].Data.ContainsKey('Value') | Verify-True
+            $r.Containers[0].Data['Value'] | Verify-Equal 123
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+        }
     }
 
     b "New-PesterContainer" {
