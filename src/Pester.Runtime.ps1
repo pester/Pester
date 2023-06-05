@@ -2428,29 +2428,45 @@ function Invoke-BlockContainer {
 function New-BlockContainerObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
+        [Parameter(Mandatory, ParameterSetName = 'ScriptBlock')]
         [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory, ParameterSetName = "Path")]
+
+        [Parameter(Mandatory, ParameterSetName = 'Path')]
         [String] $Path,
-        [Parameter(Mandatory, ParameterSetName = "File")]
+
+        [Parameter(Mandatory, ParameterSetName = 'File')]
         [System.IO.FileInfo] $File,
+
+        [Parameter(Mandatory, ParameterSetName = 'Container')]
+        [Pester.ContainerInfo] $Container,
+
+        [Parameter(ParameterSetName = 'ScriptBlock')]
+        [Parameter(ParameterSetName = 'Path')]
+        [Parameter(ParameterSetName = 'File')]
         $Data
     )
 
-    # Data is null or IDictionary, but all IDictionary does not work with ContainsKey()
-    # Contains() requires interface-casting for some types, ex. generic dictionary.
-    # Instead we're merging to a controlled data structure to have consistent API internally
-    # Also works as a shallow clone to avoid leaking default parameter values between containers with same Data
-    $ContainerData = @{ }
-    if ($Data -is [System.Collections.IDictionary]) {
-        Merge-Hashtable -Destination $ContainerData -Source $Data
+    if ($PSCmdlet.ParameterSetName -eq 'Container') {
+        # A ContainerInfo-object has already executed this code, so we can safely clone hashtable
+        $ContainerData = $Container.Data.Clone()
+    }
+    else {
+        # Data is null or IDictionary, but all IDictionary does not work with ContainsKey()
+        # Contains() requires interface-casting for some types, ex. generic dictionary.
+        # Instead we're merging to a controlled data structure to have consistent API internally
+        # Also works as a shallow clone to avoid leaking default parameter values between containers with same Data
+        $ContainerData = @{ }
+        if ($Data -is [System.Collections.IDictionary]) {
+            Merge-Hashtable -Destination $ContainerData -Source $Data
+        }
     }
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
-        "ScriptBlock" { "ScriptBlock", $ScriptBlock }
-        "Path" { "File", (& $SafeCommands['Get-Item'] $Path) }
-        "File" { "File", $File }
-        default { throw [System.ArgumentOutOfRangeException]"" }
+        'ScriptBlock' { 'ScriptBlock', $ScriptBlock }
+        'Path' { 'File', (& $SafeCommands['Get-Item'] $Path) }
+        'File' { 'File', $File }
+        'Container' { $Container.Type, $Container.Item }
+        default { throw [System.ArgumentOutOfRangeException]'' }
     }
 
     $c = [Pester.ContainerInfo]::Create()
