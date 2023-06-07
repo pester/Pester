@@ -2702,4 +2702,6 @@ function Add-MissingContainerParameters ($RootBlock, $Container, $CallingFunctio
             }
         }
     }
+
+    $RootBlock.FrameworkData.MissingParametersProcessed = $true
 }
