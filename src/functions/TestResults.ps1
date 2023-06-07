@@ -524,7 +524,7 @@ function Get-TestResultPlugin {
 
         $run = $Context.TestRun
         $testResultConfig = $PesterPreference.TestResult
-        Export-PesterResults -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value
+        Export-PesterResult -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value
     }
 
     New-PluginObject @p
