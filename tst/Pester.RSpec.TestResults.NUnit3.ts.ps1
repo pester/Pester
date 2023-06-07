@@ -52,6 +52,8 @@ function Verify-XmlTime {
     $Actual
 }
 
+$schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
+
 i -PassThru:$PassThru {
 
     b 'Write NUnit3 test results' {
@@ -261,9 +263,9 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
+
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -279,9 +281,8 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -448,9 +449,8 @@ i -PassThru:$PassThru {
             $testCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -487,9 +487,8 @@ i -PassThru:$PassThru {
             $testCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[1].Duration
 
             # verify against schema
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -594,9 +593,8 @@ i -PassThru:$PassThru {
             $testCase2.classname | Verify-Equal 'Describe'
 
             # verify against schema
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -645,9 +643,8 @@ i -PassThru:$PassThru {
             $testCase2.classname | Verify-Equal 'Describe <value>'
 
             # verify against schema
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
@@ -860,9 +857,8 @@ i -PassThru:$PassThru {
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
             # verify against schema
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit3/TestResult.xsd'
             $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate({ throw $args[1].Exception })
         }
     }

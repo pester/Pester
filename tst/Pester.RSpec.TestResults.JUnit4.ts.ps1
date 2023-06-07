@@ -57,6 +57,8 @@ function Get-ScriptBlockName ($ScriptBlock) {
     "<ScriptBlock>$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
 }
 
+$schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/JUnit4/junit_schema_4.xsd'
+
 i -PassThru:$PassThru {
 
     b "Write JUnit test results" {
@@ -285,8 +287,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "junit_schema_4.xsd"
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate( {
                     throw $args[1].Exception
                 })
@@ -305,9 +306,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
 
-            $schemePath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath "junit_schema_4.xsd"
-
-            $xmlResult.Schemas.Add($null, $schemePath) > $null
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
         }
     }

@@ -1171,6 +1171,20 @@ function Write-BlockToScreen {
     Write-PesterHostMessage "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
 }
 
+function Get-HumanTime {
+    param( [TimeSpan] $TimeSpan)
+    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
+        $time = [int]($TimeSpan.TotalMilliseconds)
+        $unit = 'ms'
+    }
+    else {
+        $time = [math]::Round($TimeSpan.TotalSeconds, 2)
+        $unit = 's'
+    }
+
+    return "$time$unit"
+}
+
 # This is not a plugin-step due to Output-features being dependencies in Invoke-PluginStep etc for error/debug
 # Output-options are also used for Write-PesterDebugMessage which is independent of WriteScreenPlugin
 function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
