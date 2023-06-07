@@ -1,6 +1,6 @@
 # Pester
 
-> 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
+> 💵 Please consider sponsoring [nohwnd](https://github.com/sponsors/nohwnd), [fflaten](https://github.com/sponsors/fflaten) or sponsoring [Pester](https://opencollective.com/pester) itself.
 
 > 🌵 Documentation is available at [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start).
 
