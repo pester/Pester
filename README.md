@@ -1,6 +1,6 @@
 # Pester
 
-> 💵 Plase consider sponsoring [nowhnd](https://github.com/sponsors/nohwnd), [frode](https://github.com/sponsors/fflaten) or sponsoring [Pester](https://opencollective.com/pester).
+> 💵 Please consider sponsoring [nohwnd](https://github.com/sponsors/nohwnd), [fflaten](https://github.com/sponsors/fflaten) or sponsoring [Pester](https://opencollective.com/pester) itself.
 
 > 🌵 Documentation is available at [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start).
 
