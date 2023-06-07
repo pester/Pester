@@ -1037,8 +1037,14 @@ function Write-CIErrorToScreen {
 
     $errorMessage = Format-CIErrorMessage @PSBoundParameters
 
+    # Workaround for https://github.com/pester/Pester/issues/2350 until Azure DevOps trims ANSI codes in summary issues
+    $RenderMode = $PesterPreference.Output.RenderMode.Value
+    if ($RenderMode -eq 'Ansi' -and $CIFormat -eq 'AzureDevOps') {
+        $RenderMode = 'ConsoleColor'
+    }
+
     foreach ($line in $errorMessage) {
-        Write-PesterHostMessage $line
+        Write-PesterHostMessage -Object $line -RenderMode $RenderMode
     }
 }
 
