@@ -789,7 +789,8 @@ function Invoke-Pester {
             }
 
             foreach ($c in $PesterPreference.Run.Container.Value) {
-                $containers += $c
+                # Running through New-BlockContainerObject again to avoid modifying original container and it's Data during runtime
+                $containers += (New-BlockContainerObject -Container $c -Data $c.Data)
             }
 
             if ((any $PesterPreference.Run.Path.Value)) {

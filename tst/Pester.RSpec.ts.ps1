@@ -1141,6 +1141,29 @@ i -PassThru:$PassThru {
             $r.Containers[1].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
         }
 
+        t 'Provided container data is not mutated during run' {
+            # https://github.com/pester/Pester/issues/2357
+            # Default values for script parameters used to leak into provided container-object, breaking reruns.
+            $sb = {
+                param ($Value = 1)
+
+                Describe 'd1' {
+                    It 't1' {
+                        if ($Value -ne 1) {
+                            throw "Expected `$Value to be 1 but it is '$Value'"
+                        }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+
+            # Should still be empty (original state) after being used in Invoke-Pester
+            $container.Data.Count | Verify-Equal 0
+        }
+
         t 'Works with different dictionary types as Data' {
             $sb = {
                 param ($Value)

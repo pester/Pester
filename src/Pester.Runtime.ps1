@@ -2438,12 +2438,18 @@ function Invoke-BlockContainer {
 function New-BlockContainerObject {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ParameterSetName = "ScriptBlock")]
+        [Parameter(Mandatory, ParameterSetName = 'ScriptBlock')]
         [ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory, ParameterSetName = "Path")]
+
+        [Parameter(Mandatory, ParameterSetName = 'Path')]
         [String] $Path,
-        [Parameter(Mandatory, ParameterSetName = "File")]
+
+        [Parameter(Mandatory, ParameterSetName = 'File')]
         [System.IO.FileInfo] $File,
+
+        [Parameter(Mandatory, ParameterSetName = 'Container')]
+        [Pester.ContainerInfo] $Container,
+
         $Data
     )
 
@@ -2457,10 +2463,11 @@ function New-BlockContainerObject {
     }
 
     $type, $item = switch ($PSCmdlet.ParameterSetName) {
-        "ScriptBlock" { "ScriptBlock", $ScriptBlock }
-        "Path" { "File", (& $SafeCommands['Get-Item'] $Path) }
-        "File" { "File", $File }
-        default { throw [System.ArgumentOutOfRangeException]"" }
+        'ScriptBlock' { 'ScriptBlock', $ScriptBlock }
+        'Path' { 'File', (& $SafeCommands['Get-Item'] $Path) }
+        'File' { 'File', $File }
+        'Container' { $Container.Type, $Container.Item }
+        default { throw [System.ArgumentOutOfRangeException]'' }
     }
 
     $c = [Pester.ContainerInfo]::Create()
