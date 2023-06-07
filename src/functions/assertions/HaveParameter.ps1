@@ -24,11 +24,15 @@
         if the attribute does not exist.
     #>
     if ($null -eq $ActualValue -or $ActualValue -isnot [Management.Automation.CommandInfo]) {
-        throw "Input value must be non-null CommandInfo object. You can get one by calling Get-Command."
+        throw [ArgumentException]"Input value must be non-null CommandInfo object. You can get one by calling Get-Command."
+    }
+
+    if ($ActualValue -is [Management.Automation.ApplicationInfo]) {
+        throw [ArgumentException]"Input value can not be an ApplicationInfo object."
     }
 
     if ($null -eq $ParameterName) {
-        throw "The ParameterName can't be empty"
+        throw [ArgumentException]"The ParameterName can't be empty"
     }
 
     #region HelperFunctions
@@ -37,50 +41,53 @@
             [Parameter(Mandatory = $true)]
             [Management.Automation.CommandInfo]$Command
         )
-        <#
-        .SYNOPSIS
-            Use AST to get information about the parameter block of a command
-        .DESCRIPTION
-            In order to get information about the parameter block of a command,
-            several tools can be used (Get-Command, AST, etc).
-            In order to get the default value of a parameter, AST is the easiest
-            way to go
-        .NOTES
-            Author: Brian West
-        #>
 
-        # Find parameters
+        # Resolve alias to the actual command so we can access scriptblock
+        if ($Command -is [System.Management.Automation.AliasInfo] -and $Command.ResolvedCommand) {
+            $Command = $Command.ResolvedCommand
+        }
+
         $ast = $Command.ScriptBlock.Ast
 
-        if ($null -ne $ast) {
-            if ($null -ne $ast.Parameters) {
-                $parameters = $ast.Parameters
-            }
-            elseif ($null -ne $ast.Body.ParamBlock) {
-                $parameters = $ast.Body.ParamBlock.Parameters
-            }
-            else {
-                return
+        if ($null -eq $ast) {
+            # Ast is unavailable, ex. for a binary cmdlet
+            throw [ArgumentException]'Using -DefaultValue is only supported for functions and scripts.'
+        }
+
+        if ($null -ne $ast.Parameters) {
+            # Functions without paramblock
+            $parameters = $ast.Parameters
+        }
+        elseif ($null -ne $ast.Body.ParamBlock) {
+            # Functions with paramblock
+            $parameters = $ast.Body.ParamBlock.Parameters
+        }
+        elseif ($null -ne $ast.ParamBlock) {
+            # Script paramblock
+            $parameters = $ast.ParamBlock.Parameters
+        }
+        else {
+            return
+        }
+
+        foreach ($parameter in $parameters) {
+            $paramInfo = [PSCustomObject] @{
+                Name             = $parameter.Name.VariablePath.UserPath
+                Type             = "[$($parameter.StaticType.Name.ToLower())]"
+                DefaultValue     = $null
+                DefaultValueType = $parameter.StaticType.Name
             }
 
-            foreach ($parameter in $parameters) {
-                $paramInfo = & $SafeCommands['New-Object'] PSObject -Property @{
-                    Name             = $parameter.Name.VariablePath.UserPath
-                    DefaultValueType = $parameter.StaticType.Name
-                    Type             = "[$($parameter.StaticType.Name.ToLower())]"
-                } | & $SafeCommands['Select-Object'] Name, Type, DefaultValue, DefaultValueType
-
-                if ($null -ne $parameter.DefaultValue) {
-                    if ($parameter.DefaultValue.PSObject.Properties['Value']) {
-                        $paramInfo.DefaultValue = $parameter.DefaultValue.Value
-                    }
-                    else {
-                        $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
-                    }
+            if ($null -ne $parameter.DefaultValue) {
+                if ($parameter.DefaultValue.PSObject.Properties['Value']) {
+                    $paramInfo.DefaultValue = $parameter.DefaultValue.Value
                 }
-
-                $paramInfo
+                else {
+                    $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
+                }
             }
+
+            $paramInfo
         }
     }
 
@@ -189,7 +196,7 @@
         $buts += "the parameter is missing"
     }
     elseif ($Negate -and -not $hasKey) {
-        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
+        return [PSCustomObject] @{ Succeeded = $true }
     }
     elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
         $buts += "the parameter exists"
@@ -307,13 +314,13 @@
         $but = Join-And $buts
         $failureMessage = "Expected command $($ActualValue.Name)$filter,$(Format-Because $Because) but $but."
 
-        return & $SafeCommands['New-Object'] PSObject -Property @{
+        return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
         }
     }
     else {
-        return & $SafeCommands['New-Object'] PSObject -Property @{ Succeeded = $true }
+        return [PSCustomObject] @{ Succeeded = $true }
     }
 }
 
