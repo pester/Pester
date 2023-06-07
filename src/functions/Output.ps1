@@ -1,4 +1,4 @@
-﻿$script:ReportStrings = DATA {
+$script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
         FilterMessage     = ' matching test name {0}'
@@ -765,19 +765,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $out = $_test.ExpandedPath
         }
         else {
-            throw "Unsupported level out output '$($PesterPreference.Output.Verbosity.Value)'"
-        }
-
-        if ($PesterPreference.Output.StackTraceVerbosity.Value -notin 'None', 'FirstLine', 'Filtered', 'Full') {
-            throw "Unsupported level of stacktrace output '$($PesterPreference.Output.StackTraceVerbosity.Value)'"
-        }
-
-        if ($PesterPreference.Output.CIFormat.Value -notin 'None', 'Auto', 'AzureDevops', 'GithubActions') {
-            throw "Unsupported CI format '$($PesterPreference.Output.CIFormat.Value)'"
-        }
-
-        if ($PesterPreference.Output.CILogLevel.Value -notin 'Error', 'Warning') {
-            throw "Unsupported CI log level '$($PesterPreference.Output.CILogLevel.Value)'"
+            throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
         $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
@@ -1181,4 +1169,76 @@ function Write-BlockToScreen {
 
     $Block.FrameworkData.WrittenToScreen = $true
     Write-PesterHostMessage "${margin}${Text}" -ForegroundColor $ReportTheme.$CommandUsed
+}
+
+# This is not a plugin-step due to Output-features being dependencies in Invoke-PluginStep etc for error/debug
+# Output-options are also used for Write-PesterDebugMessage which is independent of WriteScreenPlugin
+function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
+    $supportedVerbosity = 'None', 'Normal', 'Detailed', 'Diagnostic'
+    if ($PesterPreference.Output.Verbosity.Value -notin $supportedVerbosity) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.Verbosity' -SupportedValues $supportedVerbosity -Value $PesterPreference.Output.Verbosity.Value)
+    }
+
+    $supportedRenderModes = 'Auto', 'Ansi', 'ConsoleColor', 'Plaintext'
+    if ($PesterPreference.Output.RenderMode.Value -notin $supportedRenderModes) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.RenderMode' -SupportedValues $supportedRenderModes -Value $PesterPreference.Output.RenderMode.Value)
+    }
+    elseif ($PesterPreference.Output.RenderMode.Value -eq 'Auto') {
+        if ($null -ne $env:NO_COLOR) {
+            # https://no-color.org/)
+            $PesterPreference.Output.RenderMode = 'Plaintext'
+        }
+        elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+            $PesterPreference.Output.RenderMode = 'Ansi'
+        }
+        else {
+            $PesterPreference.Output.RenderMode = 'ConsoleColor'
+        }
+    }
+
+    $supportedCIFormats = 'None', 'Auto', 'AzureDevops', 'GithubActions'
+    if ($PesterPreference.Output.CIFormat.Value -notin $supportedCIFormats) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIFormat' -SupportedValues $supportedCIFormats -Value $PesterPreference.Output.CIFormat.Value)
+    }
+    elseif ($PesterPreference.Output.CIFormat.Value -eq 'Auto') {
+        # Variable is set to 'True' if the script is being run by a Azure Devops build task. https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+        # Do not fix this to check for boolean value, the value is set to literal string 'True'
+        if ($env:TF_BUILD -eq 'True') {
+            $PesterPreference.Output.CIFormat = 'AzureDevops'
+        }
+        # Variable is set to 'True' if the script is being run by a Github Actions workflow. https://docs.github.com/en/actions/reference/environment-variables#default-environment-variables
+        # Do not fix this to check for boolean value, the value is set to literal string 'True'
+        elseif ($env:GITHUB_ACTIONS -eq 'True') {
+            $PesterPreference.Output.CIFormat = 'GithubActions'
+        }
+
+        else {
+            $PesterPreference.Output.CIFormat = 'None'
+        }
+    }
+
+    $supportedCILogLevels = 'Error', 'Warning'
+    if ($PesterPreference.Output.CILogLevel.Value -notin $supportedCILogLevels) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
+    }
+
+    if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
+        # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
+        $PesterPreference.Debug.WriteDebugMessages = $true
+        $missingCategories = foreach ($category in @('Discovery', 'Skip', 'Mock', 'CodeCoverage')) {
+            if ($PesterPreference.Debug.WriteDebugMessagesFrom.Value -notcontains $category) {
+                $category
+            }
+        }
+        $PesterPreference.Debug.WriteDebugMessagesFrom = $PesterPreference.Debug.WriteDebugMessagesFrom.Value + @($missingCategories)
+    }
+
+    if ($PesterPreference.Debug.ShowFullErrors.Value) {
+        $PesterPreference.Output.StackTraceVerbosity = 'Full'
+    }
+
+    $supportedStackTraceLevels = 'None', 'FirstLine', 'Filtered', 'Full'
+    if ($PesterPreference.Output.StackTraceVerbosity.Value -notin $supportedStackTraceLevels) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.StackTraceVerbosity' -SupportedValues $supportedStackTraceLevels -Value $PesterPreference.Output.StackTraceVerbosity.Value)
+    }
 }

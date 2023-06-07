@@ -1042,3 +1042,29 @@ function Get-GroupResult ($InputObject) {
     }
     return 'Success'
 }
+
+function Get-TestResultPlugin {
+    # Validate configuration
+    Resolve-TestResultConfiguration
+
+    $p = @{
+        Name = 'TestResult'
+    }
+
+    $p.End = {
+        param($Context)
+
+        $run = $Context.TestRun
+        $testResultConfig = $PesterPreference.TestResult
+        Export-PesterResults -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value
+    }
+
+    New-PluginObject @p
+}
+
+function Resolve-TestResultConfiguration {
+    $supportedFormats = 'NUnitXml', 'NUnit2.5', 'NUnit3', 'JUnitXml'
+    if ($PesterPreference.TestResult.OutputFormat.Value -notin $supportedFormats) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'TestResult.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.TestResult.OutputFormat.Value)
+    }
+}

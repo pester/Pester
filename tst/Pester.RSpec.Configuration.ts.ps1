@@ -847,7 +847,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Debug  = @{
                     ShowFullErrors = $false
@@ -858,8 +858,14 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Output.StackTraceVerbosity must be .* it was 'Something'" | Verify-True
+                $failed = $true
+            }
+            $failed | Verify-True
         }
     }
 
@@ -1094,15 +1100,21 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Output = @{
                     CIFormat = "Something"
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI format 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Output.CIFormat must be .* it was 'Something'" | Verify-True
+                $failed = $true
+            }
+            $failed | Verify-True
         }
 
         t "Output.CIFormat is None when set" {
@@ -1288,9 +1300,12 @@ i -PassThru:$PassThru {
 
             try {
                 Invoke-Pester -Configuration $c
+                $true | Verify-False # Should not get here
             } catch {
-                $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
+                $_.Exception.Message -match "Output.RenderMode must be .* it was 'Something'" | Verify-True
+                $failed = $true
             }
+            $failed | Verify-True
         }
     }
 

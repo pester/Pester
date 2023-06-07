@@ -9,16 +9,27 @@ function New-SkippedTestMessage {
     "Skipped due to previous failure at '$($Test.ExpandedPath)' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'"
 }
 
+function Resolve-SkipRemainingOnFailureConfiguration {
+    $supportedValues = 'None', 'Block', 'Container', 'Run'
+    if ($PesterPreference.Run.SkipRemainingOnFailure.Value -notin $supportedValues) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Run.SkipRemainingOnFailure' -SupportedValues $supportedValues -Value $PesterPreference.Run.SkipRemainingOnFailure.Value)
+    }
+}
+
+
 function Get-SkipRemainingOnFailurePlugin {
+    # Validate configuration
+    Resolve-SkipRemainingOnFailureConfiguration
+
+    # Create plugin
     $p = @{
-        Name = "SkipRemainingOnFailure"
+        Name = 'SkipRemainingOnFailure'
     }
 
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.Start = {
-            param ($Context)
-            $Context.Configuration.SkipRemainingOnFailureCount = 0
-        }
+    $p.Start = {
+        param ($Context)
+
+        $Context.Configuration.SkipRemainingOnFailureCount = 0
     }
 
     if ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Block') {

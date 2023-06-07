@@ -1182,6 +1182,17 @@ function Run-Test {
 
         $result
     }
+
+    $steps = $state.Plugin.RunEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step RunEnd -Context @{
+            Blocks                   = $Block
+            Configuration            = $state.PluginConfiguration
+            Data                     = $state.PluginData
+            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
+        } -ThrowOnFailure
+    }
 }
 
 function Invoke-PluginStep {
@@ -1292,12 +1303,12 @@ function Assert-Success {
     $anyFailed = $false
     $err = ""
     foreach ($r in $InvocationResult) {
+        $rc++
         $ec = 0
         if ($null -ne $r.ErrorRecord -and $r.ErrorRecord.Length -gt 0) {
-            $err += "Result $($rc++):"
             $anyFailed = $true
             foreach ($e in $r.ErrorRecord) {
-                $err += "Error $($ec++):"
+                $err += "$([Environment]::NewLine)Result $rc - Error $((++$ec)):"
                 $err += & $SafeCommands["Out-String"] -InputObject $e
                 $err += & $SafeCommands["Out-String"] -InputObject $e.ScriptStackTrace
             }
@@ -1305,8 +1316,7 @@ function Assert-Success {
     }
 
     if ($anyFailed) {
-        $Message = $Message + ":`n$err"
-        Write-PesterHostMessage -ForegroundColor Red $Message
+        $Message = $Message + ":$err"
         throw $Message
     }
 }
