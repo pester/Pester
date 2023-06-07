@@ -1106,9 +1106,9 @@ function Invoke-Pester {
                 $containers += @( $PesterPreference.Run.ScriptBlock.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -ScriptBlock $_ })
             }
 
-            if (any $PesterPreference.Run.Container.Value) {
+            foreach ($c in $PesterPreference.Run.Container.Value) {
                 # Running through New-BlockContainerObject again to avoid modifying original container and it's Data during runtime
-                $containers += @($PesterPreference.Run.Container.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -Container $_ -Data $_.Data })
+                $containers += (New-BlockContainerObject -Container $c -Data $c.Data)
             }
 
             if ((any $PesterPreference.Run.Path.Value)) {
