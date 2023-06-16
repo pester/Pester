@@ -90,6 +90,7 @@
         # [Switch] $Focus,
         [Switch] $Skip,
 
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
         $ForEach
     )
 
