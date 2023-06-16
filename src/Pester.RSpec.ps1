@@ -300,7 +300,7 @@ function New-PesterConfiguration {
       TestExtension: Filter used to identify test files.
       Default value: '.Tests.ps1'
 
-      Exit: Exit with non-zero exit code when the test run fails. When used together with Throw, throwing an exception is preferred.
+      Exit: Exit with non-zero exit code when the test run fails. Exit code is always set to `$LASTEXITCODE` even when this option is `$false`. When used together with Throw, throwing an exception is preferred.
       Default value: $false
 
       Throw: Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.
