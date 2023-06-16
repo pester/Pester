@@ -128,6 +128,7 @@
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
 
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
         [Alias("TestCases")]
         [object[]] $ForEach,
 
