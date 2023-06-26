@@ -120,14 +120,7 @@ function Should {
     }
 
     process {
-        # If array was provided using -ActualValue @(1,2,3), unroll like pipeline for consistent behaviour
-        if (-not $PSCmdlet.MyInvocation.ExpectingInput -and (IsPSEnumerable -Object $ActualValue)) {
-            foreach ($object in $ActualValue) {
-                $inputArray.Add($object)
-            }
-        } else {
-            $inputArray.Add($ActualValue)
-        }
+        $inputArray.Add($ActualValue)
     }
 
     end {
