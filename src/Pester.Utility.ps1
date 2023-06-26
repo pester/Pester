@@ -385,13 +385,6 @@ function Fold-Run {
     }
 }
 
-function IsPSEnumerable($Object) {
-    # https://github.com/pester/Pester/issues/1200#issuecomment-493043683
-    # PowerShell doesn't consider all IEnumerable an enumerable, ex. string is excluded.
-    $enumerator = [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Object)
-    return $null -ne $enumerator
-}
-
 function Get-StringOptionErrorMessage {
     param (
         [Parameter(Mandatory)]
