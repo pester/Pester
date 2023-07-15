@@ -42,23 +42,16 @@ function Write-JUnitTestSuiteElements {
 
     $XmlWriter.WriteStartElement('testsuite')
 
-    if ('File' -eq $Container.Type) {
-        $path = $Container.Item.FullName
-    }
-    elseif ('ScriptBlock' -eq $Container.Type) {
-        $path = "<ScriptBlock>$($Container.Item.File):$($Container.Item.StartPosition.StartLine)"
-    }
-    else {
-        throw "Container type '$($Container.Type)' is not supported."
+    if ($container.Type -notin 'File', 'ScriptBlock') {
+        throw "Container type '$($container.Type)' is not supported."
     }
 
-    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $path -Id $Id
-
+    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $container.Name -Id $Id
 
     $testResults = [Pester.Factory]::CreateCollection()
     Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
     foreach ($t in $testResults) {
-        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $path
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $container.Name
     }
 
     $XmlWriter.WriteEndElement()

@@ -386,19 +386,13 @@ function Write-PesterReport {
 
     if (0 -lt $RunResult.FailedContainersCount) {
         $cs = foreach ($container in $RunResult.FailedContainers) {
-            $path = if ("File" -eq $container.Type) {
-                $container.Item.FullName
-            }
-            elseif ("ScriptBlock" -eq $container.Type) {
-                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
-            }
-            else {
+            if ($container.Type -notin 'File', 'ScriptBlock') {
                 throw "Container type '$($container.Type)' is not supported."
             }
 
-            "  - $path"
+            "  - $($container.Name)"
         }
-        Write-PesterHostMessage ("Container failed: {0}" -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ('Container failed: {0}' -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
         Write-PesterHostMessage ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
@@ -553,7 +547,7 @@ function ConvertTo-FailureLines {
             if ($true) {
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
-                $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
+                $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands['Split-Path']))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
                 [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
@@ -619,18 +613,12 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.ContainerDiscoveryEnd = {
         param ($Context)
 
-        if ("Failed" -eq $Context.Block.Result) {
-            $path = if ("File" -eq $container.Type) {
-                $container.Item.FullName
-            }
-            elseif ("ScriptBlock" -eq $container.Type) {
-                "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
-            }
-            else {
-                throw "Container type '$($container.Type)' is not supported."
+        if ('Failed' -eq $Context.Block.Result) {
+            if ($Context.BlockContainer.Type -notin 'File', 'ScriptBlock') {
+                throw "Context.BlockContainer type '$($Context.BlockContainer.Type)' is not supported."
             }
 
-            $errorHeader = "[-] Discovery in $($path) failed with:"
+            $errorHeader = "[-] Discovery in $($Context.BlockContainer) failed with:"
 
             $formatErrorParams = @{
                 Err                 = $Context.Block.ErrorRecord

@@ -230,21 +230,12 @@ function Get-NUnit3TestSuiteInfo {
     }
 
     if ($TestSuite -is [Pester.Container]) {
-        switch ($TestSuite.Type) {
-            'File' {
-                $name = $TestSuite.Item.Name
-                $fullname = $TestSuite.Item.FullName
-                break
-            }
-            'ScriptBlock' {
-                $name = $TestSuite.Item.Id.Guid
-                $fullname = "<ScriptBlock>$($TestSuite.Item.File):$($TestSuite.Item.StartPosition.StartLine)"
-                break
-            }
-            default {
-                throw "Container type '$($TestSuite.Type)' is not supported."
-            }
+        $name = switch ($TestSuite.Type) {
+            'File' { $TestSuite.Item.Name; break }
+            'ScriptBlock' { $TestSuite.Item.Id.Guid; break }
+            default { throw "Container type '$($TestSuite.Type)' is not supported." }
         }
+        $fullname = $TestSuite.Name
         $classname = ''
     }
     else {

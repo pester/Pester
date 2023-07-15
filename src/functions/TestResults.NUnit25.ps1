@@ -53,16 +53,10 @@ function Write-NUnitTestResultChildNodes {
             continue
         }
 
-        if ('File' -eq $container.Type) {
-            $path = $container.Item.FullName
-        }
-        elseif ('ScriptBlock' -eq $container.Type) {
-            $path = "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
-        }
-        else {
+        if ($container.Type -notin 'File', 'ScriptBlock') {
             throw "Container type '$($container.Type)' is not supported."
         }
-        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path
+        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $container.Name
     }
 
     $XmlWriter.WriteEndElement()
