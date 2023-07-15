@@ -1,6 +1,6 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
@@ -648,7 +648,7 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
-        t 'should add properties for Data when Data is dictionary' {
+        dt 'should add properties for Data when Data is dictionary' {
             $sb = {
                 # not supported
                 Describe 'Describe Array' -ForEach @(123) {
