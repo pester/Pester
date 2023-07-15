@@ -20,3 +20,28 @@
 
     & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $cmd
 }
+
+function Verify-PathEqual {
+    [CmdletBinding()]
+    param (
+        [Parameter(ValueFromPipeline = $true)]
+        $Actual,
+        [Parameter(Mandatory = $true, Position = 0)]
+        $Expected
+    )
+
+    if ([string]::IsNullOrEmpty($Expected)) {
+        throw 'Expected is null or empty.'
+    }
+
+    if ([string]::IsNullOrEmpty($Actual)) {
+        throw 'Actual is null or empty.'
+    }
+
+    $e = ($expected -replace '\\', '/').Trim('/')
+    $a = ($actual -replace '\\', '/').Trim('/')
+
+    if ($e -ne $a) {
+        throw "Expected path '$e' to be equal to '$a'."
+    }
+}
