@@ -611,7 +611,7 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
-        dt 'should add properties for Data when Data is dictionary' {
+        t 'should add properties for Data when Data is dictionary' {
             $sb = {
                 # not supported
                 Describe 'Describe Array' -ForEach @(123) {
