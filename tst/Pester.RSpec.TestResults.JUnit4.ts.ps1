@@ -54,7 +54,7 @@ function Verify-XmlTime {
 }
 
 function Get-ScriptBlockName ($ScriptBlock) {
-    "<ScriptBlock>$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
+    "<ScriptBlock>:$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
 }
 
 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/JUnit4/junit_schema_4.xsd'

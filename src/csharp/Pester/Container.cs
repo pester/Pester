@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
@@ -47,6 +46,7 @@ namespace Pester
             };
         }
 
+        public string Name { get => ToStringConverter.ContainerItemToString(Type, Item); }
         public string Type { get; set; }
         public object Item { get; set; }
         public object Data { get; set; }
