@@ -6,10 +6,10 @@ Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
-
 
 function Invoke-Pester4 ($Arguments) {
     $sb = {
@@ -21,34 +21,6 @@ function Invoke-Pester4 ($Arguments) {
 
     Start-Job -ScriptBlock $sb -ArgumentList $Arguments | Wait-Job | Receive-Job
 }
-
-function Verify-Property {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [String] $PropertyName,
-        [Parameter(Position = 1)]
-        $Value
-    )
-
-    if ($null -eq $PropertyName) {
-        throw 'PropertyName value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw 'Actual value is $null.'
-    }
-
-    if (-not $Actual.PSObject.Properties.Item($PropertyName)) {
-        throw "Expected object to have property $PropertyName!"
-    }
-
-    if ($null -ne $Value -and $Value -ne $Actual.$PropertyName) {
-        throw "Expected property $PropertyName to have value '$Value', but it was '$($Actual.$PropertyName)'!"
-    }
-}
-
 
 i -PassThru:$PassThru {
 
