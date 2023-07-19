@@ -27,13 +27,19 @@
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected like wildcard $(Format-Nicely $ExpectedValue) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
-            }
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = Format-Nicely $ExpectedValue
+                BecauseValue   = $Because
+              }
         }
         else {
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected like wildcard $(Format-Nicely $ExpectedValue) to match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
-            }
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = Format-Nicely $ExpectedValue
+                BecauseValue   = $Because
+              }
         }
     }
 

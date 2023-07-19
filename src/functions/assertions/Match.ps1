@@ -43,6 +43,9 @@
     return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = Format-Nicely $RegularExpression
+        BecauseValue   = $Because
     }
 }
 

@@ -38,6 +38,8 @@ function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
     return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = Format-Nicely $ExpectedValue
     }
 }
 
@@ -111,6 +113,8 @@ function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
     return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = Format-Nicely $ExpectedValue
     }
 }
 

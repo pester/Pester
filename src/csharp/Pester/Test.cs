@@ -36,6 +36,9 @@ namespace Pester
         public string ExpandedPath { get; set; }
 
         public string Result { get; set; }
+        public string ExpectedValue { get; set; }
+        public string ActualValue { get; set; }
+        public string BecauseValue { get; set; }
         public List<object> ErrorRecord { get; set; }
         public object StandardOutput { get; set; }
         public TimeSpan Duration { get => UserDuration + FrameworkDuration; }

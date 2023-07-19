@@ -61,6 +61,9 @@ function Should-BeNullOrEmpty($ActualValue, [switch] $Negate, [string] $Because)
     return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = if ($Negate) { '$null or empty' } else { 'a value' }
+        BecauseValue   = $Because
     }
 }
 

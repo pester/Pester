@@ -32,6 +32,9 @@
     return [PSCustomObject] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = if ($Negate) { 'not exist' } else { 'exist' }
+        BecauseValue   = $Because
     }
 }
 

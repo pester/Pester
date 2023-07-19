@@ -19,12 +19,18 @@
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to not contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = Format-Nicely $ExpectedValue
+                BecauseValue   = $Because
             }
         }
         else {
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = Format-Nicely $ExpectedValue
+                BecauseValue   = $Because
             }
         }
     }

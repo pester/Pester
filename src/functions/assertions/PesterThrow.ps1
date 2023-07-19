@@ -127,6 +127,9 @@
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ActualValue    = Format-Nicely $actualExceptionMessage
+            ExpectedValue  = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { "any exception" }
+            BecauseValue   = $Because
         }
     }
 

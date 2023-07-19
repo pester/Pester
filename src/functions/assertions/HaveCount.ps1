@@ -43,6 +43,9 @@
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = if ($expectingEmpty) { "a non-empty collection" } else { "a collection with size different from $(Format-Nicely $ExpectedValue)" }
+                BecauseValue   = $Because
             }
         }
         else {
@@ -61,6 +64,9 @@
             return [PSCustomObject] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
+                ActualValue    = Format-Nicely $ActualValue
+                ExpectedValue  = if ($expectingEmpty) { "an empty collection" } else { "a collection with size $(Format-Nicely $ExpectedValue)" }
+                BecauseValue   = $Because
             }
         }
     }

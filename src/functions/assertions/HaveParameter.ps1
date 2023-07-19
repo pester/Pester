@@ -317,6 +317,9 @@
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ActualValue    = Format-Nicely $ActualValue
+            ExpectedValue  = "Parameter $($ActualValue.Name)$filter"
+            BecauseValue   = $Because
         }
     }
     else {

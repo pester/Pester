@@ -34,12 +34,12 @@ namespace Pester
             return new List<object>();
         }
 
-        public static ErrorRecord CreateShouldErrorRecord(string message, string file, string line, string lineText, bool terminating)
+        public static ErrorRecord CreateShouldErrorRecord(string message, string file, string line, string lineText, bool terminating, string expectedValue = null, string actualValue = null, string becauseValue = null)
         {
-            return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating);
+            return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating, expectedValue, actualValue);
         }
 
-        public static ErrorRecord CreateErrorRecord(string errorId, string message, string file, string line, string lineText, bool terminating)
+        public static ErrorRecord CreateErrorRecord(string errorId, string message, string file, string line, string lineText, bool terminating, string expectedValue = null, string actualValue = null, string becauseValue = null)
         {
             var exception = new Exception(message);
             // we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
@@ -50,6 +50,9 @@ namespace Pester
                 ["Line"] = line,
                 ["LineText"] = lineText,
                 ["Terminating"] = terminating,
+                ["ExpectedValue"] = expectedValue,
+                ["ActualValue"] = actualValue,
+                ["BecauseValue"] = becauseValue,
             };
             return new ErrorRecord(exception, errorId, ErrorCategory.InvalidResult, targetObject);
         }

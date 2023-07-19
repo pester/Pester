@@ -28,6 +28,9 @@
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ActualValue    = Format-Nicely $ActualValue
+            ExpectedValue  = $true
+            BecauseValue   = $Because
         }
     }
 
@@ -66,6 +69,8 @@ function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ActualValue    = Format-Nicely $ActualValue
+            ExpectedValue  = $false
         }
     }
 

@@ -63,6 +63,9 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
     return [PSCustomObject] @{
         Succeeded      = $succeded
         FailureMessage = $failureMessage
+        ActualValue    = Format-Nicely $ActualValue
+        ExpectedValue  = if ($Negate) { "not $(Format-Nicely $ExpectedType) or any of its subtypes" } else { "a $(Format-Nicely $ExpectedType) or any of its subtypes" }
+        BecauseValue   = $Because
     }
 }
 

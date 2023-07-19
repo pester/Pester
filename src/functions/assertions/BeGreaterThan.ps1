@@ -17,6 +17,9 @@
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be greater than $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ActualValue    = Format-Nicely $ActualValue
+            ExpectedValue  = Format-Nicely $ExpectedValue
+            BecauseValue  = $Because
         }
     }
 
@@ -50,6 +53,9 @@ function Should-BeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [s
         return [PSCustomObject] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be less than or equal to $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ActualValue          = Format-Nicely $ActualValue
+            ExpectedValue        = Format-Nicely $ExpectedValue
+            BecauseValue         = $Because
         }
     }
 
