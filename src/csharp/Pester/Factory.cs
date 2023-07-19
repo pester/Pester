@@ -36,7 +36,7 @@ namespace Pester
 
         public static ErrorRecord CreateShouldErrorRecord(string message, string file, string line, string lineText, bool terminating, string expectedValue = null, string actualValue = null, string becauseValue = null)
         {
-            return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating, expectedValue, actualValue);
+            return CreateErrorRecord("PesterAssertionFailed", message, file, line, lineText, terminating, expectedValue, actualValue, becauseValue);
         }
 
         public static ErrorRecord CreateErrorRecord(string errorId, string message, string file, string line, string lineText, bool terminating, string expectedValue = null, string actualValue = null, string becauseValue = null)
