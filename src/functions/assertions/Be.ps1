@@ -40,6 +40,7 @@ function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
         FailureMessage = $failureMessage
         ActualValue    = Format-Nicely $ActualValue
         ExpectedValue  = Format-Nicely $ExpectedValue
+        BecauseValue   = $Because
     }
 }
 
