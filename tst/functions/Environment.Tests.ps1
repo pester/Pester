@@ -98,15 +98,15 @@ InModuleScope -ModuleName Pester {
                 Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1 -Scope It
             }
         }
-        Context "FreeBSD with PowerShell 6 and higher" {
-            It "Returns 'OSX' when `$IsFreeBSD is `$true and powershell version is 6 or higher" {
+        Context "FreeBSD with PowerShell 7 and higher" {
+            It "Returns 'FreeBSD' when `$IsFreeBSD is `$true and powershell version is 7 or higher" {
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $true }
-                Mock GetPesterPsVersion { 6 }
+                Mock GetPesterPsVersion { 7 }
 
-                GetPesterOs | Should -Be 'macOS'
+                GetPesterOs | Should -Be 'FreeBSD'
             }
 
             It "Uses Get-Variable to retrieve IsFreeBSD" {
