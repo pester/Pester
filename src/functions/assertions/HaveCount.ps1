@@ -41,14 +41,14 @@
                 "but got an empty collection."
             }
 
-            $ExpectedValue = if ($expectingEmpty) { 'a non-empty collection' } else { "a collection with size different from $(Format-Nicely $ExpectedValue)" }
+            $ExpectedResult = if ($expectingEmpty) { 'a non-empty collection' } else { "a collection with size different from $(Format-Nicely $ExpectedValue)" }
 
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
                 ExpectResult   = @{
                     Actual   = Format-Nicely $ActualValue
-                    Expected = Format-Nicely $ExpectedValue
+                    Expected = Format-Nicely $ExpectedResult
                     Because  = $Because
                 }
             }
@@ -67,14 +67,14 @@
                 "but got an empty collection."
             }
 
-            $ExpectedValue = if ($expectingEmpty) { "an empty collection" } else { "a collection with size $(Format-Nicely $ExpectedValue)" }
+            $ExpectedResult = if ($expectingEmpty) { "an empty collection" } else { "a collection with size $(Format-Nicely $ExpectedValue)" }
 
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "$expect,$(Format-Because $Because) $but"
                 ExpectResult   = @{
                     Actual   = Format-Nicely $ActualValue
-                    Expected = Format-Nicely $ExpectedValue
+                    Expected = Format-Nicely $ExpectedResult
                     Because  = $Because
                 }
             }
