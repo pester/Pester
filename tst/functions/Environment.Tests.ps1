@@ -38,6 +38,7 @@ InModuleScope -ModuleName Pester {
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $true }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $false }
                 Mock GetPesterPsVersion { 6 }
 
                 GetPesterOs | Should -Be 'Windows'
@@ -62,6 +63,7 @@ InModuleScope -ModuleName Pester {
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $true }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $false }
                 Mock GetPesterPsVersion { 6 }
 
                 GetPesterOs | Should -Be 'Linux'
@@ -82,6 +84,7 @@ InModuleScope -ModuleName Pester {
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
                 Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $true }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $false }
                 Mock GetPesterPsVersion { 6 }
 
                 GetPesterOs | Should -Be 'macOS'
@@ -93,6 +96,25 @@ InModuleScope -ModuleName Pester {
                 $null = GetPesterOs
 
                 Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1 -Scope It
+            }
+        }
+        Context "FreeBSD with PowerShell 6 and higher" {
+            It "Returns 'OSX' when `$IsFreeBSD is `$true and powershell version is 6 or higher" {
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $true }
+                Mock GetPesterPsVersion { 6 }
+
+                GetPesterOs | Should -Be 'macOS'
+            }
+
+            It "Uses Get-Variable to retrieve IsFreeBSD" {
+                Mock Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -MockWith { $true }
+
+                $null = GetPesterOs
+
+                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsFreeBSD' -and $ValueOnly } -Exactly 1 -Scope It
             }
         }
     }
@@ -117,6 +139,13 @@ InModuleScope -ModuleName Pester {
         It "returns '/tmp' directory for Linux" -Skip:((GetPesterOs) -ne 'Linux') {
             Mock 'GetPesterOs' {
                 'Linux'
+            }
+            Get-TempDirectory | Should -Be '/tmp'
+        }
+
+        It "returns '/tmp' directory for FreeBSD" -Skip:((GetPesterOs) -ne 'FreeBSD') {
+            Mock 'GetPesterOs' {
+                'FreeBSD'
             }
             Get-TempDirectory | Should -Be '/tmp'
         }

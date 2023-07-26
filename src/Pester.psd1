@@ -104,7 +104,7 @@
             Category     = "Scripting Techniques"
 
             # Keyword tags to help users find this module via navigations and search.
-            Tags         = @('powershell', 'unit_testing', 'bdd', 'tdd', 'mocking', 'PSEdition_Core', 'PSEdition_Desktop', 'Windows', 'Linux', 'MacOS')
+            Tags         = @('powershell', 'unit_testing', 'bdd', 'tdd', 'mocking', 'PSEdition_Core', 'PSEdition_Desktop', 'Windows', 'Linux', 'MacOS', 'FreeBSD')
 
             # The web address of an icon which can be used in galleries to represent this module
             IconUri      = 'https://raw.githubusercontent.com/pester/Pester/main/images/pester.PNG'
