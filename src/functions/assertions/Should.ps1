@@ -258,7 +258,7 @@ function Invoke-Assertion {
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
     if (-not $testResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult.ExpectedValue, $testResult.ActualValue, $testResult.BecauseValue)
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult.ShouldResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately

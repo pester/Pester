@@ -25,16 +25,19 @@
 
     if (-not $ActualValue) {
         $failureMessage = "Expected `$true,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
-        return [PSCustomObject] @{
+        $ExpectedValue = $true
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
-            ActualValue    = Format-Nicely $ActualValue
-            ExpectedValue  = $true
-            BecauseValue   = $Because
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
@@ -66,15 +69,19 @@ function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
 
     if ($ActualValue) {
         $failureMessage = "Expected `$false,$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
-        return [PSCustomObject] @{
+        $ExpectedValue = $false
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
-            ActualValue    = Format-Nicely $ActualValue
-            ExpectedValue  = $false
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }

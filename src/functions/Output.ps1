@@ -287,10 +287,6 @@ function ConvertTo-PesterResult {
                 }
             }
         }
-
-        $testResult.ExpectedValue = $details.ExpectedValue
-        $testResult.ActualValue = $details.ActualValue
-        $testResult.BecauseValue = $details.BecauseValue
     }
     else {
         $failureMessage = $ErrorRecord.ToString()

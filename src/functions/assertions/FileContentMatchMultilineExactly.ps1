@@ -60,12 +60,16 @@
         }
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = $ExpectedContent
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
-        ActualValue    = Format-Nicely $ActualValue
-        ExpectedValue  = Format-Nicely $ExpectedContent
-        BecauseValue   = $Because
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 

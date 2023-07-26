@@ -60,12 +60,16 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
         }
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = if ($Negate) { "not $(Format-Nicely $ExpectedType) or any of its subtypes" } else { "a $(Format-Nicely $ExpectedType) or any of its subtypes" }
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeded
         FailureMessage = $failureMessage
-        ActualValue    = Format-Nicely $ActualValue
-        ExpectedValue  = if ($Negate) { "not $(Format-Nicely $ExpectedType) or any of its subtypes" } else { "a $(Format-Nicely $ExpectedType) or any of its subtypes" }
-        BecauseValue   = $Because
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 

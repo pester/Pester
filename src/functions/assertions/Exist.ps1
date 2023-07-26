@@ -29,12 +29,14 @@
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
-        ActualValue    = Format-Nicely $ActualValue
-        ExpectedValue  = if ($Negate) { 'not exist' } else { 'exist' }
-        BecauseValue   = $Because
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = if ($Negate) { 'not exist' } else { 'exist' }
+            Because  = $Because
+        }
     }
 }
 

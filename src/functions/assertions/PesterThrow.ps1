@@ -72,13 +72,13 @@
         $succeeded = -not $actualExceptionWasThrown
         if (-not $succeeded) {
             $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $succeeded
                 FailureMessage = $failureMessage
             }
         }
         else {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded = $true
             }
         }
@@ -124,16 +124,21 @@
         $but = Join-And $buts
         $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
-        return [PSCustomObject] @{
+    $ActualValue = $actualExceptionMessage
+    $ExpectedValue = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { 'any exception' }
+
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
-            ActualValue    = Format-Nicely $actualExceptionMessage
-            ExpectedValue  = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { "any exception" }
-            BecauseValue   = $Because
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    $result = [PSCustomObject] @{
+    $result = [Pester.ShouldResult] @{
         Succeeded = $true
     }
 

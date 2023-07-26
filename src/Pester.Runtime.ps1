@@ -693,9 +693,6 @@ function Invoke-TestItem {
                     $Test.Passed = $result.Success
                 }
 
-                $Test.ExpectedValue = $result.ErrorRecord.TargetObject.ExpectedValue
-                $Test.ActualValue = $result.ErrorRecord.TargetObject.ActualValue
-                $Test.BecauseValue = $result.ErrorRecord.TargetObject.BecauseValue
                 $Test.StandardOutput = $result.StandardOutput
                 $Test.ErrorRecord.AddRange($result.ErrorRecord)
             }
