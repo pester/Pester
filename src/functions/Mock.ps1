@@ -349,7 +349,6 @@ function Should-InvokeVerifiableInternal {
 
     return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null #TODO Pester 6: This should be ommitted for consistency but someone may have a strict check for null that may fail on the absence of this property.
     }
 }
 
@@ -529,7 +528,6 @@ function Should-InvokeInternal {
 
     return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null #TODO Pester 6: This should be ommitted for consistency but someone may have a strict check for null that may fail on the absence of this property.
     }
 }
 
