@@ -22,7 +22,7 @@
                 Expected = Format-Nicely $ExpectedValue
                 Because  = $Because
             }
-          }
+        }
     }
 
     return [Pester.ShouldResult] @{

@@ -70,17 +70,12 @@
         # this is for Should -Not -Throw. Once *any* exception was thrown we should fail the assertion
         # there is no point in filtering the exception, because there should be none
         $succeeded = -not $actualExceptionWasThrown
-        if (-not $succeeded) {
-            $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
-            return [Pester.ShouldResult] @{
-                Succeeded      = $succeeded
-                FailureMessage = $failureMessage
-            }
-        }
-        else {
-            return [Pester.ShouldResult] @{
-                Succeeded = $true
-            }
+        if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+        $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
+        return [Pester.ShouldResult] @{
+            Succeeded      = $succeeded
+            FailureMessage = $failureMessage
         }
     }
 
@@ -124,8 +119,8 @@
         $but = Join-And $buts
         $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
-    $ActualValue = $actualExceptionMessage
-    $ExpectedValue = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { 'any exception' }
+        $ActualValue = $actualExceptionMessage
+        $ExpectedValue = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { 'any exception' }
 
         return [Pester.ShouldResult] @{
             Succeeded      = $false
