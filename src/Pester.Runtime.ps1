@@ -64,24 +64,30 @@ function Get-StackTraceLanguage {
         At   = "at"
         Line = "line"
     }
-    try {
-        if ($PSVersionTable.PSVersion.Major -gt 5) {
-            $StackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
+    #Prior to version 5 there are no ressources in the Assembly available (System.Management.Automation)
+    if ($PSVersionTable.PSVersion.Major -ge 5) {
+        try {
+            if ($PSVersionTable.PSVersion.Major -gt 5) {
+                $StackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
+            }
+            else {
+                $StackTraceRessourceName = 'DebuggerStrings'
+            }
+            $r = [System.Resources.ResourceManager]::new($StackTraceRessourceName, [System.Reflection.Assembly]::GetAssembly([System.Management.Automation.Breakpoint]))
+            $result = $r.GetString('StackTraceFormat') -match '^(?<At>.*) \{0\}, \{1\}: (?<Line>.*) \{2\}$'
+            if (!($result)) {
+                #write-warning "StackTraceFormat in a unknown format"
+            }
+            else {
+                $StacktraceLanguage.At = $Matches["At"]
+                $StacktraceLanguage.Line = $Matches["Line"]
+            }
         }
-        else {
-            $StackTraceRessourceName = 'DebuggerStrings'
+        catch {
+            #write-warning  "No StackTraceAssembly found setting english as default StackTraceLanguage"
         }
-        $r = [System.Resources.ResourceManager]::new($StackTraceRessourceName, [System.Reflection.Assembly]::GetAssembly([System.Management.Automation.Breakpoint]))
-        $result = $r.GetString('StackTraceFormat') -match '^(?<At>.*) \{0\}, \{1\}: (?<Line>.*) \{2\}$'
-        if (!($result)) {
-            throw ""
-        }
-        $StacktraceLanguage.At = $Matches["At"]
-        $StacktraceLanguage.Line = $Matches["Line"]
     }
-    catch {
-        write-warning  "No StackTraceAssembly found setting english as default StackTraceLanguage"
-    }
+
     Return $StacktraceLanguage
 }
 #defining script variable
