@@ -153,7 +153,7 @@ function Get-DoValuesMatch($ActualValue, $ExpectedValue) {
 function Get-ExceptionLineInfo($info) {
     # $info.PositionMessage has a leading blank line that we need to account for in PowerShell 2.0
     $positionMessage = $info.PositionMessage -split '\r?\n' -match '\S' -join [System.Environment]::NewLine
-    return ($positionMessage -replace "^At ", "from ")
+    return ($positionMessage -replace "^$($script:StackTraceLanguage.At) ", "from ")
 }
 
 function ShouldThrowFailureMessage {

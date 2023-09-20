@@ -58,6 +58,34 @@ $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
 $script:ScriptBlockSessionStateInternalProperty = [System.Management.Automation.ScriptBlock].GetProperty('SessionStateInternal', $flags)
 $script:ScriptBlockSessionStateProperty = [System.Management.Automation.ScriptBlock].GetProperty("SessionState", $flags)
+# function for extracting StacktraceSystemLanguage
+function Get-StackTraceLanguage {
+    $StacktraceLanguage = [PSCustomObject]@{
+        At   = "at"
+        Line = "line"
+    }
+    try {
+        if ($PSVersionTable.PSVersion.Major -gt 5) {
+            $StackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
+        }
+        else {
+            $StackTraceRessourceName = 'DebuggerStrings'
+        }
+        $r = [System.Resources.ResourceManager]::new($StackTraceRessourceName, [System.Reflection.Assembly]::GetAssembly([System.Management.Automation.Breakpoint]))
+        $result = $r.GetString('StackTraceFormat') -match '^(?<At>.*) \{0\}, \{1\}: (?<Line>.*) \{2\}$'
+        if (!($result)) {
+            throw ""
+        }
+        $StacktraceLanguage.At = $Matches["At"]
+        $StacktraceLanguage.Line = $Matches["Line"]
+    }
+    catch {
+        write-warning  "No StackTraceAssembly found setting english as default StackTraceLanguage"
+    }
+    Return $StacktraceLanguage
+}
+#defining script variable
+$script:StackTraceLanguage = Get-StackTraceLanguage
 
 if (notDefined PesterPreference) {
     $PesterPreference = [PesterConfiguration]::Default
