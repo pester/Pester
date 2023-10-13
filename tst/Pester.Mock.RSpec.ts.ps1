@@ -1148,7 +1148,7 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Should invoke parameter filter works when exexuted in a different module than the mock" {
+    b "Should invoke parameter filter works when executed in a different module than the mock" {
         t "Should invoke can be invoked in module scope and it still uses the correct session state" {
             # https://github.com/pester/Pester/issues/1813
 
@@ -1207,6 +1207,35 @@ i -PassThru:$PassThru {
                                 $TypeName -eq 'Microsoft.SqlServer.Management.Smo.Agent.Alert'
                             } -Exactly -Times 1 -Scope It
                         }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $t = $r.Containers[0]
+            $t.Result | Verify-Equal "Passed"
+        }
+    }
+
+    b "Mock begin, process and end" {
+        dt "Mock pipeline input" {
+            $sb = {
+                Describe 'd' {
+                    It 't' {
+                        function f() {
+                            begin { Write-Host "begin"; $all = @() }
+                            process { Write-Host "process $_"; $all += $_ }
+                            end { Write-Host "end" $all }
+                        }
+
+                        Mock f -MockWith { Write-Host "Item: $_" }
+
+                        1, 2, 3 | f
+
+                        Should -Invoke f -times 1 -exactly
                     }
                 }
             }
