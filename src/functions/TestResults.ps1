@@ -63,7 +63,7 @@ function Export-NUnitReport {
     -Passthru or by using the Run.PassThru configuration-option.
 
     .PARAMETER Path
-    The path where the XML-report should  to the ou the XML report as string.
+    The path where the XML-report should output the XML report as string.
 
     .PARAMETER Format
     Specifies the NUnit-schema to be used.
@@ -116,7 +116,7 @@ function Export-JUnitReport {
     -Passthru or by using the Run.PassThru configuration-option.
 
     .PARAMETER Path
-    The path where the XML-report should  to the ou the XML report as string.
+    The path where the XML-report should output the XML report as string.
 
     .EXAMPLE
     ```powershell
