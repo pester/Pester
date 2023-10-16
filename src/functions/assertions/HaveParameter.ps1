@@ -95,11 +95,14 @@
                 # That is: param($param1 = $false) will set this to true for $param1
                 # but param($param1) will have this set to false, because there was no default value.
                 $paramInfo.HasDefaultValue = $true
-                # $null does not have a Value
-                $paramInfo.DefaultValue = if ($null -ne $parameter.DefaultValue.Value) { $parameter.DefaultValue.Value } else { $parameter.DefaulValue.Extent }
+                # When the value has a known fully realized value (indicated by .Value being on the DefaultValue object)
+                # we take that and use it, otherwise we take the extent (how it was written in code). This will make
+                # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
+                $paramInfo.DefaultValue = if ($parameter.DefaultValue.PSObject.Properties["Value"]) { $parameter.DefaultValue.Value } else { $parameter.DefaultValue.Extent.Text }
             }
 
             $paramInfo
+            break
         }
     }
 

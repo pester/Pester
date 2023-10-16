@@ -9,7 +9,7 @@ InPesterModuleScope {
                 param(
                     [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
-                    $MandatoryParam,
+                    $MandatoryParam = "",
 
                     [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
@@ -65,7 +65,7 @@ InPesterModuleScope {
                 param(
                     [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
-                    $MandatoryParam,
+                    $MandatoryParam = "",
 
                     [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
