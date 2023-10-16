@@ -39,7 +39,9 @@
     function Get-ParameterInfo {
         param (
             [Parameter(Mandatory = $true)]
-            [Management.Automation.CommandInfo]$Command
+            [Management.Automation.CommandInfo]$Command,
+            [Parameter(Mandatory = $true)]
+            [string] $Name
         )
 
         # Resolve alias to the actual command so we can access scriptblock
@@ -71,20 +73,30 @@
         }
 
         foreach ($parameter in $parameters) {
+            if ($Name -ne $parameter.Name.VariablePath.UserPath) {
+                continue
+            }
+
             $paramInfo = [PSCustomObject] @{
                 Name             = $parameter.Name.VariablePath.UserPath
                 Type             = "[$($parameter.StaticType.Name.ToLower())]"
+                HasDefaultValue  = $false
                 DefaultValue     = $null
                 DefaultValueType = $parameter.StaticType.Name
             }
 
+            # Default value here contains a descriptor object of the default value,
+            # so this is null only when default value is not present at all, if default value
+            # is actually $null, this will have an object describing the type and the $null value.
             if ($null -ne $parameter.DefaultValue) {
-                if ($parameter.DefaultValue.PSObject.Properties['Value']) {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Value
-                }
-                else {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
-                }
+                # The actual value of the default value can be falsy (e.g. $null, $false or 0)
+                # use this flag to communicate if default value was found in the AST or not,
+                # no matter if the actual default value is falsy.
+                # That is: param($param1 = $false) will set this to true for $param1
+                # but param($param1) will have this set to false, because there was no default value.
+                $paramInfo.HasDefaultValue = $true
+                # $null does not have a Value
+                $paramInfo.DefaultValue = if ($null -ne $parameter.DefaultValue.Value) { $parameter.DefaultValue.Value } else { $parameter.DefaulValue.Extent }
             }
 
             $paramInfo
@@ -181,7 +193,8 @@
         if ($ActualValue.Definition -match '^PesterMock_') {
             $type = 'mock'
             $suggestion = "'Get-Command $($ActualValue.Name) | Where-Object Parameters | Should -HaveParameter ...'"
-        } else {
+        }
+        else {
             $type = 'alias'
             $suggestion = "using the actual command name. For example: 'Get-Command $($ActualValue.Definition) | Should -HaveParameter ...'"
         }
@@ -249,21 +262,34 @@
         }
 
         if ($PSBoundParameters.Keys -contains "DefaultValue") {
-            $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
-            $actualDefault = if ($parameterMetadata.DefaultValue) {
-                $parameterMetadata.DefaultValue
+            $parameterMetadata = Get-ParameterInfo -Name $ParameterName -Command $ActualValue
+            if ($null -eq $parameterMetadata) {
+                # For safety, but this probably won't happen because if the parameter is not on the command we will fail much sooner.
+                throw "Metadata for parameter '$ParameterName' were not found."
             }
-            else {
-                ""
-            }
-            $testDefault = ($actualDefault -eq $DefaultValue)
+
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
 
-            if (-not $Negate -and -not $testDefault) {
-                $buts += "the default value was $(Format-Nicely $actualDefault)"
+            $defaultIsUnspecified = -not $parameterMetadata.HasDefaultValue
+            if ($defaultIsUnspecified) {
+                if ($Negate) {
+                    # We expected the default value to not be something, and it was unspecified, so there is not "but".
+                }
+                else {
+                    # We expected the default value to be something, and it was unspecified, so this always fails the assertion.
+                    $buts += "the default value was not specified"
+                }
             }
-            elseif ($Negate -and $testDefault) {
-                $buts += "the default value was $(Format-Nicely $DefaultValue)"
+            else {
+                $actualDefault = $parameterMetadata.DefaultValue
+                $testDefault = ($actualDefault -eq $DefaultValue)
+
+                if (-not $Negate -and -not $testDefault) {
+                    $buts += "the default value was $(Format-Nicely $actualDefault)"
+                }
+                elseif ($Negate -and $testDefault) {
+                    $buts += "the default value was $(Format-Nicely $actualDefault)"
+                }
             }
         }
 
