@@ -14,13 +14,18 @@
     }
 
     if ($ActualValue -ge $ExpectedValue) {
-        return [PSCustomObject] @{
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be less than $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
@@ -47,13 +52,18 @@ function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate,
     }
 
     if ($ActualValue -lt $ExpectedValue) {
-        return [PSCustomObject] @{
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be greater than or equal to $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }

@@ -16,20 +16,30 @@
 
     if (-not $succeeded) {
         if ($Negate) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to not be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
+                ExpectResult   = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
         else {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
+                ExpectResult   = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }

@@ -34,7 +34,6 @@ namespace Pester
         public object Data { get; set; }
         public string ExpandedName { get; set; }
         public string ExpandedPath { get; set; }
-
         public string Result { get; set; }
         public List<object> ErrorRecord { get; set; }
         public object StandardOutput { get; set; }
