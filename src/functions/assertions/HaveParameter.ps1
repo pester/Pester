@@ -98,12 +98,38 @@
                 # When the value has a known fully realized value (indicated by .Value being on the DefaultValue object)
                 # we take that and use it, otherwise we take the extent (how it was written in code). This will make
                 # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
-                $paramInfo.DefaultValue = if ($parameter.DefaultValue.PSObject.Properties["Value"]) { $parameter.DefaultValue.Value } else { $parameter.DefaultValue.Extent.Text }
+                $paramInfo.DefaultValue = Get-DefaultValue $parameter.DefaultValue
             }
 
             $paramInfo
             break
         }
+    }
+
+    function Get-DefaultValue {
+        param($DefaultValue)
+
+        # This is a value like 1, or 0, return it direcly.
+        if ($DefaultValue.PSObject.Properties["Value"]) {
+            return $DefaultValue.Value
+        }
+
+        # This is for backwards compatibility with Pester v5.4.0.
+        # Existing assertions check for -DefaultValue "false", while the definition
+        # of the function says $MyParam = $false.
+        if ('$true' -eq $DefaultValue.Extent.Text -or '$false' -eq $DefaultValue.Extent.Text) {
+            # returns "true", or "false" without $ prefix
+            return $DefaultValue.VariablePath
+        }
+
+        # This is for backwards compatibility with Pester v5.4.0.
+        # Existing assertions check for -DefaultValue "", while the definition
+        # of the function says $MyParam = $null or $MyParam without any default value.
+        if ('$null' -eq $DefaultValue.Extent.Text) {
+            return ""
+        }
+
+        $DefaultValue.Extent.Text
     }
 
     function Get-ArgumentCompleter {
@@ -273,26 +299,22 @@
 
             $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
 
+            # We could determine if the value is present and what is it's exact value, and also always use the
+            # code literal that was used in the definition of the function (e.g. $true instead of "True"),
+            # but that would be a breaking change for Pester 5, and in case of strings it would be a little
+            # inconvenient for the users, because they would always have to provide doubled quotes, like '"aaa"'.
+            # So instead we force the values to be strings, and when the value is not there we define it as $null
+            # which prevents us from full checking if there was or was not an actual $null definition, but that is
+            # okay because you would rarely need to do that.
             $defaultIsUnspecified = -not $parameterMetadata.HasDefaultValue
-            if ($defaultIsUnspecified) {
-                if ($Negate) {
-                    # We expected the default value to not be something, and it was unspecified, so there is not "but".
-                }
-                else {
-                    # We expected the default value to be something, and it was unspecified, so this always fails the assertion.
-                    $buts += "the default value was not specified"
-                }
-            }
-            else {
-                $actualDefault = $parameterMetadata.DefaultValue
-                $testDefault = ($actualDefault -eq $DefaultValue)
+            [string] $actualDefault = if ($defaultIsUnspecified) { $null } else { $parameterMetadata.DefaultValue }
+            $testDefault = ($actualDefault -eq $DefaultValue)
 
-                if (-not $Negate -and -not $testDefault) {
-                    $buts += "the default value was $(Format-Nicely $actualDefault)"
-                }
-                elseif ($Negate -and $testDefault) {
-                    $buts += "the default value was $(Format-Nicely $actualDefault)"
-                }
+            if (-not $Negate -and -not $testDefault) {
+                $buts += "the default value was $(Format-Nicely $actualDefault)"
+            }
+            elseif ($Negate -and $testDefault) {
+                $buts += "the default value was $(Format-Nicely $actualDefault)"
             }
         }
 

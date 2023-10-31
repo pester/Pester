@@ -9,7 +9,7 @@ InPesterModuleScope {
                 param(
                     [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
-                    $MandatoryParam = "",
+                    $MandatoryParam,
 
                     [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
@@ -65,7 +65,7 @@ InPesterModuleScope {
                 param(
                     [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
-                    $MandatoryParam = "",
+                    $MandatoryParam,
 
                     [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
@@ -351,14 +351,6 @@ InPesterModuleScope {
             }
 
             Get-Command Test-Parameter | Should -HaveParameter 'objParam' -Type 'object' -DefaultValue $null
-        }
-
-        It 'fails when object parameter expects default parameter value $null, but there is none' {
-            function Test-Parameter {
-                param ( [Parameter()] [object] $objParam )
-            }
-
-            { Get-Command Test-Parameter | Should -HaveParameter 'objParam' -Type 'object' -DefaultValue $null } | Should -Throw "aaaa"
         }
 
         It 'passes when integer parameter has default parameter value 0' {
