@@ -471,7 +471,7 @@ function Get-RunTimeEnvironment {
     elseif ($null -ne $SafeCommands['Get-WmiObject']) {
         $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
     }
-    elseif ($IsMacOS -or $IsLinux) {
+    elseif ($IsMacOS -or $IsLinux -or $IsFreeBSD) {
         $osSystemInformation = @{
             Name    = 'Unknown'
             Version = '0.0.0.0'

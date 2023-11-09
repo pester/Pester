@@ -17,6 +17,9 @@ function GetPesterOs {
     elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'Ignore' -ValueOnly ) {
         'Linux'
     }
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsFreeBSD' -ErrorAction 'Ignore' -ValueOnly ) {
+        'FreeBSD'
+    }
     else {
         throw "Unsupported Operating system!"
     }
