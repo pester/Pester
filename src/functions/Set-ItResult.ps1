@@ -78,8 +78,20 @@
         }
     }
 
+    switch ($result) {
+        'Inconclusive' {
+            [String]$errorId = 'PesterTestInconclusive'
+        }
+        'Pending' {
+            [String]$errorId = 'PesterTestPending'
+        }
+        'Skipped' {
+            [String]$errorId = 'PesterTestSkipped'
+        }
+    }
+
     throw [Pester.Factory]::CreateErrorRecord(
-        'PesterTestSkipped', #string errorId
+        $errorId, #string errorId
         $Message, #string message
         $File, #string file
         $Line, #string line
