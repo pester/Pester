@@ -14,5 +14,10 @@ namespace Pester
         public string Type { get; set; } = "File";
         public object Item { get; set; }
         public object Data { get; set; }
+
+        public override string ToString()
+        {
+            return ToStringConverter.ContainerInfoToString(this);
+        }
     }
 }
