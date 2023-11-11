@@ -1,9 +1,6 @@
 ﻿param ([switch] $PassThru)
 
-Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
-
-
-Get-Module Pester.Runtime.Wrapper, Pester.Utility, P, Pester, Axiom | Remove-Module
+Get-Module Pester.Runtime.Wrapper, P, PTestHelpers, Pester, Axiom | Remove-Module
 
 . $PSScriptRoot\..\src\Pester.Utility.ps1
 New-Module -Name Pester.Runtime.Wrapper -ScriptBlock {

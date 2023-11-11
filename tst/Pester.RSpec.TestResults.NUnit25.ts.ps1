@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -12,44 +13,6 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors = $false
     }
-}
-
-function Verify-XmlTime {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [AllowNull()]
-        [Nullable[TimeSpan]]
-        $Expected
-    )
-
-    if ($null -eq $Expected) {
-        throw [Exception]'Expected value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw [Exception]'Actual value is $null.'
-    }
-
-    if ('0.0000' -eq $Actual) {
-        # it is unlikely that anything takes less than
-        # 0.0001 seconds (one tenth of a millisecond) so
-        # throw when we see 0, because that probably means
-        # we are not measuring at all
-        throw [Exception]'Actual value is zero.'
-    }
-
-    $e = [string][Math]::Round($Expected.TotalSeconds, 4)
-    if ($e -ne $Actual) {
-        $message = "Expected and actual values differ!`n" +
-        "Expected: '$e' seconds (raw '$($Expected.TotalSeconds)' seconds)`n" +
-        "Actual  : '$Actual' seconds"
-
-        throw [Exception]$message
-    }
-
-    $Actual
 }
 
 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit25/nunit_schema_2.5.xsd'

@@ -1,6 +1,6 @@
 ﻿param ([switch] $PassThru)
 
-Get-Module Pester.Utility, P, Axiom | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking

@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -12,33 +13,8 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "Mock"
+        WriteDebugMessagesFrom = 'Mock'
         ReturnRawResultObject  = $true
-    }
-}
-
-function Verify-PathEqual {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        $Expected
-    )
-
-    if ([string]::IsNullOrEmpty($Expected)) {
-        throw "Expected is null or empty."
-    }
-
-    if ([string]::IsNullOrEmpty($Actual)) {
-        throw "Actual is null or empty."
-    }
-
-    $e = ($expected -replace "\\", '/').Trim('/')
-    $a = ($actual -replace "\\", '/').Trim('/')
-
-    if ($e -ne $a) {
-        throw "Expected path '$e' to be equal to '$a'."
     }
 }
 
