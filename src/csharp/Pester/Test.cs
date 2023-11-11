@@ -41,7 +41,10 @@ namespace Pester
         public TimeSpan Duration { get => UserDuration + FrameworkDuration; }
 
         public string ItemType { get; private set; }
-        public string Id { get; set; }
+
+        [Obsolete("Id is obsolete and should no longer be used. Use GroupId instead.")]
+        public string Id { get => GroupId; }
+        public string GroupId { get; set; }
         public ScriptBlock ScriptBlock { get; set; }
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }

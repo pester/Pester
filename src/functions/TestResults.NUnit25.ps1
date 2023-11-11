@@ -118,12 +118,12 @@ function Write-NUnitTestSuiteElements {
     }
 
     $suites = @(
-        # Tests only have Id if parameterized. All other tests are put in group with '' value
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
+        # Tests only have GroupId if parameterized. All other tests are put in group with '' value
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId
     )
 
     foreach ($suite in $suites) {
-        # TODO: when suite has name it belongs into a test group (test cases that are generated from the same test, based on the provided data) so we want extra level of nesting for them, right now this is encoded as having an Id that is non empty, but this is not ideal, it would be nicer to make it more explicit
+        # When group has name it is a parameterized tests (data-generated using -ForEach/TestCases) so we want extra level of nesting for them
         $testGroupId = $suite.Name
         if ($testGroupId) {
             $parameterizedSuiteInfo = Get-ParameterizedTestSuiteInfo -TestSuiteGroup $suite
@@ -159,11 +159,8 @@ function Write-NUnitTestSuiteElements {
 function Get-ParameterizedTestSuiteInfo {
     param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup)
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
-    # I am using the Name from the first test as the name of the test group, even though we are grouping at
-    # the Id of the test (which is the line where the ScriptBlock of that test starts). This allows us to have
-    # unique Id (the line number) and also a readable name
-    # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
-    # grouping the tests together if we used just the name, and not the linenumber (which remains static)
+    # Using the Name from the first test as the name of the test group to make it readable,
+    # even though we are grouping using GroupId of the tests.
     $node = [PSCustomObject] @{
         Path              = $TestSuiteGroup.Group[0].Path
         TotalCount        = 0

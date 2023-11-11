@@ -132,14 +132,12 @@ function Write-NUnit3TestSuiteElement {
     }
 
     $blockGroups = @(
-        # Blocks only have Id if parameterized (using -ForEach). All other blocks are put in group with '' value
-        $Node.Blocks | & $SafeCommands['Group-Object'] -Property Id
+        # Blocks only have GroupId if parameterized (using -ForEach). All other blocks are put in group with '' value
+        $Node.Blocks | & $SafeCommands['Group-Object'] -Property GroupId
     )
 
     foreach ($group in $blockGroups) {
-        # TODO: Switch Id to GroupId or something more explicit for identifying data-generated blocks (and tests).
-        # Couldn't use Where-Object Data | Group Name instead of Id because duplicate block and test names are allowed.
-        # When group has name it belongs into a block group (data-generated using -ForEach) so we want extra level of nesting for them
+        # When group has name it is a parameterized block (data-generated using -ForEach) so we want extra level of nesting for them
         $blockGroupId = $group.Name
         if ($blockGroupId) {
             if (@($group.Group.ShouldRun) -notcontains $true) {
@@ -169,14 +167,12 @@ function Write-NUnit3TestSuiteElement {
     }
 
     $testGroups = @(
-        # Tests only have Id if parameterized. All other tests are put in group with '' value
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
+        # Tests only have GroupId if parameterized. All other tests are put in group with '' value
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId
     )
 
     foreach ($group in $testGroups) {
-        # TODO: when suite has name it belongs into a test group (test cases that are generated from the same test,
-        # based on the provided data) so we want extra level of nesting for them, right now this is encoded as having an Id that is non empty,
-        # but this is not ideal, it would be nicer to make it more explicit
+        # When group has name it is a parameterized tests (data-generated using -ForEach/TestCases) so we want extra level of nesting for them
         $testGroupId = $group.Name
         if ($testGroupId) {
             if (@($group.Group.ShouldRun) -notcontains $true) {
@@ -383,11 +379,8 @@ function Get-NUnit3ParameterizedMethodSuiteInfo {
     param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath)
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
 
-    # Using the Name from the first test as the name of the test group, even though we are grouping at
-    # the Id of the test (which is the line where the ScriptBlock of that test starts). This allows us to have
-    # unique Id (the line number) and also a readable name
-    # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
-    # grouping the tests together if we used just the name, and not the linenumber (which remains static)
+    # Using the Name from the first test as the name of the test group to make it readable,
+    # even though we are grouping using GroupId of the tests.
 
     $sampleTest = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
@@ -430,11 +423,8 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo {
     param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup, [string] $ParentPath)
     # this is generating info for a group of blocks that were generated from the same block when ForEach are used
 
-    # Using the Name from the first block as the name of the block group, even though we are grouping at
-    # the Id of the block (which is the line where the ScriptBlock of that block starts). This allows us to have
-    # unique Id (the line number) and also a readable name
-    # the possible edgecase here is putting $(Get-Date) into the block name, which would prevent us from
-    # grouping the blocks together if we used just the name, and not the linenumber (which remains static)
+    # Using the Name from the first block as the name of the block group to make it readable,
+    # even though we are grouping using GroupId of the blocks.
 
     $sampleBlock = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
@@ -479,8 +469,8 @@ function Write-NUnit3TestCaseElement {
 
     Write-NUnit3TestCaseAttributes -TestResult $TestResult -ParentPath $ParentPath -XmlWriter $XmlWriter
 
-    # tests with testcases/foreach (has .Id) has tags on ParameterizedMethod-node
-    $includeTags = (-not $TestResult.Id) -and $TestResult.Tag
+    # Tests with testcases/foreach (has .GroupId) has tags on ParameterizedMethod-node
+    $includeTags = (-not $TestResult.GroupId) -and $TestResult.Tag
     $hasData = $TestResult.Data -is [System.Collections.IDictionary] -and $TestResult.Data.Keys.Count -gt 0
 
     if ($includeTags -or $hasData) {
