@@ -155,7 +155,8 @@ Describe "Format-Nicely" {
         @{ Value = 1; Expected = '1' },
         @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
         @{ Value = 1.1; Expected = '1.1' },
-        @{ Value = [int]; Expected = '[int]' }
+        @{ Value = [int]; Expected = '[int]' },
+        @{ Value = @('a'); Expected = "@('a')" }
         # @{ Value = [PSCustomObject] @{ Name = "Jakub" }; Expected = 'PSObject{Name=Jakub}' },
         #@{ Value = (Get-Process Idle); Expected = 'Diagnostics.Process{Id=0; Name=Idle}'},
         #@{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28}); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}"}
