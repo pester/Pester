@@ -861,7 +861,8 @@ function Invoke-Pester {
                 Remove-RSPecNonPublicProperties $run
             }
 
-            if ($PesterPreference.Run.PassThru.Value) {
+            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            if ($PesterPreference.Run.PassThru.Value -and -not ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount)) {
                 $run
             }
 
@@ -888,12 +889,10 @@ function Invoke-Pester {
         # go back to original CWD
         if ($null -ne $initialPWD) { & $SafeCommands['Set-Location'] -Path $initialPWD }
 
-        # exit with exit code if we fail and even if we succeed, otherwise we could inherit
-        # exit code of some other app end exit with it's exit code instead with ours
-        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
         # always set exit code. This both to:
-        # - prevent previous commands failing with non-zero exit code from failing the run
+        # - avoid inheriting a previous commands non-zero exit code
         # - setting the exit code when there were some failed tests, blocks, or containers
+        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
         $global:LASTEXITCODE = $failedCount
 
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
