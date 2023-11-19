@@ -61,6 +61,7 @@ $script:ReportTheme = DATA {
         Discovery        = 'Magenta'
         Container        = 'Magenta'
         BlockFail        = 'Red'
+        Warning          = 'Yellow'
     }
 }
 
@@ -308,6 +309,10 @@ function Write-PesterReport {
         $RunResult
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
+
+    if ($RunResult.Tests.ErrorRecord.FullyQualifiedErrorID -contains 'PesterTestPending') {
+        Write-PesterHostMessage '**DEPRECATED**: The Set-ItResult -Pending parameter is deprecated. It will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
+    }
 
     Write-PesterHostMessage ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 
