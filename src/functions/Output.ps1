@@ -26,7 +26,7 @@ $script:ReportStrings = DATA {
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
-        TestsSkipped      = 'Skipped: {0} '
+        TestsSkipped      = 'Skipped: {0}, '
         TestsPending      = 'Pending: {0}, '
         TestsInconclusive = 'Inconclusive: {0}, '
         TestsNotRun       = 'NotRun: {0}'
@@ -345,12 +345,12 @@ function Write-PesterReport {
     # else {
     #     $ReportTheme.Information
     # }
-    # $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
-    #     $ReportTheme.Inconclusive
-    # }
-    # else {
-    #     $ReportTheme.Information
-    # }
+    $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
+        $ReportTheme.Inconclusive
+    }
+    else {
+        $ReportTheme.Information
+    }
 
     # Try {
     #     $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
@@ -374,6 +374,7 @@ function Write-PesterReport {
     Write-PesterHostMessage ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
@@ -843,7 +844,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
-                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive "$because" -NoNewLine
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
                 }
 

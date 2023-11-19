@@ -58,12 +58,8 @@
 
     $result = $PSCmdlet.ParameterSetName
 
-    [String]$Message = "is skipped"
     if ($Result -ne 'Skipped') {
         [String]$Because = if ($Because) { $Result.ToUpper(), $Because -join ': ' } else { $Result.ToUpper() }
-    }
-    if ($Because) {
-        [String]$Message += ", because $Because"
     }
 
     switch ($null) {
@@ -81,13 +77,23 @@
     switch ($result) {
         'Inconclusive' {
             [String]$errorId = 'PesterTestInconclusive'
+            [String]$message = "is inconclusive"
+            break
         }
         'Pending' {
             [String]$errorId = 'PesterTestPending'
+            [String]$message = "is pending"
+            break
         }
         'Skipped' {
             [String]$errorId = 'PesterTestSkipped'
+            [String]$message = "is skipped"
+            break
         }
+    }
+
+    if ($Because) {
+        [String]$message += ", because $Because"
     }
 
     throw [Pester.Factory]::CreateErrorRecord(

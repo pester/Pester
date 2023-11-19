@@ -30,7 +30,7 @@ function Write-NUnit3TestRunAttributes {
     $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.NotRunCount)) # testcasecount - filtered
     $XmlWriter.WriteAttributeString('passed', $Result.PassedCount)
     $XmlWriter.WriteAttributeString('failed', $Result.FailedCount)
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # required attr. $Result.PendingCount + $Result.InconclusiveCount when/if implemented?
+    $XmlWriter.WriteAttributeString('inconclusive', $Resul.InconclusiveCount)
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('warnings', '0') # required attr.
     $XmlWriter.WriteAttributeString('start-time', (Get-UTCTimeString $Result.ExecutedAt))
@@ -297,6 +297,7 @@ function Get-NUnit3TestSuiteInfo {
         passed        = $TestSuite.PassedCount
         failed        = $TestSuite.FailedCount
         skipped       = $TestSuite.SkippedCount
+        inconclusive  = $TestSuite.InconclusiveCount
         site          = $site
         shouldrun     = $TestSuite.ShouldRun
     }
@@ -327,7 +328,7 @@ function Write-NUnit3TestSuiteAttributes {
     $XmlWriter.WriteAttributeString('total', $TestSuiteInfo.total)
     $XmlWriter.WriteAttributeString('passed', $TestSuiteInfo.passed)
     $XmlWriter.WriteAttributeString('failed', $TestSuiteInfo.failed)
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # required attribute
+    $XmlWriter.WriteAttributeString('inconclusive', $TestSuiteInfo.inconclusive) # required attribute
     $XmlWriter.WriteAttributeString('warnings', '0') # required attribute
     $XmlWriter.WriteAttributeString('skipped', $TestSuiteInfo.skipped)
     $XmlWriter.WriteAttributeString('asserts', $TestSuiteInfo.testcasecount) # required attr. hardcode  1:1 per testcase
