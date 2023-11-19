@@ -14,7 +14,7 @@
     backwards compatible
 
     .PARAMETER Inconclusive
-    **DEPRECATED** Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
+    Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
 
     .PARAMETER Pending
     **DEPRECATED** Sets the test result to pending. Cannot be used at the same time as -Inconclusive or -Skipped
