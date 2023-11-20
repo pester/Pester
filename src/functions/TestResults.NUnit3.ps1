@@ -19,7 +19,7 @@ function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
 }
 
 function Write-NUnit3TestRunAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('id', '0')
@@ -30,7 +30,7 @@ function Write-NUnit3TestRunAttributes {
     $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.NotRunCount)) # testcasecount - filtered
     $XmlWriter.WriteAttributeString('passed', $Result.PassedCount)
     $XmlWriter.WriteAttributeString('failed', $Result.FailedCount)
-    $XmlWriter.WriteAttributeString('inconclusive', $Resul.InconclusiveCount)
+    $XmlWriter.WriteAttributeString('inconclusive', $Result.InconclusiveCount)
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('warnings', '0') # required attr.
     $XmlWriter.WriteAttributeString('start-time', (Get-UTCTimeString $Result.ExecutedAt))
@@ -306,14 +306,14 @@ function Get-NUnit3TestSuiteInfo {
 }
 
 function Write-NUnit3TestSuiteAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestSuiteInfo, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('type', $TestSuiteInfo.type)
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     $XmlWriter.WriteAttributeString('name', $TestSuiteInfo.name)
     $XmlWriter.WriteAttributeString('fullname', $TestSuiteInfo.fullname)
-    if ($TestSuiteInfo.type -in 'TestFixture','ParameterizedMethod') {
+    if ($TestSuiteInfo.type -in 'TestFixture', 'ParameterizedMethod') {
         $XmlWriter.WriteAttributeString('classname', $TestSuiteInfo.classname)
     }
     $XmlWriter.WriteAttributeString('runstate', $TestSuiteInfo.runstate)
@@ -392,20 +392,21 @@ function Get-NUnit3ParameterizedMethodSuiteInfo {
 
     $sampleTest = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
-        Name          = $sampleTest.Name
-        ExpandedName  = $sampleTest.Name
-        Path          = $sampleTest.Block.Path # used for classname -> block path
-        Data          = $null
-        TotalCount    = 0
-        Duration      = [timespan]0
-        ExecutedAt    = [datetime]::MinValue
-        PassedCount   = 0
-        FailedCount   = 0
-        SkippedCount  = 0
-        NotRunCount   = 0
-        OwnTotalCount = 0
-        ShouldRun     = $true
-        Skip          = $sampleTest.Skip
+        Name              = $sampleTest.Name
+        ExpandedName      = $sampleTest.Name
+        Path              = $sampleTest.Block.Path # used for classname -> block path
+        Data              = $null
+        TotalCount        = 0
+        Duration          = [timespan]0
+        ExecutedAt        = [datetime]::MinValue
+        PassedCount       = 0
+        FailedCount       = 0
+        SkippedCount      = 0
+        InconclusiveCount = 0
+        NotRunCount       = 0
+        OwnTotalCount     = 0
+        ShouldRun         = $true
+        Skip              = $sampleTest.Skip
     }
 
     foreach ($testCase in $TestSuiteGroup.Group) {
@@ -418,6 +419,7 @@ function Get-NUnit3ParameterizedMethodSuiteInfo {
             Passed { $node.PassedCount++; break; }
             Failed { $node.FailedCount++; break; }
             Skipped { $node.SkippedCount++; break; }
+            Inconclusive { $node.InconclusiveCount++; break; }
             NotRun { $node.NotRunCount++; break; }
         }
 
@@ -439,20 +441,21 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo {
 
     $sampleBlock = $TestSuiteGroup.Group[0]
     $node = [PSCustomObject] @{
-        Name          = $sampleBlock.Name
-        ExpandedName  = $sampleBlock.Name
-        Path          = $sampleBlock.Path
-        Data          = $null
-        TotalCount    = 0
-        Duration      = [timespan]0
-        ExecutedAt    = [datetime]::MinValue
-        PassedCount   = 0
-        FailedCount   = 0
-        SkippedCount  = 0
-        NotRunCount   = 0
-        OwnTotalCount = 0
-        ShouldRun     = $true
-        Skip          = $false # ParameterizedFixture are always Runnable, even with -Skip
+        Name              = $sampleBlock.Name
+        ExpandedName      = $sampleBlock.Name
+        Path              = $sampleBlock.Path
+        Data              = $null
+        TotalCount        = 0
+        Duration          = [timespan]0
+        ExecutedAt        = [datetime]::MinValue
+        PassedCount       = 0
+        FailedCount       = 0
+        SkippedCount      = 0
+        InconclusiveCount = 0
+        NotRunCount       = 0
+        OwnTotalCount     = 0
+        ShouldRun         = $true
+        Skip              = $false # ParameterizedFixture are always Runnable, even with -Skip
     }
 
     foreach ($block in $TestSuiteGroup.Group) {
@@ -464,6 +467,7 @@ function Get-NUnit3ParameterizedFixtureSuiteInfo {
         $node.PassedCount += $block.PassedCount
         $node.FailedCount += $block.FailedCount
         $node.SkippedCount += $block.SkippedCount
+        $node.InconclusiveCount += $block.InconclusiveCount
         $node.NotRunCount += $block.NotRunCount
         $node.TotalCount += $block.TotalCount
 
@@ -506,7 +510,7 @@ function Write-NUnit3TestCaseElement {
 }
 
 function Write-NUnit3TestCaseAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestResult, [string] $ParentPath, [System.Xml.XmlWriter] $XmlWriter)
 
     # add parameters to name for testcase with data when not using variables in name
@@ -578,7 +582,7 @@ function Write-NUnit3FailureElement ($TestResult, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteEndElement() # Close failure
 }
 
-function Write-NUnitReasonElement ($TestResult,[System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnitReasonElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
     # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
     $result = Get-ErrorForXmlReport -TestResult $TestResult
