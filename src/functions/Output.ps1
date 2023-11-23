@@ -529,13 +529,13 @@ function ConvertTo-FailureLines {
         else {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
-                [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*/Pester.psm1: line [0-9]*$'
+                [String]$isPesterFunction = '^{0}.*, .*/Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
+                [String]$isShould = '^{0} (Should<End>|Invoke-Assertion), .*/Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
                 # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
-                [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
+                [String]$isPesterFunction = '^{0} .*, .*\\Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
+                [String]$isShould = '^{0} (Should<End>|Invoke-Assertion), .*\\Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
             }
 
             # PESTER_BUILD
