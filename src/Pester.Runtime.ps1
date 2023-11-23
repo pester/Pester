@@ -64,16 +64,16 @@ function Get-StackTraceLanguageFallBack {
         [Parameter(Mandatory = $true)]
         [string]$StackTrace
     )
-    $stackTraceLanguage = [PSCustomObject]@{
+    $StackTraceLanguage = [PSCustomObject]@{
         At   = "at"
         Line = "line"
     }
-    $regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s*:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
-    if ($StackTrace -match $regex) {
-        $stackTraceLanguage.At = $Matches["At"]
-        $stackTraceLanguage.Line = $Matches["Line"]
+    $Regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s*:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
+    if ($StackTrace -match $Regex) {
+        $StackTraceLanguage.At = $Matches["At"]
+        $StackTraceLanguage.Line = $Matches["Line"]
     }
-    Return $stackTraceLanguage
+    Return $StackTraceLanguage
 }
 
 function Get-StackTraceLanguage {
@@ -82,18 +82,18 @@ function Get-StackTraceLanguage {
     if ($PSVersionTable.PSVersion.Major -ge 5) {
         try {
             if ($PSVersionTable.PSVersion.Major -gt 5) {
-                $stackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
+                $StackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
             }
             else {
-                $stackTraceRessourceName = 'DebuggerStrings'
+                $StackTraceRessourceName = 'DebuggerStrings'
             }
-            $r = [System.Resources.ResourceManager]::new($stackTraceRessourceName, [System.Reflection.Assembly]::GetAssembly([System.Management.Automation.Breakpoint]))
-            $result = $r.GetString('StackTraceFormat') -match '^(?<At>.*) \{0\}, \{1\}: (?<Line>.*) \{2\}$'
-            if (!($result)) {
+            $R = [System.Resources.ResourceManager]::new($StackTraceRessourceName, [System.Reflection.Assembly]::GetAssembly([System.Management.Automation.Breakpoint]))
+            $Result = $r.GetString('StackTraceFormat') -match '^(?<At>.*) \{0\}, \{1\}: (?<Line>.*) \{2\}$'
+            if (!($Result)) {
                 throw 'StackTraceFormat in a unknown format'
             }
             else {
-                $stackTraceLanguage = [PSCustomObject]@{
+                $StackTraceLanguage = [PSCustomObject]@{
                     At   = $Matches["At"]
                     Line = $Matches["Line"]
                 }
@@ -101,17 +101,17 @@ function Get-StackTraceLanguage {
         }
         catch {
             #Call Fallbackfunction
-            $stackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
+            $StackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
         }
     }
     else {
         #Prior to version 5 there are no ressources in the Assembly available (System.Management.Automation)
-        $stackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
+        $StackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
     }
-    Return $stackTraceLanguage
+    Return $StackTraceLanguage
 }
 #defining script variable
-$script:stackTraceLanguage = Get-StackTraceLanguage
+$script:StackTraceLanguage = Get-StackTraceLanguage
 
 if (notDefined PesterPreference) {
     $PesterPreference = [PesterConfiguration]::Default
