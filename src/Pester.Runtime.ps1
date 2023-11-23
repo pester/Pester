@@ -78,9 +78,8 @@ function Get-StackTraceLanguageFallBack {
 
 function Get-StackTraceLanguage {
     #Full fallback scenario to the solution of PR #2276 in case of error
-
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        try {
+    try {
+        if ($PSVersionTable.PSVersion.Major -ge 5) {
             if ($PSVersionTable.PSVersion.Major -gt 5) {
                 $StackTraceRessourceName = 'System.Management.Automation.resources.DebuggerStrings'
             }
@@ -99,13 +98,13 @@ function Get-StackTraceLanguage {
                 }
             }
         }
-        catch {
-            #Call Fallbackfunction
-            $StackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
+        else {
+            #Prior to version 5 there are no ressources in the Assembly available (System.Management.Automation)
+            throw 'Fallback for PSVersion 3/4'
         }
     }
-    else {
-        #Prior to version 5 there are no ressources in the Assembly available (System.Management.Automation)
+    catch {
+        #Call Fallbackfunction
         $StackTraceLanguage = Get-StackTraceLanguageFallBack -StackTrace $($PSItem.ScriptStackTrace)
     }
     Return $StackTraceLanguage
