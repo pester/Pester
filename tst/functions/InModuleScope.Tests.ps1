@@ -125,6 +125,37 @@ Describe 'Get-CompatibleModule' {
         }
     }
 
+    Context 'when module name matches a root and a nested module' {
+        BeforeAll {
+            $nestedModuleName = 'NestedModule'
+            $moduleName = 'RootWithNestedModule'
+            $moduleManifestPath = "TestDrive:/$moduleName.psd1"
+            New-Item -Path "TestDrive:/$nestedModuleName.psm1" -ItemType File -Force -ErrorAction Stop | Out-Null
+            New-ModuleManifest -Path $moduleManifestPath -NestedModules ".\$nestedModuleName.psm1"
+            Import-Module $moduleManifestPath -Force
+        }
+
+        AfterAll {
+            Get-Module $moduleName -ErrorAction SilentlyContinue | Remove-Module -Force
+        }
+
+        It 'should return a single ModuleInfo object when using a slash as delimiter' {
+            $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule/NestedModule' }
+            $moduleInfo | Should -Not -BeNullOrEmpty
+            @($moduleInfo).Count | Should -Be 1
+            $moduleInfo.Name | Should -Be 'NestedModule'
+            $moduleInfo.ModuleType | Should -Be 'Script'
+        }
+
+        It 'should return a single ModuleInfo object when using a backslash as delimiter' {
+            $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule\NestedModule' }
+            $moduleInfo | Should -Not -BeNullOrEmpty
+            @($moduleInfo).Count | Should -Be 1
+            $moduleInfo.Name | Should -Be 'NestedModule'
+            $moduleInfo.ModuleType | Should -Be 'Script'
+        }
+    }
+
 }
 
 Describe 'InModuleScope arguments and parameter binding' {
