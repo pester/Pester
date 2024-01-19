@@ -310,10 +310,6 @@ function Write-PesterReport {
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
-    if ($RunResult.Tests.ErrorRecord.FullyQualifiedErrorID -contains 'PesterTestPending') {
-        Write-PesterHostMessage '**DEPRECATED**: The Set-ItResult -Pending parameter is deprecated. It will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
-    }
-
     Write-PesterHostMessage ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 
     $Success, $Failure = if ($RunResult.FailedCount -gt 0) {
@@ -408,6 +404,11 @@ function Write-PesterReport {
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }
+
+    if ($RunResult.Tests.ErrorRecord.FullyQualifiedErrorID -contains 'PesterTestPending') {
+        Write-PesterHostMessage ''
+        Write-PesterHostMessage '**DEPRECATED**: The Set-ItResult -Pending parameter is deprecated. It will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
+    }
 }
 
 function Write-CoverageReport {
