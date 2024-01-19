@@ -2273,7 +2273,7 @@ function PostProcess-ExecutedBlock {
                     $b.PassedCount += $child.PassedCount
                     $b.FailedCount += $child.FailedCount
                     $b.SkippedCount += $child.SkippedCount
-                    $b.InconclusiveCount += $child.OwnInconclusiveCount
+                    $b.InconclusiveCount += $child.InconclusiveCount
                     $b.NotRunCount += $child.NotRunCount
                 }
 
