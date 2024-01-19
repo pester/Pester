@@ -2211,6 +2211,9 @@ function PostProcess-ExecutedBlock {
                 if (-not $t.ShouldRun) {
                     $b.OwnNotRunCount++
                 }
+                elseif ($t.ShouldRun -and $t.Inconclusive) {
+                    $b.OwnInconclusiveCount++
+                }
                 elseif ($t.ShouldRun -and $t.Skipped) {
                     $b.OwnSkippedCount++
                 }
