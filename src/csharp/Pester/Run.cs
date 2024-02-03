@@ -20,6 +20,7 @@ namespace Pester
 
         public int PassedCount { get; set; }
         public int SkippedCount { get; set; }
+        public int InconclusiveCount { get; set; }
         public int NotRunCount { get; set; }
         public int TotalCount { get; set; }
 
@@ -47,6 +48,7 @@ namespace Pester
 
         public List<Test> Passed { get; set; } = new List<Test>();
         public List<Test> Skipped { get; set; } = new List<Test>();
+        public List<Test> Inconclusive { get; set; } = new List<Test>();
         public List<Test> NotRun { get; set; } = new List<Test>();
         public List<Test> Tests { get; set; } = new List<Test>();
 

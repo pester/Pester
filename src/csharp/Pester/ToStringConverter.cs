@@ -12,6 +12,7 @@ namespace Pester
                 "Passed" => "[+]",
                 "Failed" => "[-]",
                 "Skipped" => "[!]",
+                "Inconclusive" => "[?]",
                 "NotRun" => "[ ]",
                 _ => "[ERR]",
             };

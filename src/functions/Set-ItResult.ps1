@@ -14,7 +14,7 @@
     backwards compatible
 
     .PARAMETER Inconclusive
-    **DEPRECATED** Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
+    Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
 
     .PARAMETER Pending
     **DEPRECATED** Sets the test result to pending. Cannot be used at the same time as -Inconclusive or -Skipped
@@ -29,6 +29,9 @@
     .EXAMPLE
     ```powershell
     Describe "Example" {
+        It "Inconclusive test" {
+            Set-ItResult -Inconclusive -Because "we want it to be inconclusice"
+        }
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
         }
@@ -38,9 +41,11 @@
     the output should be
 
     ```
-    [!] Skipped test is skipped, because we want it to be skipped
-    Tests completed in 0ms
-    Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
+    Describing Example
+      [?] Inconclusive test is inconclusive, because INCONCLUSIVE: we want it to be inconclusice 35ms (32ms|3ms)
+      [!] Skipped test is skipped, because we want it to be skipped 3ms (2ms|1ms)
+    Tests completed in 78ms
+    Tests Passed: 0, Failed: 0, Skipped: 1, Inconclusive: 1, NotRun: 0
     ```
 
     .LINK
@@ -58,12 +63,8 @@
 
     $result = $PSCmdlet.ParameterSetName
 
-    [String]$Message = "is skipped"
     if ($Result -ne 'Skipped') {
         [String]$Because = if ($Because) { $Result.ToUpper(), $Because -join ': ' } else { $Result.ToUpper() }
-    }
-    if ($Because) {
-        [String]$Message += ", because $Because"
     }
 
     switch ($null) {
@@ -81,13 +82,23 @@
     switch ($result) {
         'Inconclusive' {
             [String]$errorId = 'PesterTestInconclusive'
+            [String]$message = "is inconclusive"
+            break
         }
         'Pending' {
             [String]$errorId = 'PesterTestPending'
+            [String]$message = "is pending"
+            break
         }
         'Skipped' {
             [String]$errorId = 'PesterTestSkipped'
+            [String]$message = "is skipped"
+            break
         }
+    }
+
+    if ($Because) {
+        [String]$message += ", because $Because"
     }
 
     throw [Pester.Factory]::CreateErrorRecord(

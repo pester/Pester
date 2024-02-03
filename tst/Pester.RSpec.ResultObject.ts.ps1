@@ -100,6 +100,14 @@ i -PassThru:$PassThru {
                         It "not run" -Tag "Slow" {
                             1 | Should -Be 1
                         }
+
+                        It "Set-ItResult -Inconclusive" {
+                            Set-ItResult -Inconclusive
+                        }
+
+                        It "Set-ItResult -Skipped" {
+                            Set-ItResult -Skipped
+                        }
                     }
                 }
                 $result = Invoke-Pester -Configuration @{
@@ -119,7 +127,7 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 2
 
-            $result.TotalCount | Verify-Equal 4
+            $result.TotalCount | Verify-Equal 6
             $result.Tests | Verify-NotNull
 
             $result.PassedCount | Verify-Equal 1
@@ -128,11 +136,14 @@ i -PassThru:$PassThru {
             $result.FailedCount | Verify-Equal 1
             $result.Failed | Verify-NotNull
 
-            $result.SkippedCount | Verify-Equal 1
+            $result.SkippedCount | Verify-Equal 2
             $result.Skipped | Verify-NotNull
 
             $result.NotRunCount | Verify-Equal 1
             $result.NotRun | Verify-NotNull
+
+            $result.InconclusiveCount | Verify-Equal 1
+            $result.Inconclusive | Verify-NotNull
 
             $result.Duration | Verify-Equal ($result.Containers[0].Duration + $result.Containers[1].Duration)
             $result.UserDuration | Verify-Equal ($result.Containers[0].UserDuration + $result.Containers[1].UserDuration)
