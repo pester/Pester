@@ -29,6 +29,9 @@
     .EXAMPLE
     ```powershell
     Describe "Example" {
+        It "Inconclusive test" {
+            Set-ItResult -Inconclusive -Because "we want it to be inconclusice"
+        }
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
         }
@@ -38,9 +41,11 @@
     the output should be
 
     ```
-    [!] Skipped test is skipped, because we want it to be skipped
-    Tests completed in 0ms
-    Tests Passed: 0, Failed: 0, Skipped: 0, Pending: 0, Inconclusive 1
+    Describing Example
+      [?] Inconclusive test is inconclusive, because INCONCLUSIVE: we want it to be inconclusice 35ms (32ms|3ms)
+      [!] Skipped test is skipped, because we want it to be skipped 3ms (2ms|1ms)
+    Tests completed in 78ms
+    Tests Passed: 0, Failed: 0, Skipped: 1, Inconclusive: 1, NotRun: 0
     ```
 
     .LINK
