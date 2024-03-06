@@ -527,6 +527,31 @@ function ConvertTo-FailureLines {
             $lines.Trace += $traceLines
         }
         else {
+
+            ## Exceptions may be localized depending on the system used.
+            ## We generate an exception on purpose and catch it in order to parse the format
+            function GetLocalizedStackTraceElements {
+                try {
+                    throw 'Generate exception on purpose'
+                }
+                catch {
+                    $regex = "(?<At>.*)\s(?<ScriptBlockOrFunction>\<\w+\>),\s(?<FileName>\<.+\>)\s*:\s(?<Line>\w+)\s(?<LineNumber>\w+)\z"
+                    if ($PSItem.ScriptStackTrace -match $regex) {
+                        $LocalizedAt = $Matches["At"]
+                        $LocalizedLine = $Matches["Line"]
+                    }
+                    else {
+                        $LocalizedAt = "at"
+                        $LocalizedLine = "line"
+                    }
+                }
+                return @{'LocalizedAt' = $LocalizedAt; 'LocalizedLine' = $LocalizedLine }
+            }
+
+            $internal_localizestacktrace = GetLocalizedStackTraceElements
+            $internal_localizedAt = $internal_localizestacktrace.LocalizedAt
+            $internal_localizedLine = $internal_localizestacktrace.LocalizedLine
+
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
                 [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
@@ -534,7 +559,7 @@ function ConvertTo-FailureLines {
                 # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
-                [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
+                [String]$isPesterFunction = '^{0} .*, .*\\Pester.psm1\s*: {1} [0-9]*$' -f $internal_localizedAt, $internal_localizedLine
                 [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
@@ -543,7 +568,7 @@ function ConvertTo-FailureLines {
                 # no code
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
-                [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
+                [String]$isPesterFunction = "^{0} .*, .*{1}.*: {2} [0-9]*$" -f $internal_localizedAt, $path, $internal_localizedLine
                 [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
             # end PESTER_BUILD
