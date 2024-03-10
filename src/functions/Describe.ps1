@@ -24,6 +24,10 @@
     it is possible to specify a -Tag parameter which will only execute Describe blocks
     containing the same Tag.
 
+    .PARAMETER Skip
+    Use this parameter to explicitly mark the block to be skipped. This is preferable to temporarily
+    commenting out a block, because it remains listed in the output.
+
     .PARAMETER ForEach
     Allows data driven tests to be written.
     Takes an array of data and generates one block for each item in the array, and makes the item
