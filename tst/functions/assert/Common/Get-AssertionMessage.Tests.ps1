@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Get-AssertionMessage" {
         It "returns correct message when no tokens are provided" {
             $expected = "Static failure message."

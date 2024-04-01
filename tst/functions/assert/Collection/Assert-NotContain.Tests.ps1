@@ -1,4 +1,6 @@
-InModuleScope -ModuleName Assert {
+Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-NotContain" {
         It "Fails when collection of single item contains the expected item" {
             $error = { @(1) | Assert-NotContain 1 } | Verify-AssertionFailed

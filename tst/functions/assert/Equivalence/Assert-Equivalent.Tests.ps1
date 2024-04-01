@@ -1,32 +1,32 @@
-﻿BeforeDiscovery {
-    Add-Type -TypeDefinition 'namespace Assertions.TestType {
-        public class Person2 {
-            // powershell v2 mandates fully implemented properties
-            string _name;
-            int _age;
-            public string Name { get { return _name; } set { _name = value; } }
-            public int Age { get { return _age; } set { _age = value; } }
-        }
-    }'
-}
+﻿Set-StrictMode -Version Latest
 
-InModuleScope -ModuleName Assert {
-    BeforeAll { 
+InPesterModuleScope {
+    BeforeDiscovery {
+        Add-Type -TypeDefinition 'namespace Assertions.TestType {
+            public class Person2 {
+                // powershell v2 mandates fully implemented properties
+                string _name;
+                int _age;
+                public string Name { get { return _name; } set { _name = value; } }
+                public int Age { get { return _age; } set { _age = value; } }
+            }
+        }'
+    }
+
+    BeforeAll {
         function Get-TestCase ($Value) {
             #let's see if this is useful, it's nice for values, but sucks for
             #types that serialize to just the type name (most of them)
-            if ($null -ne $Value)
-            {
+            if ($null -ne $Value) {
                 @{
                     Value = $Value
-                    Type = $Value.GetType()
+                    Type  = $Value.GetType()
                 }
             }
-            else
-            {
+            else {
                 @{
                     Value = $null
-                    Type = '<none>'
+                    Type  = '<none>'
                 }
             }
         }
@@ -56,7 +56,7 @@ InModuleScope -ModuleName Assert {
         It "Given a value it returns the value and its type in a hashtable" {
             $expected = @{
                 Value = 1
-                Type = [Int]
+                Type  = [Int]
             }
 
             $actual = Get-TestCase -Value $expected.Value
@@ -69,7 +69,7 @@ InModuleScope -ModuleName Assert {
         It "Given `$null it returns <none> as the name of the type" {
             $expected = @{
                 Value = $null
-                Type = 'none'
+                Type  = 'none'
             }
 
             $actual = Get-TestCase -Value $expected.Value
@@ -97,7 +97,7 @@ InModuleScope -ModuleName Assert {
 
         It "Returns correct message when comparing value to an array" {
             $e = 'abc'
-            $a = 1,2,3
+            $a = 1, 2, 3
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
                 Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got '1, 2, 3'."
         }
@@ -127,17 +127,17 @@ InModuleScope -ModuleName Assert {
 
     Describe "Is-CollectionSize" {
         It "Given two collections '<expected>' '<actual>' of the same size it returns `$true" -TestCases @(
-            @{ Actual = (1,2,3); Expected = (1,2,3)},
-            @{ Actual = (1,2,3); Expected = (3,2,1)}
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3) },
+            @{ Actual = (1, 2, 3); Expected = (3, 2, 1) }
         ) {
             param ($Actual, $Expected)
             Is-CollectionSize -Actual $Actual -Expected $Expected | Verify-True
         }
 
         It "Given two collections '<expected>' '<actual>' of different sizes it returns `$false" -TestCases @(
-            @{ Actual = (1,2,3); Expected = (1,2,3,4)},
-            @{ Actual = (1,2,3); Expected = (1,2)}
-            @{ Actual = (1,2,3); Expected = @()}
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4) },
+            @{ Actual = (1, 2, 3); Expected = (1, 2) }
+            @{ Actual = (1, 2, 3); Expected = @() }
         ) {
             param ($Actual, $Expected)
             Is-CollectionSize -Actual $Actual -Expected $Expected | Verify-False
@@ -146,7 +146,7 @@ InModuleScope -ModuleName Assert {
 
     Describe "Get-CollectionSizeNotTheSameMessage" {
         It "Given two collections of differrent sizes it returns the correct message" {
-            Get-CollectionSizeNotTheSameMessage -Expected (1,2,3) -Actual (1,2) | Verify-Equal "Expected collection '1, 2, 3' with length '3' to be the same size as the actual collection, but got '1, 2' with length '2'."
+            Get-CollectionSizeNotTheSameMessage -Expected (1, 2, 3) -Actual (1, 2) | Verify-Equal "Expected collection '1, 2, 3' with length '3' to be the same size as the actual collection, but got '1, 2' with length '2'."
         }
     }
 
@@ -165,9 +165,9 @@ InModuleScope -ModuleName Assert {
             @{ Actual = "1"; Expected = 1.01; Message = "Expected '1.01' to be equivalent to the actual value, but got '1'." },
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
             @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'abc, bde'." },
-            @{ Actual = {def}; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{def}'." },
+            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{def}'." },
             @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'PSObject{Name=Jakub}'." },
-            @{ Actual = (1,2,3); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '1, 2, 3'." }
+            @{ Actual = (1, 2, 3); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '1, 2, 3'." }
         ) {
             param($Actual, $Expected, $Message)
             Compare-ValueEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -181,24 +181,24 @@ InModuleScope -ModuleName Assert {
         }
 
         It "Given two collections '<expected>' '<actual>' of different sizes it returns message '<message>'" -TestCases @(
-            @{ Actual = (1,2,3); Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'."},
-            @{ Actual = (1,2,3); Expected = (3,1); Message = "Expected collection '3, 1' with length '2' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." }
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." },
+            @{ Actual = (1, 2, 3); Expected = (3, 1); Message = "Expected collection '3, 1' with length '2' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
         }
 
         It "Given collection '<expected>' on the expected side and non-collection '<actual>' on the actual side it prints the correct message '<message>'" -TestCases @(
-            @{ Actual = 3; Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'."},
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'."}
+            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
         }
 
         It "Given two collections '<expected>' '<actual>' it compares each value with each value and returns `$null if all of them are equivalent" -TestCases @(
-            @{ Actual = (1,2,3); Expected = (1,2,3)}
-            @{ Actual = (1,2,3); Expected = (3,2,1)}
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3) }
+            @{ Actual = (1, 2, 3); Expected = (3, 2, 1) }
 
             # issue https://github.com/nohwnd/Assert/issues/31
             @{ Actual = ($null, $null); Expected = ($null, $null) }
@@ -213,8 +213,8 @@ InModuleScope -ModuleName Assert {
         }
 
         It "Given two collections '<expected>' '<actual>' it compares each value with each value and returns message '<message> if any of them are not equivalent" -TestCases @(
-            @{ Actual = (1,2,3); Expected = (4,5,6); Message = "Expected collection '4, 5, 6' to be equivalent to '1, 2, 3' but some values were missing: '4, 5, 6'."},
-            @{ Actual = (1,2,3); Expected = (1,2,2); Message = "Expected collection '1, 2, 2' to be equivalent to '1, 2, 3' but some values were missing: '2'."}
+            @{ Actual = (1, 2, 3); Expected = (4, 5, 6); Message = "Expected collection '4, 5, 6' to be equivalent to '1, 2, 3' but some values were missing: '4, 5, 6'." },
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 2); Message = "Expected collection '1, 2, 2' to be equivalent to '1, 2, 3' but some values were missing: '2'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -226,7 +226,7 @@ InModuleScope -ModuleName Assert {
             @{ Expected = "a" },
             @{ Expected = "1" },
             @{ Expected = { abc } },
-            @{ Expected = (1,2,3) }
+            @{ Expected = (1, 2, 3) }
         ) {
             param($Expected) {}
             $err = { Compare-ObjectEquivalent -Actual "dummy" -Expected $Expected } | Verify-Throw
@@ -234,7 +234,7 @@ InModuleScope -ModuleName Assert {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'."}
+            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-ObjectEquivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
@@ -291,15 +291,15 @@ InModuleScope -ModuleName Assert {
             @{ Actual = $true; Expected = 'True' },
             @{ Actual = 'True'; Expected = $true },
             @{ Actual = $false; Expected = 'False' },
-            @{ Actual = 'False'; Expected = $false},
+            @{ Actual = 'False'; Expected = $false },
             @{ Actual = 1; Expected = 1 },
             @{ Actual = "1"; Expected = 1 },
             @{ Actual = "abc"; Expected = "abc" },
             @{ Actual = @("abc"); Expected = "abc" },
             @{ Actual = "abc"; Expected = @("abc") },
-            @{ Actual = {abc}; Expected = "abc" },
-            @{ Actual = "abc"; Expected = {abc} },
-            @{ Actual = {abc}; Expected = {abc} }
+            @{ Actual = { abc }; Expected = "abc" },
+            @{ Actual = "abc"; Expected = { abc } },
+            @{ Actual = { abc }; Expected = { abc } }
         ) {
             param ($Actual, $Expected)
             Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Null
@@ -314,22 +314,22 @@ InModuleScope -ModuleName Assert {
             @{ Actual = "1"; Expected = 1.01; Message = "Expected '1.01' to be equivalent to the actual value, but got '1'." },
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
             @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'abc, bde'." },
-            @{ Actual = {def}; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{def}'." },
-            @{ Actual = "def"; Expected = {abc}; Message = "Expected '{abc}' to be equivalent to the actual value, but got 'def'." },
-            @{ Actual = {abc}; Expected = {def}; Message = "Expected '{def}' to be equivalent to the actual value, but got '{abc}'." },
-            @{ Actual = (1,2,3); Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'."},
-            @{ Actual = 3; Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'."},
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1,2,3,4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'."},
+            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{def}'." },
+            @{ Actual = "def"; Expected = { abc }; Message = "Expected '{abc}' to be equivalent to the actual value, but got 'def'." },
+            @{ Actual = { abc }; Expected = { def }; Message = "Expected '{def}' to be equivalent to the actual value, but got '{abc}'." },
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." },
+            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'." },
             @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "a"; Message = "Expected 'a' to be equivalent to the actual value, but got 'PSObject{Name=Jakub}'." },
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'."}
+            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'." }
             @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got 'a'." }
-            @{ Actual = 'a'; Expected =  New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'a'." }
+            @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'a'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
         }
 
-        It "Comparing the same instance of a psObject returns null"{
+        It "Comparing the same instance of a psObject returns null" {
             $actual = $expected = New-PSObject @{ Name = 'Jakub' }
             Verify-Same -Expected $expected -Actual $actual
 
@@ -339,15 +339,15 @@ InModuleScope -ModuleName Assert {
         It "Given PSObjects '<expected>' and '<actual> that are different instances but have the same values it returns report with Equivalent set to `$true" -TestCases @(
             @{
                 Expected = New-PSObject @{ Name = 'Jakub' }
-                Actual =   New-PSObject @{ Name = 'Jakub' }
+                Actual   = New-PSObject @{ Name = 'Jakub' }
             },
             @{
                 Expected = New-PSObject @{ Name = 'Jakub' }
-                Actual =   New-PSObject @{ Name = 'Jakub' }
+                Actual   = New-PSObject @{ Name = 'Jakub' }
             },
             @{
                 Expected = New-PSObject @{ Age = 28 }
-                Actual =   New-PSObject @{ Age = '28' }
+                Actual   = New-PSObject @{ Age = '28' }
             }
         ) {
             param ($Expected, $Actual)
@@ -359,18 +359,18 @@ InModuleScope -ModuleName Assert {
         It "Given PSObjects '<expected>' and '<actual> that have different values in some of the properties it returns message '<message>'" -TestCases @(
             @{
                 Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
-                Actual = New-PSObject @{ Name = 'Jakub'; Age = 19 }
-                Message = "Expected property .Age with value '28' to be equivalent to the actual value, but got '19'."
+                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 19 }
+                Message  = "Expected property .Age with value '28' to be equivalent to the actual value, but got '19'."
             },
             @{
                 Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
-                Actual = New-PSObject @{ Name = 'Jakub'}
-                Message = "Expected has property 'Age' that the other object does not have."
+                Actual   = New-PSObject @{ Name = 'Jakub' }
+                Message  = "Expected has property 'Age' that the other object does not have."
             },
             @{
-                Expected = New-PSObject @{ Name = 'Jakub'}
-                Actual = New-PSObject @{ Name = 'Jakub'; Age = 28 }
-                Message = "Expected is missing property 'Age' that the other object has."
+                Expected = New-PSObject @{ Name = 'Jakub' }
+                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 28 }
+                Message  = "Expected is missing property 'Age' that the other object has."
             }
         ) {
             param ($Expected, $Actual, $Message)
@@ -381,8 +381,8 @@ InModuleScope -ModuleName Assert {
 
         It "Given PSObject '<expected>' and object '<actual> that have the same values it returns `$null" -TestCases @(
             @{
-                Expected = New-Object -TypeName Assertions.TestType.Person2 -Property @{ Name = 'Jakub'; Age  = 28}
-                Actual =   New-PSObject @{ Name = 'Jakub'; Age = 28 }
+                Expected = New-Object -TypeName Assertions.TestType.Person2 -Property @{ Name = 'Jakub'; Age = 28 }
+                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 28 }
             }
         ) {
             param ($Expected, $Actual)
@@ -392,8 +392,8 @@ InModuleScope -ModuleName Assert {
 
         It "Given PSObjects '<expected>' and '<actual> that contain different arrays in the same property returns the correct message" -TestCases @(
             @{
-                Expected = New-PSObject @{ Numbers = 1,2,3 }
-                Actual =   New-PSObject @{ Numbers = 3,4,5 }
+                Expected = New-PSObject @{ Numbers = 1, 2, 3 }
+                Actual   = New-PSObject @{ Numbers = 3, 4, 5 }
             }
         ) {
             param ($Expected, $Actual)
@@ -404,7 +404,7 @@ InModuleScope -ModuleName Assert {
         It "Comparing psObjects that have collections of objects returns `$null when the objects have the same value" -TestCases @(
             @{
                 Expected = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Tomas" }) }
-                Actual =   New-PSObject @{ Objects = (New-PSObject @{ Name = "Tomas" }), (New-PSObject @{ Name = "Jan" }) }
+                Actual   = New-PSObject @{ Objects = (New-PSObject @{ Name = "Tomas" }), (New-PSObject @{ Name = "Jan" }) }
             }
         ) {
             param ($Expected, $Actual)
@@ -414,7 +414,7 @@ InModuleScope -ModuleName Assert {
         It "Comparing psObjects that have collections of objects returns the correct message when the items in the collection differ" -TestCases @(
             @{
                 Expected = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Petr" }) }
-                Actual =   New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Tomas" }) }
+                Actual   = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Tomas" }) }
             }
         ) {
             param ($Expected, $Actual)
@@ -465,15 +465,15 @@ InModuleScope -ModuleName Assert {
             Assert-Equivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized
             Assert-Equivalent -Actual $Actual -Expected $ExpectedDeserialized
 
-            {Assert-Equivalent -Actual $Actual -Expected $Expected -StrictOrder} | Should -Throw
+            { Assert-Equivalent -Actual $Actual -Expected $Expected -StrictOrder } | Should -Throw
 
             $Actual.Rows[1].Name = 'D'
-            {Assert-Equivalent -Actual $Actual -Expected $Expected} | Should -Throw
+            { Assert-Equivalent -Actual $Actual -Expected $Expected } | Should -Throw
 
             $ExpectedDeserialized = SerializeDeserialize $Expected
             $ActualDeserialized = SerializeDeserialize $Actual
-            {Assert-Equivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized} | Should -Throw
-            {Assert-Equivalent -Actual $Actual -Expected $ExpectedDeserialized} | Should -Throw
+            { Assert-Equivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized } | Should -Throw
+            { Assert-Equivalent -Actual $Actual -Expected $ExpectedDeserialized } | Should -Throw
         }
 
         It "Can be called with positional parameters" {

@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-NotNull" {
         It "Given a value it passes" {
             1 | Assert-NotNull

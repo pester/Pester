@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-NotType" {
         It "Given value of expected type it fails" {
             { 1 | Assert-NotType ([int]) } | Verify-AssertionFailed

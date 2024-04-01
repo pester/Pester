@@ -1,5 +1,4 @@
-﻿function Test-StringEqual
-{
+﻿function Test-StringEqual {
     param (
         [String]$Expected,
         $Actual,
@@ -7,33 +6,28 @@
         [switch]$IgnoreWhitespace
     )
 
-    if ($IgnoreWhitespace)
-    {
+    if ($IgnoreWhitespace) {
         $Expected = $Expected -replace '\s'
         $Actual = $Actual -replace '\s'
     }
 
-    if (-not $CaseSensitive)
-    {
+    if (-not $CaseSensitive) {
         $Expected -eq $Actual
     }
-    else
-    {
+    else {
         $Expected -ceq $Actual
     }
 }
 
-function Get-StringEqualDefaultFailureMessage ([String]$Expected, $Actual)
-{
+function Get-StringEqualDefaultFailureMessage ([String]$Expected, $Actual) {
     "Expected the string to be '$Expected' but got '$Actual'."
 }
 
-function Assert-StringEqual
-{
+function Assert-StringEqual {
     param (
-        [Parameter(Position=1, ValueFromPipeline=$true)]
+        [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position=0)]
+        [Parameter(Position = 0)]
         [String]$Expected,
         [String]$CustomMessage,
         [switch]$CaseSensitive,
@@ -42,18 +36,15 @@ function Assert-StringEqual
 
     $_actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
 
-    if (-not $CustomMessage)
-    {
+    if (-not $CustomMessage) {
         $formattedMessage = Get-StringEqualDefaultFailureMessage -Expected $Expected -Actual $_actual
     }
-    else
-    {
+    else {
         $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $_actual -CustomMessage $CustomMessage
     }
 
     $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $_actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace
-    if (-not ($stringsAreEqual))
-    {
-        throw [Assertions.AssertionException]$formattedMessage
+    if (-not ($stringsAreEqual)) {
+        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

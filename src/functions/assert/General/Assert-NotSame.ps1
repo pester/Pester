@@ -11,7 +11,7 @@
     if ([object]::ReferenceEquals($Expected, $Actual))
     {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected <expectedType> '<expected>', to not be the same instance."
-        throw [Assertions.AssertionException]$Message
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
     $Actual

@@ -11,7 +11,7 @@
     if ((Ensure-ExpectedIsNotCollection $Expected) -ge $Actual)
     {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected <actualType> '<actual>' to be greater than <expectedType> '<expected>', but it was not."
-        throw [Assertions.AssertionException]$Message
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
     $Actual

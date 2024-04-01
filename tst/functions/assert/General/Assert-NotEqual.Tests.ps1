@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-NotEqual" {
         Context "Comparing strings" {
             It "Fails when two strings are equal" {

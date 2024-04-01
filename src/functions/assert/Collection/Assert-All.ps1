@@ -1,9 +1,9 @@
 ﻿function Assert-All {
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline=$true, Position=1)]
+        [Parameter(ValueFromPipeline = $true, Position = 1)]
         $Actual,
-        [Parameter(Position=0, Mandatory=$true)]
+        [Parameter(Position = 0, Mandatory = $true)]
         [scriptblock]$FilterScript,
         [String]$CustomMessage
     )
@@ -27,14 +27,13 @@
         if (-not $pass) { $_ }
     }
 
-    if ($actualFiltered)
-    {
+    if ($actualFiltered) {
         $data = @{
-            actualFiltered = $actualFiltered
+            actualFiltered      = $actualFiltered
             actualFilteredCount = @($actualFiltered).Count
         }
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected all items in collection '<actual>' to pass filter '<expected>', but <actualFilteredCount> of them '<actualFiltered>' did not pass the filter."
-        throw [Assertions.AssertionException]$Message
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
     $Actual

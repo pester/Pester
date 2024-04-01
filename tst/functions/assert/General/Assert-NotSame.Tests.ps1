@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-NotSame" {
         It "Fails when two objects are the same instance" {
             $object = New-Object Diagnostics.Process

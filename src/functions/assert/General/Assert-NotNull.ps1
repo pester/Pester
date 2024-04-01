@@ -9,7 +9,7 @@
     if ($null -eq $Actual)
     {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected not `$null, but got `$null."
-        throw [Assertions.AssertionException]$Message
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
     $Actual

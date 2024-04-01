@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Ensure-ExpectedIsNotCollection" {
         It "Given a collection it throws ArgumentException" {
             $error = { Ensure-ExpectedIsNotCollection -InputObject @() } | Verify-Throw

@@ -282,6 +282,9 @@ $script = @(
     "$PSScriptRoot/src/Pester.RSpec.ps1"
     "$PSScriptRoot/src/Main.ps1"
 
+    # TODO:  Imports Compatibility.ps1, remove the code that is there, because it is for PowerShell 2.0 compatibility!
+    "$PSScriptRoot/src/functions/assert/*"
+    "$PSScriptRoot/src/functions/assert/*/*"
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"
 
@@ -326,7 +329,8 @@ foreach ($f in $files) {
     else {
         # when not inlining just dot-source the file
         if ($f.FullName -notlike "*.ps1") {
-            throw "$($f.FullName) is not a ps1 file"
+            Write-Warning "$($f.FullName) is not a ps1 file"
+            # throw "$($f.FullName) is not a ps1 file"
         }
         $null = $sb.AppendLine(". '$($f.FullName)'")
     }

@@ -12,7 +12,7 @@
     if (-not ($Actual | Where-Object -FilterScript $FilterScript))
     {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected at least one item in collection '<actual>' to pass filter '<expected>', but none of the items passed the filter."
-        throw [Assertions.AssertionException]$Message
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
     $Actual

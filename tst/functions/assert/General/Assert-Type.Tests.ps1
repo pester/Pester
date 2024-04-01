@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-Type" {
         It "Given value of expected type it passes" {
             1| Assert-Type ([int])

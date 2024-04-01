@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Get-StringNotEqualDefaultFailureMessage" {
         It "returns correct default message" {
             $expected = "Expected the strings to be different but they were the same 'abc'."

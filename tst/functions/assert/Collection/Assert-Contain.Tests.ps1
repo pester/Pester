@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-Contain" {
         It "Passes when collection of single item contains the expected item" {
             @(1) | Assert-Contain 1

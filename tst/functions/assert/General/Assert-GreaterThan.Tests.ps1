@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Assert-GreaterThan" {
         Context "Comparing strings" {
             It "Passes when actual is greater than expected" {

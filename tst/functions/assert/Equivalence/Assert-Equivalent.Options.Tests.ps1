@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Compare-Equivalent - Exclude path options" {
         Context "Full excluded paths" {
 

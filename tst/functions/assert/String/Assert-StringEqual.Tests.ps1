@@ -1,4 +1,6 @@
-﻿InModuleScope -ModuleName Assert {
+﻿Set-StrictMode -Version Latest
+
+InPesterModuleScope {
     Describe "Test-StringEqual" {
         Context "Case insensitive matching" {
             It "strings with the same values are equal" {
