@@ -1,6 +1,6 @@
 function Assert-Throw {
     param (
-        [Parameter(ValueFromPipeline=$true, Mandatory = $true)]
+        [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
         [Type]$ExceptionType,
         [String]$ExceptionMessage,
@@ -15,8 +15,7 @@ function Assert-Throw {
     $err = $null
     try {
         $p = 'stop'
-        if ($AllowNonTerminatingError)
-        {
+        if ($AllowNonTerminatingError) {
             $p = 'continue'
         }
         # compatibility fix for powershell v2
@@ -25,8 +24,7 @@ function Assert-Throw {
 
         $null = (Invoke-WithContext -ScriptBlock $ScriptBlock -Variables @{ ErrorActionPreference = $p }) 2>&1
     }
-    catch
-    {
+    catch {
         $errorThrown = $true
         $err = Get-Error $_
     }
@@ -36,13 +34,13 @@ function Assert-Throw {
 
     $filterOnExceptionType = $null -ne $ExceptionType
     if ($filterOnExceptionType) {
-        $exceptionFilterTypeFormatted = Format-Type $ExceptionType
+        $exceptionFilterTypeFormatted = Format-Type2 $ExceptionType
 
         $filters += "of type $exceptionFilterTypeFormatted"
 
         $exceptionTypeFilterMatches = $err.Exception -is $ExceptionType
         if (-not $exceptionTypeFilterMatches) {
-            $exceptionTypeFormatted = Get-ShortType $err.Exception
+            $exceptionTypeFormatted = Get-ShortType2 $err.Exception
             $buts += "the exception type was '$exceptionTypeFormatted'"
         }
     }
@@ -63,8 +61,7 @@ function Assert-Throw {
         }
     }
 
-    if (-not $errorThrown)
-    {
+    if (-not $errorThrown) {
         $buts += "no exception was thrown"
     }
 
@@ -74,7 +71,7 @@ function Assert-Throw {
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
 
         $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -CustomMessage $CustomMessage `
-        -DefaultMessage $defaultMessage
+            -DefaultMessage $defaultMessage
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
@@ -83,39 +80,34 @@ function Assert-Throw {
 
 function Get-Error ($ErrorRecord) {
 
-    if ($ErrorRecord.Exception -like '*"InvokeWithContext"*')
-    {
+    if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
         $e = $ErrorRecord.Exception.InnerException.ErrorRecord
     }
-    else
-    {
+    else {
         $e = $ErrorRecord
     }
     New-Object -TypeName PSObject -Property @{
-        ErrorRecord = $e
-        ExceptionMessage = $e.Exception.Message
-        Exception = $e.Exception
-        ExceptionType = $e.Exception.GetType()
+        ErrorRecord           = $e
+        ExceptionMessage      = $e.Exception.Message
+        Exception             = $e.Exception
+        ExceptionType         = $e.Exception.GetType()
         FullyQualifiedErrorId = $e.FullyQualifiedErrorId
     }
 }
 
-function Join-And ($Items, $Threshold=2) {
+function Join-And ($Items, $Threshold = 2) {
 
-    if ($null -eq $items -or $items.count -lt $Threshold)
-    {
+    if ($null -eq $items -or $items.count -lt $Threshold) {
         $items -join ', '
     }
-    else
-    {
+    else {
         $c = $items.count
-        ($items[0..($c-2)] -join ', ') + ' and ' + $items[-1]
+        ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
     }
 }
 
 function Add-SpaceToNonEmptyString ([string]$Value) {
-    if ($Value)
-    {
+    if ($Value) {
         " $Value"
     }
 }

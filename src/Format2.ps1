@@ -51,7 +51,7 @@ function Format-Hashtable2 ($Value) {
     $tail = '}'
 
     $entries = $Value.Keys | Sort-Object | ForEach-Object {
-        $formattedValue = Format-Nicely $Value.$_
+        $formattedValue = Format-Nicely2 $Value.$_
         "$_=$formattedValue" }
 
     $head + ( $entries -join '; ') + $tail
@@ -62,7 +62,7 @@ function Format-Dictionary2 ($Value) {
     $tail = '}'
 
     $entries = $Value.Keys | Sort-Object | ForEach-Object {
-        $formattedValue = Format-Nicely $Value.$_
+        $formattedValue = Format-Nicely2 $Value.$_
         "$_=$formattedValue" }
 
     $head + ( $entries -join '; ') + $tail

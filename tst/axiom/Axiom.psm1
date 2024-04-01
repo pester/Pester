@@ -13,4 +13,6 @@
 
 . $PSScriptRoot\Verify-Type.ps1
 
+. $PSScriptRoot\Verify-Like.ps1
+
 . $PSScriptRoot\Verify-AssertionFailed.ps1

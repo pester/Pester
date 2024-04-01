@@ -124,7 +124,7 @@
         # division by zero circumvents try catch in pwsh v2
         # so we divide by $null to trigger the same exception
         It 'Exception is thrown by division by zero' {
-            { 1/$null } | Assert-Throw
+            { 1 / $null } | Assert-Throw
         }
 
         It 'Terminating error is thrown by cmdlet failing to bind paramaters' {
@@ -150,12 +150,10 @@
 
 Describe "General try catch behavior" {
     It 'Gets error record when exception is thrown by throw keyword' {
-        try
-        {
-            &{ throw "fail!" }
+        try {
+            & { throw "fail!" }
         }
-        catch
-        {
+        catch {
             $err = $_
         }
 
@@ -164,12 +162,10 @@ Describe "General try catch behavior" {
     }
 
     It 'Gets error record when exception is thrown from .net' {
-        try
-        {
-            &{ [io.directory]::delete("non-existing"); }
+        try {
+            & { [io.directory]::delete("non-existing"); }
         }
-        catch
-        {
+        catch {
             $err = $_
         }
 
@@ -178,12 +174,10 @@ Describe "General try catch behavior" {
     }
 
     It 'Gets error record when non-terminating error is translated to terminating error' {
-        try
-        {
-            &{ Get-Item "non-existing" -ErrorAction 'stop' }
+        try {
+            & { Get-Item "non-existing" -ErrorAction 'stop' }
         }
-        catch
-        {
+        catch {
             $err = $_
         }
 
@@ -193,13 +187,11 @@ Describe "General try catch behavior" {
 
 
     It 'Gets error record when non-terminating error is translated to terminating error' {
-        try
-        {
+        try {
             $ErrorActionPreference = 'stop'
-            &{ Get-Item "non-existing" }
+            & { Get-Item "non-existing" }
         }
-        catch
-        {
+        catch {
             $err = $_
         }
 
@@ -208,19 +200,17 @@ Describe "General try catch behavior" {
     }
 }
 
-InModuleScope -ModuleName "Assert" {
+InPesterModuleScope {
     Describe "Get-Error" {
         It 'Unwraps error from invoke with context' {
             $ErrorActionPreference = 'stop'
-            try
-            {
+            try {
                 $sb = {
                     Get-Item "/non-existing"
                 }
                 Invoke-WithContext $sb -Variables @{ ErrorActionPreference = "Stop" }
             }
-            catch
-            {
+            catch {
                 $e = $_
             }
 
