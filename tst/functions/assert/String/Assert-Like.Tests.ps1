@@ -1,4 +1,6 @@
-﻿Describe "Assert-Like" {
+﻿Set-StrictMode -Version Latest
+
+Describe "Assert-Like" {
     Context "Case insensitive matching" {
         It "Passes give strings that have the same value" {
             Assert-Like -Expected "abc" -Actual "abc"

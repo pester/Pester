@@ -1,4 +1,6 @@
-﻿Describe "Assert-Throw" {
+﻿Set-StrictMode -Version Latest
+
+Describe "Assert-Throw" {
     It "Passes when exception is thrown" {
         { throw } | Assert-Throw
     }

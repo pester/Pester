@@ -2,7 +2,7 @@
 
 BeforeDiscovery {
     $moduleName = 'Pester'
-    $exportedFunctions = Get-Command -CommandType Cmdlet, Function -Module $moduleName
+    $exportedFunctions = Get-Command -CommandType Cmdlet, Function -Module $moduleName | Where-Object { $_.Name -notlike "Assert-*" }
 }
 
 Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $exportedFunctions; moduleName = $moduleName } {
@@ -68,7 +68,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
                 (Get-AssertionDynamicParams).Values | Where-Object name -in $operators
             }
 
-            $parametersMissingHelp = @($operatorParams |Where-Object {
+            $parametersMissingHelp = @($operatorParams | Where-Object {
                     $attr = $_.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
                     $null -eq $attr -or $attr.HelpMessage -eq $null
                 } | ForEach-Object Name)

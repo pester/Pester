@@ -1,4 +1,6 @@
-﻿Describe "Assert-NotLike" {
+﻿Set-StrictMode -Version Latest
+
+Describe "Assert-NotLike" {
     Context "Case insensitive matching" {
         It "Fails give strings that have the same value" {
             { Assert-NotLike -Expected "abc" -Actual "abc" } | Verify-AssertionFailed

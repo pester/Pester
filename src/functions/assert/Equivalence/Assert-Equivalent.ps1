@@ -223,11 +223,10 @@ function Compare-ValueEquivalent ($Actual, $Expected, $Property, $Options) {
             return
         }
 
-        #fix that scriptblocks are compared by reference
+        # fix that scriptblocks are compared by reference
         if (Is-ScriptBlock -Value $Expected) {
-            # todo: compare by equivalency like strings?
             v "`$Expected is a ScriptBlock, scriptblocks are considered equivalent when their content is equal. Converting `$Expected to string."
-            #forcing scriptblock to serialize to string and then comparing that
+            # forcing scriptblock to serialize to string and then comparing that
             if ("$Expected" -ne $Actual) {
                 # todo: difference on index?
                 v -Difference "`$Actual is not equivalent to `$Expected because their contents differ."
@@ -529,7 +528,7 @@ function Compare-Equivalent {
         $Expected,
         $Path,
         $Options = (& {
-                Write-Warning "Getting default equivalency options, this should never be seen. If you see this and you are not developing Assert, please file issue at https://github.com/nohwnd/Assert/issues"
+                Write-Warning "Getting default equivalency options, this should never be seen. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues"
                 Get-EquivalencyOption
             })
     )
@@ -539,8 +538,8 @@ function Compare-Equivalent {
         return
     }
 
-    #start by null checks to avoid implementing null handling
-    #logic in the functions that follow
+    # start by null checks to avoid implementing null handling
+    # logic in the functions that follow
     if ($null -eq $Expected) {
         v "`$Expected is `$null, so we are expecting `$null."
         if ($Expected -ne $Actual) {
@@ -554,21 +553,21 @@ function Compare-Equivalent {
     }
 
     if ($null -eq $Actual) {
-        v -Difference "`$Actual is $(Format-Nicely2), but `$Expected has value of type $(Format-Nicely2 Get-Type $Expected), so they are not equivalent."
+        v -Difference "`$Actual is $(Format-Nicely2), but `$Expected has value of type $(Format-Nicely2 (Get-Type $Expected)), so they are not equivalent."
         return Get-ValueNotEquivalentMessage -Expected $Expected -Actual $Actual -Property $Path
     }
 
     v "`$Expected has type $(Get-Type $Expected), `$Actual has type $(Get-Type $Actual), they are both non-null."
 
-    #test value types, strings, and single item arrays with values in them as values
-    #expand the single item array to get to the value in it
+    # test value types, strings, and single item arrays with values in them as values
+    # expand the single item array to get to the value in it
     if (Is-Value -Value $Expected) {
         v "`$Expected is a value (value type, string, single value array, or a scriptblock), we will be comparing `$Actual to value types."
         Compare-ValueEquivalent -Actual $Actual -Expected $Expected -Property $Path -Options $Options
         return
     }
 
-    #are the same instance
+    # are the same instance
     if (Test-Same -Expected $Expected -Actual $Actual) {
         v -Equivalence "`$Expected and `$Actual are equivalent because they are the same object (by reference)."
         return

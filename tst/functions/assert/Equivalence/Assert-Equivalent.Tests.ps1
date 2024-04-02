@@ -297,8 +297,8 @@ InPesterModuleScope {
             @{ Actual = "abc"; Expected = "abc" },
             @{ Actual = @("abc"); Expected = "abc" },
             @{ Actual = "abc"; Expected = @("abc") },
-            @{ Actual = { abc }; Expected = "abc" },
-            @{ Actual = "abc"; Expected = { abc } },
+            @{ Actual = { abc }; Expected = " abc " },
+            @{ Actual = " abc "; Expected = { abc } },
             @{ Actual = { abc }; Expected = { abc } }
         ) {
             param ($Actual, $Expected)
@@ -314,9 +314,9 @@ InPesterModuleScope {
             @{ Actual = "1"; Expected = 1.01; Message = "Expected '1.01' to be equivalent to the actual value, but got '1'." },
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
             @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'abc, bde'." },
-            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{def}'." },
-            @{ Actual = "def"; Expected = { abc }; Message = "Expected '{abc}' to be equivalent to the actual value, but got 'def'." },
-            @{ Actual = { abc }; Expected = { def }; Message = "Expected '{def}' to be equivalent to the actual value, but got '{abc}'." },
+            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{ def }'." },
+            @{ Actual = "def"; Expected = { abc }; Message = "Expected '{ abc }' to be equivalent to the actual value, but got 'def'." },
+            @{ Actual = { abc }; Expected = { def }; Message = "Expected '{ def }' to be equivalent to the actual value, but got '{ abc }'." },
             @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." },
             @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'." },
             @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'." },

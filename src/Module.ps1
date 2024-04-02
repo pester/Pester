@@ -46,7 +46,6 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Assert-Any'
     'Assert-Contain'
     'Assert-NotContain'
-    'AssertionException'
     'Assert-Equivalent'
     'Assert-Throw'
     'Assert-Equal'

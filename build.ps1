@@ -331,8 +331,7 @@ foreach ($f in $files) {
     else {
         # when not inlining just dot-source the file
         if ($f.FullName -notlike "*.ps1") {
-            Write-Warning "$($f.FullName) is not a ps1 file"
-            # throw "$($f.FullName) is not a ps1 file"
+            throw "$($f.FullName) is not a ps1 file"
         }
         $null = $sb.AppendLine(". '$($f.FullName)'")
     }

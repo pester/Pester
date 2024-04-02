@@ -1,4 +1,6 @@
-﻿Describe "Assert-LessThan" {
+﻿Set-StrictMode -Version Latest
+
+Describe "Assert-LessThan" {
     Context "Comparing strings" {
         It "Passes when actual is less than expected" {
             "a" | Assert-LessThan "z"
@@ -70,20 +72,20 @@
     }
 
     It "Fails for array input even if the last item is less than the expected value" {
-            $err = {  4,3,2,1 | Assert-LessThan 3 } | Verify-Throw
-            $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
+        $err = { 4, 3, 2, 1 | Assert-LessThan 3 } | Verify-Throw
+        $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
     }
 
     It "Fails with custom message" {
-            $err = { 3 | Assert-LessThan 2 -CustomMessage "<actual> is not less than <expected>" } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "3 is not less than 2"
+        $err = { 3 | Assert-LessThan 2 -CustomMessage "<actual> is not less than <expected>" } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "3 is not less than 2"
     }
 
     Context "Validate messages" {
         It "Given two values '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-            @{ Expected = "a" ; Actual = "z" ; Message = "Expected string 'z' to be less than string 'a', but it was not."},
-            @{ Expected = 1.1 ; Actual = 10.1 ; Message = "Expected double '10.1' to be less than double '1.1', but it was not."},
-            @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected decimal '10.1' to be less than decimal '1.1', but it was not."}
+            @{ Expected = "a" ; Actual = "z" ; Message = "Expected string 'z' to be less than string 'a', but it was not." },
+            @{ Expected = 1.1 ; Actual = 10.1 ; Message = "Expected double '10.1' to be less than double '1.1', but it was not." },
+            @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected decimal '10.1' to be less than decimal '1.1', but it was not." }
         ) {
             param($Expected, $Actual, $Message)
             $error = { Assert-LessThan -Actual $Actual -Expected $Expected } | Verify-AssertionFailed

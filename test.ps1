@@ -127,6 +127,10 @@ New-Module -Name TestHelpers -ScriptBlock {
     function Clear-WhiteSpace ($Text) {
         "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," ")".Trim()
     }
+
+    function New-PSObject ([hashtable]$Property) {
+        New-Object -Type PSObject -Property $Property
+    }
 } | Out-Null
 
 
