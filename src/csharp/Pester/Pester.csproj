@@ -8,8 +8,9 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <!-- this version is used specifically to support as old version of PS6 as we can.
+    ignoring vulnerability warning until we move to 6.1.6 or later
     issue: https://github.com/pester/Pester/issues/2207 -->
-    <PackageReference Include="System.Management.Automation" Version="6.0.4" />
+    <PackageReference Include="System.Management.Automation" Version="6.0.4" NoWarn="NU1903" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
