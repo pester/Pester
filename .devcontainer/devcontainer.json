@@ -14,7 +14,9 @@
 			"extensions": [
 				"ms-vscode.powershell",
 				"ms-dotnettools.csharp",
-				"redhat.vscode-xml"
+				"redhat.vscode-xml",
+				"ms-azure-devops.azure-pipelines",
+				"GitHub.vscode-github-actions"
 			]
 		}
 	},
