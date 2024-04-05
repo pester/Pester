@@ -344,6 +344,22 @@ i -PassThru:$PassThru {
                         $false | Should -Be $true 5
                     }
                 }
+
+                Describe "Describe #3" {
+                    It "Skipped testcase #1" -Skip {}
+                }
+
+                Describe "Describe #4" {
+                    It "Skipped testcase #2" {
+                        Set-ItResult -Skipped
+                    }
+                }
+
+                Describe "Describe #5" {
+                    It "Inconclusive testcase" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
             }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
