@@ -215,7 +215,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = invoke-pester -container ( new-pestercontainer -ScriptBlock $sb) -passThru -Output Detailed
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlResult.'test-results'.inconclusive | Verify-Equal 1
 
@@ -229,7 +229,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = invoke-pester -container ( new-pestercontainer -ScriptBlock $sb) -passThru -Output Detailed
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlResult.'test-results'.inconclusive | Verify-Equal 2
         }
@@ -242,7 +242,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = invoke-pester -container ( new-pestercontainer -ScriptBlock $sb) -passThru -Output Detailed
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlResult.'test-results'.skipped | Verify-Equal 1
 
@@ -255,7 +255,7 @@ i -PassThru:$PassThru {
                     }
                 }
             }
-            $r = invoke-pester -container ( new-pestercontainer -ScriptBlock $sb) -passThru -Output Detailed
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
             $xmlResult = $r | ConvertTo-NUnitReport
             $xmlResult.'test-results'.skipped | Verify-Equal 2
         }
