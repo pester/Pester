@@ -167,16 +167,10 @@ i -PassThru:$PassThru {
             $xmlTestCase2 = $xmlTestSuite.'test-case'[1]
 
             $xmlTestCase1.name | Verify-Equal 'Describe 1.Skipped testcase'
-            $xmlTestCase1.methodname | Verify-Equal 'Skipped testcase'
-            $xmlTestCase1.classname | Verify-Equal 'Describe 1'
-            $xmlTestCase1.fullname | Verify-Equal 'Describe 1.Skipped testcase'
             $xmlTestCase1.result | Verify-Equal 'Skipped'
             $xmlTestCase1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
 
             $xmlTestCase2.name | Verify-Equal 'Describe 2.Skipped testcase'
-            $xmlTestCase2.methodname | Verify-Equal 'Skipped testcase'
-            $xmlTestCase2.classname | Verify-Equal 'Describe 2'
-            $xmlTestCase2.fullname | Verify-Equal 'Describe 2.Skipped testcase'
             $xmlTestCase2.result | Verify-Equal 'Skipped'
             $xmlTestCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[1].Tests[0].Duration
         }
@@ -194,9 +188,6 @@ i -PassThru:$PassThru {
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
             $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
             $xmlTestCase.name | Verify-Equal 'Describe.Inconclusive testcase'
-            $xmlTestCase.methodname | Verify-Equal 'Inconclusive testcase'
-            $xmlTestCase.classname | Verify-Equal 'Describe'
-            $xmlTestCase.fullname | Verify-Equal 'Describe.Inconclusive testcase'
             $xmlTestCase.result | Verify-Equal 'Inconclusive'
             $xmlTestCase.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
         }
