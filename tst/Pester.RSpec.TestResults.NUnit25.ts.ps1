@@ -209,21 +209,12 @@ i -PassThru:$PassThru {
 
         t "should write inconclusive count" {
             $sb = {
-                Describe "Mocked Describe" {
-                    It "Inconclusive testcase" {
-                        Set-ItResult -Inconclusive
-                    }
-                }
-            }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
-            $xmlResult = $r | ConvertTo-NUnitReport
-            $xmlResult.'test-results'.inconclusive | Verify-Equal 1
-
-            $sb = {
-                Describe "Mocked Describe" {
+                Describe "Mocked Describe 1" {
                     It "Inconclusive testcase 1" {
                         Set-ItResult -Inconclusive
                     }
+                }
+                Describe "Mocked Describe 2" {
                     It "Inconclusive testcase 2" {
                         Set-ItResult -Inconclusive
                     }
@@ -236,20 +227,11 @@ i -PassThru:$PassThru {
 
         t "should write skipped count" {
             $sb = {
-                Describe "Mocked Describe" {
-                    It "Skipped testcase" {
-                        Set-ItResult -Skipped
-                    }
-                }
-            }
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
-            $xmlResult = $r | ConvertTo-NUnitReport
-            $xmlResult.'test-results'.skipped | Verify-Equal 1
-
-            $sb = {
-                Describe "Mocked Describe" {
+                Describe "Mocked Describe 1" {
                     It "Skipped testcase 1" -Skip {
                     }
+                }
+                Describe "Mocked Describe 2" {
                     It "Skippde testcase 2" {
                         Set-ItResult -Skipped
                     }
