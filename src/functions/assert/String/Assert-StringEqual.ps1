@@ -24,6 +24,7 @@ function Get-StringEqualDefaultFailureMessage ([String]$Expected, $Actual) {
 }
 
 function Assert-StringEqual {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -34,7 +35,7 @@ function Assert-StringEqual {
         [switch]$IgnoreWhitespace
     )
 
-    $_actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
+    $_actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
 
     if (-not $CustomMessage) {
         $formattedMessage = Get-StringEqualDefaultFailureMessage -Expected $Expected -Actual $_actual

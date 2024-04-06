@@ -1,4 +1,5 @@
 ﻿function Assert-NotType {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -7,7 +8,7 @@
         [String]$CustomMessage
     )
 
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
+    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
     if ($Actual -is $Expected) {
         $type = [string]$Expected
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected value to be of different type than '$type', but got '<actual>' of type '<actualType>'."

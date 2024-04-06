@@ -1,4 +1,5 @@
 ﻿function Assert-All {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true, Position = 1)]
@@ -10,7 +11,7 @@
 
 
     $Expected = $FilterScript
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
+    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
     # we are jumping between modules so I need to explicitly pass the _ variable
     # simply using '&' won't work
     # see: https://blogs.msdn.microsoft.com/sergey_babkins_blog/2014/10/30/calling-the-script-blocks-in-powershell/

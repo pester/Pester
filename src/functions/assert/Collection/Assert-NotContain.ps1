@@ -1,4 +1,5 @@
 ﻿function Assert-NotContain {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position=1, ValueFromPipeline=$true)]
         $Actual,
@@ -7,7 +8,7 @@
         [String]$CustomMessage
     )
 
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
+    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
     if ($Actual -contains $Expected)
     {
         $type = [string]$Expected

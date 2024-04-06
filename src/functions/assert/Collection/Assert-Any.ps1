@@ -1,4 +1,5 @@
 ﻿function Assert-Any {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(ValueFromPipeline = $true, Position = 1)]
         $Actual,
@@ -8,7 +9,7 @@
     )
 
     $Expected = $FilterScript
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input
+    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
     if (-not ($Actual | & $SafeCommands['Where-Object'] -FilterScript $FilterScript)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected at least one item in collection '<actual>' to pass filter '<expected>', but none of the items passed the filter."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)

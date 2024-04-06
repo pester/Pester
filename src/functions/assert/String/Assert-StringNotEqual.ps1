@@ -3,6 +3,7 @@
 }
 
 function Assert-StringNotEqual {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,

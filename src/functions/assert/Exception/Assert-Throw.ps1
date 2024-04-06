@@ -1,4 +1,5 @@
 function Assert-Throw {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
@@ -9,7 +10,7 @@ function Assert-Throw {
         [String]$CustomMessage
     )
 
-    $ScriptBlock = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input
+    $ScriptBlock = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
 
     $errorThrown = $false
     $err = $null
