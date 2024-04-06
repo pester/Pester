@@ -3,20 +3,25 @@
     if ($Pretty) {
         $separator = ",`n"
     }
-    ($Value | ForEach-Object { Format-Nicely2 -Value $_ -Pretty:$Pretty }) -join $separator
+
+    $o = foreach ($v in $Value) {
+        Format-Nicely2 -Value $v -Pretty:$Pretty
+    }
+
+    $o -join $separator
 }
 
 function Format-Object2 ($Value, $Property, [switch]$Pretty) {
     if ($null -eq $Property) {
-        $Property = $Value.PSObject.Properties | Select-Object -ExpandProperty Name
+        $Property = foreach ($p in $Value.PSObject.Properties) { $p.Name }
     }
-    $orderedProperty = $Property |
-        Sort-Object |
+    $orderedProperty = foreach ($p in $Property | & $SafeCommands['Sort-Object']) {
         # force the values to be strings for powershell v2
-        ForEach-Object { "$_" }
+        "$p"
+    }
 
     $valueType = Get-ShortType $Value
-    $valueFormatted = [string]([PSObject]$Value | Select-Object -Property $orderedProperty)
+    $valueFormatted = [string]([PSObject]$Value | & $SafeCommands['Select-Object'] -Property $orderedProperty)
 
     if ($Pretty) {
         $margin = "    "
@@ -50,9 +55,10 @@ function Format-Hashtable2 ($Value) {
     $head = '@{'
     $tail = '}'
 
-    $entries = $Value.Keys | Sort-Object | ForEach-Object {
-        $formattedValue = Format-Nicely2 $Value.$_
-        "$_=$formattedValue" }
+    $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object']) {
+        $formattedValue = Format-Nicely2 $Value.$v
+        "$v=$formattedValue"
+    }
 
     $head + ( $entries -join '; ') + $tail
 }
@@ -61,9 +67,10 @@ function Format-Dictionary2 ($Value) {
     $head = 'Dictionary{'
     $tail = '}'
 
-    $entries = $Value.Keys | Sort-Object | ForEach-Object {
-        $formattedValue = Format-Nicely2 $Value.$_
-        "$_=$formattedValue" }
+    $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object'] ) {
+        $formattedValue = Format-Nicely2 $Value.$v
+        "$v=$formattedValue"
+    }
 
     $head + ( $entries -join '; ') + $tail
 }

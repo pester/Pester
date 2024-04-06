@@ -210,7 +210,9 @@ InPesterModuleScope {
                 $sb = {
                     Get-Item "/non-existing"
                 }
-                Invoke-WithContext $sb -Variables @{ ErrorActionPreference = "Stop" }
+
+                $eap = [PSVariable]::new("erroractionpreference", 'Stop')
+                $null = $sb.InvokeWithContext($null, $eap, $null) 2>&1
             }
             catch {
                 $e = $_

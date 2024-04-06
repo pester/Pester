@@ -18,11 +18,9 @@ function Assert-Throw {
         if ($AllowNonTerminatingError) {
             $p = 'continue'
         }
-        # compatibility fix for powershell v2
-        # $eap = New-Object -TypeName psvariable "erroractionpreference", $p
-        # $null = $ScriptBlock.InvokeWithContext($null, $eap, $null) 2>&1
 
-        $null = (Invoke-WithContext -ScriptBlock $ScriptBlock -Variables @{ ErrorActionPreference = $p }) 2>&1
+        $eap = [PSVariable]::new("erroractionpreference", $p)
+        $null = $ScriptBlock.InvokeWithContext($null, $eap, $null) 2>&1
     }
     catch {
         $errorThrown = $true
@@ -86,7 +84,7 @@ function Get-Error ($ErrorRecord) {
     else {
         $e = $ErrorRecord
     }
-    New-Object -TypeName PSObject -Property @{
+    [PSCustomObject] @{
         ErrorRecord           = $e
         ExceptionMessage      = $e.Exception.Message
         Exception             = $e.Exception

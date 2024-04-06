@@ -49,7 +49,7 @@ function Invoke-WithContext {
     # making it invoke in the same scope as $ScriptBlock
     $scriptBlockWithContext.GetType().GetProperty('SessionStateInternal', $flags).SetValue($scriptBlockWithContext, $SessionStateInternal, $null)
 
-    & $scriptBlockWithContext @{ ScriptBlock = $ScriptBlock; Variables = $Variables  }
+    & $scriptBlockWithContext @{ ScriptBlock = $ScriptBlock; Variables = $Variables }
 }
 
 function Test-NullOrWhiteSpace ($Value) {
