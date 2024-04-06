@@ -123,7 +123,7 @@
 
     PrivateData       = @{
         # PSData is module packaging and gallery metadata embedded in PrivateData
-        # It's for rebuilding PowerSh5llGet (and PoshCode) NuGet-style packages
+        # It's for rebuilding PowerShellGet (and PoshCode) NuGet-style packages
         # We had to do this because it's the only place we're allowed to extend the manifest
         # https://connect.microsoft.com/PowerShell/feedback/details/421837
         PSData                  = @{
