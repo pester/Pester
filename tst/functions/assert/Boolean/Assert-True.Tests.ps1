@@ -16,8 +16,8 @@ Describe "Assert-True" {
     }
 
     It "Fails with custom message" {
-        $error = { $null | Assert-True -CustomMessage "<actual> is not true" } | Verify-AssertionFailed
-        $error.Exception.Message | Verify-Equal "`$null is not true"
+        $err = { $null | Assert-True -CustomMessage "<actual> is not true" } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "`$null is not true"
     }
 
     Context "Validate messages" {
@@ -26,8 +26,8 @@ Describe "Assert-True" {
             @{ Actual = 0 ; Message = "Expected int '0' to be bool '`$true' or truthy value." }
         ) {
             param($Actual, $Message)
-            $error = { Assert-True -Actual $Actual } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal $Message
+            $err = { Assert-True -Actual $Actual } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal $Message
         }
     }
 

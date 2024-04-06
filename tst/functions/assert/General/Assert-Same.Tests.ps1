@@ -15,21 +15,21 @@ InPesterModuleScope {
 
         It "Fails for array input even if the last item is the same as expected" {
             $object = New-Object Diagnostics.Process
-            { 1,2, $object | Assert-Same $object } | Verify-AssertionFailed
+            { 1, 2, $object | Assert-Same $object } | Verify-AssertionFailed
         }
 
         It "Fails with custom message" {
             $object = New-Object Diagnostics.Process
-            $error = { "text" | Assert-Same $object -CustomMessage "'<expected>' is not '<actual>'" } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal "'Diagnostics.Process{Id=; Name=}' is not 'text'"
+            $err = { "text" | Assert-Same $object -CustomMessage "'<expected>' is not '<actual>'" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "'Diagnostics.Process{Id=; Name=}' is not 'text'"
         }
 
         It "Given two values that are not the same instance '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-            @{ Expected = New-Object -TypeName PSObject ; Actual = New-Object -TypeName PSObject ; Message = "Expected PSObject '', to be the same instance but it was not."}
+            @{ Expected = New-Object -TypeName PSObject ; Actual = New-Object -TypeName PSObject ; Message = "Expected PSObject '', to be the same instance but it was not." }
         ) {
             param($Expected, $Actual, $Message)
-            $error = { Assert-Same -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal $Message
+            $err = { Assert-Same -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal $Message
         }
 
         It "Returns the value on output" {

@@ -143,10 +143,10 @@ Describe "Assert-Throw" {
     }
 
     It "Given scriptblock that throws it returns ErrorRecord to the output" {
-        $error = { throw [InvalidOperationException]"error" } | Assert-Throw
-        $error | Verify-Type ([Management.Automation.ErrorRecord])
-        $error.Exception | Verify-Type ([System.InvalidOperationException])
-        $error.Exception.Message | Verify-Equal "error"
+        $err = { throw [InvalidOperationException]"error" } | Assert-Throw
+        $err | Verify-Type ([Management.Automation.ErrorRecord])
+        $err.Exception | Verify-Type ([System.InvalidOperationException])
+        $err.Exception.Message | Verify-Equal "error"
     }
 }
 

@@ -89,8 +89,8 @@ InPesterModuleScope {
                 @{ Expected = 10.1D ; Actual = 1.1D ; Message = "Expected decimal '1.1' to be greater than decimal '10.1', but it was not."}
             ) {
                 param($Expected, $Actual, $Message)
-                $error = { Assert-GreaterThan -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
-                $error.Exception.Message | Verify-Equal $Message
+                $err = { Assert-GreaterThan -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal $Message
             }
         }
 
@@ -104,8 +104,8 @@ InPesterModuleScope {
         }
 
         It "Given collection to Expected it throws" {
-            $error = { "dummy" | Assert-GreaterThan @() } | Verify-Throw
-            $error.Exception | Verify-Type ([ArgumentException])
+            $err = { "dummy" | Assert-GreaterThan @() } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
         }
     }
 }

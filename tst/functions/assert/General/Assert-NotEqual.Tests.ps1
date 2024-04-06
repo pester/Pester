@@ -60,8 +60,8 @@ InPesterModuleScope {
         }
 
         It "Fails with custom message" {
-            $error = { 3 | Assert-NotEqual 3 -CustomMessage "<expected> is <actual>" } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal "3 is 3"
+            $err = { 3 | Assert-NotEqual 3 -CustomMessage "<expected> is <actual>" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "3 is 3"
         }
 
         Context "Validate messages" {
@@ -69,8 +69,8 @@ InPesterModuleScope {
                 @{ Value = 1;  Message = "Expected int '1', to be different than the actual value, but they were the same."}
             ) {
                 param($Value, $Message)
-                $error = { Assert-NotEqual -Actual $Value -Expected $Value } | Verify-AssertionFailed
-                $error.Exception.Message | Verify-Equal $Message
+                $err = { Assert-NotEqual -Actual $Value -Expected $Value } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal $Message
             }
         }
 
@@ -84,8 +84,8 @@ InPesterModuleScope {
         }
 
         It "Given collection to Expected it throws" {
-            $error = { "dummy" | Assert-NotEqual @() } | Verify-Throw
-            $error.Exception | Verify-Type ([ArgumentException])
+            $err = { "dummy" | Assert-NotEqual @() } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
         }
     }
 }

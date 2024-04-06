@@ -88,8 +88,8 @@ Describe "Assert-LessThanOrEqual" {
             @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected decimal '10.1' to be less than or equal to decimal '1.1', but it was not." }
         ) {
             param($Expected, $Actual, $Message)
-            $error = { Assert-LessThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal $Message
+            $err = { Assert-LessThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal $Message
         }
     }
 
@@ -103,7 +103,7 @@ Describe "Assert-LessThanOrEqual" {
     }
 
     It "Given collection to Expected it throws" {
-        $error = { "dummy" | Assert-LessThanOrEqual @() } | Verify-Throw
-        $error.Exception | Verify-Type ([ArgumentException])
+        $err = { "dummy" | Assert-LessThanOrEqual @() } | Verify-Throw
+        $err.Exception | Verify-Type ([ArgumentException])
     }
 }

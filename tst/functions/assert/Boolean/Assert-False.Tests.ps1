@@ -20,8 +20,8 @@ Describe "Assert-False" {
     }
 
     It "Fails with custom message" {
-        $error = { 9 | Assert-False -CustomMessage "<actual> is not false" } | Verify-AssertionFailed
-        $error.Exception.Message | Verify-Equal "9 is not false"
+        $err = { 9 | Assert-False -CustomMessage "<actual> is not false" } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "9 is not false"
     }
 
     Context "Validate messages" {
@@ -30,8 +30,8 @@ Describe "Assert-False" {
             @{ Actual = 10 ; Message = "Expected int '10' to be bool '`$false' or falsy value 0, """", `$null, @()." }
         ) {
             param($Actual, $Message)
-            $error = { Assert-False -Actual $Actual } | Verify-AssertionFailed
-            $error.Exception.Message | Verify-Equal $Message
+            $err = { Assert-False -Actual $Actual } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal $Message
         }
     }
 

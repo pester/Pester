@@ -60,8 +60,8 @@ InPesterModuleScope {
         }
 
         It "Fails with custom message" {
-             $error = { 9 | Assert-Equal 3 -CustomMessage "<expected> is not <actual>" } | Verify-AssertionFailed
-             $error.Exception.Message | Verify-Equal "3 is not 9"
+             $err = { 9 | Assert-Equal 3 -CustomMessage "<expected> is not <actual>" } | Verify-AssertionFailed
+             $err.Exception.Message | Verify-Equal "3 is not 9"
         }
 
         Context "Validate messages" {
@@ -71,8 +71,8 @@ InPesterModuleScope {
                 @{ Expected = "a" ; Actual = 10.1D ; Message = "Expected string 'a', but got decimal '10.1'."}
             ) {
                 param($Expected, $Actual, $Message)
-                $error = { Assert-Equal -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
-                $error.Exception.Message | Verify-Equal $Message
+                $err = { Assert-Equal -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal $Message
             }
         }
 
@@ -86,8 +86,8 @@ InPesterModuleScope {
         }
 
         It "Given collection to Expected it throws" {
-            $error = { "dummy" | Assert-Equal @() } | Verify-Throw
-            $error.Exception | Verify-Type ([ArgumentException])
+            $err = { "dummy" | Assert-Equal @() } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
         }
     }
 }
