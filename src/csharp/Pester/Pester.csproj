@@ -4,6 +4,7 @@
     <TargetFrameworks>net6.0;net462</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <!-- PowerShell 7.2.x is the oldest supported PowerShell version. That version is built using net6.0.
