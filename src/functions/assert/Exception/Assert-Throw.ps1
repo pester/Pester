@@ -10,7 +10,8 @@ function Assert-Throw {
         [String]$CustomMessage
     )
 
-    $ScriptBlock = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $ScriptBlock = $collectedInput.Actual
 
     $errorThrown = $false
     $err = $null

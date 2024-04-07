@@ -35,16 +35,17 @@ function Assert-StringEqual {
         [switch]$IgnoreWhitespace
     )
 
-    $_actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $Actual = $collectedInput.Actual
 
     if (-not $CustomMessage) {
-        $formattedMessage = Get-StringEqualDefaultFailureMessage -Expected $Expected -Actual $_actual
+        $formattedMessage = Get-StringEqualDefaultFailureMessage -Expected $Expected -Actual $Actual
     }
     else {
-        $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $_actual -CustomMessage $CustomMessage
+        $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage
     }
 
-    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $_actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace
+    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace
     if (-not ($stringsAreEqual)) {
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }

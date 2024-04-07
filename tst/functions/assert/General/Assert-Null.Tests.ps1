@@ -10,12 +10,20 @@ InPesterModuleScope {
             { 1 | Assert-Null } | Verify-AssertionFailed
         }
 
+        It "Given empty array it fails" {
+            { @() | Assert-Null } | Verify-AssertionFailed
+        }
+
         It "Returns the given value" {
             $null | Assert-Null | Verify-Null
         }
 
-        It "Can be called with positional parameters" {
+        It "Can be called with positional parameters (1)" {
             { Assert-Null 1 } | Verify-AssertionFailed
+        }
+
+        It "Can be called with positional parameters (@())" {
+            { Assert-Null @() } | Verify-AssertionFailed
         }
     }
 }

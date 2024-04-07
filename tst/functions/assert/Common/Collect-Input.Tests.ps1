@@ -11,52 +11,91 @@ InPesterModuleScope {
                     $Actual
                 )
 
-
-                $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
-
-                $Actual
+                $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+                $collectedInput
             }
         }
 
-        It "Given `$null through pipeline it returns `$null" {
-            $in = $null | Assert-PassThru
+        Describe "Pipeline input" {
+            It "Given `$null through pipeline it captures `$null" {
+                $collectedInput = $null | Assert-PassThru
 
-            Verify-True ($null -eq $in)
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given @() through pipeline it captures @()" {
+                $collectedInput = @() | Assert-PassThru
+
+                Verify-True $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (@() -ne $collectedInput.Actual) {
+                    throw "Expected @(), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given List[int] through pipeline it captures the items in Object[]" {
+                $collectedInput = [Collections.Generic.List[int]]@(1, 2) | Assert-PassThru
+
+                Verify-True $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (1 -ne $collectedInput.Actual[0] -or 2 -ne $collectedInput.Actual[1]) {
+                    throw "Expected @(1, 2), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given 1,2 through pipeline it captures the items" {
+                $collectedInput = 1, 2 | Assert-PassThru
+
+                Verify-True $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (1 -ne $collectedInput.Actual[0] -or 2 -ne $collectedInput.Actual[1]) {
+                    throw "Expected @(1, 2), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
         }
 
-        It "Given @() through pipeline it returns array with 0 items" {
-            $in = @() | Assert-PassThru
+        Describe "Parameter input" {
+            It "Given `$null through parameter it captures `$null" {
+                $collectedInput = Assert-PassThru -Actual $null
 
-            Verify-True ($in.GetType().Name -eq 'Object[]')
-            Verify-True ($in.Count -eq 0)
-        }
+                Verify-False $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
 
-        It "Given @() through pipeline it returns array with 0 items" {
-            $in = Assert-PassThru -Actual @()
+            It "Given @() through parameter it captures @()" {
+                $collectedInput = Assert-PassThru -Actual @()
 
-            Verify-True ($in.GetType().Name -eq 'Object[]')
-            Verify-True ($in.Count -eq 0)
-        }
+                Verify-False $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (@() -ne $collectedInput.Actual) {
+                    throw "Expected @(), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
 
-        It "Given @() through pipeline it returns array with 0 items" {
-            $in = Assert-PassThru -Actual $null
+            It "Given List[int] through parameter it captures the List" {
+                $collectedInput = Assert-PassThru -Actual ([Collections.Generic.List[int]]@(1, 2))
 
-            Verify-True ($in.GetType().Name -eq 'Object[]')
-            Verify-True ($in.Count -eq 0)
-        }
+                Verify-False $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Collections.Generic.List[int]])
+                if (1 -ne $collectedInput.Actual[0] -or 2 -ne $collectedInput.Actual[1]) {
+                    throw "Expected List(1, 2), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
 
-        It "Given @() through pipeline it returns array with 0 items" {
-            $in = Assert-PassThru -Actual 1, 2
+            It "Given 1,2 through parameter it captures the items" {
+                $collectedInput = Assert-PassThru -Actual 1, 2
 
-            Verify-True ($in.GetType().Name -eq 'Object[]')
-            Verify-True ($in.Count -eq 0)
-        }
-
-        It "Given @() through pipeline it returns array with 0 items" {
-            $in = 1, 2 | Assert-PassThru
-
-            Verify-True ($in.GetType().Name -eq 'Object[]')
-            Verify-True ($in.Count -eq 0)
+                Verify-False $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (1 -ne $collectedInput.Actual[0] -or 2 -ne $collectedInput.Actual[1]) {
+                    throw "Expected @(1, 2), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
         }
     }
 }

@@ -8,7 +8,8 @@
         [String]$CustomMessage
     )
 
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $Actual = $collectedInput.Actual
     if ($Actual -contains $Expected)
     {
         $type = [string]$Expected

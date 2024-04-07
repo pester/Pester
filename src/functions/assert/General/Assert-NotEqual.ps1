@@ -8,7 +8,8 @@
         [String]$CustomMessage
     )
 
-    $Actual = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsInPipeline $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -eq $Actual)
     {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected <expectedType> '<expected>', to be different than the actual value, but they were the same."
