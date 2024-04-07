@@ -92,7 +92,6 @@
         'Assert-StringEqual'
         'Assert-StringNotEqual'
 
-
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
@@ -112,6 +111,32 @@
     AliasesToExport   = @(
         'Add-AssertionOperator'
         'Get-AssertionOperator'
+
+        # assert
+        'Should-BeFalse'
+        'Should-BeTrue'
+        'Should-All'
+        'Should-Any'
+        'Should-Contain'
+        'Should-NotContain'
+        'Should-BeEquivalent'
+        'Should-Throw'
+        'Should-BeEqual'
+        'Should-BeGreaterThan'
+        'Should-BeGreaterThanOrEqual'
+        'Should-BeLessThan'
+        'Shoulde-BeLessThanOrEqual'
+        'Should-NotBeEqual'
+        'Should-NotBeNull'
+        'Should-NotBeSame'
+        'Should-NotBeType'
+        'Should-BeNull'
+        'Should-BeSame'
+        'Should-BeType'
+        'Should-BeLike'
+        'Should-NotBeLike'
+        'Should-StringBeEqual'
+        'Should-StringNotBeEqual'
     )
 
 
