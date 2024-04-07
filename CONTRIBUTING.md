@@ -8,7 +8,7 @@ for more information.
 
 ## Building Pester
 
-Pester is written in Powershell and C#. The C# solution requires .Net
+Pester is written in Powershell and C#. The C# solution requires .NET
 Framework SDKs and Developer Packs in order to compile, see links below
 how to install those prior to building.
 
