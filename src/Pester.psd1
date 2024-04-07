@@ -66,8 +66,6 @@
         'New-PesterContainer'
         'New-PesterConfiguration'
 
-
-
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
