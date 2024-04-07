@@ -13,25 +13,25 @@ if ($null -ne $configurationType) {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 6) {
-    $path = "$PSScriptRoot/bin/netstandard2.0/Pester.dll"
+    $path = "$PSScriptRoot/bin/net6.0/Pester.dll"
     # PESTER_BUILD
     if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
-        $path = "$PSScriptRoot/../bin/bin/netstandard2.0/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net6.0/Pester.dll"
     }
     else {
-        $path = "$PSScriptRoot/../bin/bin/netstandard2.0/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net6.0/Pester.dll"
     }
     # end PESTER_BUILD
     & $SafeCommands['Add-Type'] -Path $path
 }
 else {
-    $path = "$PSScriptRoot/bin/net452/Pester.dll"
+    $path = "$PSScriptRoot/bin/net462/Pester.dll"
     # PESTER_BUILD
     if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
-        $path = "$PSScriptRoot/../bin/bin/net452/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net462/Pester.dll"
     }
     else {
-        $path = "$PSScriptRoot/../bin/bin/net452/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net462/Pester.dll"
     }
     # end PESTER_BUILD
     & $SafeCommands['Add-Type'] -Path $path
