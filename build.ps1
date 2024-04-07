@@ -282,8 +282,6 @@ $script = @(
     "$PSScriptRoot/src/Pester.RSpec.ps1"
     "$PSScriptRoot/src/Main.ps1"
 
-    # TODO:  Imports Compatibility.ps1, remove the code that is there, because it is for PowerShell 2.0 compatibility!
-    "$PSScriptRoot/src/functions/assert/*"
     "$PSScriptRoot/src/functions/assert/*/*"
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"

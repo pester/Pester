@@ -112,7 +112,7 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-Collection2 -Value $Value -Pretty:$Pretty
     }
 
-    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 (Get-Type $Value)) -Pretty:$Pretty
+    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty
 }
 
 function Get-DisplayProperty2 ([Type]$Type) {
@@ -139,7 +139,7 @@ function Get-DisplayProperty2 ([Type]$Type) {
 
 function Get-ShortType2 ($Value) {
     if ($null -ne $value) {
-        Format-Type2 (Get-Type $Value)
+        Format-Type2 $Value.GetType()
     }
     else {
         Format-Type2 $null

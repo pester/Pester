@@ -45,7 +45,7 @@ function Assert-Throw {
         }
     }
 
-    $filterOnMessage = -not (Test-NullOrWhiteSpace $ExceptionMessage)
+    $filterOnMessage = -not ([string]::IsNullOrWhiteSpace($ExceptionMessage))
     if ($filterOnMessage) {
         $filters += "with message '$ExceptionMessage'"
         if ($err.ExceptionMessage -notlike $ExceptionMessage) {
@@ -53,7 +53,7 @@ function Assert-Throw {
         }
     }
 
-    $filterOnId = -not (Test-NullOrWhiteSpace $FullyQualifiedErrorId)
+    $filterOnId = -not ([string]::IsNullOrWhiteSpace($FullyQualifiedErrorId))
     if ($filterOnId) {
         $filters += "with FullyQualifiedErrorId '$FullyQualifiedErrorId'"
         if ($err.FullyQualifiedErrorId -notlike $FullyQualifiedErrorId) {
