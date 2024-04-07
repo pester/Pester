@@ -345,8 +345,11 @@ function Get-NUnit3Result ($InputObject) {
     elseif ($InputObject.SkippedCount -gt 0) {
         'Skipped'
     }
-    else {
+    elseif ($InputObject.PassedCount -gt 0) {
         'Passed'
+    }
+    else {
+        'Inconclusive'
     }
 }
 
