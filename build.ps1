@@ -116,9 +116,7 @@ if ($Clean) {
         , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
         , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.pdb", "$PSScriptRoot/bin/bin/net462/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.pdb", "$PSScriptRoot/bin/bin/net6.0/")
     )
 }
 
