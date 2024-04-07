@@ -1,4 +1,4 @@
-﻿function Should-FileContentMatchMultiline($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
+﻿function Should-FileContentMatchMultilineAssertion($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     <#
     .SYNOPSIS
     As opposed to FileContentMatch and FileContentMatchExactly operators,
@@ -58,8 +58,8 @@ function NotShouldFileContentMatchMultilineFailureMessage($ActualValue, $Expecte
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatchMultiline `
-    -InternalName Should-FileContentMatchMultiline `
-    -Test         ${function:Should-FileContentMatchMultiline}
+    -InternalName Should-FileContentMatchMultilineAssertion `
+    -Test         ${function:Should-FileContentMatchMultilineAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName FileContentMatchMultiline `
     -HelpMessage 'As opposed to FileContentMatch and FileContentMatchExactly operators, FileContentMatchMultiline presents content of the file being tested as one string object, so that the expression you are comparing it to can consist of several lines.'

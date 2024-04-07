@@ -1,5 +1,5 @@
 #Be
-function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Compares one object with another for equality
@@ -64,8 +64,8 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Be `
-    -InternalName       Should-Be `
-    -Test               ${function:Should-Be} `
+    -InternalName       Should-BeAssertion `
+    -Test               ${function:Should-BeAssertion} `
     -Alias              'EQ' `
     -SupportsArrayInput
 
@@ -73,7 +73,7 @@ Set-ShouldOperatorHelpMessage -OperatorName Be `
     -HelpMessage 'Compares one object with another for equality and throws if the two objects are not the same.'
 
 #BeExactly
-function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
+function Should-BeAssertionExactly($ActualValue, $ExpectedValue, $Because) {
     <#
     .SYNOPSIS
     Compares one object with another for equality and throws if the
@@ -137,8 +137,8 @@ function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeExactly `
-    -InternalName       Should-BeExactly `
-    -Test               ${function:Should-BeExactly} `
+    -InternalName       Should-BeAssertionExactly `
+    -Test               ${function:Should-BeAssertionExactly} `
     -Alias              'CEQ' `
     -SupportsArrayInput
 
