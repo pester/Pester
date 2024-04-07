@@ -66,33 +66,6 @@
         'New-PesterContainer'
         'New-PesterConfiguration'
 
-        # assert
-        'Assert-False'
-        'Assert-True'
-        'Assert-All'
-        'Assert-Any'
-        'Assert-Contain'
-        'Assert-NotContain'
-        'Assert-Equivalent'
-        'Assert-Throw'
-        'Assert-Equal'
-        'Assert-GreaterThan'
-        'Assert-GreaterThanOrEqual'
-        'Assert-LessThan'
-        'Assert-LessThanOrEqual'
-        'Assert-NotEqual'
-        'Assert-NotNull'
-        'Assert-NotSame'
-        'Assert-NotType'
-        'Assert-Null'
-        'Assert-Same'
-        'Assert-Type'
-        'Assert-Like'
-        'Assert-NotLike'
-        'Assert-StringEqual'
-        'Assert-StringNotEqual'
-
-
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
