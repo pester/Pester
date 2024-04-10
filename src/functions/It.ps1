@@ -15,7 +15,7 @@
     In addition to using your own logic to test expectations and throw exceptions,
     you may also use Pester's Should command to perform assertions in plain language.
 
-    You can intentionally mark It block result as inconclusive by using Set-TestInconclusive
+    You can intentionally mark It block result as inconclusive by using Set-ItResult -Inconclusive
     command as the first tested statement in the It block.
 
     .PARAMETER Name
