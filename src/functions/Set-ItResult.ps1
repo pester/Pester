@@ -94,7 +94,7 @@
     }
 
     if ($Because) {
-        [String]$message += ", because $Because"
+        [String]$message += ", because $(Format-Because $Because)"
     }
 
     throw [Pester.Factory]::CreateErrorRecord(
