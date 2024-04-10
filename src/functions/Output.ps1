@@ -26,7 +26,7 @@ $script:ReportStrings = DATA {
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
-        TestsSkipped      = 'Skipped: {0} '
+        TestsSkipped      = 'Skipped: {0}, '
         TestsPending      = 'Pending: {0}, '
         TestsInconclusive = 'Inconclusive: {0}, '
         TestsNotRun       = 'NotRun: {0}'
@@ -61,6 +61,7 @@ $script:ReportTheme = DATA {
         Discovery        = 'Magenta'
         Container        = 'Magenta'
         BlockFail        = 'Red'
+        Warning          = 'Yellow'
     }
 }
 
@@ -345,12 +346,12 @@ function Write-PesterReport {
     # else {
     #     $ReportTheme.Information
     # }
-    # $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
-    #     $ReportTheme.Inconclusive
-    # }
-    # else {
-    #     $ReportTheme.Information
-    # }
+    $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
+        $ReportTheme.Inconclusive
+    }
+    else {
+        $ReportTheme.Information
+    }
 
     # Try {
     #     $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
@@ -374,6 +375,7 @@ function Write-PesterReport {
     Write-PesterHostMessage ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
+    Write-PesterHostMessage ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
@@ -402,6 +404,15 @@ function Write-PesterReport {
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }
+
+    $rootFrameworkData = @($RunResult.Containers.Blocks.Root.FrameworkData)
+    foreach ($frameworkData in $rootFrameworkData) {
+        if ($null -ne $frameworkData -and $frameworkData['ShowPendingDeprecation']) {
+            Write-PesterHostMessage '**DEPRECATED**: The -Pending parameter of Set-ItResult is deprecated. The parameter will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
+            # Show it only once.
+            break
+        }
+    }
 }
 
 function Write-CoverageReport {
@@ -753,7 +764,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
-            if (-not $_test.Skip -and $_test.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+            if (-not $_test.Skip -and @('PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
                 $skippedMessage = [String]$_Test.ErrorRecord
                 [String]$out += " $skippedMessage"
             }
@@ -843,7 +854,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive "$margin[?] $out" -NoNewLine
-                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive ", is inconclusive$because" -NoNewLine
+                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Inconclusive "$because" -NoNewLine
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.InconclusiveTime " $humanTime"
                 }
 

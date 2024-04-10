@@ -107,6 +107,9 @@ function Add-RSpecTestObjectProperties {
     $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
     }
+    elseif ($TestObject.Inconclusive) {
+        "Inconclusive"
+    }
     elseif ($TestObject.Passed) {
         "Passed"
     }
@@ -159,6 +162,9 @@ function PostProcess-RspecTestRun ($TestRun) {
             }
             "Skipped" {
                 $null = $TestRun.Skipped.Add($t)
+            }
+            "Inconclusive" {
+                $null = $TestRun.Inconclusive.Add($t)
             }
             default { throw "Result $($t.Result) is not supported." }
         }
@@ -236,6 +242,7 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.PassedCount = $TestRun.Passed.Count
     $TestRun.FailedCount = $TestRun.Failed.Count
     $TestRun.SkippedCount = $TestRun.Skipped.Count
+    $TestRun.InconclusiveCount = $TestRun.Inconclusive.Count
     $TestRun.NotRunCount = $TestRun.NotRun.Count
 
     $TestRun.TotalCount = $TestRun.Tests.Count

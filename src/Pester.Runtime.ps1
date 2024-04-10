@@ -733,14 +733,25 @@ function Invoke-TestItem {
 
                 $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
 
-                if ($Result.ErrorRecord.FullyQualifiedErrorId -eq 'PesterTestSkipped') {
+                if (@('PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
                     #Same logic as when setting a test block to skip
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $Test.Path -join '.'
                         Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                     }
                     $Test.Passed = $true
-                    $Test.Skipped = $true
+                    if ('PesterTestInconclusive' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
+                        $Test.Inconclusive = $true
+                    }
+                    else {
+                        $Test.Skipped = $true
+
+                        # Pending test is still considered a skipped, we don't have a special category for it.
+                        # Mark the run to show deprecation message.
+                        if ('PesterTestPending' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
+                            $test.Block.Root.FrameworkData['ShowPendingDeprecation'] = $true
+                        }
+                    }
                 }
                 else {
                     $Test.Passed = $result.Success
@@ -2247,6 +2258,7 @@ function PostProcess-ExecutedBlock {
             $b.OwnFailedCount = 0
             $b.OwnPassedCount = 0
             $b.OwnSkippedCount = 0
+            $b.OwnInconclusiveCount = 0
             $b.OwnNotRunCount = 0
 
             $testDuration = [TimeSpan]::Zero
@@ -2257,6 +2269,9 @@ function PostProcess-ExecutedBlock {
                 $b.OwnTotalCount++
                 if (-not $t.ShouldRun) {
                     $b.OwnNotRunCount++
+                }
+                elseif ($t.ShouldRun -and $t.Inconclusive) {
+                    $b.OwnInconclusiveCount++
                 }
                 elseif ($t.ShouldRun -and $t.Skipped) {
                     $b.OwnSkippedCount++
@@ -2298,6 +2313,7 @@ function PostProcess-ExecutedBlock {
                 $b.FailedCount = $b.OwnFailedCount
                 $b.PassedCount = $b.OwnPassedCount
                 $b.SkippedCount = $b.OwnSkippedCount
+                $b.InconclusiveCount = $b.OwnInconclusiveCount
                 $b.NotRunCount = $b.OwnNotRunCount
             }
             else {
@@ -2319,6 +2335,7 @@ function PostProcess-ExecutedBlock {
                     $b.PassedCount += $child.PassedCount
                     $b.FailedCount += $child.FailedCount
                     $b.SkippedCount += $child.SkippedCount
+                    $b.InconclusiveCount += $child.InconclusiveCount
                     $b.NotRunCount += $child.NotRunCount
                 }
 
@@ -2327,6 +2344,7 @@ function PostProcess-ExecutedBlock {
                 $b.PassedCount += $b.OwnPassedCount
                 $b.FailedCount += $b.OwnFailedCount
                 $b.SkippedCount += $b.OwnSkippedCount
+                $b.InconclusiveCount += $b.OwnInconclusiveCount
                 $b.NotRunCount += $b.OwnNotRunCount
 
                 $b.Passed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)

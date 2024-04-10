@@ -147,6 +147,51 @@ i -PassThru:$PassThru {
 
         }
 
+        t 'should write a skipped test result' {
+            $sb = {
+                Describe 'Describe 1' {
+                    It 'Skipped testcase' -Skip {
+                    }
+                }
+                Describe 'Describe 2' {
+                    It 'Skipped testcase' {
+                        Set-ItResult -Skipped
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlTestSuite = $xmlResult.'test-run'.'test-suite'.'test-suite'
+            $xmlTestCase1 = $xmlTestSuite.'test-case'[0]
+            $xmlTestCase2 = $xmlTestSuite.'test-case'[1]
+
+            $xmlTestCase1.name | Verify-Equal 'Describe 1.Skipped testcase'
+            $xmlTestCase1.result | Verify-Equal 'Skipped'
+            $xmlTestCase1.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+
+            $xmlTestCase2.name | Verify-Equal 'Describe 2.Skipped testcase'
+            $xmlTestCase2.result | Verify-Equal 'Skipped'
+            $xmlTestCase2.duration | Verify-XmlTime $r.Containers[0].Blocks[1].Tests[0].Duration
+        }
+
+        t 'should write an inconclusive test result' {
+            $sb = {
+                Describe 'Describe' {
+                    It 'Inconclusive testcase' {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlTestCase = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
+            $xmlTestCase.name | Verify-Equal 'Describe.Inconclusive testcase'
+            $xmlTestCase.result | Verify-Equal 'Inconclusive'
+            $xmlTestCase.duration | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+        }
+
         t 'should write the test summary' {
             $sb = {
                 Describe 'Describe' {
@@ -165,6 +210,45 @@ i -PassThru:$PassThru {
             $xmlTestResult.result | Verify-Equal 'Passed'
             $xmlTestResult.'start-time' | Verify-Equal ($r.ExecutedAt.ToUniversalTime().ToString('o'))
             $xmlTestResult.'end-time' | Verify-Equal (($r.ExecutedAt + $r.Duration).ToUniversalTime().ToString('o'))
+        }
+
+        t "should write inconclusive count" {
+            $sb = {
+                Describe "Mocked Describe 1" {
+                    It "Inconclusive testcase 1" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+                Describe "Mocked Describe 2" {
+                    It "Inconclusive testcase 2" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlResult.'test-run'.inconclusive | Verify-Equal 2
+            $xmlResult.'test-run'.'test-suite'.'test-suite'[0].inconclusive | Verify-Equal 1
+            $xmlResult.'test-run'.'test-suite'.'test-suite'[1].inconclusive | Verify-Equal 1
+        }
+
+        t "should write skipped count" {
+            $sb = {
+                Describe "Mocked Describe 1" {
+                    It "Skipped testcase 1" -Skip {
+                    }
+                }
+                Describe "Mocked Describe 2" {
+                    It "Skippde testcase 2" {
+                        Set-ItResult -Skipped
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+            $xmlResult.'test-run'.skipped | Verify-Equal 2
+            $xmlResult.'test-run'.'test-suite'.'test-suite'[0].skipped | Verify-Equal 1
+            $xmlResult.'test-run'.'test-suite'.'test-suite'[1].skipped | Verify-Equal 1
         }
 
         t 'should write the test-suite information' {
@@ -258,6 +342,22 @@ i -PassThru:$PassThru {
                         $false | Should -Be $true
                     }
                 }
+
+                Describe "Describe #3" {
+                    It "Skipped testcase #1" -Skip {}
+                }
+
+                Describe "Describe #4" {
+                    It "Skipped testcase #2" {
+                        Set-ItResult -Skipped
+                    }
+                }
+
+                Describe "Describe #5" {
+                    It "Inconclusive testcase" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
             }
             $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
 
@@ -317,7 +417,7 @@ i -PassThru:$PassThru {
         t 'should add tags as Category-properties to blocks and tests' {
             $sb = {
                 Describe 'Describe' -Tag 'abc' {
-                    It 'Successful testcase' -Tag 'hello','world' {
+                    It 'Successful testcase' -Tag 'hello', 'world' {
                         $true | Should -Be $true
                     }
                 }
@@ -524,7 +624,7 @@ i -PassThru:$PassThru {
             # behavior based on NUnit3 runner
             $sb = {
                 Describe 'Describe' {
-                    It 'Testcase <_>' -Tag 'hello','world' -ForEach @(1,2) {
+                    It 'Testcase <_>' -Tag 'hello', 'world' -ForEach @(1, 2) {
                         $true | Should -Be $true
                     }
                 }
@@ -681,7 +781,7 @@ i -PassThru:$PassThru {
         t 'should add tags as Category-properties on child test-suites only' {
             # behavior based on NUnit3 runner
             $sb = {
-                Describe 'Describe <_>' -Tag 'abc' -ForEach @(1,2) {
+                Describe 'Describe <_>' -Tag 'abc' -ForEach @(1, 2) {
                     It 'Testcase' {
                         $true | Should -Be $true
                     }

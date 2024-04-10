@@ -747,12 +747,12 @@ function Invoke-Pester {
             }
 
             $plugins.Add((
-                # decorator plugin needs to be added after output
-                # because on teardown they will run in opposite order
-                # and that way output can consume the fixed object that decorator
-                # decorated, not nice but works
-                Get-RSpecObjectDecoratorPlugin
-            ))
+                    # decorator plugin needs to be added after output
+                    # because on teardown they will run in opposite order
+                    # and that way output can consume the fixed object that decorator
+                    # decorated, not nice but works
+                    Get-RSpecObjectDecoratorPlugin
+                ))
 
             if ($PesterPreference.TestDrive.Enabled.Value) {
                 $plugins.Add((Get-TestDrivePlugin))
@@ -1458,11 +1458,13 @@ function ConvertTo-Pester4Result {
                 "Skipped" {
                     $legacyResult.SkippedCount++
                 }
+                "Inconclusive" {
+                    $legacyResult.InconclusiveCount++
+                }
             }
         }
         $legacyResult.TotalCount = $legacyResult.TestResult.Count
         $legacyResult.PendingCount = 0
-        $legacyResult.InconclusiveCount = 0
         $legacyResult.Time = $PesterResult.Duration
 
         $legacyResult

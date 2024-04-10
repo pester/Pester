@@ -345,6 +345,38 @@ InPesterModuleScope {
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan] and the default value to be 'wrong value', because of reasons, but it wasn't mandatory, it was of type [System.DateTime] and the default value was '(Get-Date)'."
         }
 
+        It 'passes when object parameter has default parameter value $null' {
+            function Test-Parameter {
+                param ( [Parameter()] [object] $objParam = $null )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'objParam' -Type 'object' -DefaultValue $null
+        }
+
+        It 'passes when integer parameter has default parameter value 0' {
+            function Test-Parameter {
+                param ( [Parameter()] [int] $intParam = 0 )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'intParam' -Type 'int' -DefaultValue 0
+        }
+
+        It 'passes when bool parameter has default parameter value $true' {
+            function Test-Parameter {
+                param ( [Parameter()] [bool] $boolParam = $true )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'boolParam' -Type 'bool' -DefaultValue $true
+        }
+
+        It 'passes when bool parameter has default parameter value $false' {
+            function Test-Parameter {
+                param ( [Parameter()] [bool] $boolParam = $false )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'boolParam' -Type 'bool' -DefaultValue $false
+        }
+
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed

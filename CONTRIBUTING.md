@@ -8,7 +8,7 @@ for more information.
 
 ## Building Pester
 
-Pester is written in Powershell and C#. The C# solution requires .Net
+Pester is written in Powershell and C#. The C# solution requires .NET
 Framework SDKs and Developer Packs in order to compile, see links below
 how to install those prior to building.
 
@@ -53,14 +53,9 @@ Get-Help ./build.ps1 -Detailed
 
 Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
 
-### Install .NET Core 6.0 SDK
+### Install .NET 8.0 SDK
 
-[Download Link](https://dotnet.microsoft.com/download/dotnet-core/6.0)
-
-### .Net Framework 4.5 Developer Pack
-
-[Download Link](https://dotnet.microsoft.com/download/dotnet-framework/net452)
-<https://aka.ms/msbuild/developerpacks>
+[Download Link](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 
 ## Running Tests
 
