@@ -539,25 +539,9 @@ function ConvertTo-FailureLines {
         }
         else {
             # omit the lines internal to Pester
-            if ((GetPesterOS) -ne 'Windows') {
-                [String]$isPesterFunction = '^{0}.*, .*/Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
-                [String]$isShould = '^{0} (Should<End>|Invoke-Assertion), .*/Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
-                # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
-            }
-            else {
-                [String]$isPesterFunction = '^{0} .*, .*\\Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
-                [String]$isShould = '^{0} (Should<End>|Invoke-Assertion), .*\\Pester.psm1: {1} [0-9]*$' -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Line
-            }
-
-            # PESTER_BUILD
-            if ($true) {
-                # no code
-                # non inlined scripts will have different paths just omit everything from the src folder
-                $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
-                [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
-                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
-            }
-            # end PESTER_BUILD
+            $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands["Split-Path"]))
+            [String]$isPesterFunction = "^{0}.*{1} .*$path.*: {2} [0-9]*$" -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Separator, $script:StackTraceLanguage.Line
+            [String]$isShould = "^{0} (Should<End>|Invoke-Assertion){1} .*$path.*: {2} [0-9]*$" -f $script:StackTraceLanguage.At, $script:StackTraceLanguage.Separator, $script:StackTraceLanguage.Line
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
             # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
