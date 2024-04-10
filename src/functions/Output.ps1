@@ -405,8 +405,13 @@ function Write-PesterReport {
     # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
     # }
 
-    if ($RunResult.Containers.Blocks.Root.FrameworkData['ShowPendingDeprecation'] -eq $true) {
-        Write-PesterHostMessage '**DEPRECATED**: The -Pending parameter of Set-ItResult is deprecated. The parameter will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
+    $rootFrameworkData = @($RunResult.Containers.Blocks.Root.FrameworkData)
+    foreach ($frameworkData in $rootFrameworkData) {
+        if ($null -ne $frameworkData -and $frameworkData['ShowPendingDeprecation']) {
+            Write-PesterHostMessage '**DEPRECATED**: The -Pending parameter of Set-ItResult is deprecated. The parameter will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
+            # Show it only once.
+            break
+        }
     }
 }
 
