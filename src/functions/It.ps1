@@ -35,8 +35,7 @@
 
     .PARAMETER Skip
     Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
-    commenting out a test, because the test remains listed in the output. Use the Strict parameter
-    of Invoke-Pester to force all skipped tests to fail.
+    commenting out a test, because the test remains listed in the output.
 
     .PARAMETER ForEach
     (Formerly called TestCases.) Optional array of hashtable (or any IDictionary) objects.
