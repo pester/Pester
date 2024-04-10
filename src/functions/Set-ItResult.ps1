@@ -30,7 +30,7 @@
     ```powershell
     Describe "Example" {
         It "Inconclusive test" {
-            Set-ItResult -Inconclusive -Because "we want it to be inconclusice"
+            Set-ItResult -Inconclusive -Because "we want it to be inconclusive"
         }
         It "Skipped test" {
             Set-ItResult -Skipped -Because "we want it to be skipped"
@@ -42,7 +42,7 @@
 
     ```
     Describing Example
-      [?] Inconclusive test is inconclusive, because INCONCLUSIVE: we want it to be inconclusice 35ms (32ms|3ms)
+      [?] Inconclusive test is inconclusive, because we want it to be inconclusive 35ms (32ms|3ms)
       [!] Skipped test is skipped, because we want it to be skipped 3ms (2ms|1ms)
     Tests completed in 78ms
     Tests Passed: 0, Failed: 0, Skipped: 1, Inconclusive: 1, NotRun: 0
@@ -62,10 +62,6 @@
     Assert-DescribeInProgress -CommandName Set-ItResult
 
     $result = $PSCmdlet.ParameterSetName
-
-    if ($Result -ne 'Skipped') {
-        [String]$Because = if ($Because) { $Result.ToUpper(), $Because -join ': ' } else { $Result.ToUpper() }
-    }
 
     switch ($null) {
         $File {

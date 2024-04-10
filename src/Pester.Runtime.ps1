@@ -692,6 +692,12 @@ function Invoke-TestItem {
                     }
                     else {
                         $Test.Skipped = $true
+
+                        # Pending test is still considered a skipped, we don't have a special category for it.
+                        # Mark the run to show deprecation message.
+                        if ('PesterTestPending' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
+                            $test.Block.Root.FrameworkData['ShowPendingDeprecation'] = $true
+                        }
                     }
                 }
                 else {
