@@ -176,7 +176,12 @@ function Get-CompatibleModule {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Runtime "Searching for a module $ModuleName."
         }
-        $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
+        if ($ModuleName -match '(?<RootModule>\w+)[/\\](?<NestedModule>\w+)') {
+            $modules = @(& $SafeCommands['Get-Module'] -Name $Matches['RootModule'] -All -ErrorAction Stop | & $SafeCommands['Select-Object'] -ExpandProperty NestedModules | & $SafeCommands['Where-Object'] { $_.Name -eq $Matches['NestedModule'] })
+        }
+        else {
+            $modules = @(& $SafeCommands['Get-Module'] -Name $ModuleName -All -ErrorAction Stop)
+        }
     }
     catch {
         throw "No modules named '$ModuleName' are currently loaded."
