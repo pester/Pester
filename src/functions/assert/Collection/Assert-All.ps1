@@ -20,7 +20,7 @@
     # Do NOT replace this Foreach-Object with foreach keyword, you will break the $_ variable.
     $actualFiltered = $Actual | & $SafeCommands['ForEach-Object'] {
         # powershell v4 code where we have InvokeWithContext available
-        $underscore = Get-Variable _
+        $underscore = & $SafeCommands['Get-Variable'] _
         $pass = $FilterScript.InvokeWithContext($null, $underscore, $null)
 
         # # polyfill for PowerShell v2
