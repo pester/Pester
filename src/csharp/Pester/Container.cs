@@ -18,6 +18,7 @@ namespace Pester
                 FailedCount = block.FailedCount,
                 PassedCount = block.PassedCount,
                 SkippedCount = block.SkippedCount,
+                InconclusiveCount = block.InconclusiveCount,
                 NotRunCount = block.NotRunCount,
                 TotalCount = block.TotalCount,
                 ErrorRecord = block.ErrorRecord ?? new List<object>(),
@@ -56,6 +57,7 @@ namespace Pester
         public int FailedCount { get; set; }
         public int PassedCount { get; set; }
         public int SkippedCount { get; set; }
+        public int InconclusiveCount { get; set; }
         public int NotRunCount { get; set; }
         public int TotalCount { get; set; }
         public List<object> ErrorRecord { get; set; } = new List<object>();

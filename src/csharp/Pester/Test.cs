@@ -62,6 +62,7 @@ namespace Pester
         public DateTime? ExecutedAt { get; set; }
         public bool Passed { get; set; }
         public bool Skipped { get; set; }
+        public bool Inconclusive { get; set; }
 
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }

@@ -39,7 +39,9 @@
     function Get-ParameterInfo {
         param (
             [Parameter(Mandatory = $true)]
-            [Management.Automation.CommandInfo]$Command
+            [Management.Automation.CommandInfo]$Command,
+            [Parameter(Mandatory = $true)]
+            [string] $Name
         )
 
         # Resolve alias to the actual command so we can access scriptblock
@@ -71,24 +73,63 @@
         }
 
         foreach ($parameter in $parameters) {
+            if ($Name -ne $parameter.Name.VariablePath.UserPath) {
+                continue
+            }
+
             $paramInfo = [PSCustomObject] @{
                 Name             = $parameter.Name.VariablePath.UserPath
                 Type             = "[$($parameter.StaticType.Name.ToLower())]"
+                HasDefaultValue  = $false
                 DefaultValue     = $null
                 DefaultValueType = $parameter.StaticType.Name
             }
 
+            # Default value here contains a descriptor object of the default value,
+            # so this is null only when default value is not present at all, if default value
+            # is actually $null, this will have an object describing the type and the $null value.
             if ($null -ne $parameter.DefaultValue) {
-                if ($parameter.DefaultValue.PSObject.Properties['Value']) {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Value
-                }
-                else {
-                    $paramInfo.DefaultValue = $parameter.DefaultValue.Extent.Text
-                }
+                # The actual value of the default value can be falsy (e.g. $null, $false or 0)
+                # use this flag to communicate if default value was found in the AST or not,
+                # no matter if the actual default value is falsy.
+                # That is: param($param1 = $false) will set this to true for $param1
+                # but param($param1) will have this set to false, because there was no default value.
+                $paramInfo.HasDefaultValue = $true
+                # When the value has a known fully realized value (indicated by .Value being on the DefaultValue object)
+                # we take that and use it, otherwise we take the extent (how it was written in code). This will make
+                # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
+                $paramInfo.DefaultValue = Get-DefaultValue $parameter.DefaultValue
             }
 
             $paramInfo
+            break
         }
+    }
+
+    function Get-DefaultValue {
+        param($DefaultValue)
+
+        # This is a value like 1, or 0, return it direcly.
+        if ($DefaultValue.PSObject.Properties["Value"]) {
+            return $DefaultValue.Value
+        }
+
+        # This is for backwards compatibility with Pester v5.4.0.
+        # Existing assertions check for -DefaultValue "false", while the definition
+        # of the function says $MyParam = $false.
+        if ('$true' -eq $DefaultValue.Extent.Text -or '$false' -eq $DefaultValue.Extent.Text) {
+            # returns "true", or "false" without $ prefix
+            return $DefaultValue.VariablePath
+        }
+
+        # This is for backwards compatibility with Pester v5.4.0.
+        # Existing assertions check for -DefaultValue "", while the definition
+        # of the function says $MyParam = $null or $MyParam without any default value.
+        if ('$null' -eq $DefaultValue.Extent.Text) {
+            return ""
+        }
+
+        $DefaultValue.Extent.Text
     }
 
     function Get-ArgumentCompleter {
@@ -181,7 +222,8 @@
         if ($ActualValue.Definition -match '^PesterMock_') {
             $type = 'mock'
             $suggestion = "'Get-Command $($ActualValue.Name) | Where-Object Parameters | Should -HaveParameter ...'"
-        } else {
+        }
+        else {
             $type = 'alias'
             $suggestion = "using the actual command name. For example: 'Get-Command $($ActualValue.Definition) | Should -HaveParameter ...'"
         }
@@ -248,22 +290,31 @@
             }
         }
 
-        if ($PSBoundParameters.Keys -contains 'DefaultValue') {
-            $parameterMetadata = Get-ParameterInfo $ActualValue | & $SafeCommands['Where-Object'] { $_.Name -eq $ParameterName }
-            $actualDefault = if ($parameterMetadata.DefaultValue) {
-                $parameterMetadata.DefaultValue
+        if ($PSBoundParameters.Keys -contains "DefaultValue") {
+            $parameterMetadata = Get-ParameterInfo -Name $ParameterName -Command $ActualValue
+            if ($null -eq $parameterMetadata) {
+                # For safety, but this probably won't happen because if the parameter is not on the command we will fail much sooner.
+                throw "Metadata for parameter '$ParameterName' were not found."
             }
-            else {
-                ''
-            }
+
+            $filters += "the default value$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValue)"
+
+            # We could determine if the value is present and what is it's exact value, and also always use the
+            # code literal that was used in the definition of the function (e.g. $true instead of "True"),
+            # but that would be a breaking change for Pester 5, and in case of strings it would be a little
+            # inconvenient for the users, because they would always have to provide doubled quotes, like '"aaa"'.
+            # So instead we force the values to be strings, and when the value is not there we define it as $null
+            # which prevents us from full checking if there was or was not an actual $null definition, but that is
+            # okay because you would rarely need to do that.
+            $defaultIsUnspecified = -not $parameterMetadata.HasDefaultValue
+            [string] $actualDefault = if ($defaultIsUnspecified) { $null } else { $parameterMetadata.DefaultValue }
             $testDefault = ($actualDefault -eq $DefaultValue)
-            $filters += "the default value$(if ($Negate) {' not'}) to be $(Format-Nicely $DefaultValue)"
 
             if (-not $Negate -and -not $testDefault) {
                 $buts += "the default value was $(Format-Nicely $actualDefault)"
             }
             elseif ($Negate -and $testDefault) {
-                $buts += "the default value was $(Format-Nicely $DefaultValue)"
+                $buts += "the default value was $(Format-Nicely $actualDefault)"
             }
         }
 
