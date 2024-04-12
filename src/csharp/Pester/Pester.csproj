@@ -10,7 +10,7 @@
   <!-- PowerShell 7.2.x is the oldest supported PowerShell version. That version is built using net6.0.
   But there is a bug in 7.2.0 reference assemblies, up to 7.2.10, where the IExtens.File is missing from the reference assembly:
   https://github.com/PowerShell/PowerShell/issues/16408
-  
+
   So we use the version released before 7.2.0 which was 7.1.7. We could probably use 7.2.10 safely as well,
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
