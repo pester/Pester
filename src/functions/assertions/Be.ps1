@@ -26,18 +26,23 @@ function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
-        }
-        else {
-            $failureMessage = ShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
+    }
+    else {
+        $failureMessage = ShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -64,9 +69,9 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Be `
-    -InternalName       Should-Be `
-    -Test               ${function:Should-Be} `
-    -Alias              'EQ' `
+    -InternalName Should-Be `
+    -Test ${function:Should-Be} `
+    -Alias 'EQ' `
     -SupportsArrayInput
 
 Set-ShouldOperatorHelpMessage -OperatorName Be `
@@ -99,18 +104,23 @@ function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
-        }
-        else {
-            $failureMessage = ShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
+    }
+    else {
+        $failureMessage = ShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 

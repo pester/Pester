@@ -238,10 +238,10 @@
         $buts += "the parameter is missing"
     }
     elseif ($Negate -and -not $hasKey) {
-        return [PSCustomObject] @{ Succeeded = $true }
+        return [Pester.ShouldResult] @{ Succeeded = $true }
     }
     elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
-        $buts += "the parameter exists"
+        $buts += 'the parameter exists'
     }
     else {
         $attributes = $ActualValue.Parameters[$ParameterName].Attributes
@@ -264,13 +264,13 @@
 
         if ($Mandatory) {
             $testMandatory = $parameterAttributes | & $SafeCommands['Where-Object'] { $_.Mandatory }
-            $filters += "which is$(if ($Negate) {" not"}) mandatory"
+            $filters += "which is$(if ($Negate) {' not'}) mandatory"
 
             if (-not $Negate -and -not $testMandatory) {
                 $buts += "it wasn't mandatory"
             }
             elseif ($Negate -and $testMandatory) {
-                $buts += "it was mandatory"
+                $buts += 'it was mandatory'
             }
         }
 
@@ -280,7 +280,7 @@
             # PS5> [datetime]
             [type]$actualType = $ActualValue.Parameters[$ParameterName].ParameterType
             $testType = ($Type -eq $actualType)
-            $filters += "$(if ($Negate) { "not " })of type [$($Type.FullName)]"
+            $filters += "$(if ($Negate) { 'not ' })of type [$($Type.FullName)]"
 
             if (-not $Negate -and -not $testType) {
                 $buts += "it was of type [$($actualType.FullName)]"
@@ -324,13 +324,13 @@
             if (-not $testArgumentCompleter) {
                 $testArgumentCompleter = Get-ArgumentCompleter -CommandName $ActualValue.Name -ParameterName $ParameterName
             }
-            $filters += "has ArgumentCompletion"
+            $filters += 'has ArgumentCompletion'
 
             if (-not $Negate -and -not $testArgumentCompleter) {
-                $buts += "has no ArgumentCompletion"
+                $buts += 'has no ArgumentCompletion'
             }
             elseif ($Negate -and $testArgumentCompleter) {
-                $buts += "has ArgumentCompletion"
+                $buts += 'has ArgumentCompletion'
             }
         }
 
@@ -351,10 +351,10 @@
                 $aliases = $(Join-And ($faultyAliases -replace '^|$', "'"))
                 $singular = $faultyAliases.Count -eq 1
                 if ($Negate) {
-                    $buts += "it has $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
+                    $buts += "it has $(if($singular) {'an alias'} else {'the aliases'} ) $aliases"
                 }
                 else {
-                    $buts += "it didn't have $(if($singular) {"an alias"} else {"the aliases"} ) $aliases"
+                    $buts += "it didn't have $(if($singular) {'an alias'} else {'the aliases'} ) $aliases"
                 }
             }
         }
@@ -365,13 +365,20 @@
         $but = Join-And $buts
         $failureMessage = "Expected command $($ActualValue.Name)$filter,$(Format-Because $Because) but $but."
 
-        return [PSCustomObject] @{
+        $ExpectedValue = "Parameter $($ActualValue.Name)$filter"
+
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
     else {
-        return [PSCustomObject] @{ Succeeded = $true }
+        return [Pester.ShouldResult] @{ Succeeded = $true }
     }
 }
 

@@ -300,6 +300,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
 function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
+    [OutputType([Pester.ShouldResult])]
     param(
         [Parameter(Mandatory)]
         $Behaviors,
@@ -315,31 +316,45 @@ function Should-InvokeVerifiableInternal {
     }
 
     if ($filteredBehaviors.Count -gt 0) {
-        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called,$(Format-Because $Because) but these were:" }
-        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called,$(Format-Because $Because) but these were not:" }
-
+        [string]$filteredBehaviorMessage = ''
         foreach ($b in $filteredBehaviors) {
-            $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
+            $filteredBehaviorMessage += "$([System.Environment]::NewLine) Command $($b.CommandName) "
             if ($b.ModuleName) {
-                $message += "from inside module $($b.ModuleName) "
+                $filteredBehaviorMessage += "from inside module $($b.ModuleName) "
             }
-            if ($null -ne $b.Filter) { $message += "with { $($b.Filter.ToString().Trim()) }" }
+            if ($null -ne $b.Filter) { $filteredBehaviorMessage += "with { $($b.Filter.ToString().Trim()) }" }
         }
 
-        return [PSCustomObject] @{
+        if ($Negate) {
+            $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called,$(Format-Because $Because) but these were:$filteredBehaviorMessage"
+            $ExpectedValue = 'No verifiable mocks to be called'
+            $ActualValue = "These mocks were called:$filteredBehaviorMessage"
+        }
+        else {
+            $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called,$(Format-Because $Because) but these were not:$filteredBehaviorMessage"
+            $ExpectedValue = 'All verifiable mocks to be called'
+            $ActualValue = "These mocks were not called:$filteredBehaviorMessage"
+        }
+
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $message
+            ExpectResult   = @{
+                Expected = $ExpectedValue
+                Actual   = $ActualValue
+                Because  = Format-Because $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null
     }
 }
 
 function Should-InvokeInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
+    [OutputType([Pester.ShouldResult])]
     param(
         [Parameter(Mandatory = $true)]
         [hashtable] $ContextInfo,
@@ -452,43 +467,67 @@ function Should-InvokeInternal {
 
     if ($Negate) {
         # Negative checks
-        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey("Times"))) {
-            return [PSCustomObject] @{
+        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} not to be called exactly $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called less than $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
     }
     else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called $Times times exactly"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called at least $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to only be called with with parameters matching the specified filter"
+                    Actual   = "${commandName}${moduleMessage} was called $($nonMatchingCalls.Count) times with non-matching parameters"
+                    Because  = Format-Because $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null
     }
 }
 
