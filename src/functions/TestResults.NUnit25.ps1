@@ -13,7 +13,7 @@
 }
 
 function Write-NUnitTestResultAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
@@ -23,7 +23,7 @@ function Write-NUnitTestResultAttributes {
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count once it is added
+    $XmlWriter.WriteAttributeString('inconclusive', $Result.InconclusiveCount)
     $XmlWriter.WriteAttributeString('ignored', '0')
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('invalid', '0')
@@ -32,7 +32,7 @@ function Write-NUnitTestResultAttributes {
 }
 
 function Write-NUnitTestResultChildNodes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Result, [System.Xml.XmlWriter] $XmlWriter)
 
     Write-NUnitEnvironmentInformation -Result $Result -XmlWriter $XmlWriter
@@ -98,7 +98,7 @@ function Write-NUnitCultureInformation {
 }
 
 function Write-NUnitTestSuiteElements {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
 
     $suiteInfo = Get-TestSuiteInfo -TestSuite $Node -Path $Path
@@ -246,7 +246,7 @@ function Get-TestSuiteInfo {
 }
 
 function Write-NUnitTestSuiteAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
 
     $name = $TestSuiteInfo.Name
@@ -276,7 +276,7 @@ function Write-NUnitTestCaseElement {
 }
 
 function Write-NUnitTestCaseAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName)
 
     $testName = $TestResult.ExpandedPath
@@ -394,6 +394,9 @@ function Get-GroupResult ($InputObject) {
         return 'Ignored'
     }
     if ($InputObject.PendingCount -gt 0) {
+        return 'Inconclusive'
+    }
+    if ($InputObject.InconclusiveCount -gt 0) {
         return 'Inconclusive'
     }
     return 'Success'

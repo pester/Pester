@@ -120,14 +120,7 @@ function Should {
     }
 
     process {
-        # If array was provided using -ActualValue @(1,2,3), unroll like pipeline for consistent behaviour
-        if (-not $PSCmdlet.MyInvocation.ExpectingInput -and (IsPSEnumerable -Object $ActualValue)) {
-            foreach ($object in $ActualValue) {
-                $inputArray.Add($object)
-            }
-        } else {
-            $inputArray.Add($ActualValue)
-        }
+        $inputArray.Add($ActualValue)
     }
 
     end {
@@ -265,8 +258,7 @@ function Invoke-Assertion {
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
     if (-not $testResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow)
-
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately

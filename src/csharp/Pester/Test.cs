@@ -34,7 +34,6 @@ namespace Pester
         public object Data { get; set; }
         public string ExpandedName { get; set; }
         public string ExpandedPath { get; set; }
-
         public string Result { get; set; }
         public List<object> ErrorRecord { get; set; }
         public object StandardOutput { get; set; }
@@ -66,6 +65,7 @@ namespace Pester
         public DateTime? ExecutedAt { get; set; }
         public bool Passed { get; set; }
         public bool Skipped { get; set; }
+        public bool Inconclusive { get; set; }
 
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }

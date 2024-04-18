@@ -48,19 +48,26 @@ function Should-BeNullOrEmpty($ActualValue, [switch] $Negate, [string] $Because)
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
-        }
-        else {
-            $valueToFormat = if ($singleValue) { $expandedValue } else { $ActualValue }
-            $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $valueToFormat -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{ Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
+    }
+    else {
+        $valueToFormat = if ($singleValue) { $expandedValue } else { $ActualValue }
+        $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $valueToFormat -Because $Because
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = if ($Negate) { '$null or empty' } else { 'a value' }
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 

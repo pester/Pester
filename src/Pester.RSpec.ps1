@@ -107,6 +107,9 @@ function Add-RSpecTestObjectProperties {
     $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
     }
+    elseif ($TestObject.Inconclusive) {
+        "Inconclusive"
+    }
     elseif ($TestObject.Passed) {
         "Passed"
     }
@@ -159,6 +162,9 @@ function PostProcess-RspecTestRun ($TestRun) {
             }
             "Skipped" {
                 $null = $TestRun.Skipped.Add($t)
+            }
+            "Inconclusive" {
+                $null = $TestRun.Inconclusive.Add($t)
             }
             default { throw "Result $($t.Result) is not supported." }
         }
@@ -236,6 +242,7 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.PassedCount = $TestRun.Passed.Count
     $TestRun.FailedCount = $TestRun.Failed.Count
     $TestRun.SkippedCount = $TestRun.Skipped.Count
+    $TestRun.InconclusiveCount = $TestRun.Inconclusive.Count
     $TestRun.NotRunCount = $TestRun.NotRun.Count
 
     $TestRun.TotalCount = $TestRun.Tests.Count
@@ -300,7 +307,7 @@ function New-PesterConfiguration {
       TestExtension: Filter used to identify test files.
       Default value: '.Tests.ps1'
 
-      Exit: Exit with non-zero exit code when the test run fails. When used together with Throw, throwing an exception is preferred.
+      Exit: Exit with non-zero exit code when the test run fails. Exit code is always set to `$LASTEXITCODE` even when this option is `$false`. When used together with Throw, throwing an exception is preferred.
       Default value: $false
 
       Throw: Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.

@@ -1,10 +1,10 @@
-﻿@{
+@{
 
     # Script module or binary module file associated with this manifest.
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.5.0'
+    ModuleVersion     = '5.6.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -116,14 +116,14 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.5.0-rc1'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.6.0'
 
             # Prerelease string of this module
-            Prerelease   = '-rc1'
+            Prerelease   = ''
         }
 
         # Minimum assembly version required
-        RequiredAssemblyVersion = '5.5.0'
+        RequiredAssemblyVersion = '5.6.0'
     }
 
     # HelpInfo URI of this module

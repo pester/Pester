@@ -255,7 +255,7 @@ LONG DESCRIPTION
     The output ends with a summary of the test results.
 
          Tests completed in 3.47s
-         Passed: 20 Failed: 1 Skipped: 0 Pending: 0 Inconclusive: 0
+         Tests Passed: 20, Failed: 1, Skipped: 0, Inconclusive: 0, NotRun: 0
 
     However, because Pester uses Write-Host, it does not write to the output
     stream (stdout), so there are no output objects to save in a variable or

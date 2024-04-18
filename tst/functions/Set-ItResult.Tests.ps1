@@ -1,10 +1,5 @@
 ﻿Set-StrictMode -Version Latest
 
-#TODO: skipped pending and inconclusive test results are not implemented yet
-return
-
-
-
 Describe "Testing Set-ItResult" {
     It "This test should be inconclusive" {
         try {
