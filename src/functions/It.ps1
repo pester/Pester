@@ -164,7 +164,7 @@
 
     if ($PSBoundParameters.ContainsKey('TestCases')) {
         if ($null -ne $TestCases -and 0 -lt @($TestCases).Count) {
-            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
         }
         else {
             # @() or $null is provided do nothing

@@ -167,6 +167,7 @@ function New-ParametrizedBlock {
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
+        [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -174,13 +175,14 @@ function New-ParametrizedBlock {
         $Data
     )
 
-    # Generating random Id so we can group them later in testresult-reports like NUnit 2.5 and 3
-    $GroupId = [guid]::NewGuid().ToString()
+    # using the position of Describe/Context as Id to group data-generated blocks. Should be unique enough because it only needs to be unique for the current block
+    # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
+    $groupId = "${StartLine}:${StartColumn}"
 
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -GroupId $GroupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
+        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
     }
 }
 
@@ -2626,6 +2628,7 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
+        [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [object[]] $Data,
@@ -2633,10 +2636,11 @@ function New-ParametrizedTest () {
         [Switch] $Skip
     )
 
-    # Generating random Id so we can group them later in testresult-reports like NUnit 2.5 and 3
-    $GroupId = [guid]::NewGuid().ToString()
+    # using the position of It as Id for the the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block.
+    # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
+    $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
-        New-Test -GroupId $GroupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
     }
 }
 
