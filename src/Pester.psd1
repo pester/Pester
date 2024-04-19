@@ -91,6 +91,7 @@
         'Assert-NotLike'
         'Assert-StringEqual'
         'Assert-StringNotEqual'
+        'Assert-StringEmpty'
 
         # legacy
         'Assert-VerifiableMock'
@@ -112,9 +113,12 @@
         'Add-AssertionOperator'
         'Get-AssertionOperator'
 
-        # assert
+        # assertion functions
+        # bool
         'Should-BeFalse'
         'Should-BeTrue'
+
+        # collection
         'Should-All'
         'Should-Any'
         'Should-Contain'
@@ -133,10 +137,15 @@
         'Should-BeNull'
         'Should-BeSame'
         'Should-BeType'
-        'Should-BeLikeString'
-        'Should-NotBeLikeString'
+
+        # string
         'Should-BeString'
         'Should-NotBeString'
+
+        'Should-BeEmptyString'
+
+        'Should-BeLikeString'
+        'Should-NotBeLikeString'
     )
 
 

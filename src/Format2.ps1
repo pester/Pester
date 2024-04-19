@@ -1,14 +1,19 @@
 ﻿function Format-Collection2 ($Value, [switch]$Pretty) {
-    $separator = ', '
-    if ($Pretty) {
-        $separator = ",`n"
-    }
-
+    $length = 0
     $o = foreach ($v in $Value) {
-        Format-Nicely2 -Value $v -Pretty:$Pretty
+        $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty
+        $length += $formatted.Length + 1 # 1 is for the separator
+        $formatted
     }
 
-    $o -join $separator
+    $prettyLimit = 50
+    if ($Pretty -and ($length + 3) -gt $prettyLimit) {
+        # 3 is for the '@()'
+        "@(`n    $($o -join ",`n    ")`n)"
+    }
+    else {
+        "@($($o -join ', '))"
+    }
 }
 
 function Format-Object2 ($Value, $Property, [switch]$Pretty) {
@@ -21,18 +26,24 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
     }
 
     $valueType = Get-ShortType $Value
-    $valueFormatted = [string]([PSObject]$Value | & $SafeCommands['Select-Object'] -Property $orderedProperty)
+    $margin = "    "
+    $items = foreach ($p in $orderedProperty) {
+        if ($Pretty) { "`n$margin" }
+        $v = ([PSObject]$Value.$p)
+        $f = Format-Nicely2 -Value $v -Pretty:$Pretty
+        "$separator$p=$f"
+    }
+    $o = "$valueType{$($items -join '; ')}"
 
-    if ($Pretty) {
-        $margin = "    "
-        $valueFormatted = $valueFormatted `
-            -replace '^@{', "@{`n$margin" `
-            -replace '; ', ";`n$margin" `
-            -replace '}$', "`n}" `
+    $o
+}
 
+function Format-String2 ($Value) {
+    if ('' -eq $Value) {
+        return '<empty>'
     }
 
-    $valueFormatted -replace "^@", $valueType
+    "'$Value'"
 }
 
 function Format-Null2 {
@@ -82,6 +93,10 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
 
     if ($Value -is [bool]) {
         return Format-Boolean2 -Value $Value
+    }
+
+    if ($Value -is [string]) {
+        return Format-String2 -Value $Value
     }
 
     if ($value -is [type]) {
@@ -148,16 +163,17 @@ function Get-ShortType2 ($Value) {
 
 function Format-Type2 ([Type]$Value) {
     if ($null -eq $Value) {
-        return '<null>'
+        return '[null]'
     }
 
     $type = [string]$Value
 
-    $type `
+    $typeFormatted = $type `
         -replace "^System\." `
         -replace "^Management\.Automation\.PSCustomObject$", "PSObject" `
         -replace "^PSCustomObject$", "PSObject" `
         -replace "^Object\[\]$", "collection" `
 
+    "[$($typeFormatted)]"
 }
 

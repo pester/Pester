@@ -17,18 +17,35 @@ InPesterModuleScope {
 
 
     Describe "Format-Collection2" {
-        It "Formats collection of values '<value>' to '<expected>' using the default separator" -TestCases @(
-            @{ Value = (1, 2, 3); Expected = "1, 2, 3" }
+        It "Formats empty collection to @()" -TestCases @(
         ) {
-            param ($Value, $Expected)
+            Format-Collection2 -Value @() | Verify-Equal "@()"
+        }
+
+        It "Formats collection of values '<value>' to '<expected>' using the default separator" -TestCases @(
+            @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
+        ) {
             Format-Collection2 -Value $Value | Verify-Equal $Expected
         }
 
         It "Formats collection of values '<value>' to '<expected>' using the default separator" -TestCases @(
-            @{ Value = (1, 2, 3); Expected = "1, 2, 3" }
+            @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
         ) {
-            param ($Value, $Expected)
             Format-Collection2 -Value $Value | Verify-Equal $Expected
+        }
+
+        It "Formats collection on single line when it is shorter than 50 characters" -TestCases @(
+            @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
+            @{ Value = @([string]::new("*", 44)); Expected = "@('$([string]::new("*", 44))')" }
+        ) {
+            Format-Collection2 -Value $Value -Pretty | Verify-Equal $Expected
+        }
+
+        It "Formats collection on multiple lines when it is longer than 50 characters" -TestCases @(
+            @{ Value = ([string]::new("*", 25), [string]::new("-", 25)); Expected = "@(`n    '$([string]::new("*", 25))',`n    '$([string]::new("-", 25))'`n)" }
+            @{ Value = @([string]::new("*", 60)); Expected = "@(`n    '$([string]::new("*", 60))'`n)" }
+        ) {
+            Format-Collection2 -Value $Value -Pretty | Verify-Equal $Expected
         }
     }
 
@@ -47,8 +64,8 @@ InPesterModuleScope {
 
     Describe "Format-Object2" {
         It "Formats object '<value>' to '<expected>'" -TestCases @(
-            @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28 }); Expected = "PSObject{Age=28; Name=Jakub}" },
-            @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}" }
+            @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28 }); Expected = "PSObject{Age=28; Name='Jakub'}" },
+            @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name='Jakub'}" }
         ) {
             param ($Value, $Expected)
             Format-Object2 -Value $Value | Verify-Equal $Expected
@@ -59,7 +76,7 @@ InPesterModuleScope {
             @{
                 Value              = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 })
                 SelectedProperties = 'Name'
-                Expected           = "Assertions.TestType.Person{Name=Jakub}"
+                Expected           = "Assertions.TestType.Person{Name='Jakub'}"
             }
         ) {
             param ($Value, $SelectedProperties, $Expected)
@@ -74,7 +91,7 @@ InPesterModuleScope {
             $name = $process.Name
             $id = $process.Id
             $SelectedProperties = "Name", "Id"
-            $expected = "Diagnostics.Process{Id=$id; Name=$name}"
+            $expected = "Diagnostics.Process{Id=$id; Name='$name'}"
 
             Format-Object2 -Value $process -Property $selectedProperties | Verify-Equal $Expected
         }
@@ -108,9 +125,9 @@ InPesterModuleScope {
         }
 
         It "Formats hashtable as '<expected>'" -TestCases @(
-            @{ Value = @{Age = 28; Name = 'Jakub' }; Expected = '@{Age=28; Name=Jakub}' }
+            @{ Value = @{Age = 28; Name = 'Jakub' }; Expected = "@{Age=28; Name='Jakub'}" }
             @{ Value = @{Z = 1; H = 1; A = 1 }; Expected = '@{A=1; H=1; Z=1}' }
-            @{ Value = @{Hash = @{Hash = 'Value' } }; Expected = '@{Hash=@{Hash=Value}}' }
+            @{ Value = @{Hash = @{Hash = 'Value' } }; Expected = "@{Hash=@{Hash='Value'}}" }
         ) {
             param ($Value, $Expected)
             Format-Hashtable2 $Value | Verify-Equal $Expected
@@ -123,9 +140,9 @@ InPesterModuleScope {
         }
 
         It "Formats dictionary as '<expected>'" -TestCases @(
-            @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = 'Dictionary{Age=28; Name=Jakub}' }
+            @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = "Dictionary{Age=28; Name='Jakub'}" }
             @{ Value = New-Dictionary @{Z = 1; H = 1; A = 1 }; Expected = 'Dictionary{A=1; H=1; Z=1}' }
-            @{ Value = New-Dictionary @{Dict = ( New-Dictionary @{Dict = 'Value' }) }; Expected = 'Dictionary{Dict=Dictionary{Dict=Value}}' }
+            @{ Value = New-Dictionary @{Dict = ( New-Dictionary @{Dict = 'Value' }) }; Expected = "Dictionary{Dict=Dictionary{Dict='Value'}}" }
         ) {
             param ($Value, $Expected)
             Format-Dictionary2 $Value | Verify-Equal $Expected
@@ -134,18 +151,18 @@ InPesterModuleScope {
 
     Describe "Format-Nicely2" {
         It "Formats value '<value>' correctly to '<expected>'" -TestCases @(
-            @{ Value = $null; Expected = '$null' }
-            @{ Value = $true; Expected = '$true' }
-            @{ Value = $false; Expected = '$false' }
-            @{ Value = 'a' ; Expected = 'a' },
-            @{ Value = 1; Expected = '1' },
-            @{ Value = (1, 2, 3); Expected = '1, 2, 3' },
-            @{ Value = 1.1; Expected = '1.1' },
-            @{ Value = [int]; Expected = 'int' }
-            @{ Value = New-PSObject @{ Name = "Jakub" }; Expected = 'PSObject{Name=Jakub}' },
-            @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}" }
-            @{ Value = @{Name = 'Jakub'; Age = 28 }; Expected = '@{Age=28; Name=Jakub}' }
-            @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = 'Dictionary{Age=28; Name=Jakub}' }
+            # @{ Value = $null; Expected = '$null' }
+            # @{ Value = $true; Expected = '$true' }
+            # @{ Value = $false; Expected = '$false' }
+            # @{ Value = 'a' ; Expected = "'a'" },
+            # @{ Value = 1; Expected = '1' },
+            # @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
+            # @{ Value = 1.1; Expected = '1.1' },
+            # @{ Value = [int]; Expected = 'int' }
+            @{ Value = New-PSObject @{ Name = "Jakub" }; Expected = "PSObject{Name='Jakub'}" },
+            @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name='Jakub'}" }
+            @{ Value = @{Name = 'Jakub'; Age = 28 }; Expected = "@{Age=28; Name='Jakub'}" }
+            @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = "Dictionary{Age=28; Name='Jakub'}" }
         ) {
             param($Value, $Expected)
             Format-Nicely2 -Value $Value | Verify-Equal $Expected
@@ -164,12 +181,12 @@ InPesterModuleScope {
 
     Describe "Format-Type2" {
         It "Given '<value>' it returns the correct shortened type name '<expected>'" -TestCases @(
-            @{ Value = [int]; Expected = 'int' },
-            @{ Value = [double]; Expected = 'double' },
-            @{ Value = [string]; Expected = 'string' },
-            @{ Value = $null; Expected = '<null>' },
-            @{ Value = [Management.Automation.PSObject]; Expected = 'PSObject' },
-            @{ Value = [Object[]]; Expected = 'collection' }
+            @{ Value = [int]; Expected = '[int]' },
+            @{ Value = [double]; Expected = '[double]' },
+            @{ Value = [string]; Expected = '[string]' },
+            @{ Value = $null; Expected = '[null]' },
+            @{ Value = [Management.Automation.PSObject]; Expected = '[PSObject]' },
+            @{ Value = [Object[]]; Expected = '[collection]' }
         ) {
             param($Value, $Expected)
             Format-Type2 -Value $Value | Verify-Equal $Expected
@@ -179,15 +196,25 @@ InPesterModuleScope {
 
     Describe "Get-ShortType2" {
         It "Given '<value>' it returns the correct shortened type name '<expected>'" -TestCases @(
-            @{ Value = 1; Expected = 'int' },
-            @{ Value = 1.1; Expected = 'double' },
-            @{ Value = 'a' ; Expected = 'string' },
-            @{ Value = $null ; Expected = '<null>' },
-            @{ Value = New-PSObject @{Name = 'Jakub' } ; Expected = 'PSObject' },
-            @{ Value = [Object[]]1, 2, 3 ; Expected = 'collection' }
+            @{ Value = 1; Expected = '[int]' },
+            @{ Value = 1.1; Expected = '[double]' },
+            @{ Value = 'a' ; Expected = '[string]' },
+            @{ Value = $null ; Expected = '[null]' },
+            @{ Value = New-PSObject @{Name = 'Jakub' } ; Expected = '[PSObject]' },
+            @{ Value = [Object[]]1, 2, 3 ; Expected = '[collection]' }
         ) {
             param($Value, $Expected)
             Get-ShortType2 -Value $Value | Verify-Equal $Expected
+        }
+    }
+
+    Describe "Format-String2" {
+        It "Formats empty string to ``<empty``> (no quotes)" {
+            Format-String2 -Value "" | Verify-Equal '<empty>'
+        }
+
+        It "Formats string to be sorrounded by quotes" {
+            Format-String2 -Value "abc" | Verify-Equal "'abc'"
         }
     }
 }

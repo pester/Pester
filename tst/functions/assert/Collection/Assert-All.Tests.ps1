@@ -6,7 +6,6 @@ Describe "Assert-All" {
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        param($Actual)
         $Actual | Assert-All -FilterScript { $_ -eq 1 }
     }
 
@@ -15,14 +14,12 @@ Describe "Assert-All" {
         @{ Actual = @(2) }
         @{ Actual = 2 }
     ) {
-        param($Actual)
         { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
     }
 
     It "Validate messages" -TestCases @(
         @{ Actual = @(3, 4, 5); Message = "Expected all items in collection '3, 4, 5' to pass filter '{ `$_ -eq 1 }', but 3 of them '3, 4, 5' did not pass the filter." }
     ) {
-        param($Actual, $Message)
         $err = { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message
     }
