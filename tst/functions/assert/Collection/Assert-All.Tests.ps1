@@ -42,4 +42,8 @@ Describe "Assert-All" {
     It "Accepts FilterScript and Actual by position" {
         Assert-All { $true } 1, 2
     }
+
+    It 'It fails when the only item not matching the filter is 0' {
+        { 0 | Assert-All -FilterScript { $_ -gt 0 } } | Verify-AssertionFailed
+    }
 }

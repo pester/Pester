@@ -20,7 +20,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Should-BeGreaterThan'         'Assert-GreaterThan'
 & $SafeCommands['Set-Alias'] 'Should-BeGreaterThanOrEqual'  'Assert-GreaterThanOrEqual'
 & $SafeCommands['Set-Alias'] 'Should-BeLessThan'            'Assert-LessThan'
-& $SafeCommands['Set-Alias'] 'Shoulde-BeLessThanOrEqual'    'Assert-LessThanOrEqual'
+& $SafeCommands['Set-Alias'] 'Should-BeLessThanOrEqual'    'Assert-LessThanOrEqual'
 & $SafeCommands['Set-Alias'] 'Should-NotBeEqual'            'Assert-NotEqual'
 & $SafeCommands['Set-Alias'] 'Should-NotBeNull'             'Assert-NotNull'
 & $SafeCommands['Set-Alias'] 'Should-NotBeSame'             'Assert-NotSame'
@@ -28,8 +28,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Should-BeNull'                'Assert-Null'
 & $SafeCommands['Set-Alias'] 'Should-BeSame'                'Assert-Same'
 & $SafeCommands['Set-Alias'] 'Should-BeType'                'Assert-Type'
-& $SafeCommands['Set-Alias'] 'Should-BeLike'                'Assert-Like'
-& $SafeCommands['Set-Alias'] 'Should-NotBeLike'             'Assert-NotLike'
+& $SafeCommands['Set-Alias'] 'Should-BeLikeString'                'Assert-Like'
+& $SafeCommands['Set-Alias'] 'Should-NotBeLikeString'             'Assert-NotLike'
 
 
 
@@ -121,7 +121,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Should-BeGreaterThan'
     'Should-BeGreaterThanOrEqual'
     'Should-BeLessThan'
-    'Shoulde-BeLessThanOrEqual'
+    'Should-BeLessThanOrEqual'
     'Should-NotBeEqual'
     'Should-NotBeNull'
     'Should-NotBeSame'
@@ -129,8 +129,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Should-BeNull'
     'Should-BeSame'
     'Should-BeType'
-    'Should-BeLike'
-    'Should-NotBeLike'
-    'Should-StringBeEqual'
-    'Should-StringNotBeEqual'
+    'Should-BeLikeString'
+    'Should-NotBeLikeString'
+    'Should-BeString'
+    'Should-NotBeString'
 )

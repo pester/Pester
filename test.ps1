@@ -36,6 +36,7 @@ param (
     # force P to fail when I leave `dt` in the tests
     [switch] $CI,
     [switch] $SkipPTests,
+    [switch] $SkipPesterTests,
     [switch] $NoBuild,
     [switch] $Inline,
     [string[]] $File
@@ -47,6 +48,10 @@ $ErrorActionPreference = 'Stop'
 $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
+
+if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
+    throw "Cannot skip tests in CI mode!"
+}
 
 if (-not $NoBuild) {
     if ($CI) {
@@ -133,6 +138,9 @@ New-Module -Name TestHelpers -ScriptBlock {
     }
 } | Out-Null
 
+if ($SkipPesterTests) {
+    return
+}
 
 $configuration = [PesterConfiguration]::Default
 

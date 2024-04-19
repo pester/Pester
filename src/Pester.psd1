@@ -125,7 +125,7 @@
         'Should-BeGreaterThan'
         'Should-BeGreaterThanOrEqual'
         'Should-BeLessThan'
-        'Shoulde-BeLessThanOrEqual'
+        'Should-BeLessThanOrEqual'
         'Should-NotBeEqual'
         'Should-NotBeNull'
         'Should-NotBeSame'
@@ -133,10 +133,10 @@
         'Should-BeNull'
         'Should-BeSame'
         'Should-BeType'
-        'Should-BeLike'
-        'Should-NotBeLike'
-        'Should-StringBeEqual'
-        'Should-StringNotBeEqual'
+        'Should-BeLikeString'
+        'Should-NotBeLikeString'
+        'Should-BeString'
+        'Should-NotBeString'
     )
 
 
