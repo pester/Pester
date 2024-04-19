@@ -164,7 +164,7 @@
 
     if ($PSBoundParameters.ContainsKey('ForEach')) {
         if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
-            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
+            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
         }
         else {
             # @() or $null is provided do nothing
