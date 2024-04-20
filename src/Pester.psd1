@@ -92,6 +92,8 @@
         'Assert-StringEqual'
         'Assert-StringNotEqual'
         'Assert-StringEmpty'
+        'Assert-StringNotNullOrWhiteSpace'
+        'Assert-StringNotNullOrEmpty'
 
         # legacy
         'Assert-VerifiableMock'
@@ -143,6 +145,9 @@
         'Should-NotBeString'
 
         'Should-BeEmptyString'
+
+        'Should-NotBeNullOrWhiteSpaceString'
+        'Should-NotBeNullOrEmptyString'
 
         'Should-BeLikeString'
         'Should-NotBeLikeString'
