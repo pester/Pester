@@ -20,7 +20,7 @@ function Get-ValueNotEquivalentMessage ($Expected, $Actual, $Property, $Options)
     $Actual = Format-Nicely2 -Value $Actual
     $propertyInfo = if ($Property) { " property $Property with value" }
     $comparison = if ("Equality" -eq $Options.Comparator) { 'equal' } else { 'equivalent' }
-    "Expected$propertyInfo '$Expected' to be $comparison to the actual value, but got '$Actual'."
+    "Expected$propertyInfo $Expected to be $comparison to the actual value, but got $Actual."
 }
 
 
@@ -34,7 +34,7 @@ function Get-CollectionSizeNotTheSameMessage ($Actual, $Expected, $Property) {
     if ($property) {
         $propertyMessage = " in property $Property with values"
     }
-    "Expected collection$propertyMessage '$Expected' with length '$expectedLength' to be the same size as the actual collection, but got '$Actual' with length '$actualLength'."
+    "Expected collection$propertyMessage $Expected with length $expectedLength to be the same size as the actual collection, but got $Actual with length $actualLength."
 }
 
 function Get-DataTableSizeNotTheSameMessage ($Actual, $Expected, $Property) {
@@ -47,7 +47,7 @@ function Get-DataTableSizeNotTheSameMessage ($Actual, $Expected, $Property) {
     if ($property) {
         $propertyMessage = " in property $Property with values"
     }
-    "Expected DataTable$propertyMessage '$Expected' with length '$expectedLength' to be the same size as the actual DataTable, but got '$Actual' with length '$actualLength'."
+    "Expected DataTable$propertyMessage $Expected with length $expectedLength to be the same size as the actual DataTable, but got $Actual with length $actualLength."
 }
 
 function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) {
@@ -60,7 +60,7 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
         $expectedFormatted = Format-Collection2 -Value $Expected
         $expectedLength = $expected.Length
         $actualFormatted = Format-Nicely2 -Value $actual
-        return "Expected collection '$expectedFormatted' with length '$expectedLength', but got '$actualFormatted'."
+        return "Expected collection $expectedFormatted with length $expectedLength, but got $actualFormatted."
     }
 
     if (-not (Is-CollectionSize -Expected $Expected -Actual $Actual)) {
@@ -129,7 +129,7 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
         $notFoundFormatted = Format-Nicely2 -Value ( $notFound | ForEach-Object { Format-Nicely2 -Value $_ } )
 
         $propertyMessage = if ($Property) { " in property $Property which is" }
-        return "Expected collection$propertyMessage '$Expected' to be equivalent to '$Actual' but some values were missing: '$notFoundFormatted'."
+        return "Expected collection$propertyMessage $Expected to be equivalent to $Actual but some values were missing: $notFoundFormatted."
     }
     v -Equivalence "`$Actual and `$Expected arrays are equivalent."
 }
@@ -143,7 +143,7 @@ function Compare-DataTableEquivalent ($Expected, $Actual, $Property, $Options) {
         $expectedFormatted = Format-Collection2 -Value $Expected
         $expectedLength = $expected.Rows.Count
         $actualFormatted = Format-Nicely2 -Value $actual
-        return "Expected DataTable '$expectedFormatted' with length '$expectedLength', but got '$actualFormatted'."
+        return "Expected DataTable $expectedFormatted with length $expectedLength, but got $actualFormatted."
     }
 
     if (-not (Is-DataTableSize -Expected $Expected -Actual $Actual)) {
@@ -260,7 +260,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         v -Difference "`$Actual is not a hashtable it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Nicely2 -Value $Expected
         $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected hashtable '$expectedFormatted', but got '$actualFormatted'."
+        return "Expected hashtable $expectedFormatted, but got $actualFormatted."
     }
 
     # todo: if either side or both sides are empty hashtable make the verbose output shorter and nicer
@@ -311,7 +311,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         v -Difference "Hashtables `$Actual and `$Expected are not equivalent."
         $expectedFormatted = Format-Nicely2 -Value $Expected
         $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected hashtable '$expectedFormatted', but got '$actualFormatted'.`n$($result -join "`n")"
+        return "Expected hashtable $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
     }
 
     v -Equivalence "Hastables `$Actual and `$Expected are equivalent."
@@ -326,7 +326,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         v -Difference "`$Actual is not a dictionary it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Nicely2 -Value $Expected
         $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected dictionary '$expectedFormatted', but got '$actualFormatted'."
+        return "Expected dictionary $expectedFormatted, but got $actualFormatted."
     }
 
     # todo: if either side or both sides are empty dictionary make the verbose output shorter and nicer
@@ -375,7 +375,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         v -Difference "Dictionaries `$Actual and `$Expected are not equivalent."
         $expectedFormatted = Format-Nicely2 -Value $Expected
         $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected dictionary '$expectedFormatted', but got '$actualFormatted'.`n$($result -join "`n")"
+        return "Expected dictionary $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
     }
     v -Equivalence "Dictionaries `$Actual and `$Expected are equivalent."
 }
@@ -390,7 +390,7 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
         v -Difference "`$Actual is not an object it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Nicely2 -Value $Expected
         $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected object '$expectedFormatted', but got '$actualFormatted'."
+        return "Expected object $expectedFormatted, but got $actualFormatted."
     }
 
     $actualProperties = $Actual.PsObject.Properties

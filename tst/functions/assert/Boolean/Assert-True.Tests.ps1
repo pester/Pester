@@ -22,8 +22,8 @@ Describe "Assert-True" {
 
     Context "Validate messages" {
         It "Given value that is not `$true it returns expected message '<message>'" -TestCases @(
-            @{ Actual = $false ; Message = "Expected bool '`$false' to be bool '`$true' or truthy value." },
-            @{ Actual = 0 ; Message = "Expected int '0' to be bool '`$true' or truthy value." }
+            @{ Actual = $false ; Message = "Expected [bool] `$false to be [bool] `$true or truthy value." },
+            @{ Actual = 0 ; Message = "Expected [int] 0 to be [bool] `$true or truthy value." }
         ) {
             param($Actual, $Message)
             $err = { Assert-True -Actual $Actual } | Verify-AssertionFailed

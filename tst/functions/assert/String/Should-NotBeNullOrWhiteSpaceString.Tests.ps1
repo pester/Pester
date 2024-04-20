@@ -1,40 +1,5 @@
 ﻿Set-StrictMode -Version Latest
 
-InPesterModuleScope {
-    Describe "Test-StringNullOrWhiteSpace" {
-        It "non-empty string returns `$false" -ForEach @(
-            @{ Actual = "1" }
-        ) {
-            Test-StringNullOrWhiteSpace -Actual $Actual | Verify-True
-        }
-
-        It "empty string, whitespace, or null returns `$true" -ForEach @(
-            @{ Actual = "" }
-            @{ Actual = " " }
-            @{ Actual = "`t" }
-            @{ Actual = "`n" }
-            @{ Actual = "`r" }
-            @{ Actual = $null }
-        ) {
-            Test-StringNullOrWhiteSpace -Actual $Actual | Verify-False
-        }
-    }
-
-    Describe "Get-StringNotNullOrWhiteSpaceDefaultFailureMessage" {
-        It "Throws with default message when test fails" {
-            $expected = Get-StringNotNullOrWhiteSpaceDefaultFailureMessage -Actual ""
-            $exception = { Should-NotBeNullOrWhiteSpaceString -Actual "" } | Verify-AssertionFailed
-            "$exception" | Verify-Equal $expected
-        }
-
-        It "Throws with default message and because when test fails" {
-            $expected = Get-StringNotNullOrWhiteSpaceDefaultFailureMessage -Actual "" -Because "abc"
-            $exception = { Should-NotBeNullOrWhiteSpaceString -Actual "" -Because "abc" } | Verify-AssertionFailed
-            "$exception" | Verify-Equal $expected
-        }
-    }
-}
-
 Describe "Should-NotBeNullOrWhiteSpaceString" {
     It "Does not throw when string has value" {
         "bde" | Should-NotBeNullOrWhiteSpaceString
@@ -46,7 +11,6 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
         @{ Actual = "`t" }
         @{ Actual = "`n" }
         @{ Actual = "`r" }
-        @{ Actual = $null }
     ) {
         { $Actual | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
     }
@@ -55,6 +19,7 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
         @{ Actual = 1 }
         @{ Actual = @() }
         @{ Actual = $true }
+        @{ Actual = $null }
     ) {
         { $Actual | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
     }
@@ -74,5 +39,16 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
 
     It "Fails when `$null collection is passed in by pipeline" {
         { $null | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
+    }
+
+    It "Fails with the expected message" -ForEach @(
+        @{ Actual = ""; Because = $null; ExpectedMessage = "Expected a [string] that is not `$null, empty or whitespace, but got [string]: <empty>`n`n" }
+        @{ Actual = ""; Because = 'reason'; ExpectedMessage = "Expected a [string] that is not `$null, empty or whitespace, because reason, but got [string]: <empty>`n`n" }
+        @{ Actual = 3; Because = $null; ExpectedMessage = "Expected a [string] that is not `$null, empty or whitespace, but got [int]: 3`n`n" }
+    ) {
+        $actual = $Actual
+        $expectedMessage = $ExpectedMessage
+        $err = { Should-NotBeNullOrWhiteSpaceString -Actual $actual -Because $Because } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal $ExpectedMessage
     }
 }

@@ -1,43 +1,14 @@
 ﻿Set-StrictMode -Version Latest
 
-InPesterModuleScope {
-    Describe "Test-StringNullOrEmpty" {
-        It "non-empty string, or whitespace returns `$false" -ForEach @(
-            @{ Actual = "1" }
-            @{ Actual = " " }
-            @{ Actual = "`t" }
-            @{ Actual = "`n" }
-            @{ Actual = "`r" }
-        ) {
-            Test-StringNullOrEmpty -Actual $Actual | Verify-True
-        }
-
-        It "empty string, or null returns `$true" -ForEach @(
-            @{ Actual = "" }
-            @{ Actual = $null }
-        ) {
-            Test-StringNullOrEmpty -Actual $Actual | Verify-False
-        }
-    }
-
-    Describe "Get-StringNotNullOrEmptyDefaultFailureMessage" {
-        It "Throws with default message when test fails" {
-            $expected = Get-StringNotNullOrEmptyDefaultFailureMessage -Actual ""
-            $exception = { Should-NotBeNullOrEmptyString -Actual "" } | Verify-AssertionFailed
-            "$exception" | Verify-Equal $expected
-        }
-
-        It "Throws with default message and because when test fails" {
-            $expected = Get-StringNotNullOrEmptyDefaultFailureMessage -Actual "" -Because "abc"
-            $exception = { Should-NotBeNullOrEmptyString -Actual "" -Because "abc" } | Verify-AssertionFailed
-            "$exception" | Verify-Equal $expected
-        }
-    }
-}
-
 Describe "Should-NotBeNullOrEmptyString" {
-    It "Does not throw when string has value" {
-        "bde" | Should-NotBeNullOrEmptyString
+    It "Does not throw when string has value" -ForEach @(
+        @{ Actual = "1" }
+        @{ Actual = " " }
+        @{ Actual = "`t" }
+        @{ Actual = "`n" }
+        @{ Actual = "`r" }
+    ) {
+        $Actual | Should-NotBeNullOrEmptyString
     }
 
     It "Throws when string is `$null or empty" -ForEach @(
@@ -70,5 +41,16 @@ Describe "Should-NotBeNullOrEmptyString" {
 
     It "Fails when `$null collection is passed in by pipeline" {
         { $null | Should-NotBeNullOrEmptyString } | Verify-AssertionFailed
+    }
+
+    It "Fails with the expected message" -ForEach @(
+        @{ Actual = ""; Because = $null; ExpectedMessage = "Expected a [string] that is not `$null or empty, but got [string]: <empty>`n`n" }
+        @{ Actual = ""; Because = 'reason'; ExpectedMessage = "Expected a [string] that is not `$null or empty, because reason, but got [string]: <empty>`n`n" }
+        @{ Actual = 3; Because = $null; ExpectedMessage = "Expected a [string] that is not `$null or empty, but got [int]: 3`n`n" }
+    ) {
+        $actual = $Actual
+        $expectedMessage = $ExpectedMessage
+        $err = { Should-NotBeNullOrEmptyString -Actual $actual -Because $Because } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal $ExpectedMessage
     }
 }

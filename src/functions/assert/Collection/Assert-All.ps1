@@ -33,7 +33,7 @@
             actualFiltered      = $actualFiltered
             actualFilteredCount = $actualFiltered.Count
         }
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected all items in collection '<actual>' to pass filter '<expected>', but <actualFilteredCount> of them '<actualFiltered>' did not pass the filter."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 

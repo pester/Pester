@@ -6,7 +6,6 @@ Describe "Assert-Any" {
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        param($Actual)
         $Actual | Assert-Any -FilterScript { $_ -eq 1 }
     }
 
@@ -15,16 +14,14 @@ Describe "Assert-Any" {
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        param($Actual)
         { $Actual | Assert-Any -FilterScript { $_ -eq 0 } } | Verify-AssertionFailed
     }
 
     It "Validate messages" -TestCases @(
-        @{ Actual = @(3, 4, 5); Message = "Expected at least one item in collection '3, 4, 5' to pass filter '{ `$_ -eq 1 }', but none of the items passed the filter." }
-        @{ Actual = @(3); Message = "Expected at least one item in collection '3' to pass filter '{ `$_ -eq 1 }', but none of the items passed the filter." }
-        @{ Actual = 3; Message = "Expected at least one item in collection '3' to pass filter '{ `$_ -eq 1 }', but none of the items passed the filter." }
+        @{ Actual = @(3, 4, 5); Message = "Expected at least one item in collection @(3, 4, 5) to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
+        @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
+        @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
     ) {
-        param($Actual, $Message)
         $err = { $Actual | Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message
     }

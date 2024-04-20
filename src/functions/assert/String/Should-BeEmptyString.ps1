@@ -1,17 +1,4 @@
-﻿function Test-StringEmpty {
-    param (
-        $Actual
-    )
-
-
-    $Actual -is [string] -and [string]::Empty -eq $Actual
-}
-
-function Get-StringEmptyDefaultFailureMessage ($Actual, $Because) {
-    Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected an empty string,<because> but got <actualType>: <actual>" -Pretty
-}
-
-function Assert-StringEmpty {
+﻿function Assert-StringEmpty {
     <#
     .SYNOPSIS
     Ensures that input is an empty string.
@@ -58,9 +45,8 @@ function Assert-StringEmpty {
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
-    $stringsAreEqual = Test-StringEmpty -Actual $Actual
-    if (-not ($stringsAreEqual)) {
-        $formattedMessage = Get-StringEmptyDefaultFailureMessage -Actual $Actual -Because $Because
+    if ($Actual -isnot [String] -or -not [String]::IsNullOrEmpty( $Actual)) {
+        $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is empty,<because> but got <actualType>: <actual>" -Pretty
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

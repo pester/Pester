@@ -28,12 +28,15 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Should-BeNull'                'Assert-Null'
 & $SafeCommands['Set-Alias'] 'Should-BeSame'                'Assert-Same'
 & $SafeCommands['Set-Alias'] 'Should-BeType'                'Assert-Type'
+
+& $SafeCommands['Set-Alias'] 'Should-BeString'              'Assert-StringEqual'
+& $SafeCommands['Set-Alias'] 'Should-NotBeString'              'Assert-StringNotEqual'
 & $SafeCommands['Set-Alias'] 'Should-BeLikeString'          'Assert-Like'
 & $SafeCommands['Set-Alias'] 'Should-NotBeLikeString'       'Assert-NotLike'
 
 & $SafeCommands['Set-Alias'] 'Should-BeEmptyString'         'Assert-StringEmpty'
-& $SafeCommands['Set-Alias'] 'Should-NotBeNullOrWhiteSpaceString'         'Assert-StringNotNullOrWhiteSpace'
-& $SafeCommands['Set-Alias'] 'Should-NotBeNullOrEmptyString'         'Assert-StringNotNullOrEmpty'
+& $SafeCommands['Set-Alias'] 'Should-NotBeNullOrWhiteSpaceString'         'Assert-StringNotWhiteSpace'
+& $SafeCommands['Set-Alias'] 'Should-NotBeNullOrEmptyString'         'Assert-StringNotEmpty'
 
 
 
@@ -97,8 +100,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Assert-StringNotEqual'
 
     'Assert-StringEmpty'
-    'Assert-StringNotNullOrWhiteSpace'
-    'Assert-StringNotNullOrEmpty'
+    'Assert-StringNotWhiteSpace'
+    'Assert-StringNotEmpty'
 
     # export
     'Export-NUnitReport'

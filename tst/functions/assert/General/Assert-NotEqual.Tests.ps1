@@ -56,7 +56,7 @@ InPesterModuleScope {
         }
 
         It "Passes for array input even if the last item is the same as expected" {
-             1,2,3 | Assert-NotEqual 3
+            1, 2, 3 | Assert-NotEqual 3
         }
 
         It "Fails with custom message" {
@@ -66,7 +66,7 @@ InPesterModuleScope {
 
         Context "Validate messages" {
             It "Given two values that are the same '<value>' it returns expected message '<message>'" -TestCases @(
-                @{ Value = 1;  Message = "Expected int '1', to be different than the actual value, but they were the same."}
+                @{ Value = 1; Message = "Expected [int] 1, to be different than the actual value, but they were the same." }
             ) {
                 param($Value, $Message)
                 $err = { Assert-NotEqual -Actual $Value -Expected $Value } | Verify-AssertionFailed

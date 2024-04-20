@@ -92,8 +92,8 @@
         'Assert-StringEqual'
         'Assert-StringNotEqual'
         'Assert-StringEmpty'
-        'Assert-StringNotNullOrWhiteSpace'
-        'Assert-StringNotNullOrEmpty'
+        'Assert-StringNotWhiteSpace'
+        'Assert-StringNotEmpty'
 
         # legacy
         'Assert-VerifiableMock'

@@ -18,7 +18,7 @@ Describe "Assert-All" {
     }
 
     It "Validate messages" -TestCases @(
-        @{ Actual = @(3, 4, 5); Message = "Expected all items in collection '3, 4, 5' to pass filter '{ `$_ -eq 1 }', but 3 of them '3, 4, 5' did not pass the filter." }
+        @{ Actual = @(3, 4, 5); Message = "Expected all items in collection @(3, 4, 5) to pass filter { `$_ -eq 1 }, but 3 of them @(3, 4, 5) did not pass the filter." }
     ) {
         $err = { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message

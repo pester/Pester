@@ -85,35 +85,35 @@ InPesterModuleScope {
             $e = 'abc'
             $a = New-PSObject @{ Name = 'Jakub'; Age = 28 }
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
-                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got 'PSObject{Age=28; Name=Jakub}'."
+                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got PSObject{Age=28; Name='Jakub'}."
         }
 
         It "Returns correct message when comparing object to a value" {
             $e = New-PSObject @{ Name = 'Jakub'; Age = 28 }
             $a = 'abc'
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
-                Verify-Equal "Expected 'PSObject{Age=28; Name=Jakub}' to be equivalent to the actual value, but got 'abc'."
+                Verify-Equal "Expected PSObject{Age=28; Name='Jakub'} to be equivalent to the actual value, but got 'abc'."
         }
 
         It "Returns correct message when comparing value to an array" {
             $e = 'abc'
             $a = 1, 2, 3
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
-                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got '1, 2, 3'."
+                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got @(1, 2, 3)."
         }
 
         It "Returns correct message when comparing value to null" {
             $e = 'abc'
             $a = $null
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
-                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got '`$null'."
+                Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got `$null."
         }
 
         It "Returns correct message for given property" {
             $e = 1
             $a = 2
             Get-ValueNotEquivalentMessage -Actual 1 -Expected 2 -Property ".Age" |
-                Verify-Equal "Expected property .Age with value '2' to be equivalent to the actual value, but got '1'."
+                Verify-Equal "Expected property .Age with value 2 to be equivalent to the actual value, but got 1."
         }
 
         It "Changes wording to 'equal' when options specify Equality comparator" {
@@ -121,7 +121,7 @@ InPesterModuleScope {
             $a = 2
             $options = Get-EquivalencyOption -Comparator Equality
             Get-ValueNotEquivalentMessage -Actual 1 -Expected 2 -Options $options |
-                Verify-Equal "Expected '2' to be equal to the actual value, but got '1'."
+                Verify-Equal "Expected 2 to be equal to the actual value, but got 1."
         }
     }
 
@@ -146,7 +146,7 @@ InPesterModuleScope {
 
     Describe "Get-CollectionSizeNotTheSameMessage" {
         It "Given two collections of differrent sizes it returns the correct message" {
-            Get-CollectionSizeNotTheSameMessage -Expected (1, 2, 3) -Actual (1, 2) | Verify-Equal "Expected collection '1, 2, 3' with length '3' to be the same size as the actual collection, but got '1, 2' with length '2'."
+            Get-CollectionSizeNotTheSameMessage -Expected (1, 2, 3) -Actual (1, 2) | Verify-Equal "Expected collection @(1, 2, 3) with length 3 to be the same size as the actual collection, but got @(1, 2) with length 2."
         }
     }
 
@@ -157,17 +157,17 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = $null; Expected = 1; Message = "Expected '1' to be equivalent to the actual value, but got '`$null'." },
-            @{ Actual = $null; Expected = ""; Message = "Expected '' to be equivalent to the actual value, but got '`$null'." },
-            @{ Actual = $true; Expected = $false; Message = "Expected '`$false' to be equivalent to the actual value, but got '`$true'." },
-            @{ Actual = $true; Expected = 'False'; Message = "Expected '`$false' to be equivalent to the actual value, but got '`$true'." },
-            @{ Actual = 1; Expected = -1; Message = "Expected '-1' to be equivalent to the actual value, but got '1'." },
-            @{ Actual = "1"; Expected = 1.01; Message = "Expected '1.01' to be equivalent to the actual value, but got '1'." },
+            @{ Actual = $null; Expected = 1; Message = "Expected 1 to be equivalent to the actual value, but got `$null." },
+            @{ Actual = $null; Expected = ""; Message = "Expected <empty> to be equivalent to the actual value, but got `$null." },
+            @{ Actual = $true; Expected = $false; Message = "Expected `$false to be equivalent to the actual value, but got `$true." },
+            @{ Actual = $true; Expected = 'False'; Message = "Expected `$false to be equivalent to the actual value, but got `$true." },
+            @{ Actual = 1; Expected = -1; Message = "Expected -1 to be equivalent to the actual value, but got 1." },
+            @{ Actual = "1"; Expected = 1.01; Message = "Expected 1.01 to be equivalent to the actual value, but got '1'." },
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
-            @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'abc, bde'." },
-            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{ def }'." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'PSObject{Name=Jakub}'." },
-            @{ Actual = (1, 2, 3); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '1, 2, 3'." }
+            @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got @('abc', 'bde')." },
+            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got { def }." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
+            @{ Actual = (1, 2, 3); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got @(1, 2, 3)." }
         ) {
             param($Actual, $Expected, $Message)
             Compare-ValueEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -181,16 +181,16 @@ InPesterModuleScope {
         }
 
         It "Given two collections '<expected>' '<actual>' of different sizes it returns message '<message>'" -TestCases @(
-            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." },
-            @{ Actual = (1, 2, 3); Expected = (3, 1); Message = "Expected collection '3, 1' with length '2' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." }
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4 to be the same size as the actual collection, but got @(1, 2, 3) with length 3." },
+            @{ Actual = (1, 2, 3); Expected = (3, 1); Message = "Expected collection @(3, 1) with length 2 to be the same size as the actual collection, but got @(1, 2, 3) with length 3." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
         }
 
         It "Given collection '<expected>' on the expected side and non-collection '<actual>' on the actual side it prints the correct message '<message>'" -TestCases @(
-            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'." }
+            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -213,8 +213,8 @@ InPesterModuleScope {
         }
 
         It "Given two collections '<expected>' '<actual>' it compares each value with each value and returns message '<message> if any of them are not equivalent" -TestCases @(
-            @{ Actual = (1, 2, 3); Expected = (4, 5, 6); Message = "Expected collection '4, 5, 6' to be equivalent to '1, 2, 3' but some values were missing: '4, 5, 6'." },
-            @{ Actual = (1, 2, 3); Expected = (1, 2, 2); Message = "Expected collection '1, 2, 2' to be equivalent to '1, 2, 3' but some values were missing: '2'." }
+            @{ Actual = (1, 2, 3); Expected = (4, 5, 6); Message = "Expected collection @(4, 5, 6) to be equivalent to @(1, 2, 3) but some values were missing: @(4, 5, 6)." },
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 2); Message = "Expected collection @(1, 2, 2) to be equivalent to @(1, 2, 3) but some values were missing: 2." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -234,7 +234,7 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'." }
+            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-ObjectEquivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
@@ -251,10 +251,10 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got 'a'." }
-            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got '@{}'.`nExpected has key 'Name' that the other object does not have." }
-            @{ Actual = @{ Name = 'Tomas' }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got '@{Name=Tomas}'.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got '@{Name=Tomas; Value=10}'.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
+            @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got 'a'." }
+            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{}.`nExpected has key 'Name' that the other object does not have." }
+            @{ Actual = @{ Name = 'Tomas' }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
+            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
@@ -272,10 +272,10 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'a'." }
-            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'Dictionary{}'.`nExpected has key 'Name' that the other object does not have." }
-            @{ Actual = New-Dictionary @{ Name = 'Tomas' }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'Dictionary{Name=Tomas}'.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'Dictionary{Name=Tomas; Value=10}'.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
+            @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got 'a'." }
+            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{}.`nExpected has key 'Name' that the other object does not have." }
+            @{ Actual = New-Dictionary @{ Name = 'Tomas' }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
+            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
@@ -306,24 +306,24 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = $null; Expected = 1; Message = "Expected '1' to be equivalent to the actual value, but got '`$null'." },
-            @{ Actual = $null; Expected = ""; Message = "Expected '' to be equivalent to the actual value, but got '`$null'." },
-            @{ Actual = $true; Expected = $false; Message = "Expected '`$false' to be equivalent to the actual value, but got '`$true'." },
-            @{ Actual = $true; Expected = 'False'; Message = "Expected '`$false' to be equivalent to the actual value, but got '`$true'." },
-            @{ Actual = 1; Expected = -1; Message = "Expected '-1' to be equivalent to the actual value, but got '1'." },
-            @{ Actual = "1"; Expected = 1.01; Message = "Expected '1.01' to be equivalent to the actual value, but got '1'." },
+            @{ Actual = $null; Expected = 1; Message = "Expected 1 to be equivalent to the actual value, but got `$null." },
+            @{ Actual = $null; Expected = ""; Message = "Expected <empty> to be equivalent to the actual value, but got `$null." },
+            @{ Actual = $true; Expected = $false; Message = "Expected `$false to be equivalent to the actual value, but got `$true." },
+            @{ Actual = $true; Expected = 'False'; Message = "Expected `$false to be equivalent to the actual value, but got `$true." },
+            @{ Actual = 1; Expected = -1; Message = "Expected -1 to be equivalent to the actual value, but got 1." },
+            @{ Actual = "1"; Expected = 1.01; Message = "Expected 1.01 to be equivalent to the actual value, but got '1'." },
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
-            @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got 'abc, bde'." },
-            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got '{ def }'." },
-            @{ Actual = "def"; Expected = { abc }; Message = "Expected '{ abc }' to be equivalent to the actual value, but got 'def'." },
-            @{ Actual = { abc }; Expected = { def }; Message = "Expected '{ def }' to be equivalent to the actual value, but got '{ abc }'." },
-            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4' to be the same size as the actual collection, but got '1, 2, 3' with length '3'." },
-            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got '3'." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection '1, 2, 3, 4' with length '4', but got 'PSObject{Name=Jakub}'." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "a"; Message = "Expected 'a' to be equivalent to the actual value, but got 'PSObject{Name=Jakub}'." },
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object 'PSObject{Name=Jakub}', but got 'a'." }
-            @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable '@{Name=Jakub}', but got 'a'." }
-            @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary 'Dictionary{Name=Jakub}', but got 'a'." }
+            @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got @('abc', 'bde')." },
+            @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got { def }." },
+            @{ Actual = "def"; Expected = { abc }; Message = "Expected { abc } to be equivalent to the actual value, but got 'def'." },
+            @{ Actual = { abc }; Expected = { def }; Message = "Expected { def } to be equivalent to the actual value, but got { abc }." },
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4 to be the same size as the actual collection, but got @(1, 2, 3) with length 3." },
+            @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." },
+            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "a"; Message = "Expected 'a' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
+            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
+            @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got 'a'." }
+            @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got 'a'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
@@ -360,7 +360,7 @@ InPesterModuleScope {
             @{
                 Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
                 Actual   = New-PSObject @{ Name = 'Jakub'; Age = 19 }
-                Message  = "Expected property .Age with value '28' to be equivalent to the actual value, but got '19'."
+                Message  = "Expected property .Age with value 28 to be equivalent to the actual value, but got 19."
             },
             @{
                 Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
@@ -398,7 +398,7 @@ InPesterModuleScope {
         ) {
             param ($Expected, $Actual)
 
-            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Numbers which is '1, 2, 3' to be equivalent to '3, 4, 5' but some values were missing: '1, 2'."
+            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Numbers which is @(1, 2, 3) to be equivalent to @(3, 4, 5) but some values were missing: @(1, 2)."
         }
 
         It "Comparing psObjects that have collections of objects returns `$null when the objects have the same value" -TestCases @(
@@ -418,7 +418,7 @@ InPesterModuleScope {
             }
         ) {
             param ($Expected, $Actual)
-            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Objects which is 'PSObject{Name=Jan}, PSObject{Name=Petr}' to be equivalent to 'PSObject{Name=Jan}, PSObject{Name=Tomas}' but some values were missing: 'PSObject{Name=Petr}'."
+            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Objects which is @(PSObject{Name='Jan'}, PSObject{Name='Petr'}) to be equivalent to @(PSObject{Name='Jan'}, PSObject{Name='Tomas'}) but some values were missing: PSObject{Name='Petr'}."
         }
 
         It "Comparing DataTable" {

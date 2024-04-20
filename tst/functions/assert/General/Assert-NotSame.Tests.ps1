@@ -15,7 +15,7 @@ InPesterModuleScope {
 
         It "Passes for array input even if the last item is the same as expected" {
             $object = New-Object Diagnostics.Process
-            1,2, $object | Assert-NotSame $object
+            1, 2, $object | Assert-NotSame $object
         }
 
         It "Fails with custom message" {
@@ -25,7 +25,7 @@ InPesterModuleScope {
         }
 
         It "Given two values that are the same instance it returns expected message '<message>'" -TestCases @(
-            @{ Value = "a"; Message = "Expected string 'a', to not be the same instance."}
+            @{ Value = "a"; Message = "Expected [string] ''a'', to not be the same instance." }
         ) {
             param($Value, $Message)
             $err = { Assert-NotSame -Actual $Value -Expected $Value } | Verify-AssertionFailed

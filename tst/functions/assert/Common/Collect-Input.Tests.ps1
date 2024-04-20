@@ -36,17 +36,6 @@ InPesterModuleScope {
                 }
             }
 
-            It "Given @("""") through pipeline it captures @("""")" {
-                $collectedInput = @($null) | Assert-PassThru
-                $collectedInput2 = "" | Assert-PassThru
-
-                Verify-True $collectedInput.IsPipelineInput
-                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
-                if (@("") -ne $collectedInput.Actual) {
-                    throw "Expected @(), but got $(Format-Nicely2 $collectedInput.Actual)."
-                }
-            }
-
             It "Given List[int] through pipeline it captures the items in Object[]" {
                 $collectedInput = [Collections.Generic.List[int]]@(1, 2) | Assert-PassThru
 

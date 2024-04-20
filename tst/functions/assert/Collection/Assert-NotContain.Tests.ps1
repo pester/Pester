@@ -4,7 +4,7 @@ InPesterModuleScope {
     Describe "Assert-NotContain" {
         It "Fails when collection of single item contains the expected item" {
             $err = { @(1) | Assert-NotContain 1 } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected int '1' to not be present in collection '1', but it was there."
+            $err.Exception.Message | Verify-Equal "Expected [int] 1 to not be present in collection 1, but it was there."
         }
 
         It "Passes when collection of single item does not contain the expected item" {
@@ -12,16 +12,16 @@ InPesterModuleScope {
         }
 
         It "Fails when collection of multiple items contains the expected item" {
-            $err = { @(1,2,3) | Assert-NotContain 1 } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected int '1' to not be present in collection '1, 2, 3', but it was there."
+            $err = { @(1, 2, 3) | Assert-NotContain 1 } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected [int] 1 to not be present in collection @(1, 2, 3), but it was there."
         }
 
         It "Passes when collection of multiple items does not contain the expected item" {
-            @(5,6,7) | Assert-NotContain 1
+            @(5, 6, 7) | Assert-NotContain 1
         }
 
         It "Can be called with positional parameters" {
-            { Assert-NotContain 1 1,2,3 } | Verify-AssertionFailed
+            { Assert-NotContain 1 1, 2, 3 } | Verify-AssertionFailed
         }
     }
 }

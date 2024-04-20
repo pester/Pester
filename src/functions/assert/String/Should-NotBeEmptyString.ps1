@@ -1,17 +1,13 @@
-﻿function Get-StringNotNullOrEmptyDefaultFailureMessage ($Actual, $Because) {
-    Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null or empty,<because> but got <actualType>: <actual>" -Pretty
-}
-
-function Assert-StringNotNullOrEmpty {
+﻿function Assert-StringNotEmpty {
     <#
     .SYNOPSIS
-    Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
+    Ensures that the input is a string, and that the input is not $null or empty string.
 
     .PARAMETER Actual
     The actual value that will be compared.
 
     .PARAMETER Because
-    The reason why the input should be a string that is not $null, empty, or whitespace only string.
+    The reason why the input should be a string that is not $null or empty.
 
     .EXAMPLE
     ```powershell
@@ -23,16 +19,15 @@ function Assert-StringNotNullOrEmpty {
 
     .EXAMPLE
     ```powershell
-    $actual = "  "
+    $actual = ""
     $actual | Should-NotBeNullOrEmptyString
     ```
 
-    This test will fail, the input is a whitespace only string.
+    This test will fail, the input is an empty string.
 
     .EXAMPLE
     ```
     $null | Should-NotBeNullOrEmptyString
-    "" | Should-NotBeNullOrEmptyString
     $() | Should-NotBeNullOrEmptyString
     $false | Should-NotBeNullOrEmptyString
     1 | Should-NotBeNullOrEmptyString
@@ -50,8 +45,8 @@ function Assert-StringNotNullOrEmpty {
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
-    if (-not (Test-StringNullOrEmpty -Actual $Actual)) {
-        $formattedMessage = Get-StringNotNullOrEmptyDefaultFailureMessage -Actual $Actual -Because $Because
+    if ($Actual -isnot [String] -or [String]::IsNullOrEmpty($Actual)) {
+        $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null or empty,<because> but got <actualType>: <actual>" -Pretty
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

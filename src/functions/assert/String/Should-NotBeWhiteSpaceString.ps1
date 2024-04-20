@@ -1,8 +1,4 @@
-﻿function Get-StringNotNullOrWhiteSpaceDefaultFailureMessage ($Actual, $Because) {
-    Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-}
-
-function Assert-StringNotNullOrWhiteSpace {
+﻿function Assert-StringNotWhiteSpace {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
@@ -50,8 +46,8 @@ function Assert-StringNotNullOrWhiteSpace {
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
-    if (-not (Test-StringNullOrWhiteSpace -Actual $Actual)) {
-        $formattedMessage = Get-StringNotNullOrWhiteSpaceDefaultFailureMessage -Actual $Actual -Because $Because
+    if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
+        $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }
