@@ -3,6 +3,7 @@ trigger:
     include:
       - main
       - rel/*
+      - dev/*
   paths:
     exclude:
       - .devcontainer
