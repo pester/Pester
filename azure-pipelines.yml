@@ -3,7 +3,6 @@ trigger:
     include:
       - main
       - rel/*
-      - dev/*
   paths:
     exclude:
       - .devcontainer
@@ -22,6 +21,7 @@ pr:
     include:
       - main
       - rel/*
+      - dev/*
   paths:
     exclude:
       - .devcontainer
