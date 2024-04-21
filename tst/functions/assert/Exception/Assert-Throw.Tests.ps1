@@ -76,7 +76,7 @@ Describe "Assert-Throw" {
 
         It "Given exception that does not match on type it returns the correct message" {
             $err = { { throw [ArgumentException]"" } | Assert-Throw -ExceptionType ([System.InvalidOperationException]) } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type InvalidOperationException to be thrown, but the exception type was 'ArgumentException'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException] to be thrown, but the exception type was [ArgumentException]."
         }
 
         It "Given exception that does not match on message it returns the correct message" {
@@ -91,12 +91,12 @@ Describe "Assert-Throw" {
 
         It "Given exception that does not match on type and message it returns the correct message" {
             $err = { { throw [ArgumentException]"fail!" } | Assert-Throw -ExceptionType ([System.InvalidOperationException]) -ExceptionMessage 'halt!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type InvalidOperationException, with message 'halt!' to be thrown, but the exception type was 'ArgumentException' and the message was 'fail!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message 'halt!' to be thrown, but the exception type was [ArgumentException] and the message was 'fail!'."
         }
 
         It "Given exception that does not match on type and FullyQualifiedErrorId it returns the correct message" {
             $err = { { throw [ArgumentException]"SomeId!" } | Assert-Throw -ExceptionType ([System.InvalidOperationException]) -FullyQualifiedErrorId 'DifferentId!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type InvalidOperationException, with FullyQualifiedErrorId 'DifferentId!' to be thrown, but the exception type was 'ArgumentException' and the FullyQualifiedErrorId was 'SomeId!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with FullyQualifiedErrorId 'DifferentId!' to be thrown, but the exception type was [ArgumentException] and the FullyQualifiedErrorId was 'SomeId!'."
         }
 
         It "Given exception that does not match on message and FullyQualifiedErrorId it returns the correct message" {
@@ -106,7 +106,7 @@ Describe "Assert-Throw" {
 
         It "Given exception that does not match on type, message and FullyQualifiedErrorId it returns the correct message" {
             $err = { { throw [ArgumentException]"halt!" } | Assert-Throw -ExceptionType ([System.InvalidOperationException]) -ExceptionMessage 'fail!'  -FullyQualifiedErrorId 'fail!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type InvalidOperationException, with message 'fail!' and with FullyQualifiedErrorId 'fail!' to be thrown, but the exception type was 'ArgumentException', the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message 'fail!' and with FullyQualifiedErrorId 'fail!' to be thrown, but the exception type was [ArgumentException], the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
         }
     }
 

@@ -418,7 +418,7 @@ InPesterModuleScope {
             }
         ) {
             param ($Expected, $Actual)
-            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Objects which is @(PSObject{Name='Jan'}, PSObject{Name='Petr'}) to be equivalent to @(PSObject{Name='Jan'}, PSObject{Name='Tomas'}) but some values were missing: PSObject{Name='Petr'}."
+            Compare-Equivalent -Expected $Expected -Actual $Actual | Verify-Equal "Expected collection in property .Objects which is @(PSObject{Name='Jan'}, PSObject{Name='Petr'}) to be equivalent to @(PSObject{Name='Jan'}, PSObject{Name='Tomas'}) but some values were missing: @(PSObject{Name='Petr'})."
         }
 
         It "Comparing DataTable" {

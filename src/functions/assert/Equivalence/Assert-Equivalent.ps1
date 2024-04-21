@@ -126,7 +126,7 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
         v -Difference "`$Actual and `$Expected arrays are not equivalent."
         $Expected = Format-Nicely2 -Value $Expected
         $Actual = Format-Nicely2 -Value $Actual
-        $notFoundFormatted = Format-Nicely2 -Value ( $notFound | ForEach-Object { Format-Nicely2 -Value $_ } )
+        $notFoundFormatted = Format-Nicely2 -Value $notFound
 
         $propertyMessage = if ($Property) { " in property $Property which is" }
         return "Expected collection$propertyMessage $Expected to be equivalent to $Actual but some values were missing: $notFoundFormatted."
@@ -183,7 +183,7 @@ function Compare-DataTableEquivalent ($Expected, $Actual, $Property, $Options) {
 
     if ($notFound) {
         $propertyMessage = if ($Property) { " in property $Property which is" }
-        return "Expected DataTable$propertyMessage '$Expected' to be equivalent to '$Actual' but some values were missing: '$notFoundFormatted'."
+        return "Expected DataTable$propertyMessage $Expected to be equivalent to $Actual but some values were missing: $notFoundFormatted."
     }
 }
 

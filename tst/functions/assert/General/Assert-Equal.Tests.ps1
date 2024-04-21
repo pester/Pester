@@ -56,21 +56,20 @@ InPesterModuleScope {
         }
 
         It "Fails for array input even if the last item is the same as expected" {
-             {  1,2,3 | Assert-Equal 3 } | Verify-AssertionFailed
+            { 1, 2, 3 | Assert-Equal 3 } | Verify-AssertionFailed
         }
 
         It "Fails with custom message" {
-             $err = { 9 | Assert-Equal 3 -CustomMessage "<expected> is not <actual>" } | Verify-AssertionFailed
-             $err.Exception.Message | Verify-Equal "3 is not 9"
+            $err = { 9 | Assert-Equal 3 -CustomMessage "<expected> is not <actual>" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "3 is not 9"
         }
 
         Context "Validate messages" {
             It "Given two values that are not the same '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-                @{ Expected = "a" ; Actual = 10 ; Message = "Expected string 'a', but got int '10'."},
-                @{ Expected = "a" ; Actual = 10.1 ; Message = "Expected string 'a', but got double '10.1'."},
-                @{ Expected = "a" ; Actual = 10.1D ; Message = "Expected string 'a', but got decimal '10.1'."}
+                @{ Expected = "a" ; Actual = 10 ; Message = "Expected [string] 'a', but got [int] 10." },
+                @{ Expected = "a" ; Actual = 10.1 ; Message = "Expected [string] 'a', but got [double] 10.1." },
+                @{ Expected = "a" ; Actual = 10.1D ; Message = "Expected [string] 'a', but got [decimal] 10.1." }
             ) {
-                param($Expected, $Actual, $Message)
                 $err = { Assert-Equal -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal $Message
             }

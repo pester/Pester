@@ -123,6 +123,15 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-Dictionary2 -Value $Value
     }
 
+    if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {
+        try {
+            return Format-DataTable2 -Value $Value -Pretty:$Pretty
+        }
+        catch {
+            $a = 18
+        }
+    }
+
     if (Is-Collection -Value $Value) {
         return Format-Collection2 -Value $Value -Pretty:$Pretty
     }
@@ -175,5 +184,9 @@ function Format-Type2 ([Type]$Value) {
         -replace "^Object\[\]$", "collection" `
 
     "[$($typeFormatted)]"
+}
+
+function Format-DataTable2 ($Value) {
+    return "$Value"
 }
 

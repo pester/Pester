@@ -83,11 +83,10 @@ Describe "Assert-LessThanOrEqual" {
 
     Context "Validate messages" {
         It "Given two values '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-            @{ Expected = "a" ; Actual = "z" ; Message = "Expected [string] ''z'' to be less than or equal to [string] ''a'', but it was not." },
-            @{ Expected = 1.1 ; Actual = 10.1 ; Message = "Expected [double] '10.1' to be less than or equal to [double] '1.1', but it was not." },
-            @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected [decimal] '10.1' to be less than or equal to [decimal] '1.1', but it was not." }
+            @{ Expected = "a" ; Actual = "z" ; Message = "Expected [string] 'z' to be less than or equal to [string] 'a', but it was not." },
+            @{ Expected = 1.1 ; Actual = 10.1 ; Message = "Expected [double] 10.1 to be less than or equal to [double] 1.1, but it was not." },
+            @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected [decimal] 10.1 to be less than or equal to [decimal] 1.1, but it was not." }
         ) {
-            param($Expected, $Actual, $Message)
             $err = { Assert-LessThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }

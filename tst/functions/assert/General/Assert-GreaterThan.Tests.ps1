@@ -73,22 +73,21 @@ InPesterModuleScope {
         }
 
         It "Fails for array input even if the last item is greater than then expected value" {
-             $err = {  1,2,3,4 | Assert-GreaterThan 3 } | Verify-Throw
-             $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
+            $err = { 1, 2, 3, 4 | Assert-GreaterThan 3 } | Verify-Throw
+            $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
         }
 
         It "Fails with custom message" {
-             $err = { 2 | Assert-GreaterThan 3 -CustomMessage "<actual> is not greater than <expected>" } | Verify-AssertionFailed
-             $err.Exception.Message | Verify-Equal "2 is not greater than 3"
+            $err = { 2 | Assert-GreaterThan 3 -CustomMessage "<actual> is not greater than <expected>" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "2 is not greater than 3"
         }
 
         Context "Validate messages" {
             It "Given two values '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-                @{ Expected = "z" ; Actual = "a" ; Message = "Expected string 'a' to be greater than string 'z', but it was not."},
-                @{ Expected = 10.1 ; Actual = 1.1 ; Message = "Expected double '1.1' to be greater than double '10.1', but it was not."},
-                @{ Expected = 10.1D ; Actual = 1.1D ; Message = "Expected decimal '1.1' to be greater than decimal '10.1', but it was not."}
+                @{ Expected = "z" ; Actual = "a" ; Message = "Expected [string] 'a' to be greater than [string] 'z', but it was not." },
+                @{ Expected = 10.1 ; Actual = 1.1 ; Message = "Expected [double] 1.1 to be greater than [double] 10.1, but it was not." },
+                @{ Expected = 10.1D ; Actual = 1.1D ; Message = "Expected [decimal] 1.1 to be greater than [decimal] 10.1, but it was not." }
             ) {
-                param($Expected, $Actual, $Message)
                 $err = { Assert-GreaterThan -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal $Message
             }

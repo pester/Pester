@@ -41,7 +41,7 @@ function Assert-Throw {
         $exceptionTypeFilterMatches = $err.Exception -is $ExceptionType
         if (-not $exceptionTypeFilterMatches) {
             $exceptionTypeFormatted = Get-ShortType2 $err.Exception
-            $buts += "the exception type was '$exceptionTypeFormatted'"
+            $buts += "the exception type was $exceptionTypeFormatted"
         }
     }
 
