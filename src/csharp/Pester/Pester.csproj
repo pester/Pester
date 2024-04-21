@@ -4,9 +4,15 @@
     <TargetFrameworks>net6.0;net462</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- With false we don't get DiffPlex.dll copied to bin during build. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
+  <!-- For rendering diffs on commandline. -->
+  <ItemGroup>
+    <PackageReference Include="DiffPlex" Version="1.7.2" />
+  </ItemGroup>
   <!-- PowerShell 7.2.x is the oldest supported PowerShell version. That version is built using net6.0.
   But there is a bug in 7.2.0 reference assemblies, up to 7.2.10, where the IExtens.File is missing from the reference assembly:
   https://github.com/PowerShell/PowerShell/issues/16408

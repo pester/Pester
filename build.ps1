@@ -116,7 +116,9 @@ if ($Clean) {
         , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
         , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/DiffPlex.dll", "$PSScriptRoot/bin/bin/net462/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/DiffPlex.dll", "$PSScriptRoot/bin/bin/net6.0/")
     )
 }
 
@@ -126,9 +128,11 @@ if ($Clean) {
     # update help for New-PesterConfiguration
     if ($PSVersionTable.PSVersion.Major -gt 5) {
         $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/DiffPlex.dll")
     }
     else {
         $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/DiffPlex.dll")
     }
 
     function Format-NicelyMini ($value) {
