@@ -38,6 +38,9 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Should-NotBeNullOrWhiteSpaceString'         'Assert-StringNotWhiteSpace'
 & $SafeCommands['Set-Alias'] 'Should-NotBeNullOrEmptyString'         'Assert-StringNotEmpty'
 
+& $SafeCommands['Set-Alias'] 'Should-BeFasterThan'         'Assert-Faster'
+& $SafeCommands['Set-Alias'] 'Should-BeSlowerThan'         'Assert-Slower'
+& $SafeCommands['Set-Alias'] 'Should-BeBefore'         'Assert-Before'
 
 
 
@@ -103,6 +106,10 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Assert-StringNotWhiteSpace'
     'Assert-StringNotEmpty'
 
+    'Assert-Faster'
+    'Assert-Slower'
+    'Assert-Before'
+
     # export
     'Export-NUnitReport'
     'ConvertTo-NUnitReport'
@@ -156,4 +163,9 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
     'Should-BeLikeString'
     'Should-NotBeLikeString'
+
+    # time
+    'Should-BeFasterThan'
+    'Should-BeSlowerThan'
+    'Should-BeBefore'
 )

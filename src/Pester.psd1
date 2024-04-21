@@ -94,6 +94,9 @@
         'Assert-StringEmpty'
         'Assert-StringNotWhiteSpace'
         'Assert-StringNotEmpty'
+        'Assert-Faster'
+        'Assert-Slower'
+        'Assert-Before'
 
         # legacy
         'Assert-VerifiableMock'
@@ -151,6 +154,10 @@
 
         'Should-BeLikeString'
         'Should-NotBeLikeString'
+
+        'Should-BeFasterThan'
+        'Should-BeSlowerThan'
+        'Should-BeBefore'
     )
 
 
