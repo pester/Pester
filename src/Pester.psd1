@@ -131,7 +131,7 @@
         'Should-NotContain'
         'Should-BeEquivalent'
         'Should-Throw'
-        'Should-BeEqual'
+        'Should-Be'
         'Should-BeGreaterThan'
         'Should-BeGreaterThanOrEqual'
         'Should-BeLessThan'

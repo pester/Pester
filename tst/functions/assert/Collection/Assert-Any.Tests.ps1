@@ -17,6 +17,20 @@ Describe "Assert-Any" {
         { $Actual | Assert-Any -FilterScript { $_ -eq 0 } } | Verify-AssertionFailed
     }
 
+    It "Can be failed by other assertion" {
+        $err = { 1, 1, 1 | Should-Any -FilterScript { $_ | Should-Be 2 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal ("Expected at least one item in collection @(1, 1, 1) to pass filter { `$_ | Should-Be 2 }, but none of the items passed the filter.
+Reasons :
+Expected [int] 2, but got [int] 1.
+Expected [int] 2, but got [int] 1.
+Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
+    }
+
+    It "Can filter using variables from the sorrounding context" {
+        $f = 1
+        2, 4 | Assert-Any { $_ / $f }
+    }
+
     It "Validate messages" -TestCases @(
         @{ Actual = @(3, 4, 5); Message = "Expected at least one item in collection @(3, 4, 5) to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
         @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
