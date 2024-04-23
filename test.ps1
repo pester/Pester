@@ -49,8 +49,18 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
-if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
-    throw "Cannot skip tests in CI mode!"
+# Detect which tests to skip from the filenames.
+$anyPesterTests = [bool]@($File | Where-Object { $_ -like "*.Tests.ps1" })
+$anyPTests = [bool]@($File | Where-Object { $_ -like "*.ts.ps1" })
+
+if ($anyPTests -and $anyPesterTests) {
+    # Don't skip P or Pester tests, use the parameters user provided.
+}
+elseif (-not $SkipPTests.IsPresent -and (-not $anyPTests)) {
+    $SkipPTests = $true
+}
+elseif (-not $SkipPesterTests.IsPresent -and (-not $anyPesterTests)) {
+    $SkipPesterTests = $true
 }
 
 if (-not $NoBuild) {
@@ -60,6 +70,10 @@ if (-not $NoBuild) {
     else {
         & "$PSScriptRoot/build.ps1" -Inline:$Inline
     }
+}
+
+if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
+    throw "Cannot skip tests in CI mode!"
 }
 
 # remove pester because we will be reimporting it in multiple other places
