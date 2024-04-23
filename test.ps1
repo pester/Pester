@@ -32,6 +32,7 @@
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
+[CmdletBinding()]
 param (
     # force P to fail when I leave `dt` in the tests
     [switch] $CI,
@@ -39,7 +40,7 @@ param (
     [switch] $SkipPesterTests,
     [switch] $NoBuild,
     [switch] $Inline,
-    [string[]] $File
+    [string[]] $File = @()
 )
 
 Set-StrictMode -Version Latest
@@ -50,16 +51,15 @@ $ErrorView = "NormalView"
 "In path: $($pwd.Path)"
 
 # Detect which tests to skip from the filenames.
+$anyFile = 0 -lt $File.Count
 $anyPesterTests = [bool]@($File | Where-Object { $_ -like "*.Tests.ps1" })
 $anyPTests = [bool]@($File | Where-Object { $_ -like "*.ts.ps1" })
 
-if ($anyPTests -and $anyPesterTests) {
-    # Don't skip P or Pester tests, use the parameters user provided.
-}
-elseif (-not $SkipPTests.IsPresent -and (-not $anyPTests)) {
+if ($SkipPTests -or ($anyFile -and -not $anyPTests)) {
     $SkipPTests = $true
 }
-elseif (-not $SkipPesterTests.IsPresent -and (-not $anyPesterTests)) {
+
+if ($SkipPesterTests -or ($anyFile -and -not $anyPesterTests)) {
     $SkipPesterTests = $true
 }
 
