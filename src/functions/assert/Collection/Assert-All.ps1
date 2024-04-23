@@ -14,11 +14,18 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
+    if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+    }
+
     $failReasons = $null
     $appendMore = $false
-    $predicate = {
-        # powershell v4 code where we have InvokeWithContext available
-        $underscore = & $SafeCommands['Get-Variable'] _
+    # we are jumping between modules so I need to explicitly pass the _ variable
+    # simply using '&' won't work
+    # see: https://blogs.msdn.microsoft.com/sergey_babkins_blog/2014/10/30/calling-the-script-blocks-in-powershell/
+    $actualFiltered = foreach ($item in $Actual) {
+        $underscore = [PSVariable]::new('_', $item)
         try {
             $pass = $FilterScript.InvokeWithContext($null, $underscore, $null)
         }
@@ -35,17 +42,10 @@
 
             $pass = $false
         }
-        if (-not $pass) { $_ }
+        if (-not $pass) { $item }
     }
 
-    # we are jumping between modules so I need to explicitly pass the _ variable
-    # simply using '&' won't work
-    # see: https://blogs.msdn.microsoft.com/sergey_babkins_blog/2014/10/30/calling-the-script-blocks-in-powershell/
-    #
-    # Do NOT replace this Foreach-Object with foreach keyword, you will break the $_ variable.
-    $actualFiltered = $Actual | & $SafeCommands['ForEach-Object'] $predicate
-
-    # Make sure are checking the count of the filtered items, not just a single item.
+    # Make sure are checking the count of the filtered items, not just truthiness of a single item.
     $actualFiltered = @($actualFiltered)
     if (0 -lt $actualFiltered.Count) {
         $data = @{

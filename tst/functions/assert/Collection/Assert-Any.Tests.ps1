@@ -26,6 +26,18 @@ Expected [int] 2, but got [int] 1.
 Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
     }
 
+    It "Fails when no items are passed" -TestCases @(
+        @{ Actual = $null; Expected = "Expected at least one item in collection to pass filter { `$_ -eq 1 }, but [null] `$null contains no items to compare." }
+        @{ Actual = @(); Expected = "Expected at least one item in collection to pass filter { `$_ -eq 1 }, but [collection] @() contains no items to compare." }
+    ) {
+        $err = { $Actual | Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal $Expected
+    }
+
+    It "Fails when no items are passed" {
+        { Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+    }
+
     It "Can filter using variables from the sorrounding context" {
         $f = 1
         2, 4 | Assert-Any { $_ / $f }

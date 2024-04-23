@@ -12,11 +12,15 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
+    if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+    }
+
     $failReasons = $null
     $appendMore = $false
     $pass = $false
     foreach ($item in $Actual) {
-        # powershell v4 code where we have InvokeWithContext available
         $underscore = [PSVariable]::new('_', $item)
         try {
             $pass = $FilterScript.InvokeWithContext($null, $underscore, $null)
