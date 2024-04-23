@@ -41,6 +41,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 & $SafeCommands['Set-Alias'] 'Should-BeFasterThan'         'Assert-Faster'
 & $SafeCommands['Set-Alias'] 'Should-BeSlowerThan'         'Assert-Slower'
 & $SafeCommands['Set-Alias'] 'Should-BeBefore'         'Assert-Before'
+& $SafeCommands['Set-Alias'] 'Should-BeAfter'         'Assert-After'
 
 
 
@@ -109,6 +110,7 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Assert-Faster'
     'Assert-Slower'
     'Assert-Before'
+    'Assert-After'
 
     # export
     'Export-NUnitReport'
@@ -168,4 +170,5 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Should-BeFasterThan'
     'Should-BeSlowerThan'
     'Should-BeBefore'
+    'Should-BeAfter'
 )

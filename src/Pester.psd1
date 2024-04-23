@@ -97,6 +97,7 @@
         'Assert-Faster'
         'Assert-Slower'
         'Assert-Before'
+        'Assert-After'
 
         # legacy
         'Assert-VerifiableMock'
@@ -158,6 +159,7 @@
         'Should-BeFasterThan'
         'Should-BeSlowerThan'
         'Should-BeBefore'
+        'Should-BeAfter'
     )
 
 

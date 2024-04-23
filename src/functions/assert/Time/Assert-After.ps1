@@ -1,4 +1,4 @@
-﻿function Assert-Before {
+﻿function Assert-After {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding(DefaultParameterSetName = "Now")]
     param (
@@ -44,8 +44,8 @@
         }
     }
 
-    if ($Actual -ge $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -Data @{ ago = $Ago } -DefaultMessage "Expected the provided [datetime] to be before <expectedType> <expected> (<ago> ago),<because> but it was after: <actual>"
+    if ($Actual -le $Expected) {
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -Data @{ ago = $Ago } -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected> (<ago> ago),<because> but it was before: <actual>"
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

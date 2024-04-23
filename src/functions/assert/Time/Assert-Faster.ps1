@@ -39,7 +39,7 @@ function Assert-Faster {
         $sw.Stop()
 
         if ($sw.Elapsed -ge $Expected) {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -CustomMessage $CustomMessage -Data @{ scriptblock = $Actual } -DefaultMessage "The provided [scriptblock] should execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nActual: <scriptblock>"
+            $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -CustomMessage $CustomMessage -Data @{ scriptblock = $Actual } -DefaultMessage "Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
             throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
         }
         return
