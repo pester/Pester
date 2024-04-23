@@ -12,8 +12,11 @@
         so leaving it in code would run only one test from the file on the server.
 
     .PARAMETER SkipPTests
-        Skips Passthrough P tests. Skip the tests written using the P module, Unit
+        Skips P tests. Skip the tests written using the P module, Unit
         Tests for the Runtime, and Acceptance Tests for Pester
+
+    .PARAMETER SkipPesterTests
+        Skips Pester tests, but not P tests.
 
     .PARAMETER NoBuild
         Skips running build.ps1. Do not build the underlying csharp components.
