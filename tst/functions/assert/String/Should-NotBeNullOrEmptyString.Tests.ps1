@@ -6,7 +6,7 @@ Describe "Should-NotBeNullOrEmptyString" {
         @{ Actual = " " }
         @{ Actual = "`t" }
         @{ Actual = "`n" }
-        @{ Actual = "`r" }
+        @{ Actual = "" }
     ) {
         $Actual | Should-NotBeNullOrEmptyString
     }
