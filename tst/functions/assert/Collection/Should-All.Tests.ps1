@@ -1,12 +1,12 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Assert-All" {
+Describe "Should-All" {
     It "Passes when all items in the given collection pass the predicate" -TestCases @(
         @{ Actual = 1, 1, 1, 1 }
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        $Actual | Assert-All -FilterScript { $_ -eq 1 }
+        $Actual | Should-All -FilterScript { $_ -eq 1 }
     }
 
     It "Fails when any item in the given collection does not pass the predicate" -TestCases @(
@@ -14,7 +14,7 @@ Describe "Assert-All" {
         @{ Actual = @(2) }
         @{ Actual = 2 }
     ) {
-        { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        { $Actual | Should-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
     }
 
     It "Can be failed by other assertion" {
@@ -30,38 +30,38 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         @{ Actual = $null; Expected = "Expected all items in collection to pass filter { `$_ -eq 1 }, but [null] `$null contains no items to compare." }
         @{ Actual = @(); Expected = "Expected all items in collection to pass filter { `$_ -eq 1 }, but [collection] @() contains no items to compare." }
     ) {
-        $err = { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err = { $Actual | Should-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Expected
     }
 
     It "Fails when no items are passed" {
-        { Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        { Should-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
     }
 
     It "Validate messages" -TestCases @(
         @{ Actual = @(3, 4, 5); Message = "Expected all items in collection @(3, 4, 5) to pass filter { `$_ -eq 1 }, but 3 of them @(3, 4, 5) did not pass the filter." }
     ) {
-        $err = { $Actual | Assert-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err = { $Actual | Should-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message
     }
 
     It "Returns the value on output" {
         $expected = "a", "b"
-        $v = $expected | Assert-All { $true }
+        $v = $expected | Should-All { $true }
         $v[0] | Verify-Equal $expected[0]
         $v[1] | Verify-Equal $expected[1]
     }
 
     It "Can filter using variables from the sorrounding context" {
         $f = 1
-        2, 4 | Assert-All { $_ / $f }
+        2, 4 | Should-All { $_ / $f }
     }
 
     It "Accepts FilterScript and Actual by position" {
-        Assert-All { $true } 1, 2
+        Should-All { $true } 1, 2
     }
 
     It 'It fails when the only item not matching the filter is 0' {
-        { 0 | Assert-All -FilterScript { $_ -gt 0 } } | Verify-AssertionFailed
+        { 0 | Should-All -FilterScript { $_ -gt 0 } } | Verify-AssertionFailed
     }
 }

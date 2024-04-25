@@ -1,12 +1,12 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Assert-Any" {
+Describe "Should-Any" {
     It "Passes when at least one item in the given collection passes the predicate" -TestCases @(
         @{ Actual = @(1, 2, 3) }
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        $Actual | Assert-Any -FilterScript { $_ -eq 1 }
+        $Actual | Should-Any -FilterScript { $_ -eq 1 }
     }
 
     It "Fails when none of the items passes the predicate" -TestCases @(
@@ -14,7 +14,7 @@ Describe "Assert-Any" {
         @{ Actual = @(1) }
         @{ Actual = 1 }
     ) {
-        { $Actual | Assert-Any -FilterScript { $_ -eq 0 } } | Verify-AssertionFailed
+        { $Actual | Should-Any -FilterScript { $_ -eq 0 } } | Verify-AssertionFailed
     }
 
     It "Can be failed by other assertion" {
@@ -30,17 +30,17 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         @{ Actual = $null; Expected = "Expected at least one item in collection to pass filter { `$_ -eq 1 }, but [null] `$null contains no items to compare." }
         @{ Actual = @(); Expected = "Expected at least one item in collection to pass filter { `$_ -eq 1 }, but [collection] @() contains no items to compare." }
     ) {
-        $err = { $Actual | Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err = { $Actual | Should-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Expected
     }
 
     It "Fails when no items are passed" {
-        { Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        { Should-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
     }
 
     It "Can filter using variables from the sorrounding context" {
         $f = 1
-        2, 4 | Assert-Any { $_ / $f }
+        2, 4 | Should-Any { $_ / $f }
     }
 
     It "Validate messages" -TestCases @(
@@ -48,18 +48,18 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
         @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
     ) {
-        $err = { $Actual | Assert-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err = { $Actual | Should-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message
     }
 
     It "Returns the value on output" {
         $expected = "a", "b"
-        $v = $expected | Assert-Any { $true }
+        $v = $expected | Should-Any { $true }
         $v[0] | Verify-Equal $expected[0]
         $v[1] | Verify-Equal $expected[1]
     }
 
     It "Accepts FilterScript and Actual by position" {
-        Assert-Any { $true } 1, 2
+        Should-Any { $true } 1, 2
     }
 }

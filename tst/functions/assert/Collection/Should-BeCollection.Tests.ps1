@@ -4,19 +4,19 @@
 return
 
 InPesterModuleScope {
-    Describe "Assert-Collection" {
+    Describe "Should-BeCollection" {
         It "Passes when collections have the same count and items" -ForEach @(
             @{ Actual = @(1); Expected = @(1) }
             @{ Actual = @(1, 2); Expected = @(1, 2) }
         ) {
-            $actual | Assert-Collection $expected
+            $actual | Should-BeCollection $expected
         }
 
         It "Fails when collections don't have the same count" -ForEach @(
             @{ Actual = @(1); Expected = @(1, 2) }
             @{ Actual = @(1, 2); Expected = @(1) }
         ) {
-            $err = { $actual | Assert-Collection $expected } | Verify-AssertionFailed
+            $err = { $actual | Should-BeCollection $expected } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected int '1' to be present in collection '5', but it was not there."
         }
 

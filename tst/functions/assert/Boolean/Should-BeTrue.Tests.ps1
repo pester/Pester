@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Assert-True" {
+Describe "Should-BeTrue" {
     It "Passes when given `$true" {
-        $true | Assert-True
+        $true | Should-BeTrue
     }
 
     It "Passes when given truthy" -TestCases @(
@@ -12,11 +12,11 @@ Describe "Assert-True" {
         @{ Actual = 1, 2 }
     ) {
         param($Actual)
-        Assert-True -Actual $Actual
+        Should-BeTrue -Actual $Actual
     }
 
     It "Fails with custom message" {
-        $err = { $null | Assert-True -CustomMessage "<actual> is not true" } | Verify-AssertionFailed
+        $err = { $null | Should-BeTrue -CustomMessage "<actual> is not true" } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal "`$null is not true"
     }
 
@@ -26,17 +26,17 @@ Describe "Assert-True" {
             @{ Actual = 0 ; Message = "Expected [int] 0 to be [bool] `$true or truthy value." }
         ) {
             param($Actual, $Message)
-            $err = { Assert-True -Actual $Actual } | Verify-AssertionFailed
+            $err = { Should-BeTrue -Actual $Actual } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }
     }
 
     It "Returns the value on output" {
         $expected = $true
-        $expected | Assert-True | Verify-Equal $expected
+        $expected | Should-BeTrue | Verify-Equal $expected
     }
 
     It "Can be called with positional parameters" {
-        { Assert-True $false } | Verify-AssertionFailed
+        { Should-BeTrue $false } | Verify-AssertionFailed
     }
 }
