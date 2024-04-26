@@ -1,21 +1,21 @@
 ﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
-    Describe "Assert-NotNull" {
+    Describe "Should-NotBeNull" {
         It "Given a value it passes" {
-            1 | Assert-NotNull
+            1 | Should-NotBeNull
         }
 
         It "Given `$null it fails" {
-            { $null | Assert-NotNull } | Verify-AssertionFailed
+            { $null | Should-NotBeNull } | Verify-AssertionFailed
         }
 
         It "Returns the given value" {
-            1 | Assert-NotNull | Verify-NotNull
+            1 | Should-NotBeNull | Verify-NotNull
         }
 
         It "Can be called with positional parameters" {
-            { Assert-NotNull $null } | Verify-AssertionFailed
+            { Should-NotBeNull $null } | Verify-AssertionFailed
         }
     }
 }

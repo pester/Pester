@@ -1,83 +1,83 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Assert-LessThanOrEqual" {
+Describe "Should-BeLessThanOrEqual" {
     Context "Comparing strings" {
         It "Passes when actual is less than expected" {
-            "a" | Assert-LessThanOrEqual "z"
+            "a" | Should-BeLessThanOrEqual "z"
         }
 
         It "Passes when actual is equal to expected" {
-            "a" | Assert-LessThanOrEqual "a"
+            "a" | Should-BeLessThanOrEqual "a"
         }
 
         It "Fails when actual is greater than expected" {
-            { "z" | Assert-LessThanOrEqual "a" } | Verify-AssertionFailed
+            { "z" | Should-BeLessThanOrEqual "a" } | Verify-AssertionFailed
         }
     }
 
     Context "Comparing integers" {
         It "Passes when expected is less than actual" {
-            1 | Assert-LessThanOrEqual 2
+            1 | Should-BeLessThanOrEqual 2
         }
 
         It "Passes when actual is equal to expected" {
-            1 | Assert-LessThanOrEqual 1
+            1 | Should-BeLessThanOrEqual 1
         }
 
         It "Fails when actual is greater than expected" {
-            { 9 | Assert-LessThanOrEqual 1 } | Verify-AssertionFailed
+            { 9 | Should-BeLessThanOrEqual 1 } | Verify-AssertionFailed
         }
     }
 
     Context "Comparing doubles" {
         It "Passes when expected is less than actual" {
-            .1 | Assert-LessThanOrEqual .2
+            .1 | Should-BeLessThanOrEqual .2
         }
 
         It "Passes when actual is equal to expected" {
-            .1 | Assert-LessThanOrEqual .1
+            .1 | Should-BeLessThanOrEqual .1
         }
 
         It "Fails when actual is greater than expected" {
-            { .9 | Assert-LessThanOrEqual .1 } | Verify-AssertionFailed
+            { .9 | Should-BeLessThanOrEqual .1 } | Verify-AssertionFailed
         }
     }
 
     Context "Comparing decimals" {
         It "Passes when expected is less than actual" {
-            1D | Assert-LessThanOrEqual 2D
+            1D | Should-BeLessThanOrEqual 2D
         }
 
         It "Passes when actual is equal to expected" {
-            1D | Assert-LessThanOrEqual 1D
+            1D | Should-BeLessThanOrEqual 1D
         }
 
         It "Fails when actual is greater than expected" {
-            { 9D | Assert-LessThanOrEqual 1D } | Verify-AssertionFailed
+            { 9D | Should-BeLessThanOrEqual 1D } | Verify-AssertionFailed
         }
     }
 
     Context "Comparing objects" {
         It "Passes when two objects are the same" {
             $object = New-Object -TypeName PsObject -Property @{ Name = "Jakub" }
-            $object | Assert-LessThanOrEqual $object
+            $object | Should-BeLessThanOrEqual $object
         }
 
         It "Fails when two objects are not comparable" {
             $object = New-Object -TypeName PsObject -Property @{ Name = "Jakub" }
             $object1 = New-Object -TypeName PsObject -Property @{ Name = "Jakub" }
-            $err = { $object | Assert-LessThanOrEqual $object1 } | Verify-Throw
+            $err = { $object | Should-BeLessThanOrEqual $object1 } | Verify-Throw
             $err.Exception | Verify-Type ([System.Management.Automation.ExtendedTypeSystemException])
         }
     }
 
     It "Fails for array input even if the last item is less than then expected value" {
-        $err = { 4, 3, 2, 1 | Assert-LessThanOrEqual 3 } | Verify-Throw
+        $err = { 4, 3, 2, 1 | Should-BeLessThanOrEqual 3 } | Verify-Throw
         $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
     }
 
     It "Fails with custom message" {
-        $err = { 3 | Assert-LessThanOrEqual 2 -CustomMessage "<actual> is not less than <expected>" } | Verify-AssertionFailed
+        $err = { 3 | Should-BeLessThanOrEqual 2 -CustomMessage "<actual> is not less than <expected>" } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal "3 is not less than 2"
     }
 
@@ -87,22 +87,22 @@ Describe "Assert-LessThanOrEqual" {
             @{ Expected = 1.1 ; Actual = 10.1 ; Message = "Expected [double] 10.1 to be less than or equal to [double] 1.1, but it was not." },
             @{ Expected = 1.1D ; Actual = 10.1D ; Message = "Expected [decimal] 10.1 to be less than or equal to [decimal] 1.1, but it was not." }
         ) {
-            $err = { Assert-LessThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            $err = { Should-BeLessThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }
     }
 
     It "Returns the value on output" {
         $expected = 0
-        $expected | Assert-LessThanOrEqual 1 | Verify-Equal $expected
+        $expected | Should-BeLessThanOrEqual 1 | Verify-Equal $expected
     }
 
     It "Can be called with positional parameters" {
-        { Assert-LessThanOrEqual 1 2 } | Verify-AssertionFailed
+        { Should-BeLessThanOrEqual 1 2 } | Verify-AssertionFailed
     }
 
     It "Given collection to Expected it throws" {
-        $err = { "dummy" | Assert-LessThanOrEqual @() } | Verify-Throw
+        $err = { "dummy" | Should-BeLessThanOrEqual @() } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
     }
 }

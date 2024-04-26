@@ -1,4 +1,23 @@
-﻿function Collect-Input ($ParameterInput, $PipelineInput, $IsPipelineInput) {
+﻿function Collect-Input {
+    param (
+        # This is input when called without pipeline syntax e.g. Should-Be -Actual 1
+        # In that case -ParameterInput $Actual will be 1
+        $ParameterInput,
+        # This is $local:input, which is the input that powershell collected from pipeline.
+        # It is always $null or object[] containing all the received items.
+        $PipelineInput,
+        # This tell us if we were called by | syntax or not. Caller needs to pass in $MyInvocation.ExpectingInput.
+        $IsPipelineInput
+        # This unwraps input provided by |. The effect of this is that we get single item input directly,
+        # and not wrapped in array. E.g. 1 | Should-Be  -> 1, and not 1 | Should-Be -> @(1).
+        #
+        # Single item assertions should always provide this parameter. Collection assertions should never
+        # provide this parameter, because they should handle collections consistenly.
+        #
+        # This parameter does not apply to input provided by parameter sytax Should-Be -Actual 1
+        # TODO: will apply this, but not yet. [switch] $UnrollInput
+    )
+
     if ($IsPipelineInput) {
         # We are called like this: 1 | Assert-Equal -Expected 1, we will get $local:Input in $PipelineInput and $true in $IsPipelineInput (coming from $MyInvocation.ExpectingInput).
 

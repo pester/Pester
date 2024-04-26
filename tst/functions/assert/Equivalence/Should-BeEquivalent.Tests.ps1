@@ -439,7 +439,7 @@ InPesterModuleScope {
             $null = $Actual.Rows.Add(3, 'C', $null, $null)
             $null = $Actual.Rows.Add(1, 'A', 'AAA', 5)
 
-            Assert-Equivalent -Actual $Actual -Expected $Expected
+            Should-BeEquivalent -Actual $Actual -Expected $Expected
 
             function SerializeDeserialize ($InputObject) {
                 # psv2 compatibility
@@ -462,22 +462,22 @@ InPesterModuleScope {
 
             $ExpectedDeserialized = SerializeDeserialize $Expected
             $ActualDeserialized = SerializeDeserialize $Actual
-            Assert-Equivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized
-            Assert-Equivalent -Actual $Actual -Expected $ExpectedDeserialized
+            Should-BeEquivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized
+            Should-BeEquivalent -Actual $Actual -Expected $ExpectedDeserialized
 
-            { Assert-Equivalent -Actual $Actual -Expected $Expected -StrictOrder } | Should -Throw
+            { Should-BeEquivalent -Actual $Actual -Expected $Expected -StrictOrder } | Should -Throw
 
             $Actual.Rows[1].Name = 'D'
-            { Assert-Equivalent -Actual $Actual -Expected $Expected } | Should -Throw
+            { Should-BeEquivalent -Actual $Actual -Expected $Expected } | Should -Throw
 
             $ExpectedDeserialized = SerializeDeserialize $Expected
             $ActualDeserialized = SerializeDeserialize $Actual
-            { Assert-Equivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized } | Should -Throw
-            { Assert-Equivalent -Actual $Actual -Expected $ExpectedDeserialized } | Should -Throw
+            { Should-BeEquivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized } | Should -Throw
+            { Should-BeEquivalent -Actual $Actual -Expected $ExpectedDeserialized } | Should -Throw
         }
 
         It "Can be called with positional parameters" {
-            { Assert-Equivalent 1 2 } | Verify-AssertionFailed
+            { Should-BeEquivalent 1 2 } | Verify-AssertionFailed
         }
     }
 }

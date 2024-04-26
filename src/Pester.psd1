@@ -138,13 +138,13 @@
         'Should-BeGreaterThanOrEqual'
         'Should-BeLessThan'
         'Should-BeLessThanOrEqual'
-        'Should-NotBeEqual'
+        'Should-NotBe'
         'Should-NotBeNull'
         'Should-NotBeSame'
-        'Should-NotBeType'
+        'Should-NotHaveType'
         'Should-BeNull'
         'Should-BeSame'
-        'Should-BeType'
+        'Should-HaveType'
 
         # string
         'Should-BeString'

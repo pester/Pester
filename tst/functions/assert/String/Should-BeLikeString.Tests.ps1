@@ -1,118 +1,118 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Assert-Like" {
+Describe "Should-BeLikeString" {
     Context "Case insensitive matching" {
         It "Passes give strings that have the same value" {
-            Assert-Like -Expected "abc" -Actual "abc"
+            Should-BeLikeString -Expected "abc" -Actual "abc"
         }
 
         It "Passes given strings with different case and same values. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABc";  Expected = "abc" },
-            @{ Actual = "aBc";  Expected = "abc" },
-            @{ Actual = "ABC";  Expected = "abc" }
+            @{ Actual = "ABc"; Expected = "abc" },
+            @{ Actual = "aBc"; Expected = "abc" },
+            @{ Actual = "ABC"; Expected = "abc" }
         ) {
             param ($Actual, $Expected)
-            Assert-Like -Actual $Actual -Expected $Expected
+            Should-BeLikeString -Actual $Actual -Expected $Expected
         }
 
         It "Fails given strings with different values" {
-            { Assert-Like -Expected "abc" -Actual "def" } | Verify-AssertionFailed
+            { Should-BeLikeString -Expected "abc" -Actual "def" } | Verify-AssertionFailed
         }
 
         It "Fails given strings with different case and different values. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABc";  Expected = "def" },
-            @{ Actual = "aBc";  Expected = "def" },
-            @{ Actual = "ABC";  Expected = "def" }
+            @{ Actual = "ABc"; Expected = "def" },
+            @{ Actual = "aBc"; Expected = "def" },
+            @{ Actual = "ABC"; Expected = "def" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
         }
 
         It "Fails given strings from which one is sorrounded by whitespace. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "abc ";  Expected = "abc" },
-            @{ Actual = "abc ";  Expected = "abc" },
-            @{ Actual = "ab c";  Expected = "abc" }
+            @{ Actual = "abc "; Expected = "abc" },
+            @{ Actual = "abc "; Expected = "abc" },
+            @{ Actual = "ab c"; Expected = "abc" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
         }
 
         It "Passes given strings with different case that start with a given pattern. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABcdef";  Expected = "abc*" },
-            @{ Actual = "aBcdef";  Expected = "abc*" },
-            @{ Actual = "ABCDEF";  Expected = "abc*" }
+            @{ Actual = "ABcdef"; Expected = "abc*" },
+            @{ Actual = "aBcdef"; Expected = "abc*" },
+            @{ Actual = "ABCDEF"; Expected = "abc*" }
         ) {
             param ($Actual, $Expected)
-            Assert-Like -Actual $Actual -Expected $Expected
+            Should-BeLikeString -Actual $Actual -Expected $Expected
         }
 
         It "Fails given strings with different case that start with a different pattern. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABcdef";  Expected = "ghi*" },
-            @{ Actual = "aBcdef";  Expected = "ghi*" },
-            @{ Actual = "ABCDEF";  Expected = "ghi*" }
+            @{ Actual = "ABcdef"; Expected = "ghi*" },
+            @{ Actual = "aBcdef"; Expected = "ghi*" },
+            @{ Actual = "ABCDEF"; Expected = "ghi*" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
         }
 
         It "Passes given strings with different case that contain a given pattern. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABcdef";  Expected = "*cd*" },
-            @{ Actual = "aBcdef";  Expected = "*cd*" },
-            @{ Actual = "ABCDEF";  Expected = "*CD*" }
+            @{ Actual = "ABcdef"; Expected = "*cd*" },
+            @{ Actual = "aBcdef"; Expected = "*cd*" },
+            @{ Actual = "ABCDEF"; Expected = "*CD*" }
         ) {
             param ($Actual, $Expected)
-            Assert-Like -Actual $Actual -Expected $Expected
+            Should-BeLikeString -Actual $Actual -Expected $Expected
         }
 
         It "Fails given strings with different case that contain a different pattern. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABcdef";  Expected = "*gh*" },
-            @{ Actual = "aBcdef";  Expected = "*gh*" },
-            @{ Actual = "ABCDEF";  Expected = "*GH*" }
+            @{ Actual = "ABcdef"; Expected = "*gh*" },
+            @{ Actual = "aBcdef"; Expected = "*gh*" },
+            @{ Actual = "ABCDEF"; Expected = "*GH*" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
         }
     }
 
     Context "Case sensitive matching" {
         It "Fails given strings with different case but same values. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABc";  Expected = "abc" },
-            @{ Actual = "aBc";  Expected = "abc" },
-            @{ Actual = "ABC";  Expected = "abc" }
+            @{ Actual = "ABc"; Expected = "abc" },
+            @{ Actual = "aBc"; Expected = "abc" },
+            @{ Actual = "ABC"; Expected = "abc" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
         }
     }
 
     Context "Case sensitive matching" {
         It "Fails given strings with different case that contain the given pattern. comparing '<actual>':'<expected>'" -TestCases @(
-            @{ Actual = "ABCDEF";  Expected = "*cd*" }
+            @{ Actual = "ABCDEF"; Expected = "*cd*" }
         ) {
             param ($Actual, $Expected)
-            { Assert-Like -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
+            { Should-BeLikeString -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
         }
     }
 
     It "Allows actual to be passed from pipeline" {
-        "abc" | Assert-Like -Expected "abc"
+        "abc" | Should-BeLikeString -Expected "abc"
     }
 
     It "Allows expected to be passed by position" {
-        Assert-Like "abc" -Actual "abc"
+        Should-BeLikeString "abc" -Actual "abc"
     }
 
     It "Allows actual to be passed by pipeline and expected by position" {
-        "abc" | Assert-Like "abc"
+        "abc" | Should-BeLikeString "abc"
     }
 
     It "Throws when given a collection to avoid confusing matches of the last item only" {
-        $err = { "bde", "abc" | Assert-Like -Expected "abc" } | Verify-Throw
+        $err = { "bde", "abc" | Should-BeLikeString -Expected "abc" } | Verify-Throw
         $err.Exception.Message | Verify-Equal "Actual is expected to be string, to avoid confusing behavior that -like operator exhibits with collections. To assert on collections use Assert-Any, Assert-All or some other collection assertion."
     }
 
     It "Can be called with positional parameters" {
-        { Assert-Like "a" "b" } | Verify-AssertionFailed
+        { Should-BeLikeString "a" "b" } | Verify-AssertionFailed
     }
 
     Context "Verify messages" {
@@ -122,7 +122,7 @@ Describe "Assert-Like" {
             @{ Actual = 'something'; Expected = '*abc*'; Message = "Expected the string 'something' to match '*abc*' but it did not." }
         ) {
             param ($Actual, $Expected, $Message)
-            $err =  { Assert-Like -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
+            $err = { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }
 
@@ -132,7 +132,7 @@ Describe "Assert-Like" {
             @{ Actual = 'something'; Expected = '*SOME*'; Message = "Expected the string 'something' to case sensitively match '*SOME*' but it did not." }
         ) {
             param ($Actual, $Expected, $Message)
-            $err =  { Assert-Like -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
+            $err = { Should-BeLikeString -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }
     }
