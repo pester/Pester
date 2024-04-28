@@ -1,5 +1,5 @@
 ﻿function Write-JUnitReport {
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -24,7 +24,7 @@
 
 function Write-JUnitTestResultAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
@@ -38,13 +38,9 @@ function Write-JUnitTestResultAttributes {
 
 function Write-JUnitTestSuiteElements {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id)
+    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id)
 
     $XmlWriter.WriteStartElement('testsuite')
-
-    if ($container.Type -notin 'File', 'ScriptBlock') {
-        throw "Container type '$($container.Type)' is not supported."
-    }
 
     Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $container.Name -Id $Id
 

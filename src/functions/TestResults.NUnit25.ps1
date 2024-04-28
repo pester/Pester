@@ -1,5 +1,5 @@
 ﻿function Write-NUnitReport {
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -14,7 +14,7 @@
 
 function Write-NUnitTestResultAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
@@ -33,7 +33,7 @@ function Write-NUnitTestResultAttributes {
 
 function Write-NUnitTestResultChildNodes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     Write-NUnitEnvironmentInformation -Result $Result -XmlWriter $XmlWriter
     Write-NUnitCultureInformation -Result $Result -XmlWriter $XmlWriter
@@ -53,9 +53,6 @@ function Write-NUnitTestResultChildNodes {
             continue
         }
 
-        if ($container.Type -notin 'File', 'ScriptBlock') {
-            throw "Container type '$($container.Type)' is not supported."
-        }
         Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $container.Name
     }
 

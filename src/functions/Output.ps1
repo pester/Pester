@@ -211,14 +211,6 @@ function Write-PesterStart {
             ScriptBlocks = 0
         }
 
-        foreach ($c in $Context.Containers) {
-            switch ($c.Type) {
-                "File" { $null = $hash.Files.Add($c.Item.FullName) }
-                "ScriptBlock" { $null = $hash.ScriptBlocks++ }
-                Default { throw "$($c.Type) is not supported." }
-            }
-        }
-
         $moduleInfo = $MyInvocation.MyCommand.ScriptBlock.Module
         $moduleVersion = $moduleInfo.Version.ToString()
         if ($moduleInfo.PrivateData.PSData.Prerelease) {
@@ -306,7 +298,7 @@ function ConvertTo-PesterResult {
 function Write-PesterReport {
     param (
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
-        $RunResult
+        [Pester.Run] $RunResult
     )
     # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
@@ -386,10 +378,6 @@ function Write-PesterReport {
 
     if (0 -lt $RunResult.FailedContainersCount) {
         $cs = foreach ($container in $RunResult.FailedContainers) {
-            if ($container.Type -notin 'File', 'ScriptBlock') {
-                throw "Container type '$($container.Type)' is not supported."
-            }
-
             "  - $($container.Name)"
         }
         Write-PesterHostMessage ('Container failed: {0}' -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
@@ -614,10 +602,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         if ('Failed' -eq $Context.Block.Result) {
-            if ($Context.BlockContainer.Type -notin 'File', 'ScriptBlock') {
-                throw "Context.BlockContainer type '$($Context.BlockContainer.Type)' is not supported."
-            }
-
             $errorHeader = "[-] Discovery in $($Context.BlockContainer) failed with:"
 
             $formatErrorParams = @{

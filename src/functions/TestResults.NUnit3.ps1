@@ -1,6 +1,6 @@
 ﻿# NUnit3 schema docs: https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
 
-function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3Report([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -19,8 +19,13 @@ function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
 }
 
 function Write-NUnit3TestRunAttributes {
+<<<<<<< Updated upstream
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Result, [System.Xml.XmlWriter] $XmlWriter)
+=======
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
+>>>>>>> Stashed changes
 
     $XmlWriter.WriteAttributeString('id', '0')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
@@ -42,7 +47,7 @@ function Write-NUnit3TestRunAttributes {
 
 function Write-NUnit3TestRunChildNode {
     param(
-        $Result,
+        [Pester.Run] $Result,
         [System.Xml.XmlWriter] $XmlWriter
     )
 
