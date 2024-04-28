@@ -19,7 +19,7 @@ function Write-NUnit3Report([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWri
 }
 
 function Write-NUnit3TestRunAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('id', '0')

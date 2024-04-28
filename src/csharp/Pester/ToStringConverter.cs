@@ -18,32 +18,21 @@ namespace Pester
             };
         }
 
-        internal static string ContainerItemToString(string Type, object Item)
+        internal static string ContainerItemToString(string type, object item)
         {
-            string path;
-            switch (Type)
+            return type switch
             {
-                case Constants.File:
-                    path = Item is FileInfo f ? f.FullName : Item.ToString();
-                    break;
-                case Constants.ScriptBlock:
-                    path = "<ScriptBlock>";
-                    if (Item is ScriptBlock s && !string.IsNullOrWhiteSpace(s.File))
-                    {
-                        path += $":{s.File}:{s.StartPosition.StartLine}";
-                    }
-                    break;
-                default:
-                    path = $"<{Type}>";
-                    break;
-            }
-
-            return path;
+                Constants.File => item is FileInfo f ? f.FullName : item.ToString(),
+                Constants.ScriptBlock => item is ScriptBlock s && !string.IsNullOrWhiteSpace(s.File)
+                    ? $"<ScriptBlock>:{s.File}:{s.StartPosition.StartLine}"
+                    : "<ScriptBlock>",
+                _ => $"<{type}>"
+            };
         }
 
         internal static string ContainerToString(Container container)
         {
-            return $"{ResultToString(container.Result)} {ContainerItemToString(container.Type, container.Item)}";
+            return $"{ResultToString(container.Result)} {container.Name}";
         }
 
         internal static string ContainerInfoToString(ContainerInfo containerInfo)
