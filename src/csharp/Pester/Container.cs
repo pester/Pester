@@ -48,7 +48,12 @@ namespace Pester
         }
 
         public string Name { get => ToStringConverter.ContainerItemToString(Type, Item); }
-        public string Type { get; set; }
+        private string _type = Constants.File;
+        public string Type
+        {
+            get => _type;
+            set => SetContainerType(ref _type, value);
+        }
         public object Item { get; set; }
         public object Data { get; set; }
         public List<Block> Blocks { get; set; } = new List<Block>();
@@ -76,6 +81,16 @@ namespace Pester
         public override string ToString()
         {
             return ToStringConverter.ContainerToString(this);
+        }
+
+        internal static void SetContainerType(ref string property, string value)
+        {
+            property = value.ToLower() switch
+            {
+                "file" => Constants.File,
+                "scriptblock" => Constants.ScriptBlock,
+                _ => throw new ArgumentOutOfRangeException("value", $"Type must be '{Constants.File}' or '{Constants.ScriptBlock}'"),
+            };
         }
     }
 }

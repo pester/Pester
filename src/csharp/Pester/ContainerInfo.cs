@@ -11,7 +11,12 @@ namespace Pester
             return new ContainerInfo();
         }
 
-        public string Type { get; set; } = "File";
+        private string _type = Constants.File;
+        public string Type
+        {
+            get => _type;
+            set => Container.SetContainerType(ref _type, value);
+        }
         public object Item { get; set; }
         public object Data { get; set; }
 
