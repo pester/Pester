@@ -200,35 +200,12 @@ function Write-PesterStart {
         $Context
     )
     process {
-        # if (-not ( $Context.Show | Has-Flag 'All, Fails, Header')) {
-        #     return
-        # }
-
-        $OFS = $ReportStrings.MessageOfs
-
-        $hash = @{
-            Files        = [System.Collections.Generic.List[object]]@()
-            ScriptBlocks = 0
-        }
-
         $moduleInfo = $MyInvocation.MyCommand.ScriptBlock.Module
         $moduleVersion = $moduleInfo.Version.ToString()
         if ($moduleInfo.PrivateData.PSData.Prerelease) {
             $moduleVersion += "-$($moduleInfo.PrivateData.PSData.Prerelease)"
         }
         $message = $ReportStrings.VersionMessage -f $moduleVersion
-
-        # todo write out filters that are applied
-        # if ($PesterState.TestNameFilter) {
-        #     $message += $ReportStrings.FilterMessage -f "$($PesterState.TestNameFilter)"
-        # }
-        # if ($PesterState.ScriptBlockFilter) {
-        #     $m = $(foreach ($m in $PesterState.ScriptBlockFilter) { "$($m.Path):$($m.Line)" }) -join ", "
-        #     $message += $ReportStrings.FilterMessage -f $m
-        # }
-        # if ($PesterState.TagFilter) {
-        #     $message += $ReportStrings.TagMessage -f "$($PesterState.TagFilter)"
-        # }
 
         Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery $message
     }
@@ -245,15 +222,15 @@ function ConvertTo-PesterResult {
     $testResult = @{
         Name           = $Name
         Time           = $time
-        FailureMessage = ""
-        StackTrace     = ""
+        FailureMessage = ''
+        StackTrace     = ''
         ErrorRecord    = $null
         Success        = $false
-        Result         = "Failed"
+        Result         = 'Failed'
     }
 
     if (-not $ErrorRecord) {
-        $testResult.Result = "Passed"
+        $testResult.Result = 'Passed'
         $testResult.Success = $true
         return $testResult
     }
@@ -270,13 +247,13 @@ function ConvertTo-PesterResult {
         if (-not $Pester.Strict) {
             switch ($ErrorRecord.FullyQualifiedErrorID) {
                 PesterTestInconclusive {
-                    $testResult.Result = "Inconclusive"; break;
+                    $testResult.Result = 'Inconclusive'; break;
                 }
                 PesterTestPending {
-                    $testResult.Result = "Pending"; break;
+                    $testResult.Result = 'Pending'; break;
                 }
                 PesterTestSkipped {
-                    $testResult.Result = "Skipped"; break;
+                    $testResult.Result = 'Skipped'; break;
                 }
             }
         }
@@ -372,7 +349,7 @@ function Write-PesterReport {
     Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
-        Write-PesterHostMessage ("BeforeAll \ AfterAll failed: {0}" -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ('BeforeAll \ AfterAll failed: {0}' -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
         Write-PesterHostMessage ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
 
