@@ -1,6 +1,6 @@
 ﻿# NUnit3 schema docs: https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
 
-function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
+function Write-NUnit3Report([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -20,7 +20,7 @@ function Write-NUnit3Report($Result, [System.Xml.XmlWriter] $XmlWriter) {
 
 function Write-NUnit3TestRunAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('id', '0')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
@@ -42,7 +42,7 @@ function Write-NUnit3TestRunAttributes {
 
 function Write-NUnit3TestRunChildNode {
     param(
-        $Result,
+        [Pester.Run] $Result,
         [System.Xml.XmlWriter] $XmlWriter
     )
 
@@ -230,21 +230,12 @@ function Get-NUnit3TestSuiteInfo {
     }
 
     if ($TestSuite -is [Pester.Container]) {
-        switch ($TestSuite.Type) {
-            'File' {
-                $name = $TestSuite.Item.Name
-                $fullname = $TestSuite.Item.FullName
-                break
-            }
-            'ScriptBlock' {
-                $name = $TestSuite.Item.Id.Guid
-                $fullname = "<ScriptBlock>$($TestSuite.Item.File):$($TestSuite.Item.StartPosition.StartLine)"
-                break
-            }
-            default {
-                throw "Container type '$($TestSuite.Type)' is not supported."
-            }
+        $name = switch ($TestSuite.Type) {
+            'File' { $TestSuite.Item.Name; break }
+            'ScriptBlock' { $TestSuite.Item.Id.Guid; break }
+            default { throw "Container type '$($TestSuite.Type)' is not supported." }
         }
+        $fullname = $TestSuite.Name
         $classname = ''
     }
     else {

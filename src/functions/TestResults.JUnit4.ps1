@@ -1,5 +1,5 @@
 ﻿function Write-JUnitReport {
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -24,7 +24,7 @@
 
 function Write-JUnitTestResultAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
@@ -38,27 +38,16 @@ function Write-JUnitTestResultAttributes {
 
 function Write-JUnitTestSuiteElements {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id)
+    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id)
 
     $XmlWriter.WriteStartElement('testsuite')
 
-    if ('File' -eq $Container.Type) {
-        $path = $Container.Item.FullName
-    }
-    elseif ('ScriptBlock' -eq $Container.Type) {
-        $path = "<ScriptBlock>$($Container.Item.File):$($Container.Item.StartPosition.StartLine)"
-    }
-    else {
-        throw "Container type '$($Container.Type)' is not supported."
-    }
-
-    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $path -Id $Id
-
+    Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $container.Name -Id $Id
 
     $testResults = [Pester.Factory]::CreateCollection()
     Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
     foreach ($t in $testResults) {
-        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $path
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -Package $container.Name
     }
 
     $XmlWriter.WriteEndElement()

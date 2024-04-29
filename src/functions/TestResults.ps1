@@ -20,7 +20,7 @@
 
 function Export-PesterResult {
     param (
-        $Result,
+        [Pester.Run] $Result,
         [string] $Path,
         [string] $Format
     )
@@ -85,7 +85,7 @@ function Export-NUnitReport {
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result,
+        [Pester.Run] $Result,
 
         [parameter(Mandatory = $true)]
         [String] $Path,
@@ -135,7 +135,7 @@ function Export-JUnitReport {
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result,
+        [Pester.Run] $Result,
 
         [parameter(Mandatory = $true)]
         [String] $Path
@@ -147,7 +147,7 @@ function Export-JUnitReport {
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result,
+        [Pester.Run] $Result,
 
         [parameter(Mandatory = $true)]
         [String] $Path,
@@ -272,7 +272,7 @@ function ConvertTo-NUnitReport {
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result,
+        [Pester.Run] $Result,
         [Switch] $AsString,
 
         [ValidateSet('NUnit2.5', 'NUnit3')]
@@ -362,7 +362,7 @@ function ConvertTo-JUnitReport {
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Result,
+        [Pester.Run] $Result,
         [Switch] $AsString
     )
 
