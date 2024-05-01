@@ -5,7 +5,7 @@ function Ensure-ExpectedIsNotCollection {
 
     if (Is-Collection $InputObject)
     {
-        throw [ArgumentException]'You provided a collection to the -Expected parameter. Using a collection on the -Expected side is not allowed by this assertion, because it leads to unexpected behavior. Please use Assert-Any, Assert-All or some other specialized collection assertion.'
+        throw [ArgumentException]'You provided a collection to the -Expected parameter. Using a collection on the -Expected side is not allowed by this assertion, because it leads to unexpected behavior. Please use Should-Any, Should-All or some other specialized collection assertion.'
     }
 
     $InputObject

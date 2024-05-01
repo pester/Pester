@@ -108,7 +108,7 @@ Describe "Should-BeLikeString" {
 
     It "Throws when given a collection to avoid confusing matches of the last item only" {
         $err = { "bde", "abc" | Should-BeLikeString -Expected "abc" } | Verify-Throw
-        $err.Exception.Message | Verify-Equal "Actual is expected to be string, to avoid confusing behavior that -like operator exhibits with collections. To assert on collections use Assert-Any, Assert-All or some other collection assertion."
+        $err.Exception.Message | Verify-Equal "Actual is expected to be string, to avoid confusing behavior that -like operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
     }
 
     It "Can be called with positional parameters" {

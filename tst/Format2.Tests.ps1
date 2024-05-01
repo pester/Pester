@@ -151,20 +151,19 @@ InPesterModuleScope {
 
     Describe "Format-Nicely2" {
         It "Formats value '<value>' correctly to '<expected>'" -TestCases @(
-            # @{ Value = $null; Expected = '$null' }
-            # @{ Value = $true; Expected = '$true' }
-            # @{ Value = $false; Expected = '$false' }
-            # @{ Value = 'a' ; Expected = "'a'" },
-            # @{ Value = 1; Expected = '1' },
-            # @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
-            # @{ Value = 1.1; Expected = '1.1' },
-            # @{ Value = [int]; Expected = 'int' }
+            @{ Value = $null; Expected = '$null' }
+            @{ Value = $true; Expected = '$true' }
+            @{ Value = $false; Expected = '$false' }
+            @{ Value = 'a' ; Expected = "'a'" },
+            @{ Value = 1; Expected = '1' },
+            @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
+            @{ Value = 1.1; Expected = '1.1' },
+            @{ Value = [int]; Expected = '[int]' }
             @{ Value = New-PSObject @{ Name = "Jakub" }; Expected = "PSObject{Name='Jakub'}" },
             @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name='Jakub'}" }
             @{ Value = @{Name = 'Jakub'; Age = 28 }; Expected = "@{Age=28; Name='Jakub'}" }
             @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = "Dictionary{Age=28; Name='Jakub'}" }
         ) {
-            param($Value, $Expected)
             Format-Nicely2 -Value $Value | Verify-Equal $Expected
         }
     }

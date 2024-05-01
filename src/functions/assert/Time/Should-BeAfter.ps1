@@ -45,7 +45,7 @@
     }
 
     if ($Actual -le $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -Data @{ ago = $Ago } -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected> (<ago> ago),<because> but it was before: <actual>"
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected>, <because> but it was before: <actual>"
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

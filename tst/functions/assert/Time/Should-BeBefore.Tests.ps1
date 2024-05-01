@@ -54,6 +54,8 @@ Describe "Should-BeBefore" {
         New-Item -ItemType Directory -Path "TestDrive:\MyFolder" -Force | Out-Null
         $path = "TestDrive:\MyFolder\test.txt"
         "hello" | Set-Content $path
+        # DateTime.Now is not precise in Windows Powershell. We need to wait a bit.
+        Start-Sleep -Milliseconds 15
         (Get-Item $path).CreationTime | Should-BeBefore -Now
     }
 }
