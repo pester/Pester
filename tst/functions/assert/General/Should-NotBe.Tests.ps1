@@ -58,11 +58,6 @@ Describe "Should-NotBe" {
         1, 2, 3 | Should-NotBe 3
     }
 
-    It "Fails with custom message" {
-        $err = { 3 | Should-NotBe 3 -CustomMessage "<expected> is <actual>" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal "3 is 3"
-    }
-
     Context "Validate messages" {
         It "Given two values that are the same '<value>' it returns expected message '<message>'" -TestCases @(
             @{ Value = 1; Message = "Expected [int] 1, to be different than the actual value, but they were the same." }

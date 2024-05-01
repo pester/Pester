@@ -10,6 +10,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
 & $SafeCommands['Set-Alias'] 'Should-BeFalse'               'Assert-False'
 & $SafeCommands['Set-Alias'] 'Should-BeTrue'                'Assert-True'
+& $SafeCommands['Set-Alias'] 'Should-BeFalsy'               'Assert-Falsy'
+& $SafeCommands['Set-Alias'] 'Should-BeTruthy'                'Assert-Truthy'
 & $SafeCommands['Set-Alias'] 'Should-All'                   'Assert-All'
 & $SafeCommands['Set-Alias'] 'Should-Any'                   'Assert-Any'
 & $SafeCommands['Set-Alias'] 'Should-BeCollection'               'Assert-Contain'
@@ -80,6 +82,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     # assert
     'Assert-False'
     'Assert-True'
+    'Assert-Falsy'
+    'Assert-Truthy'
     'Assert-All'
     'Assert-Any'
     'Assert-Contain'
@@ -136,6 +140,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     # bool
     'Should-BeFalse'
     'Should-BeTrue'
+    'Should-BeFalsy'
+    'Should-BeTruthy'
 
     # collection
     'Should-All'

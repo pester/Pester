@@ -7,7 +7,7 @@ function Assert-Throw {
         [String]$ExceptionMessage,
         [String]$FullyQualifiedErrorId,
         [Switch]$AllowNonTerminatingError,
-        [String]$CustomMessage
+        [String]$Because
     )
 
     $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
@@ -70,7 +70,7 @@ function Assert-Throw {
         $but = Join-And $buts
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
 
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -CustomMessage $CustomMessage `
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
             -DefaultMessage $defaultMessage
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }

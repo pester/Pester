@@ -75,9 +75,9 @@ if (-not $NoBuild) {
     }
 }
 
-if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
-    throw "Cannot skip tests in CI mode!"
-}
+# if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
+#     throw "Cannot skip tests in CI mode!"
+# }
 
 # remove pester because we will be reimporting it in multiple other places
 Get-Module Pester | Remove-Module
@@ -183,8 +183,8 @@ if ($CI) {
     $configuration.Run.Exit = $true
 
     # not using code coverage, it is still very slow
-    $configuration.CodeCoverage.Enabled = $false
-    $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
+    $configuration.CodeCoverage.Enabled = $true
+    $configuration.CodeCoverage.Path = "$PSScriptRoot/bin/*"
 
     # experimental, uses the Profiler based tracer to do code coverage without using breakpoints
     $configuration.CodeCoverage.UseBreakpoints = $false

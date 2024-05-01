@@ -13,13 +13,6 @@ InPesterModuleScope {
             $exception = { Should-NotBeString -Expected "abc" -Actual "abc" } | Verify-AssertionFailed
             "$exception" | Verify-Equal $expected
         }
-
-        It "Throws with custom message when test fails" {
-            $customMessage = "Test failed becasue it expected '<e>' but got '<a>'. What a shame!"
-            $expected = Get-CustomFailureMessage -CustomMessage $customMessage -Expected "abc" -Actual "abc"
-            $exception = { Should-NotBeString -Expected "abc" -Actual "abc" -CustomMessage $customMessage } | Verify-AssertionFailed
-            "$exception" | Verify-Equal $expected
-        }
     }
 }
 

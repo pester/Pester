@@ -9,7 +9,7 @@ function Assert-StringNotEqual {
         $Actual,
         [Parameter(Position = 0)]
         [String]$Expected,
-        [String]$CustomMessage,
+        [String]$Because,
         [switch]$CaseSensitive,
         [switch]$IgnoreWhitespace
     )
@@ -19,7 +19,7 @@ function Assert-StringNotEqual {
             $formattedMessage = Get-StringNotEqualDefaultFailureMessage -Expected $Expected -Actual $Actual
         }
         else {
-            $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage
+            $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because
         }
 
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)

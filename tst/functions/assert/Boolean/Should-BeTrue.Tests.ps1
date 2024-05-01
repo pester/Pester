@@ -5,27 +5,21 @@ Describe "Should-BeTrue" {
         $true | Should-BeTrue
     }
 
-    It "Passes when given truthy" -TestCases @(
+    It "Fails when given truthy value" -TestCases @(
         @{ Actual = 1 }
         @{ Actual = "text" }
         @{ Actual = New-Object -TypeName PSObject }
         @{ Actual = 1, 2 }
+        @{ Actual = "false" }
     ) {
-        param($Actual)
-        Should-BeTrue -Actual $Actual
-    }
-
-    It "Fails with custom message" {
-        $err = { $null | Should-BeTrue -CustomMessage "<actual> is not true" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal "`$null is not true"
+        { Should-BeTrue -Actual $Actual } | Verify-AssertionFailed
     }
 
     Context "Validate messages" {
         It "Given value that is not `$true it returns expected message '<message>'" -TestCases @(
-            @{ Actual = $false ; Message = "Expected [bool] `$false to be [bool] `$true or truthy value." },
-            @{ Actual = 0 ; Message = "Expected [int] 0 to be [bool] `$true or truthy value." }
+            @{ Actual = $false ; Message = "Expected [bool] `$true, but got: [bool] `$false." },
+            @{ Actual = 0 ; Message = "Expected [bool] `$true, but got: [int] 0." }
         ) {
-            param($Actual, $Message)
             $err = { Should-BeTrue -Actual $Actual } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message
         }

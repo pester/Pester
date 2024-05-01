@@ -69,6 +69,8 @@
         # assert
         'Assert-False'
         'Assert-True'
+        'Assert-Falsy'
+        'Assert-Truthy'
         'Assert-All'
         'Assert-Any'
         'Assert-Contain'
@@ -124,6 +126,8 @@
         # bool
         'Should-BeFalse'
         'Should-BeTrue'
+        'Should-BeFalsy'
+        'Should-BeTruthy'
 
         # collection
         'Should-All'

@@ -17,12 +17,6 @@ Describe "Should-NotBeSame" {
         1, 2, $object | Should-NotBeSame $object
     }
 
-    It "Fails with custom message" {
-        $object = 1
-        $err = { $object | Should-NotBeSame $object -CustomMessage "<expected> is <actual>" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal "1 is 1"
-    }
-
     It "Given two values that are the same instance it returns expected message '<message>'" -TestCases @(
         @{ Value = "a"; Message = "Expected [string] ''a'', to not be the same instance." }
     ) {

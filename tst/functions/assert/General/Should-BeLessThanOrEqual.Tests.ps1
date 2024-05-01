@@ -76,11 +76,6 @@ Describe "Should-BeLessThanOrEqual" {
         $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
     }
 
-    It "Fails with custom message" {
-        $err = { 3 | Should-BeLessThanOrEqual 2 -CustomMessage "<actual> is not less than <expected>" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal "3 is not less than 2"
-    }
-
     Context "Validate messages" {
         It "Given two values '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
             @{ Expected = "a" ; Actual = "z" ; Message = "Expected [string] 'z' to be less than or equal to [string] 'a', but it was not." },

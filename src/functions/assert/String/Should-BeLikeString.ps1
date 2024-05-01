@@ -29,7 +29,7 @@ function Assert-Like {
         [Parameter(Position = 0, Mandatory = $true)]
         [String]$Expected,
         [Switch]$CaseSensitive,
-        [String]$CustomMessage
+        [String]$Because
     )
 
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
@@ -45,7 +45,7 @@ function Assert-Like {
             $formattedMessage = Get-LikeDefaultFailureMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive
         }
         else {
-            $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -CaseSensitive:$CaseSensitive
+            $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because -CaseSensitive:$CaseSensitive
         }
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }

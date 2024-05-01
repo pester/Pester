@@ -5,7 +5,7 @@
         $Actual,
         [Parameter(Position = 0, Mandatory = $true)]
         [scriptblock]$FilterScript,
-        [String]$CustomMessage
+        [String]$Because
     )
 
     $Expected = $FilterScript
@@ -13,7 +13,7 @@
     $Actual = $collectedInput.Actual
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -CustomMessage $CustomMessage -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
@@ -42,7 +42,7 @@
     }
 
     if (-not $pass) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected at least one item in collection <actual> to pass filter <expected>, but none of the items passed the filter."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected at least one item in collection <actual> to pass filter <expected>, but none of the items passed the filter."
         if ($null -ne $failReasons) {
             $failReasons = $failReasons -join "`n"
             if ($appendMore) {

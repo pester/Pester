@@ -5,7 +5,7 @@
         $Actual,
         [Parameter(Position = 0)]
         $Expected,
-        [String]$CustomMessage
+        [String]$Because
     )
 
     if ($Expected -is [ValueType] -or $Expected -is [string]) {
@@ -15,7 +15,7 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
     if (-not ([object]::ReferenceEquals($Expected, $Actual))) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -CustomMessage $CustomMessage -DefaultMessage "Expected <expectedType> '<expected>', to be the same instance but it was not."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to be the same instance but it was not. Actual: <actualType> <actual>"
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
