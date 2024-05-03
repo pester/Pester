@@ -78,9 +78,9 @@ Describe "Should-BeGreaterThanOrEqual" {
 
     Context "Validate messages" {
         It "Given two values '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-            @{ Expected = "z" ; Actual = "a" ; Message = "Expected [string] 'a' to be greater than or equal to [string] 'z', but it was not." },
-            @{ Expected = 10.1 ; Actual = 1.1 ; Message = "Expected [double] 1.1 to be greater than or equal to [double] 10.1, but it was not." },
-            @{ Expected = 10.1D ; Actual = 1.1D ; Message = "Expected [decimal] 1.1 to be greater than or equal to [decimal] 10.1, but it was not." }
+            @{ Expected = "z" ; Actual = "a" ; Message = "Expected the actual value to be greater than or equal to [string] 'z', but it was not. Actual: [string] 'a'" },
+            @{ Expected = 10.1 ; Actual = 1.1 ; Message = "Expected the actual value to be greater than or equal to [double] 10.1, but it was not. Actual: [double] 1.1" },
+            @{ Expected = 10.1D ; Actual = 1.1D ; Message = "Expected the actual value to be greater than or equal to [decimal] 10.1, but it was not. Actual: [decimal] 1.1" }
         ) {
             $err = { Should-BeGreaterThanOrEqual -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal $Message

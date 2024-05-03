@@ -32,6 +32,9 @@
         done, but makes local debugging difficult. When -CI is used, inlining is
         forced.
 
+    .PARAMETER VSCode
+        Set when calling from VSCode laucher file so we automatically figure out
+        what to run or what to skip.
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
@@ -43,6 +46,7 @@ param (
     [switch] $SkipPesterTests,
     [switch] $NoBuild,
     [switch] $Inline,
+    [switch] $VSCode,
     [string[]] $File = @()
 )
 
@@ -53,17 +57,19 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
-# Detect which tests to skip from the filenames.
-$anyFile = 0 -lt $File.Count
-$anyPesterTests = [bool]@($File | Where-Object { $_ -like "*.Tests.ps1" })
-$anyPTests = [bool]@($File | Where-Object { $_ -like "*.ts.ps1" })
+if ($VSCode) {
+    # Detect which tests to skip from the filenames.
+    $anyFile = 0 -lt $File.Count
+    $anyPesterTests = [bool]@($File | Where-Object { $_ -like "*.Tests.ps1" })
+    $anyPTests = [bool]@($File | Where-Object { $_ -like "*.ts.ps1" })
 
-if ($SkipPTests -or ($anyFile -and -not $anyPTests)) {
-    $SkipPTests = $true
-}
+    if ($SkipPTests -or ($anyFile -and -not $anyPTests)) {
+        $SkipPTests = $true
+    }
 
-if ($SkipPesterTests -or ($anyFile -and -not $anyPesterTests)) {
-    $SkipPesterTests = $true
+    if ($SkipPesterTests -or ($anyFile -and -not $anyPesterTests)) {
+        $SkipPesterTests = $true
+    }
 }
 
 if (-not $NoBuild) {

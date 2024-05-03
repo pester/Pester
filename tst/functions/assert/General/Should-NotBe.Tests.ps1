@@ -60,7 +60,7 @@ Describe "Should-NotBe" {
 
     Context "Validate messages" {
         It "Given two values that are the same '<value>' it returns expected message '<message>'" -TestCases @(
-            @{ Value = 1; Message = "Expected [int] 1, to be different than the actual value, but they were the same." }
+            @{ Value = 1; Message = "Expected [int] 1, to be different than the actual value, but they were equal." }
         ) {
             param($Value, $Message)
             $err = { Should-NotBe -Actual $Value -Expected $Value } | Verify-AssertionFailed

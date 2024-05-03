@@ -18,7 +18,7 @@ Describe "Should-BeSame" {
     }
 
     It "Given two values that are not the same instance '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
-        @{ Expected = New-Object -TypeName PSObject ; Actual = New-Object -TypeName PSObject ; Message = "Expected [PSObject] 'PSObject{}', to be the same instance but it was not." }
+        @{ Expected = New-Object -TypeName PSObject ; Actual = New-Object -TypeName PSObject ; Message = "Expected [PSObject] PSObject{}, to be the same instance but it was not. Actual: [PSObject] PSObject{}" }
     ) {
         $err = { Should-BeSame -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message

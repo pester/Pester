@@ -18,7 +18,8 @@
             "script": "${workspaceFolder}/test.ps1",
             "args": [
                 "-File",
-                "${file}"
+                "${file}",
+                "-VSCode"
             ]
         },
         {
