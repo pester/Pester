@@ -1,4 +1,47 @@
 function Assert-Throw {
+    <#
+    .SYNOPSIS
+    Asserts that a script block throws an exception.
+
+    .PARAMETER ScriptBlock
+    The script block that should throw an exception.
+
+    .PARAMETER ExceptionType
+    The type of exception that should be thrown.
+
+    .PARAMETER ExceptionMessage
+    The message that the exception should contain. `-like` wildcards are supported.
+
+    .PARAMETER FullyQualifiedErrorId
+    The FullyQualifiedErrorId that the exception should contain. `-like` wildcards are supported.
+
+    .PARAMETER AllowNonTerminatingError
+    If set, the assertion will pass if a non-terminating error is thrown.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    { throw 'error' } | Should-Throw
+    { throw 'error' } | Should-Throw -ExceptionMessage 'error'
+    { throw 'error' } | Should-Throw -ExceptionType 'System.Management.Automation.RuntimeException'
+    { throw 'error' } | Should-Throw -FullyQualifiedErrorId 'RuntimeException'
+    { throw 'error' } | Should-Throw -FullyQualifiedErrorId '*Exception'
+    { throw 'error' } | Should-Throw -AllowNonTerminatingError
+    ```
+
+    All of these assertions will pass.
+
+    .EXAMPLE
+    ```powershell
+    $err = { throw 'error' } | Should-Throw -PassThru
+    $err.Exception.Message | Should-BeLike '*err*'
+    ```
+
+    The error record is returned from the assertion and can be used in further assertions.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(ValueFromPipeline = $true, Mandatory = $true)]

@@ -1,4 +1,34 @@
 ﻿function Assert-True {
+    <#
+    .SYNOPSIS
+    Compares the actual value to a boolean $true. It does not convert input values to boolean, and will fail for any value is not $true.
+
+    .PARAMETER Actual
+    The actual value to compare to $true.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    $true | Should-BeTrue
+    ```
+
+    This assertion will pass.
+
+    .EXAMPLE
+    ```powershell
+    $false | Should-BeTrue
+    Get-Process | Should-BeTrue
+    $null | Should-BeTrue
+    $() | Should-BeTrue
+    @() | Should-BeTrue
+    0 | Should-BeTrue
+    ```
+
+    All of these assertions will fail, because the actual value is not $true.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(ValueFromPipeline = $true)]
@@ -6,7 +36,7 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual
     if ($Actual -isnot [bool] -or -not $Actual) {
         $Message = Get-AssertionMessage -Expected $true -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> but got: <actualType> <actual>."

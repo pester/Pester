@@ -1,4 +1,35 @@
 ﻿function Assert-NotContain {
+    <#
+    .SYNOPSIS
+    Compares collections to ensuere that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
+
+    .PARAMETER Expected
+    A collection of items.
+
+    .PARAMETER Actual
+    A collection of items.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-ContainCollection @(3, 4)
+    1, 2, 3 | Should-ContainCollection @(3, 2, 1)
+    @(1) | Should-ContainCollection @(2)
+    ```
+
+    This assertion will pass, because the collections are different, or the items are not in the right order.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-NotContainCollection @(1, 2)
+    @(1) | Should-NotContainCollection @(1)
+    ```
+
+    This assertion will fail, because all items are present in the collection and are in the right order.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

@@ -7,7 +7,7 @@
         # It is always $null or object[] containing all the received items.
         $PipelineInput,
         # This tell us if we were called by | syntax or not. Caller needs to pass in $MyInvocation.ExpectingInput.
-        $IsPipelineInput
+        $IsPipelineInput,
         # This unwraps input provided by |. The effect of this is that we get single item input directly,
         # and not wrapped in array. E.g. 1 | Should-Be  -> 1, and not 1 | Should-Be -> @(1).
         #
@@ -15,7 +15,7 @@
         # provide this parameter, because they should handle collections consistenly.
         #
         # This parameter does not apply to input provided by parameter sytax Should-Be -Actual 1
-        # TODO: will apply this, but not yet. [switch] $UnrollInput
+        [switch] $UnrollInput
     )
 
     if ($IsPipelineInput) {
@@ -26,8 +26,10 @@
             $collectedInput = @()
         }
         else {
-            # This is array of all the input, unwrap it.
-            $collectedInput = foreach ($item in $PipelineInput) { $item }
+            if ($UnrollInput) {
+                # This is array of all the input, unwrap it.
+                $collectedInput = foreach ($item in $PipelineInput) { $item }
+            }
         }
     }
     else {

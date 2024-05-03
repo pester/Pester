@@ -1,4 +1,37 @@
 ﻿function Assert-Collection {
+    <#
+    .SYNOPSIS
+    Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
+
+    .PARAMETER Expected
+    A collection of items.
+
+    .PARAMETER Actual
+    A collection of items.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-BeCollection @(1, 2, 3)
+    @(1) | Should-BeCollection @(1)
+    1 | Should-BeCollection 1
+    ```
+
+    This assertion will pass, because the collections have the same size and the items are equal.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3, 4 | Should-BeCollection @(1, 2, 3)
+    1, 2, 3, 4 | Should-BeCollection @(5, 6, 7, 8)
+    @(1) | Should-BeCollection @(2)
+    1 | Should-BeCollection @(2)
+    ```
+
+    The assertions will fail because the collections are not equal.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

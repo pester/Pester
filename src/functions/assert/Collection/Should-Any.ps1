@@ -1,4 +1,34 @@
 ﻿function Assert-Any {
+    <#
+    .SYNOPSIS
+    Compares all items in a collection to a filter script. If the filter returns true, or does not throw for any of the items in the collection, the assertion passes.
+
+    .PARAMETER FilterScript
+    A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
+
+    .PARAMETER Actual
+    A collection of items to filter.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-Any { $_ -gt 2 }
+    1, 2, 3 | Should-Any { $_ | Should-BeGreaterThan 2 }
+    ```
+
+    This assertion will pass, because at least one item in the collection passed the filter. 3 is greater than 2.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-Any { $_ -gt 4 }
+    1, 2, 3 | Should-Any { $_ | Should-BeGreaterThan 4 }
+    ```
+
+    The assertions will fail because none of theitems in the array are greater than 4.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(ValueFromPipeline = $true, Position = 1)]

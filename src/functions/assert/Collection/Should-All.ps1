@@ -1,4 +1,34 @@
 ﻿function Assert-All {
+    <#
+    .SYNOPSIS
+    Compares all items in a collection to a filter script. If the filter returns true, or does not throw for all the items in the collection, the assertion passes.
+
+    .PARAMETER FilterScript
+    A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
+
+    .PARAMETER Actual
+    A collection of items to filter.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-All { $_ -gt 0 }
+    1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 0 }
+    ```
+
+    This assertion will pass, because all items pass the filter.
+
+    .EXAMPLE
+    ```powershell
+    1, 2, 3 | Should-All { $_ -gt 1 }
+    1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 1 }
+    ```
+
+    The assertions will fail because not all items in the array are greater than 1.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding()]
     param (
