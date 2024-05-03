@@ -13,14 +13,6 @@
     }
 }
 
-function Get-LikeDefaultFailureMessage ([String]$Expected, $Actual, [switch]$CaseSensitive) {
-    $caseSensitiveMessage = ""
-    if ($CaseSensitive) {
-        $caseSensitiveMessage = " case sensitively"
-    }
-    "Expected the string '$Actual' to$caseSensitiveMessage match '$Expected' but it did not."
-}
-
 function Assert-Like {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
@@ -41,12 +33,12 @@ function Assert-Like {
 
     $stringsAreAlike = Test-Like -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace
     if (-not ($stringsAreAlike)) {
-        if (-not $CustomMessage) {
-            $formattedMessage = Get-LikeDefaultFailureMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive
+        $caseSensitiveMessage = ""
+        if ($CaseSensitive) {
+            $caseSensitiveMessage = " case sensitively"
         }
-        else {
-            $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because -CaseSensitive:$CaseSensitive
-        }
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+
+        $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected the string '$Actual' to$caseSensitiveMessage be like '$Expected',<because> but it did not."
+        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 }

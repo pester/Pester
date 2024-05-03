@@ -117,9 +117,9 @@ Describe "Should-BeLikeString" {
 
     Context "Verify messages" {
         It "Given two values that are not alike '<actual>' and '<expected>' it returns the correct message '<message>'" -TestCases @(
-            @{ Actual = 'a'; Expected = 'b'; Message = "Expected the string 'a' to match 'b' but it did not." }
-            @{ Actual = 'ab'; Expected = 'd*'; Message = "Expected the string 'ab' to match 'd*' but it did not." }
-            @{ Actual = 'something'; Expected = '*abc*'; Message = "Expected the string 'something' to match '*abc*' but it did not." }
+            @{ Actual = 'a'; Expected = 'b'; Message = "Expected the string 'a' to be like 'b', but it did not." }
+            @{ Actual = 'ab'; Expected = 'd*'; Message = "Expected the string 'ab' to be like 'd*', but it did not." }
+            @{ Actual = 'something'; Expected = '*abc*'; Message = "Expected the string 'something' to be like '*abc*', but it did not." }
         ) {
             param ($Actual, $Expected, $Message)
             $err = { Should-BeLikeString -Actual $Actual -Expected $Expected } | Verify-AssertionFailed
@@ -127,9 +127,9 @@ Describe "Should-BeLikeString" {
         }
 
         It "Given two values that are not alike becuase of case '<actual>' and '<expected>' it returns the correct message '<message>'" -TestCases @(
-            @{ Actual = 'a'; Expected = 'B'; Message = "Expected the string 'a' to case sensitively match 'B' but it did not." }
-            @{ Actual = 'ab'; Expected = 'B*'; Message = "Expected the string 'ab' to case sensitively match 'B*' but it did not." }
-            @{ Actual = 'something'; Expected = '*SOME*'; Message = "Expected the string 'something' to case sensitively match '*SOME*' but it did not." }
+            @{ Actual = 'a'; Expected = 'B'; Message = "Expected the string 'a' to case sensitively be like 'B', but it did not." }
+            @{ Actual = 'ab'; Expected = 'B*'; Message = "Expected the string 'ab' to case sensitively be like 'B*', but it did not." }
+            @{ Actual = 'something'; Expected = '*SOME*'; Message = "Expected the string 'something' to case sensitively be like '*SOME*', but it did not." }
         ) {
             param ($Actual, $Expected, $Message)
             $err = { Should-BeLikeString -Actual $Actual -Expected $Expected -CaseSensitive } | Verify-AssertionFailed
