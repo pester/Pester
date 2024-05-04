@@ -2657,7 +2657,7 @@ i -PassThru:$PassThru {
                 # Should not modify explicitly skipped tests
                 $r.Tests[3].Skipped | Verify-True
                 $r.Tests[3].Result | Verify-Equal 'Skipped'
-                $r.Tests[3].ErrorRecord.TargetObject.Message | Verify-Null
+                $r.Tests[3].ErrorRecord | Verify-Null
 
                 switch ($mode) {
                     'Block' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 1 }
