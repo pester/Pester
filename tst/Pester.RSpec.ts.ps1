@@ -2591,6 +2591,81 @@ i -PassThru:$PassThru {
             $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.FullyQualifiedErrorID | Verify-Equal 'PesterTestSkipped'
             $r.Containers[1].Blocks[0].Tests[0].ErrorRecord.TargetObject.Message | Verify-Equal "Skipped due to previous failure at 'a.b' and Run.SkipRemainingOnFailure set to 'Run'"
         }
+
+        foreach ($mode in 'Block', 'Container', 'Run') {
+            t "Ignore tests with -Skip or excluded by filter in mode '$mode'" {
+                $sb1 = {
+                    Describe 'a' {
+                        It 'Included - fails' -Tag 'Demo' {
+                            $false | Should -BeTrue
+                        }
+                        It 'Excluded - ignore' {
+                            $true | Should -BeTrue
+                        }
+                        Describe 'b' {
+                            It 'Included - skip' -Tag 'Demo' {
+                                $true | Should -BeTrue
+                            }
+                            It 'Included but skipped - ignore' -Tag 'Demo' -Skip {
+                                $true | Should -BeTrue
+                            }
+                        }
+                    }
+                    Describe 'c' {
+                        It 'Included - skip' -Tag 'Demo' {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                $sb2 = {
+                    Describe 'd' {
+                        It 'Included - skip' -Tag 'Demo' {
+                            $true | Should -BeTrue
+                        }
+                    }
+                }
+
+                $c = [PesterConfiguration] @{
+                    Filter = @{
+                        Tag = 'Demo'
+                    }
+                    Run    = @{
+                        ScriptBlock            = $sb1, $sb2
+                        PassThru               = $true
+                        SkipRemainingOnFailure = $mode
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.Tests[0].Skipped | Verify-False
+                $r.Tests[0].Result | Verify-Equal 'Failed'
+
+                # Should not mark excluded tests as Skipped
+                $r.Tests[1].Skipped | Verify-False
+                $r.Tests[1].Result | Verify-Equal 'NotRun'
+
+                # Should mark included test as Skipped
+                $r.Tests[2].Skipped | Verify-True
+                $r.Tests[2].Result | Verify-Equal 'Skipped'
+                $r.Tests[2].ErrorRecord.TargetObject.Message -match '^Skipped due to previous failure' | Verify-True
+
+                # Should not modify explicitly skipped tests
+                $r.Tests[3].Skipped | Verify-True
+                $r.Tests[3].Result | Verify-Equal 'Skipped'
+                $r.Tests[3].ErrorRecord.TargetObject.Message | Verify-Null
+
+                switch ($mode) {
+                    'Block' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 1 }
+                    'Container' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 2 }
+                    'Run' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 3 }
+                }
+            }
+        }
     }
 
     b 'Changes to CWD are reverted on exit' {
