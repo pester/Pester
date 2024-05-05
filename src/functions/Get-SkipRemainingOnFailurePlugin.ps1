@@ -53,6 +53,7 @@ function Get-SkipRemainingOnFailurePlugin {
 
     $p.Start = {
         param ($Context)
+
         # TODO: Use $Context.GlobalPluginData.SkipRemainingOnFailure.SkippedCount when exposed in $Context
         $Context.Configuration.SkipRemainingOnFailureCount = 0
     }
@@ -61,7 +62,7 @@ function Get-SkipRemainingOnFailurePlugin {
         $p.EachTestTeardownEnd = {
             param($Context)
 
-            # If test is not marked skipped and failed
+            # If test was not skipped and failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in the block recursively
                 Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block
@@ -73,7 +74,7 @@ function Get-SkipRemainingOnFailurePlugin {
         $p.EachTestTeardownEnd = {
             param($Context)
 
-            # If test is not marked skipped and failed
+            # If test was not skipped and failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in the container recursively
                 Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block.Root
@@ -97,14 +98,12 @@ function Get-SkipRemainingOnFailurePlugin {
         $p.EachTestTeardownEnd = {
             param($Context)
 
-            # If test is not marked skipped and failed
+            # If test was not skipped but failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in current container
                 Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block.Root
-            }
 
-            if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
-                # Store hint to be used in ContainerRunStart-step to skip future containers
+                # Store failed test so we can skip remaining containers in ContainerRunStart-step
                 # TODO: Use $Context.GlobalPluginData.SkipRemainingOnFailure.FailedTest when exposed in $Context
                 $Context.Configuration.SkipRemainingFailedTest = $Context.Test
             }
