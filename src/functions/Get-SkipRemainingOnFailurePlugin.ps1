@@ -87,6 +87,8 @@ function Get-SkipRemainingOnFailurePlugin {
 
             # If a test failed in a previous container, skip all tests
             if ($Context.Configuration.SkipRemainingFailedTest) {
+                # Skip container root block to avoid root-level BeforeAll/AfterAll from running. Only applicable in this mode
+                $Context.Block.Root.Skip = $true
                 # Skip all remaining tests in current container
                 Set-RemainingAsSkipped -FailedTest $Context.Configuration.SkipRemainingFailedTest -Block $Context.Block
             }
