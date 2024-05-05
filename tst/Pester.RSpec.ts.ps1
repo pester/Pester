@@ -2612,7 +2612,7 @@ i -PassThru:$PassThru {
                         }
                     }
                     Describe 'c' {
-                        It 'Included - skip' -Tag 'Demo' {
+                        It 'Included - skip on Container and Run' -Tag 'Demo' {
                             $true | Should -BeTrue
                         }
                     }
@@ -2620,7 +2620,7 @@ i -PassThru:$PassThru {
 
                 $sb2 = {
                     Describe 'd' {
-                        It 'Included - skip' -Tag 'Demo' {
+                        It 'Included - skip on Run' -Tag 'Demo' {
                             $true | Should -BeTrue
                         }
                     }
@@ -2663,6 +2663,111 @@ i -PassThru:$PassThru {
                     'Block' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 1 }
                     'Container' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 2 }
                     'Run' { $r.PluginConfiguration.SkipRemainingOnFailureCount | Verify-Equal 3 }
+                }
+            }
+        }
+
+        foreach ($mode in 'Block', 'Container', 'Run') {
+            t "Remaining blocks are skipped and setup/teardowns are not executed in mode '$mode'" {
+                $container = [ordered]@{
+                    RootBeforeAll  = 0
+                    RootAfterAll   = 0
+                    BlockBeforeAll = 0
+                    BlockAfterAll  = 0
+                }
+
+                $sb1 = {
+                    BeforeAll { $container.RootBeforeAll++ }
+                    AfterAll { $container.RootAfterAll++ }
+
+                    Describe 'd1' {
+                        BeforeAll { $container.BlockBeforeAll++ }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Fails' { $false | Should -BeTrue }
+
+                        Context 'c1' {
+                            BeforeAll { $container.BlockBeforeAll++ }
+                            AfterAll { $container.BlockAfterAll++ }
+                            It 'Skipped' { $true | Should -BeTrue }
+                        }
+                    }
+                    Describe 'd2' {
+                        BeforeAll { $container.BlockBeforeAll++ }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Skipped' { $true | Should -BeTrue }
+                    }
+                }
+
+                $sb2 = {
+                    BeforeAll { $container.RootBeforeAll++ }
+                    AfterAll { $container.RootAfterAll++ }
+
+                    Describe 'd1' {
+                        BeforeAll { $container.BlockBeforeAll++ }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Skipped' { $true | Should -BeTrue }
+                    }
+                }
+
+                $c = [PesterConfiguration] @{
+                    Run    = @{
+                        ScriptBlock            = $sb1, $sb2
+                        PassThru               = $true
+                        SkipRemainingOnFailure = $mode
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration $c
+
+                switch ($mode) {
+                    'Block' {
+                        $r.Containers[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Passed'
+
+                        $r.Containers[1].Result | Verify-Equal 'Passed'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
+
+                        $container.RootBeforeAll | Verify-Equal 2
+                        $container.RootAfterAll | Verify-Equal 2
+                        $container.BlockBeforeAll | Verify-Equal 3
+                        $container.BlockAfterAll | Verify-Equal 3
+                    }
+                    'Container' {
+                        $r.Containers[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
+
+                        $r.Containers[1].Result | Verify-Equal 'Passed'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
+
+                        $container.RootBeforeAll | Verify-Equal 2
+                        $container.RootAfterAll | Verify-Equal 2
+                        $container.BlockBeforeAll | Verify-Equal 2
+                        $container.BlockAfterAll | Verify-Equal 2
+                    }
+                    'Run' {
+                        $r.Containers[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
+                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
+
+                        $r.Containers[1].Result | Verify-Equal 'Skipped'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Skipped'
+
+                        $container.RootBeforeAll | Verify-Equal 1
+                        $container.RootAfterAll | Verify-Equal 1
+                        $container.BlockBeforeAll | Verify-Equal 1
+                        $container.BlockAfterAll | Verify-Equal 1
+                    }
                 }
             }
         }
