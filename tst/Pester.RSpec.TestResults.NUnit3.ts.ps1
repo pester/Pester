@@ -425,7 +425,10 @@ i -PassThru:$PassThru {
 
             $xmlTest = $xmlDescribe.'test-case'
             $xmlTest.name | Verify-Equal 'Describe.Test'
-            $xmlTest.output.'#cdata-section' | Verify-Equal "test output$([System.Environment]::NewLine)$([System.Environment]::NewLine)123"
+            $message = $xmlTest.output.'#cdata-section' -split "`n"
+            $message[0] | Verify-Equal 'test output'
+            $message[1] | Verify-Equal ''
+            $message[2] | Verify-Equal '123'
         }
 
         t 'should add site-attribute to identity failure location' {
