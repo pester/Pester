@@ -206,7 +206,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         ## decorate
 
         # here we add result
-        $b.result = if ($b.Skipped) {
+        $b.result = if ($b.Skip) {
             "Skipped"
         }
         elseif ($b.Passed) {
