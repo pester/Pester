@@ -1,4 +1,12 @@
 ﻿function Assert-Equal {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if they are equal.
+
+    This is a generic assertion. The input values will convert to the type of $Expected.
+
+    This is value assertion. Single item input will is treated as a value.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
@@ -8,7 +16,7 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual
 
     if ((Ensure-ExpectedIsNotCollection $Expected) -ne $Actual) {

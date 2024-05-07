@@ -53,7 +53,7 @@ function Assert-Throw {
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+    $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $ScriptBlock = $collectedInput.Actual
 
     $errorThrown = $false

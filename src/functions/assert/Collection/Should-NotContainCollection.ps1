@@ -1,7 +1,7 @@
 ﻿function Assert-NotContain {
     <#
     .SYNOPSIS
-    Compares collections to ensuere that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
+    Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
 
     .PARAMETER Expected
     A collection of items.
