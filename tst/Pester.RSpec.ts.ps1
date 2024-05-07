@@ -1990,24 +1990,6 @@ i -PassThru:$PassThru {
         }
     }
 
-    b "Should with legacy syntax will throw" {
-        t "Should with legacy syntax will throw" {
-            $sb = {
-                Describe "d" {
-                    It "i" {
-                        1 | Should Be 1
-                    }
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru
-            $test = $r.Containers[0].Blocks[0].Tests[0]
-            $test.Result | Verify-Equal "Failed"
-            $test.ErrorRecord[0] -like "*Legacy Should syntax (without dashes) is not supported in Pester 5.*"
-        }
-    }
-
     b "Running Pester in Pester" {
         t "Invoke-Pester can run in Invoke-Pester" {
             $container = New-PesterContainer -ScriptBlock {

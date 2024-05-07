@@ -99,20 +99,7 @@ function Should {
     )
 
     dynamicparam {
-        # Figuring out if we are using the old syntax is 'easy'
-        # we can use $myInvocation.Line to get the surrounding context
-        $myLine = if ($null -ne $MyInvocation -and 0 -le ($MyInvocation.OffsetInLine - 1)) {
-            $MyInvocation.Line.Substring($MyInvocation.OffsetInLine - 1)
-        }
-
-        # A bit of Regex lets us know if the line used the old form
-        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)') {
-            $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
-            throw $shouldErrorMsg
-        }
-        else {
-            Get-AssertionDynamicParams
-        }
+        Get-AssertionDynamicParams
     }
 
     begin {
