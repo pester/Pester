@@ -79,9 +79,10 @@
     $actualFiltered = @($actualFiltered)
     if (0 -lt $actualFiltered.Count) {
         $data = @{
-            actualFiltered      = $actualFiltered
+            actualFiltered      = if (1 -eq $actualFiltered.Count) { $actualFiltered[0] } else { $actualFiltered }
             actualFilteredCount = $actualFiltered.Count
         }
+
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
         if ($null -ne $failReasons) {
             $failReasons = $failReasons -join "`n"

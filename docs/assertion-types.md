@@ -72,7 +72,11 @@ Should-Be -Actual 1 -Expected 1
 Should-Be -Actual @(1) -Expected 1
 ```
 
-## Generic assertions
+## Value assertions
+
+### Generic value assertions
+
+Generic value assertions, such as `Should-Be`, are for asserting on a single value. They behave quite similar to PowerShell operators, e.g. `Should-Be` maps to `-eq`.
 
 The `$Expected` accepts any input that is not a collection.
 The type of `$Expected` determines the type to be used for the comparison.
@@ -87,6 +91,16 @@ The assertions in the above examples will both pass:
 - `1` converts to `bool` `$true`, which is the expected value.
 - `Get-Process` retrieves the Idle process (on Windows). This process object gets converted to `string`. The string is equal to the expected value.
 
+### Type specific value assertions
 
-###
+Type specific assertions are for asserting on a single value of a given type. For example boolean. These assertions take the advantage of being more specialized, to provide a type specific functionality. Such as `Should-BeString -IgnoreWhitespace`.
+
+The `$Expected` accepts input that has the same type as the assertion type. E.g. `Should-BeString -Expected "my string"`.
+
+`$Actual` accepts input that has the same type as the assertion type. The input is not automatically converted to the destination type, unless the assertion specifies it, e.g. `Should-BeFalsy` will convert to `bool`.
+
+## Collection assertions
+
+
+
 These assertions are exported from the module as Assert-* functions and aliased to Should-*, this is because of PowerShell restricting multi word functions to a list of predefined approved verbs.

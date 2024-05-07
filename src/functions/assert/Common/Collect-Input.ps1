@@ -30,6 +30,10 @@
                 # This is array of all the input, unwrap it.
                 $collectedInput = foreach ($item in $PipelineInput) { $item }
             }
+            else {
+                # This is array of all the input.
+                $collectedInput = $PipelineInput
+            }
         }
     }
     else {

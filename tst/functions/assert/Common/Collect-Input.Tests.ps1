@@ -8,17 +8,27 @@ InPesterModuleScope {
                 [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
                 param (
                     [Parameter(ValueFromPipeline = $true)]
-                    $Actual
+                    $Actual,
+                    [switch] $UnrollInput
                 )
 
-                $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
+                $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput:$UnrollInput
                 $collectedInput
             }
         }
 
         Describe "Pipeline input" {
-            It "Given `$null through pipeline it captures `$null" {
-                $collectedInput = $null | Assert-PassThru
+            It "Given `$null through pipeline when unrolling it captures `$null" {
+                $collectedInput = $null | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given `$null through pipeline it captures @(`$null)" {
+                $collectedInput = $null | Assert-PassThru -UnrollInput
 
                 Verify-True $collectedInput.IsPipelineInput
                 if ($null -ne $collectedInput.Actual) {
