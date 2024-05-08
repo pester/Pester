@@ -2188,20 +2188,22 @@ function PostProcess-DiscoveredBlock {
 
         $b.ShouldRun = $shouldRunBasedOnChildren
 
-        if (-not $b.Skip -and $shouldSkipBasedOnChildren) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                if ($b.IsRoot) {
-                    Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all children are excluded or skipped."
-                } else {
-                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all children are excluded or skipped."
+        if ($b.ShouldRun) {
+            if (-not $b.Skip -and $shouldSkipBasedOnChildren) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    if ($b.IsRoot) {
+                        Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all children are excluded or skipped."
+                    } else {
+                        Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all children are excluded or skipped."
+                    }
                 }
+                $b.Skip = $true
+            } elseif ($b.Skip -and -not $shouldSkipBasedOnChildren) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as Skip, but one or more children should run and is not skipped, so the block will not be skipped."
+                }
+                $b.Skip = $false
             }
-            $b.Skip = $true
-        } elseif ($b.Skip -and -not $shouldSkipBasedOnChildren) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as Skip, but one or more children should run and is not skipped, so the block will not be skipped."
-            }
-            $b.Skip = $false
         }
     }
 }
