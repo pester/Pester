@@ -2061,6 +2061,7 @@ function PostProcess-DiscoveredBlock {
         }
 
         $blockShouldRun = $false
+        $allTestsSkipped = $true
         if ($tests.Count -gt 0) {
             foreach ($t in $tests) {
                 $t.Block = $b
@@ -2140,11 +2141,19 @@ function PostProcess-DiscoveredBlock {
                     $testsToRun[-1].Last = $true
                     $blockShouldRun = $true
                 }
+
+                foreach ($t in $testsToRun) {
+                    if (-not $t.Skip) {
+                        $allTestsSkipped = $false
+                        break
+                    }
+                }
             }
         }
 
         $childBlocks = $b.Blocks
         $anyChildBlockShouldRun = $false
+        $allChildBlockSkipped = $true
         if ($childBlocks.Count -gt 0) {
             foreach ($cb in $childBlocks) {
                 $cb.Parent = $b
@@ -2159,9 +2168,17 @@ function PostProcess-DiscoveredBlock {
                 $childBlocksToRun[0].First = $true
                 $childBlocksToRun[-1].Last = $true
             }
+
+            foreach ($cb in $childBlocksToRun) {
+                if (-not $cb.Skip) {
+                    $allChildBlockSkipped = $false
+                    break
+                }
+            }
         }
 
         $shouldRunBasedOnChildren = $blockShouldRun -or $anyChildBlockShouldRun
+        $shouldSkipBasedOnChildren = $allTestsSkipped -and $allChildBlockSkipped
 
         if ($b.ShouldRun -and -not $shouldRunBasedOnChildren) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -2170,6 +2187,22 @@ function PostProcess-DiscoveredBlock {
         }
 
         $b.ShouldRun = $shouldRunBasedOnChildren
+
+        if (-not $b.Skip -and $shouldSkipBasedOnChildren) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                if ($b.IsRoot) {
+                    Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all children are excluded or skipped."
+                } else {
+                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all children are excluded or skipped."
+                }
+            }
+            $b.Skip = $true
+        } elseif ($b.Skip -and -not $shouldSkipBasedOnChildren) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as Skip, but one or more children should run and is not skipped, so the block will not be skipped."
+            }
+            $b.Skip = $false
+        }
     }
 }
 
