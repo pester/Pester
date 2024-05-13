@@ -539,7 +539,13 @@ function Write-NUnit3TestCaseAttributes {
 }
 
 function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
-    $outputString = @(foreach ($o in $Output) { $o.ToString() }) -join [System.Environment]::NewLine
+    $outputString = @(foreach ($o in $Output) {
+        if ($null -eq $o) {
+            [string]::Empty
+        } else {
+            $o.ToString()
+        }
+    }) -join [System.Environment]::NewLine
 
     $XmlWriter.WriteStartElement('output')
     $XmlWriter.WriteCData($outputString)
