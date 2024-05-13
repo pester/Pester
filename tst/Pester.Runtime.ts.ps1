@@ -1243,7 +1243,6 @@ i -PassThru:$PassThru {
                 New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
                 New-Block 'parent block' {
-                        # putting this in child block because each test setup is not supported in root block
                         New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
                         New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
@@ -1255,9 +1254,11 @@ i -PassThru:$PassThru {
                             'a'
                         }
 
-                        New-Test 'test2' -Skip {
-                            $container.TestRun++
-                            'a'
+                        New-Block 'inner block' -Skip {
+                            New-Test 'test2' {
+                                $container.TestRun++
+                                'a'
+                            }
                         }
                     }
                 })
