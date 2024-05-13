@@ -1341,6 +1341,52 @@ i -PassThru:$PassThru {
             $container.EachBlockTeardown1 | Verify-Equal 1
             # $container.OneTimeBlockTeardown1 | Verify-Equal 1
         }
+
+        t 'setup and teardown are executed on skipped parent blocks when a test is explicitly included' {
+            $container = @{
+                OneTimeTestSetup    = 0
+                OneTimeTestTeardown = 0
+                EachTestSetup       = 0
+                EachTestTeardown    = 0
+                TestRun             = 0
+            }
+
+            $sb = {
+                    New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                    New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+                    New-Block 'parent block' -Skip {
+                        New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                        New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+                        New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+                        New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+
+                        New-Test 'test1' -Skip { # <--- Linefilter here ($sb assignment + 11 lines). Should run
+                            $container.TestRun++
+                            'a'
+                        }
+
+                        New-Test 'test2' -Skip { # Should not run
+                            $container.TestRun++
+                            'a'
+                        }
+                    }
+                }
+
+            $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine + 11)"
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb) -Filter $f
+
+            # Should be marked as Skip = false by runtime
+            $actual.Blocks[0].Skip | Verify-False
+            $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+
+            $container.TestRun | Verify-Equal 1
+            $container.OneTimeTestSetup | Verify-Equal 2
+            $container.OneTimeTestTeardown | Verify-Equal 2
+            $container.EachTestSetup | Verify-Equal 1
+            $container.EachTestTeardown | Verify-Equal 1
+        }
     }
 
     b "plugins" {
