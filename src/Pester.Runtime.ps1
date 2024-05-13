@@ -2192,16 +2192,18 @@ function PostProcess-DiscoveredBlock {
             if (-not $b.Skip -and $shouldSkipBasedOnChildren) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     if ($b.IsRoot) {
-                        Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all children are excluded or skipped."
+                        Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all included children are marked as skipped."
                     } else {
-                        Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all children are excluded or skipped."
+                        Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all included children are marked as skipped."
                     }
                 }
                 $b.Skip = $true
             } elseif ($b.Skip -and -not $shouldSkipBasedOnChildren) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as Skip, but one or more children should run and is not skipped, so the block will not be skipped."
+                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as skipped, but one or more children are explicitly requested to be run, so the block itself will not be skipped."
                 }
+                # This is done to execute setup and teardown before explicitly included tests, e.g. using line filter
+                # Remaining children have already inherited block-level Skip earlier in this function as expected
                 $b.Skip = $false
             }
         }
