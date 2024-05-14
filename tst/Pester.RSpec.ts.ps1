@@ -2668,7 +2668,7 @@ i -PassThru:$PassThru {
         }
 
         foreach ($mode in 'Block', 'Container', 'Run') {
-            t "Remaining blocks are skipped and setup/teardowns are not executed in mode '$mode'" {
+            t "Remaining blocks are skipped in mode '$mode'" {
                 $container = [ordered]@{
                     RootBeforeAll  = 0
                     RootAfterAll   = 0
@@ -2724,14 +2724,15 @@ i -PassThru:$PassThru {
                 }
 
                 $r = Invoke-Pester -Configuration $c
+                $r.Containers[0].Result | Verify-Equal 'Failed'
+                $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
+                $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
 
+                # AfterAll should always execute for current and parent blocks of the failure
+                # BeforeAll and AfterAll should not be executed for remaining children or siblings
                 switch ($mode) {
                     'Block' {
-                        $r.Containers[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
                         $r.Containers[0].Blocks[1].Result | Verify-Equal 'Passed'
-
                         $r.Containers[1].Result | Verify-Equal 'Passed'
                         $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
 
@@ -2741,11 +2742,7 @@ i -PassThru:$PassThru {
                         $container.BlockAfterAll | Verify-Equal 3
                     }
                     'Container' {
-                        $r.Containers[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
                         $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
-
                         $r.Containers[1].Result | Verify-Equal 'Passed'
                         $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
 
@@ -2755,11 +2752,7 @@ i -PassThru:$PassThru {
                         $container.BlockAfterAll | Verify-Equal 2
                     }
                     'Run' {
-                        $r.Containers[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
-                        $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Skipped'
                         $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
-
                         $r.Containers[1].Result | Verify-Equal 'Skipped'
                         $r.Containers[1].Blocks[0].Result | Verify-Equal 'Skipped'
 
