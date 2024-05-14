@@ -24,6 +24,45 @@
 }
 
 function Assert-StringEqual {
+    <#
+    .SYNOPSIS
+    Asserts that the actual value is equal to the expected value.
+
+    .DESCRIPTION
+    The `Should-BeString` assertion compares the actual value to the expected value using the `-eq` operator. The `-eq` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER CaseSensitive
+    Indicates that the comparison should be case-sensitive.
+
+    .PARAMETER IgnoreWhitespace
+    Indicates that the comparison should ignore whitespace.
+
+    .PARAMETER Because
+    The reason why the actual value should be equal to the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-BeString "hello"
+    ```
+
+    This assertion will pass, because the actual value is equal to the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-BeString "HELLO" -CaseSensitive
+    ```
+
+    This assertion will fail, because the actual value is not equal to the expected value.
+
+    .NOTES
+    The `Should-BeString` assertion is the opposite of the `Should-NotBeString` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

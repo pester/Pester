@@ -1,4 +1,25 @@
 ﻿function Assert-Type {
+    <#
+    .SYNOPSIS
+    Asserts that the input is of the expected type.
+
+    .PARAMETER Expected
+    The expected type.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected type.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-HaveType [String]
+    1 | Should-HaveType [Int32]
+    ```
+
+    These assertions will pass, because the actual value is of the expected type.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

@@ -1,4 +1,26 @@
 ﻿function Assert-GreaterThan {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if the actual value is greater than the expected value.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    2 | Should-BeGreaterThan 1
+    2 | Should-BeGreaterThan 2
+    ```
+
+    These assertions will pass, because the actual value is greater than the expected value.
+    #>
+
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

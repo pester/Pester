@@ -3,9 +3,29 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are equal.
 
-    This is a generic assertion. The input values will convert to the type of $Expected.
+    .PARAMETER Expected
+    The expected value.
 
-    This is value assertion. Single item input will is treated as a value.
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1 | Should-Be 1
+    "hello" | Should-Be "hello"
+    ```
+
+    These assertions will pass, because the expected value is equal to the actual value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-Be
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

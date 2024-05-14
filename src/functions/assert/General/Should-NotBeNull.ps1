@@ -1,4 +1,22 @@
 ﻿function Assert-NotNull {
+    <#
+    .SYNOPSIS
+    Asserts that the input is not `$null`.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should not be `$null`.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotBeNull
+    1 | Should-NotBeNull
+    ```
+
+    These assertions will pass, because the actual value is not `$null.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

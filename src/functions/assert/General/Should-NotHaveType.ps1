@@ -1,4 +1,28 @@
 ﻿function Assert-NotType {
+    <#
+    .SYNOPSIS
+    Asserts that the input is not of the expected type.
+
+    .PARAMETER Expected
+    The expected type.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should not be the expected type.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotHaveType [Int32]
+    1 | Should-NotHaveType [String]
+    ```
+
+    These assertions will pass, because the actual value is not of the expected type.
+
+    .NOTES
+    This assertion is the opposite of `Should-HaveType`.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

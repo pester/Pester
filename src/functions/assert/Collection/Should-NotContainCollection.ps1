@@ -29,6 +29,12 @@
 
     This assertion will fail, because all items are present in the collection and are in the right order.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-NotContainCollection
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

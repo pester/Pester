@@ -1,4 +1,42 @@
 ﻿function Assert-Slower {
+    <#
+    .SYNOPSIS
+    Asserts that the provided [timespan] is slower than the expected [timespan].
+
+    .PARAMETER Actual
+    The actual [timespan] or [scriptblock] value.
+
+    .PARAMETER Expected
+    The expected [timespan] or fluent time value.
+
+    .PARAMETER Because
+    The reason why the actual value should be slower than the expected value.
+
+    .EXAMPLE
+    ```powershell
+    { Start-Sleep -Seconds 10 } | Should-BeSlowerThan 2seconds
+    ```
+
+    This assertion will pass, because the actual value is slower than the expected value.
+
+     .EXAMPLE
+    ```powershell
+    [Timespan]::fromSeconds(10) | Should-BeSlowerThan 2seconds
+    ```
+
+    This assertion will pass, because the actual value is slower than the expected value.
+
+    .EXAMPLE
+    ```powershell
+
+    { Start-Sleep -Seconds 1 } | Should-BeSlowerThan 10seconds
+    ```
+
+    This assertion will fail, because the actual value is not slower than the expected value.
+
+    .NOTES
+    The `Should-BeSlowerThan` assertion is the opposite of the `Should-BeFasterThan` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

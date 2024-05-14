@@ -3,6 +3,43 @@
 }
 
 function Assert-StringNotEqual {
+    <#
+    .SYNOPSIS
+    Asserts that the actual value is not equal to the expected value.
+
+    .DESCRIPTION
+    The `Should-NotBeString` assertion compares the actual value to the expected value using the `-ne` operator. The `-ne` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER CaseSensitive
+    Indicates that the comparison should be case-sensitive.
+
+    .PARAMETER IgnoreWhitespace
+    Indicates that the comparison should ignore whitespace.
+
+    .PARAMETER Because
+    The reason why the actual value should not be equal to the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotBeString "HELLO"
+    ```
+    This assertion will pass, because the actual value is not equal to the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotBeString "hello" -CaseSensitive
+    ```
+    This assertion will fail, because the actual value is equal to the expected value.
+
+    .NOTES
+    The `Should-NotBeString` assertion is the opposite of the `Should-BeString` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

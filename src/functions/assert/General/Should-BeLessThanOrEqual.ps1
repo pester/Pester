@@ -1,4 +1,34 @@
 ﻿function Assert-LessThanOrEqual {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if the actual value is less than or equal to the expected value.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1 | Should-BeLessThanOrEqual 2
+    1 | Should-BeLessThanOrEqual 1
+    ```
+
+    These assertions will pass, because the actual value is less than or equal to the expected value.
+
+    .EXAMPLE
+    ```powershell
+    2 | Should-BeLessThanOrEqual 1
+    ```
+
+    This assertion will fail, because the actual value is not less than or equal to the expected value.
+
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

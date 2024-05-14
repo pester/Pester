@@ -31,6 +31,11 @@
 
     The assertions will fail because the collections are not equal.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-BeCollection
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

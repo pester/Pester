@@ -614,6 +614,59 @@ function Compare-Equivalent {
 }
 
 function Assert-Equivalent {
+    <#
+    .SYNOPSIS
+    Compares two objects for equivalency, by recursively comparing their properties for equivalency.
+
+    .PARAMETER Actual
+    The actual object to compare.
+
+    .PARAMETER Expected
+    The expected object to compare.
+
+    .PARAMETER Options
+    Options for the comparison. Get-EquivalencyOption function is called to get the default options.
+
+    .PARAMETER StrictOrder
+    If set, the order of items in collections will be compared.
+
+    .EXAMPLE
+    ```powershell
+        $expected = [PSCustomObject] @{
+            Name = "Thomas"
+        }
+
+        $actual = [PSCustomObject] @{
+            Name = "Jakub"
+            Age = 30
+        }
+
+        $actual | Should-BeEquivalent $expected
+    ```
+
+    This will throw an error because the actual object has an additional property Age and the Name values are not equivalent.
+
+    .EXAMPLE
+    ```powershell
+        $expected = [PSCustomObject] @{
+            Name = "Thomas"
+        }
+
+        $actual = [PSCustomObject] @{
+            Name = "Thomas"
+        }
+
+        $actual | Should-BeEquivalent $expected
+    ```
+
+    This will pass because the actual object has the same properties as the expected object and the Name values are equivalent.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeEquivalent
+
+    .LINK
+    https://pester.dev/docs/assertions
+    #>
     [CmdletBinding()]
     param(
         $Actual,

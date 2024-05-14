@@ -28,6 +28,12 @@
 
     The assertions will fail because none of theitems in the array are greater than 4.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-Any
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

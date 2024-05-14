@@ -28,6 +28,12 @@
 
     The assertions will fail because not all items in the array are greater than 1.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-All
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding()]

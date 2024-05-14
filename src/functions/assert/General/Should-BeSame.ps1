@@ -1,4 +1,34 @@
 ﻿function Assert-Same {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if they are the same instance.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    $a = New-Object Object
+    $a | Should-BeSame $a
+    ```
+
+    This assertion will pass, because the actual value is the same instance as the expected value.
+
+    .EXAMPLE
+    ```powershell
+    $a = New-Object Object
+    $b = New-Object Object
+    $a | Should-BeSame $b
+    ```
+
+    This assertion will fail, because the actual value is not the same instance as the expected value.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

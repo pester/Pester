@@ -1,4 +1,32 @@
 ﻿function Assert-LessThan {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if the actual value is less than the expected value.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1 | Should-BeLessThan 2
+    0 | Should-BeLessThan 1
+    ```
+
+    These assertions will pass, because the actual value is less than the expected value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeLessThan
+
+    .LINK
+    https://pester.dev/docs/assertions
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

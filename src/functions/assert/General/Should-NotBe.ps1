@@ -1,4 +1,25 @@
 ﻿function Assert-NotEqual {
+    <#
+    .SYNOPSIS
+    Compares the expected value to actual value, to see if they are not equal.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER Because
+    The reason why the input should not be the expected value.
+
+    .EXAMPLE
+    ```powershell
+    1 | Should-NotBe 2
+    "hello" | Should-NotBe "world"
+    ```
+
+    These assertions will pass, because the actual value is not equal to the expected value.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

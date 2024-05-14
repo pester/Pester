@@ -18,6 +18,36 @@
 }
 
 function Assert-Faster {
+    <#
+    .SYNOPSIS
+    Asserts that the provided [timespan] or [scriptblock] is faster than the expected [timespan].
+
+    .PARAMETER Actual
+    The actual [timespan] or [scriptblock] value.
+
+    .PARAMETER Expected
+    The expected [timespan] or fluent time value.
+
+    .PARAMETER Because
+    The reason why the actual value should be faster than the expected value.
+
+    .EXAMPLE
+    ```powershell
+    Measure-Command { Start-Sleep -Milliseconds 100 } | Should-BeFasterThan 1s
+    ```
+
+    This assertion will pass, because the actual value is faster than the expected value.
+
+    .EXAMPLE
+    ```powershell
+   { Start-Sleep -Milliseconds 100 } | Should-BeFasterThan 50ms
+    ```
+
+    This assertion will fail, because the actual value is not faster than the expected value.
+
+    .NOTES
+    The `Should-BeFasterThan` assertion is the opposite of the `Should-BeSlowerThan` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

@@ -41,6 +41,12 @@ function Assert-Throw {
 
     The error record is returned from the assertion and can be used in further assertions.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-Throw
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

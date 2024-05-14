@@ -26,14 +26,21 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
     }
 
     $valueType = Get-ShortType $Value
-    $margin = "    "
     $items = foreach ($p in $orderedProperty) {
-        if ($Pretty) { "`n$margin" }
         $v = ([PSObject]$Value.$p)
         $f = Format-Nicely2 -Value $v -Pretty:$Pretty
-        "$separator$p=$f"
+        "$p=$f"
     }
-    $o = "$valueType{$($items -join '; ')}"
+
+    if (0 -eq $Property.Length ) {
+        $o = "$valueType{}"
+    }
+    elseif ($Pretty) {
+        $o = "$valueType{`n    $($items -join ";`n    ");`n}"
+    }
+    else {
+        $o = "$valueType{$($items -join '; ');}"
+    }
 
     $o
 }
@@ -124,12 +131,7 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
     }
 
     if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {
-        try {
-            return Format-DataTable2 -Value $Value -Pretty:$Pretty
-        }
-        catch {
-            $a = 18
-        }
+        return Format-DataTable2 -Value $Value -Pretty:$Pretty
     }
 
     if (Is-Collection -Value $Value) {

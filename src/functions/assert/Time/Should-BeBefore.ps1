@@ -1,4 +1,61 @@
 ﻿function Assert-Before {
+    <#
+    .SYNOPSIS
+    Asserts that the provided [datetime] is before the expected [datetime].
+
+    .PARAMETER Actual
+    The actual [datetime] value.
+
+    .PARAMETER Expected
+    The expected [datetime] value.
+
+    .PARAMETER Time
+    The time to add or subtract from the current time. This parameter uses fluent time syntax e.g. 1minute.
+
+    .PARAMETER Ago
+    Indicates that the -Time should be subtracted from the current time.
+
+    .PARAMETER FromNow
+    Indicates that the -Time should be added to the current time.
+
+    .PARAMETER Now
+    Indicates that the current time should be used as the expected time.
+
+    .PARAMETER Because
+    The reason why the actual value should be before the expected value.
+
+    .EXAMPLE
+    ```powershell
+    (Get-Date).AddDays(-1) | Should-BeBefore (Get-Date)
+    ```
+
+    This assertion will pass, because the actual value is before the expected value.
+
+    .EXAMPLE
+    ```powershell
+    (Get-Date).AddDays(1) | Should-BeBefore (Get-Date)
+    ```
+    This assertion will fail, because the actual value is not before the expected value.
+
+    .EXAMPLE
+    ```powershell
+    (Get-Date).AddMinutes(1) | Should-BeBefore 10minutes -FromNow
+    ```
+
+    This assertion will pass, because the actual value is before the expected value.
+
+    .EXAMPLE
+    ```powershell
+
+    (Get-Date).AddDays(-2) | Should-BeBefore -Time 3days -Ago
+    ```
+
+    This assertion will pass, because the actual value is before the expected value.
+
+    .NOTES
+    The `Should-BeBefore` assertion is the opposite of the `Should-BeAfter` assertion.
+
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding(DefaultParameterSetName = "Now")]
     param (

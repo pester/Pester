@@ -2,7 +2,7 @@
 
 BeforeDiscovery {
     $moduleName = 'Pester'
-    $exportedFunctions = Get-Command -CommandType Cmdlet, Function -Module $moduleName | Where-Object { $_.Name -notlike "Assert-*" }
+    $exportedFunctions = Get-Command -CommandType Cmdlet, Function -Module $moduleName
 }
 
 Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $exportedFunctions; moduleName = $moduleName } {

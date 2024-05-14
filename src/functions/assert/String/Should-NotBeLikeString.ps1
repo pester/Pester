@@ -22,6 +22,42 @@ function Get-NotLikeDefaultFailureMessage ([String]$Expected, $Actual, [switch]$
 }
 
 function Assert-NotLike {
+    <#
+    .SYNOPSIS
+    Asserts that the actual value is not like the expected value.
+
+    .DESCRIPTION
+    The `Should-NotBeLike` assertion compares the actual value to the expected value using the `-notlike` operator. The `-notlike` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER CaseSensitive
+    Indicates that the comparison should be case-sensitive.
+
+    .PARAMETER Because
+    The reason why the actual value should not be like the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotBeLike "H*"
+    ```
+
+    This assertion will pass, because the actual value is not like the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-NotBeLike "h*" -CaseSensitive
+    ```
+
+    This assertion will fail, because the actual value is like the expected value.
+
+    .NOTES
+    The `Should-NotBeLike` assertion is the opposite of the `Should-BeLike` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]

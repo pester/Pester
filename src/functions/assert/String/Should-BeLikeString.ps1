@@ -14,6 +14,43 @@
 }
 
 function Assert-Like {
+    <#
+    .SYNOPSIS
+    Asserts that the actual value is like the expected value.
+
+    .DESCRIPTION
+    The `Should-BeLike` assertion compares the actual value to the expected value using the `-like` operator. The `-like` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+
+    .PARAMETER Expected
+    The expected value.
+
+    .PARAMETER Actual
+    The actual value.
+
+    .PARAMETER CaseSensitive
+    Indicates that the comparison should be case-sensitive.
+
+    .PARAMETER Because
+    The reason why the actual value should be like the expected value.
+
+    .EXAMPLE
+    ```powershell
+    "hello" | Should-BeLike "h*"
+    ```
+
+    This assertion will pass, because the actual value is like the expected value.
+
+    .EXAMPLE
+    ```powershell
+
+    "hello" | Should-BeLike "H*" -CaseSensitive
+    ```
+
+    This assertion will fail, because the actual value is not like the expected value.
+
+    .NOTES
+    The `Should-BeLike` assertion is the opposite of the `Should-NotBeLike` assertion.
+    #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
