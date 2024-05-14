@@ -55,6 +55,11 @@
     .NOTES
     The `Should-BeBefore` assertion is the opposite of the `Should-BeAfter` assertion.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-BeBefore
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding(DefaultParameterSetName = "Now")]

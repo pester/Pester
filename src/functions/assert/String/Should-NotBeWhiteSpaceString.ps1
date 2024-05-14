@@ -35,6 +35,12 @@
     ```
 
     All the tests above will fail, the input is not a string.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotBeNullOrWhiteSpaceString
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

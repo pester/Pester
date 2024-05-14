@@ -27,7 +27,7 @@ function Assert-NotLike {
     Asserts that the actual value is not like the expected value.
 
     .DESCRIPTION
-    The `Should-NotBeLike` assertion compares the actual value to the expected value using the `-notlike` operator. The `-notlike` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+    The `Should-NotBeLikeString` assertion compares the actual value to the expected value using the `-notlike` operator. The `-notlike` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
 
     .PARAMETER Expected
     The expected value.
@@ -43,20 +43,26 @@ function Assert-NotLike {
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-NotBeLike "H*"
+    "hello" | Should-NotBeLikeString "H*"
     ```
 
     This assertion will pass, because the actual value is not like the expected value.
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-NotBeLike "h*" -CaseSensitive
+    "hello" | Should-NotBeLikeString "h*" -CaseSensitive
     ```
 
     This assertion will fail, because the actual value is like the expected value.
 
     .NOTES
-    The `Should-NotBeLike` assertion is the opposite of the `Should-BeLike` assertion.
+    The `Should-NotBeLikeString` assertion is the opposite of the `Should-BeLikeString` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotBeLikeString
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

@@ -29,6 +29,14 @@
 
     All of these assertions will fail, because the actual value is not $true or truthy.
 
+    .NOTES
+    The `Should-BeTruthy` assertion is the opposite of the `Should-BeFalsy` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeTruthy
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

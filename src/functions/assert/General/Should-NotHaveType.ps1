@@ -22,6 +22,12 @@
 
     .NOTES
     This assertion is the opposite of `Should-HaveType`.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotHaveType
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

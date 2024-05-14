@@ -36,6 +36,12 @@
 
     .NOTES
     The `Should-BeSlowerThan` assertion is the opposite of the `Should-BeFasterThan` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeSlowerThan
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

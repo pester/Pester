@@ -28,6 +28,14 @@
 
     All of these assertions will fail, because the actual value is not $false.
 
+    .NOTES
+    The `Should-BeFalse` assertion is the opposite of the `Should-BeTrue` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeFalse
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

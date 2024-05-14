@@ -27,7 +27,14 @@
 
     This assertion will fail, because the actual value is not less than or equal to the expected value.
 
+    .NOTES
+    The `Should-BeLessThanOrEqual` assertion is the opposite of the `Should-BeGreaterThan` assertion.
 
+    .LINK
+    https://pester.dev/docs/commands/Should-BeLessThanOrEqual
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

@@ -19,6 +19,13 @@
     ```
 
     These assertions will pass, because the actual value is of the expected type.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-HaveType
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

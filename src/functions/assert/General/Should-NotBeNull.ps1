@@ -16,6 +16,12 @@
     ```
 
     These assertions will pass, because the actual value is not `$null.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotBeNull
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

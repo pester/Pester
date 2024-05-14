@@ -19,6 +19,13 @@
     ```
 
     These assertions will pass, because the actual value is not equal to the expected value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotBe
+
+    .LINK
+    https://pester.dev/docs/assertions
+
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

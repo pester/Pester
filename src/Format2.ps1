@@ -39,7 +39,7 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
         $o = "$valueType{`n    $($items -join ";`n    ");`n}"
     }
     else {
-        $o = "$valueType{$($items -join '; ');}"
+        $o = "$valueType{$($items -join '; ')}"
     }
 
     $o

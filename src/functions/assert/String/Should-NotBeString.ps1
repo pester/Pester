@@ -39,6 +39,12 @@ function Assert-StringNotEqual {
 
     .NOTES
     The `Should-NotBeString` assertion is the opposite of the `Should-BeString` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotBeString
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

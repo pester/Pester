@@ -34,6 +34,12 @@
     ```
 
     All the tests above will fail, the input is not a string.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeEmptyString
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (

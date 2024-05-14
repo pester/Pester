@@ -1,5 +1,6 @@
 ﻿Set-StrictMode -Version Latest
 
+
 InPesterModuleScope {
     Describe "Should-BeCollection" {
         It "Passes when collections have the same count and items" -ForEach @(

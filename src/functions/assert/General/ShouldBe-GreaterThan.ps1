@@ -19,6 +19,12 @@
     ```
 
     These assertions will pass, because the actual value is greater than the expected value.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeGreaterThan
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
 
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]

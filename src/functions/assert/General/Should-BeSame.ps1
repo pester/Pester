@@ -28,6 +28,15 @@
     ```
 
     This assertion will fail, because the actual value is not the same instance as the expected value.
+
+    .NOTES
+    The `Should-BeSame` assertion is the opposite of the `Should-NotBeSame` assertion.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-BeSame
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param (
