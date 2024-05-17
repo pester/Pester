@@ -59,4 +59,21 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             }
         }
     }
+
+    Context 'Should operators' {
+        # Parameter help for Should -OperatorName.. Set using Set-ShouldOperatorHelpMessage
+        It 'All built-in operators have parameter help' {
+            $operatorParams = InPesterModuleScope {
+                $operators = $script:AssertionOperators.Keys
+                (Get-AssertionDynamicParams).Values | Where-Object name -in $operators
+            }
+
+            $parametersMissingHelp = @($operatorParams |Where-Object {
+                    $attr = $_.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+                    $null -eq $attr -or $attr.HelpMessage -eq $null
+                } | ForEach-Object Name)
+
+            $parametersMissingHelp | Should -Be @() -Because "it it's required for Should's online docs"
+        }
+    }
 }

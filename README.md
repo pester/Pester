@@ -1,6 +1,6 @@
 # Pester
 
-> 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
+> 💵 Please consider sponsoring [nohwnd](https://github.com/sponsors/nohwnd), [fflaten](https://github.com/sponsors/fflaten) or sponsoring [Pester](https://opencollective.com/pester) itself.
 
 > 🌵 Documentation is available at [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start).
 
@@ -67,7 +67,7 @@ The example above also has an [annotated and production ready version here](docs
 
 ## Installation
 
-Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 3, 4, 5, 6 and 7.
+Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 5.1 and PowerShell 7.2 and newer.
 
 Pester 3 comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 

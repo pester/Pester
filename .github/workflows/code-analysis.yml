@@ -18,15 +18,12 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@v4.5
+        uses: potatoqualitee/psmodulecache@v6.2
         with:
-          # This doesn't update modules, so might want to pin version later to know which we use like ConverToSARIF:1.0.0
-          # or run Update-Module on a weekly/monthly interval
-          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF
-          allow-prerelease: false
+          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
 
       # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
       - name: Run PSScriptAnalyzer
@@ -40,7 +37,7 @@ jobs:
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif
   # codeql:

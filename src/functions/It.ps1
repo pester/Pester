@@ -15,7 +15,7 @@
     In addition to using your own logic to test expectations and throw exceptions,
     you may also use Pester's Should command to perform assertions in plain language.
 
-    You can intentionally mark It block result as inconclusive by using Set-TestInconclusive
+    You can intentionally mark It block result as inconclusive by using Set-ItResult -Inconclusive
     command as the first tested statement in the It block.
 
     .PARAMETER Name
@@ -35,16 +35,15 @@
 
     .PARAMETER Skip
     Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
-    commenting out a test, because the test remains listed in the output. Use the Strict parameter
-    of Invoke-Pester to force all skipped tests to fail.
+    commenting out a test, because the test remains listed in the output.
 
-    .PARAMETER TestCases
-    Optional array of hashtable (or any IDictionary) objects.  If this parameter is used,
-    Pester will call the test script block once for each table in the TestCases array,
-    splatting the dictionary to the test script block as input.  If you want the name of
-    the test to appear differently for each test case, you can embed tokens into the Name
+    .PARAMETER ForEach
+    (Formerly called TestCases.) Optional array of hashtable (or any IDictionary) objects.
+    If this parameter is used, Pester will call the test script block once for each table in
+    the ForEach array, splatting the dictionary to the test script block as input.  If you want
+    the name of the test to appear differently for each test case, you can embed tokens into the Name
     parameter with the syntax 'Adds numbers <A> and <B>' (assuming you have keys named A and B
-    in your TestCases hashtables.)
+    in your ForEach hashtables.)
 
     .PARAMETER Tag
     Optional parameter containing an array of strings. When calling Invoke-Pester,
@@ -97,14 +96,14 @@
             @{ a = 'two'; b = 'three'; expectedResult = 'twothree' }
         )
 
-        It 'Correctly adds <a> and <b> to get <expectedResult>' -TestCases $testCases {
+        It 'Correctly adds <a> and <b> to get <expectedResult>' -ForEach $testCases {
             $sum = Add-Numbers $a $b
             $sum | Should -Be $expectedResult
         }
     }
     ```
 
-    Using It with -TestCases to run the same tests with different parameters and expected results.
+    Using It with -ForEach to run the same tests with different parameters and expected results.
     Each hashtable in the `$testCases`-array generates one tests to a total of four. Each key-value pair in the
     current hashtable are made available as variables inside It.
 
@@ -128,8 +127,9 @@
         [Parameter(Position = 1)]
         [ScriptBlock] $Test,
 
-        [Alias("ForEach")]
-        [object[]] $TestCases,
+        [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
+        [Alias("TestCases")]
+        [object[]] $ForEach,
 
         [String[]] $Tag,
 
@@ -162,9 +162,9 @@
         }
     }
 
-    if ($PSBoundParameters.ContainsKey('TestCases')) {
-        if ($null -ne $TestCases -and 0 -lt @($TestCases).Count) {
-            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Data $TestCases -Tag $Tag -Focus:$Focus -Skip:$Skip
+    if ($PSBoundParameters.ContainsKey('ForEach')) {
+        if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
+            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
         }
         else {
             # @() or $null is provided do nothing

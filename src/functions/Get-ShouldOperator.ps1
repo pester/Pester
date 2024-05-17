@@ -47,6 +47,7 @@
         $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
         $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
         $ParameterAttribute.Position = 0
+        $ParameterAttribute.HelpMessage = 'Name or alias of operator'
 
         $AttributeCollection.Add($ParameterAttribute)
 
@@ -71,8 +72,8 @@
     END {
         if ($Name) {
             $operator = $AssertionOperators.Values | & $SafeCommands['Where-Object'] { $Name -eq $_.Name -or $_.Alias -contains $Name }
-            $commandInfo = & $SafeCommands['Get-Command'] -Name $operator.InternalName -ErrorAction SilentlyContinue
-            $help = & $SafeCommands['Get-Help'] -Name $operator.InternalName -Examples -ErrorAction SilentlyContinue
+            $commandInfo = & $SafeCommands['Get-Command'] -Name $operator.InternalName -ErrorAction Ignore
+            $help = & $SafeCommands['Get-Help'] -Name $operator.InternalName -Examples -ErrorAction Ignore
 
             if (($help | & $SafeCommands['Measure-Object']).Count -ne 1) {
                 & $SafeCommands['Write-Warning'] ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))

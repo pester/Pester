@@ -35,6 +35,12 @@
     .PARAMETER Clean
         Cleans the build folder ./bin and rebuilds the assemblies.
 
+    .PARAMETER Configuration
+        The configuration used to build the assemblies. Only used in combination with -Clean. Defaults to Release.
+
+    .PARAMETER LockedRestore
+        Restore nuget packages using the nuget lock file. Useful only for CI.
+
     .PARAMETER Inline
         Inline all files into Pester.psm1, instead of dot-sourcing. This is how the real build is done,
         but inlinig the files is annoying for local development.
@@ -42,12 +48,18 @@
         $env:PESTER_BUILD_INLINE=1 environment variable is used to force inlining in files that don't provide
         the -Inline parameter. When this gets stuck, and you see your module inline even when it should not,
         use -Inline:$false to reset it to 0.
+
+    .PARAMETER Inline
+        Builds the module as a single Pester.psm1-file, instead of dot-sourcing the files. This is the mode used in release build.
 #>
 
 [CmdletBinding()]
 param (
     [switch] $Load,
     [switch] $Clean,
+    [ValidateSet('Debug', 'Release')]
+    [string] $Configuration = 'Release',
+    [switch] $LockedRestore,
     [switch] $Inline,
     [switch] $Import
 )
@@ -56,7 +68,7 @@ $ErrorActionPreference = 'Stop'
 Get-Module Pester | Remove-Module
 
 if ($Clean -and $PSVersionTable.PSVersion -lt [version]'5.1') {
-    throw "Clean build of Pester requires PowerShell 5.1 or greater. If you have already compiled the assemblies and only modified powershell-files, try calling ./build.ps1 without -Clean."
+    throw 'Clean build of Pester requires PowerShell 5.1 or greater. If you have already compiled the assemblies and only modified powershell-files, try calling ./build.ps1 without -Clean.'
 }
 
 if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
@@ -67,10 +79,16 @@ if ($Clean) {
     # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
     # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
     # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
-    $manifest = Import-LocalizedData -FileName "Pester.psd1" -BaseDirectory "$PSScriptRoot/src"
-    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --configuration Release -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
+    $manifest = Import-LocalizedData -FileName 'Pester.psd1' -BaseDirectory "$PSScriptRoot/src"
+    if (-not $LockedRestore) {
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
+    }
+    else {
+        dotnet restore "$PSScriptRoot/src/csharp/Pester.sln" --locked-mode
+    }
+    dotnet build "$PSScriptRoot/src/csharp/Pester.sln" --no-restore --configuration $Configuration -p:VersionPrefix="$($manifest.ModuleVersion)" -p:VersionSuffix="$($manifest.PrivateData.PSData.Prerelease)"
     if (0 -ne $LASTEXITCODE) {
-        throw "build failed!"
+        throw 'build failed!'
     }
 }
 
@@ -86,9 +104,6 @@ function Copy-Content ($Content) {
 
 $content = @(
     , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
-    , ("$PSScriptRoot/src/nunit_schema_2.5.xsd", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/junit_schema_4.xsd", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/report.dtd", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
@@ -96,10 +111,12 @@ $content = @(
 
 if ($Clean) {
     $content += @(
-        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.dll", "$PSScriptRoot/bin/bin/net452/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/net452/Pester.pdb", "$PSScriptRoot/bin/bin/net452/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.dll", "$PSScriptRoot/bin/bin/netstandard2.0/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/Release/netstandard2.0/Pester.pdb", "$PSScriptRoot/bin/bin/netstandard2.0/")
+        , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
+        , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
+        , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
+        , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
     )
 }
 
@@ -108,10 +125,10 @@ Copy-Content -Content $content
 if ($Clean) {
     # update help for New-PesterConfiguration
     if ($PSVersionTable.PSVersion.Major -gt 5) {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
     }
     else {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net452/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/Pester.dll")
     }
 
     function Format-NicelyMini ($value) {
@@ -150,10 +167,10 @@ if ($Clean) {
     }
 
     # generate help for config object and insert it
-    $configuration = [PesterConfiguration]::Default
+    $configObject = [PesterConfiguration]::Default
     $eol = [Environment]::NewLine
-    $generatedConfig = foreach ($p in $configuration.PSObject.Properties.Name) {
-        $section = $configuration.($p)
+    $generatedConfig = foreach ($p in $configObject.PSObject.Properties.Name) {
+        $section = $configObject.($p)
         "${p}:"
         foreach ($r in $section.PSObject.Properties.Name) {
             $option = $section.$r
@@ -164,9 +181,9 @@ if ($Clean) {
 
     $p = "$PSScriptRoot/src/Pester.RSpec.ps1"
     # in older versions utf8 means with BOM
-    $e = if ($PSVersionTable.PSVersion.Major -ge 7) { "utf8BOM" } else { "utf8" }
+    $e = if ($PSVersionTable.PSVersion.Major -ge 7) { 'utf8BOM' } else { 'utf8' }
     $f = Get-Content $p -Encoding $e
-    $sbf = [System.Text.StringBuilder]""
+    $sbf = [System.Text.StringBuilder]''
     $generated = $false
     foreach ($l in $f) {
         if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
@@ -189,7 +206,7 @@ if ($Clean) {
                 }
             }
         }
-        elseif ($generated -and ($l -match "^\s*(.PARAMETER|.EXAMPLE).*")) {
+        elseif ($generated -and ($l -match '^\s*(.PARAMETER|.EXAMPLE).*')) {
             $generated = $false
         }
 
@@ -201,7 +218,7 @@ if ($Clean) {
     Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
 
     # generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
-    $configSections = $configuration.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
+    $configSections = $configObject.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
     # Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
     $formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
     # Generate listcontrol views for all configuration sections

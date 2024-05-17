@@ -4,7 +4,7 @@
 
 
 # You can run this test file by pressing F5, if your editor
-# suports running powershell.
+# supports running powershell.
 
 # You should see this output:
 #    Describing Get-Planet
@@ -18,7 +18,7 @@
 #      [+] Given invalid parameter -Name 'Alpha Centauri', it returns $null 22ms
 
 
-# Put the initialization code in a seperate `BeforeAll` block,
+# Put the initialization code in a separate `BeforeAll` block,
 # where you can perform i.e. your imports.
 BeforeAll {
     # First we need to import the Get-Planet.ps1 file to make the function
@@ -27,10 +27,10 @@ BeforeAll {
     . $PSScriptRoot/Get-Planet.ps1
 
     # Normally we can use a more platform agnostic and generic approach where we import
-    # the current path, but replace the ".Tests.ps1" occurences with ".ps1".
+    # the current path, but replace the ".Tests.ps1" occurrences with ".ps1".
     # . $PSCommandPath.Replace('.Tests.ps1', '.ps1')
     #
-    # We could even replace all the ".Tests" occurences in the current path
+    # We could even replace all the ".Tests" occurrences in the current path
     # with "" and end up with the right filename.
     # . $PSCommandPath.Replace('.Tests', '')
 }
@@ -124,7 +124,7 @@ Describe 'Get-Planet' {
 
 # Want to try it out yourself?
 
-## Excercise 1:
+## Exercise 1:
 # Add filter Population that returns planets with population larger
 # or equal to the given number (in billions).
 # Use 7.5 as the population of Earth. Use 0 for all other planets.
@@ -136,7 +136,7 @@ Describe 'Get-Planet' {
 
 
 
-# Excercise 2: Test that planets are returned in the correct order,
+# Exercise 2: Test that planets are returned in the correct order,
 # from the one closest to the Sun.
 # Make sure to cover these test cases:
 # - Order of planets is correct when no filters are used.
@@ -144,7 +144,7 @@ Describe 'Get-Planet' {
 
 
 
-# Excercise 3 (advanced): Add function that will list moons orbiting a given planet.
+# Exercise 3 (advanced): Add function that will list moons orbiting a given planet.
 # - Make sure you can list all moons.
 # - Make sure you can filter moons for given planet.
 # - Make sure you Get-Planet and Get-Moon functions work together.

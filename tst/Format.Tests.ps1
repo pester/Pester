@@ -20,21 +20,25 @@ Describe "Format-Collection" {
     It "Formats collection of values '<value>' to '<expected>' using comma separator" -TestCases @(
         @{ Value = (1, 2, 3); Expected = "@(1, 2, 3)" }
     ) {
-        param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 
     It "Formats collection that is longer than 10 with elipsis and output remaining value count" -TestCases @(
         @{ Value = (1..20); Expected = "@(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...10 more)" }
     ) {
-        param ($Value, $Expected)
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 
     It "Formats collection '<value>' with `$null values to '<expected>'" -TestCases @(
         @{ Value = @('a', 'b', 'c', $null); Expected = "@('a', 'b', 'c', `$null)" }
     ) {
-        param ($Value, $Expected)
+        Format-Collection -Value $Value | Verify-Equal $Expected
+    }
+
+    It 'Formats an ICollection' -TestCases @(
+        @{ Value = ([ordered]@{ 'a' = $true; 'b' = $true }).Keys; Expected = "@('a', 'b')" }
+    ) {
+        # https://github.com/pester/Pester/discussions/2263
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
 }
@@ -47,7 +51,6 @@ Describe "Format-Number" {
         @{ Value = [single] 1.1; },
         @{ Value = [decimal] 1.1; }
     ) {
-        param ($Value)
         Format-Number -Value $Value | Verify-Equal "1.1"
     }
 }
@@ -58,7 +61,6 @@ Describe "Format-Number" {
 #         @{ Value = ([PSCustomObject] @{Name = 'Jakub'; Age = 28}); Expected = "PSObject{Age=28; Name=Jakub}"},
 #         @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28}); Expected = "Assertions.TestType.Person{Age=28; Name=Jakub}"}
 #     ) {
-#         param ($Value, $Expected)
 #         Format-Object -Value $Value | Verify-Equal $Expected
 #     }
 
@@ -71,7 +73,6 @@ Describe "Format-Number" {
 #             Expected           = "Assertions.TestType.Person{Name=Jakub}"
 #         }
 #     ) {
-#         param ($Value, $SelectedProperties, $Expected)
 #         Format-Object -Value $Value -Property $SelectedProperties | Verify-Equal $Expected
 #     }
 # }
@@ -81,7 +82,6 @@ Describe "Format-Boolean" {
         @{ Value = $true; Expected = '$true' },
         @{ Value = $false; Expected = '$false' }
     ) {
-        param($Value, $Expected)
         Format-Boolean -Value $Value | Verify-Equal $Expected
     }
 }
@@ -125,7 +125,6 @@ Describe "Format-ScriptBlock" {
 #         @{ Value = @{Z = 1; H = 1; A = 1}; Expected = '@{A=1; H=1; Z=1}' }
 #         @{ Value = @{Hash = @{Hash = 'Value'}}; Expected = '@{Hash=@{Hash=Value}}' }
 #     ) {
-#         param ($Value, $Expected)
 #         Format-Hashtable $Value | Verify-Equal $Expected
 #     }
 # }
@@ -141,7 +140,6 @@ Describe "Format-ScriptBlock" {
 #         @{ Value = New-Dictionary @{Z = 1; H = 1; A = 1}; Expected = 'Dictionary{A=1; H=1; Z=1}' }
 #         @{ Value = New-Dictionary @{Dict = ( New-Dictionary @{Dict = 'Value'})}; Expected = 'Dictionary{Dict=Dictionary{Dict=Value}}' }
 #     ) {
-#         param ($Value, $Expected)
 #         Format-Dictionary $Value | Verify-Equal $Expected
 #     }
 # }
@@ -164,7 +162,6 @@ Describe "Format-Nicely" {
         #@{ Value = @{Name = 'Jakub'; Age = 28}; Expected = '@{Age=28; Name=Jakub}' }
         #@{ Value = New-Dictionary @{Age = 28; Name = 'Jakub'}; Expected = 'Dictionary{Age=28; Name=Jakub}' }
     ) {
-        param($Value, $Expected)
         Format-Nicely -Value $Value | Verify-Equal $Expected
     }
 }
@@ -174,7 +171,6 @@ Describe "Format-Nicely" {
 #     It "Returns '<expected>' for '<type>'" -TestCases @(
 #         @{ Type = "Diagnostics.Process"; Expected = ("Id", "Name") }
 #     ) {
-#         param ($Type, $Expected)
 #         $Actual = Get-DisplayProperty -Type $Type
 #         "$Actual" | Verify-Equal "$Expected"
 #     }
@@ -187,7 +183,6 @@ Describe "Format-Type" {
         @{ Value = [string]; Expected = 'string' },
         @{ Value = $null; Expected = '<none>' }
     ) {
-        param($Value, $Expected)
         Format-Type -Value $Value | Verify-Equal $Expected
     }
 }
@@ -202,7 +197,6 @@ Describe "Get-ShortType" {
         @{ Value = [PSCustomObject] @{Name = 'Jakub' } ; Expected = 'PSObject' },
         @{ Value = [Object[]]1, 2, 3 ; Expected = 'collection' }
     ) {
-        param($Value, $Expected)
         Get-ShortType -Value $Value | Verify-Equal $Expected
     }
 }
@@ -214,7 +208,6 @@ Describe "Join-And" {
         @{ Items = @('one', 'two'); Expected = 'one and two' },
         @{ Items = @('one', 'two', 'three'); Expected = 'one, two and three' }
     ) {
-        param($Items, $Expected)
         Join-And -Items $Items | Verify-Equal $Expected
     }
 
@@ -222,7 +215,6 @@ Describe "Join-And" {
         @{ Items = @('one', 'two', 'three'); Threshold = 3; Expected = 'one, two and three' },
         @{ Items = @('one', 'two', 'three'); Threshold = 4; Expected = 'one, two, three' }
     ) {
-        param($Items, $Threshold, $Expected)
         Join-And -Items $Items -Threshold $Threshold | Verify-Equal $Expected
     }
 }

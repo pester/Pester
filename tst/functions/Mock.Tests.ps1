@@ -676,7 +676,7 @@ Describe "When Creating Verifiable Mock that is not called" {
 }
 
 Describe "When Creating multiple Verifiable Mocks that are not called" {
-    It "Should throw and list all commands" {
+    BeforeAll {
         Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "one" }
         Mock FunctionUnderTest { return "I am another verifiable test" } -Verifiable -ParameterFilter { $param1 -eq "two" }
         Mock FunctionUnderTest { return "I am probably called" } -Verifiable -ParameterFilter { $param1 -eq "three" }
@@ -688,8 +688,20 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
         catch {
             $result = $_
         }
+    }
 
+    It "Should throw and list all commands" {
         $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
+    }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -InvokeVerifiable -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, because of reasons, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
 }
 
@@ -720,6 +732,16 @@ Describe "When calling Should -Not -InvokeVerifiable" {
 
         It "Should throw" {
             $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+        }
+
+        It 'Should include reason when -Because is used' {
+            try {
+                Should -Not -InvokeVerifiable -Because 'of reasons'
+            }
+            Catch {
+                $failure = $_
+            }
+            $failure.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, because of reasons, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -777,16 +799,26 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 0 times exactly but was called 1 times"
+        $result.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 times'
     }
 
     It "Should not throw if mock was not called" {
         Should -Invoke FunctionUnderTest 0 -ParameterFilter { $param1 -eq "stupid" }
     }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Invoke FunctionUnderTest 0  -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 times'
+    }
 }
 
 Describe "When Calling Should -Not -Invoke without exactly" {
-    BeforeEach {
+    BeforeAll {
         Mock FunctionUnderTest {}
         FunctionUnderTest "one"
 
@@ -799,7 +831,7 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times, but it was"
     }
 
     It "Should not throw if mock was not called" {
@@ -817,8 +849,6 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         @{ MockCalls = 2; Times = 5 }
         @{ MockCalls = 0; Times = 1 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -832,8 +862,6 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         @{ MockCalls = 1; Times = 1 }
         @{ MockCalls = 0; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -845,7 +873,20 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called less than $Times times but was called $MockCalls times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called less than $Times times, but was called $MockCalls times"
+    }
+
+    It 'Should include reason when -Because is used' {
+        FunctionUnderTest
+        FunctionUnderTest
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Times 1 -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called less than 1 times, because of reasons, but was called 2 times'
     }
 }
 
@@ -864,7 +905,7 @@ Describe "When Calling Should -Invoke with exactly" {
     }
 
     It "Should throw if mock was not called the number of times specified" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 3 times exactly but was called 2 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest to be called 3 times exactly, but was called 2 times"
     }
 
     It "Should not throw if mock was called the number of times specified" {
@@ -886,11 +927,21 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly 1 times, but it was"
     }
 
     It "Should not throw if mock was not called" {
         Should -Not -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq "stupid" }
+    }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Not -Invoke FunctionUnderTest -Exactly -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest not to be called exactly 1 times, because of reasons, but it was'
     }
 }
 
@@ -906,8 +957,6 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
         @{ MockCalls = 0; Times = 1 }
         @{ MockCalls = 1; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -920,8 +969,6 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
         @{ MockCalls = 1; Times = 1 }
         @{ MockCalls = 0; Times = 0 }
     ) {
-        param($MockCalls, $Times)
-
         for ($i = 0; $i -lt $MockCalls; $i++) {
             FunctionUnderTest "one"
         }
@@ -933,7 +980,7 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly $Times times"
+        $result.Exception.Message | Should -Be "Expected FunctionUnderTest not to be called exactly $Times times, but it was"
     }
 }
 
@@ -947,7 +994,7 @@ Describe "When Calling Should -Invoke without exactly" {
 
     It "Should throw if mock was not called at least the number of times specified" {
         $scriptBlock = { Should -Invoke FunctionUnderTest 4 -Scope Describe }
-        $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times but was called 3 times"
+        $scriptBlock | Should -Throw "Expected FunctionUnderTest to be called at least 4 times, but was called 3 times"
     }
 
     It "Should not throw if mock was called at least the number of times specified" {
@@ -962,6 +1009,26 @@ Describe "When Calling Should -Invoke without exactly" {
         $scriptBlock = { Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw '*1 non-matching calls were made*'
     }
+
+    It 'Should include reason when -Because is used' {
+        try {
+            Should -Invoke FunctionUnderTest 4 -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to be called at least 4 times, because of reasons, but was called 3 times'
+    }
+
+    It 'Should include reason when -Because is used with -ExclusiveFilter' {
+        try {
+            Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+        $failure.Exception.Message | Should -Be 'Expected FunctionUnderTest to only be called with with parameters matching the specified filter, because of reasons, but 1 non-matching calls were made'
+    }
 }
 
 Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
@@ -973,6 +1040,54 @@ Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
     It "Should throw an error" {
         $scriptBlock = { Should -Not -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' } -Scope Describe }
         $scriptBlock | Should -Throw 'Cannot use -ExclusiveFilter when -Not is specified. Use -ParameterFilter instead.'
+    }
+}
+
+Describe 'When Calling Should -Invoke with invalid -Scope' {
+    Context 'Using -Scope It outside of It block' {
+        BeforeAll {
+            Mock FunctionUnderTest {}
+
+            try {
+                Should -Not -Invoke FunctionUnderTest -Scope It
+            }
+            Catch {
+                $result = $_
+            }
+        }
+        It 'Should throw' {
+            $result.Exception.Message | Should -Be 'Assertion is placed outside of an It block, but -Scope It is specified.'
+        }
+    }
+
+    It 'Should throw when negative number' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope -1 }
+        $scriptBlock | Should -Throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
+    }
+
+    It 'Should throw when unknown named block' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope SomethingElse }
+        $scriptBlock | Should -Throw "Parameter Scope must be one of 'Describe', 'Context', 'It' or a non-negative number."
+    }
+}
+
+Context 'When Calling Should -Invoke -Scope Describe while not inside Describe' {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+    }
+    It 'Should throw' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope Describe }
+        $scriptBlock | Should -Throw 'Assertion is not placed directly nor nested inside a Describe block, but -Scope Describe is specified.'
+    }
+}
+
+Describe 'When Calling Should -Invoke -Scope Context while not inside Context' {
+    BeforeAll {
+        Mock FunctionUnderTest {}
+    }
+    It 'Should throw' {
+        $scriptBlock = { Should -Not -Invoke FunctionUnderTest -Scope Context }
+        $scriptBlock | Should -Throw 'Assertion is not placed directly nor nested inside a Context block, but -Scope Context is specified.'
     }
 }
 
@@ -1172,9 +1287,6 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
-        InPesterModuleScope {
-            $global:calls = $mockTable['||Test-Path'].CallHistory
-        }
         Should -Invoke Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
     }
 }
@@ -2544,8 +2656,6 @@ InPesterModuleScope {
             }
 
             It 'mocks <Command> command' -TestCases $case {
-                param($Command)
-
                 Mock $Command { 'I am being mocked' }
 
                 & $Command | Should -Be 'I am being mocked'
@@ -2748,6 +2858,23 @@ Describe 'RemoveParameterValidation' {
         Mock Test-Validation -RemoveParameterValidation Count { "mock" }
 
         Test-Validation -Count -1 | Should -Be "mock"
+    }
+}
+
+Describe 'Removing multiple attributes for same parameter' {
+    It 'Removes parameter type and validation for simple function' {
+        # Making sure attributes are removed correctly regardless of order
+        function t {
+            param(
+                [Alias('Number2')]
+                [ValidateSet(1)]
+                [PSTypeName('SomeType')]
+                $Number1
+            )
+            $Number1
+        }
+        Mock t -RemoveParameterType 'Number1' -RemoveParameterValidation 'Number1'
+        { t -Number1 2 } | Should -Not -Throw
     }
 }
 
@@ -2970,5 +3097,76 @@ Describe "When inherited variables conflicts with parameters" {
         # This should show warning about conflict when in Diagnostic output (Mock debug message)
         Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 'abc' } -Times 0 -Exactly
         Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 123 } -Times 1 -Exactly
+    }
+}
+
+Describe 'Mocking in manifest modules' {
+    BeforeAll {
+        $moduleName = 'MockManifestModule'
+        $moduleManifestPath = "TestDrive:/$moduleName.psd1"
+        $scriptPath = "TestDrive:/$moduleName-functions.ps1"
+        Set-Content -Path $scriptPath -Value {
+            function myManifestPublicFunction {
+                myManifestPrivateFunction
+            }
+
+            function myManifestPrivateFunction {
+                'real'
+            }
+        }
+        New-ModuleManifest -Path $moduleManifestPath -NestedModules "$moduleName-functions.ps1" -FunctionsToExport 'myManifestPublicFunction'
+        Import-Module $moduleManifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $moduleName -ErrorAction SilentlyContinue | Remove-Module
+        Remove-Item $moduleManifestPath, $scriptPath -Force -ErrorAction SilentlyContinue
+    }
+
+    It 'Should be able to mock public function' {
+        Mock -CommandName 'myManifestPublicFunction' -MockWith { 'mocked public' }
+        myManifestPublicFunction | Should -Be 'mocked public'
+        Should -Invoke -CommandName 'myManifestPublicFunction' -Exactly -Times 1
+    }
+
+    It 'Should be able to mock private function' {
+        Mock -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -MockWith { 'mocked private' }
+        myManifestPublicFunction | Should -Be 'mocked private'
+        Should -Invoke -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -Exactly -Times 1
+    }
+}
+
+Describe 'Mocking with nested Pester runs' {
+    BeforeAll {
+        Mock Get-Date { 1 }
+
+        $innerRun = Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
+                Describe 'inner' {
+                    It 'local mock works' {
+                        Mock Get-Command { 2 }
+                        Get-Command | Should -Be 2
+                    }
+
+                    It 'outer mock is not available' {
+                        Get-Date | Should -Not -Be 1
+                    }
+                }
+            }) -Output None -PassThru
+    }
+
+    It 'Mocks in outer run works after nested Invoke-Pester' {
+        # https://github.com/pester/Pester/issues/2074
+        Get-Date | Should -Be 1
+        # Outer mock should not have been called from nested run
+        Should -Invoke Get-Date -Exactly -Times 1
+    }
+
+    It 'Mocking works in nested run' {
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 2
+    }
+
+    It 'Mocks in nested run do not leak to outside' {
+        Get-Command Get-ChildItem | Should -Not -Be 2
     }
 }

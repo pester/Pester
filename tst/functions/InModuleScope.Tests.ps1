@@ -67,18 +67,62 @@ Describe "Executing test code inside a module" {
     }
 }
 
-Describe "Get-ScriptModule behavior" {
+Describe 'Get-CompatibleModule' {
 
-    Context "When attempting to mock a command in a non-existent module" {
+    Context 'when module name matches imported script module' {
+        It 'should return a single ModuleInfo object' {
+            $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName Pester }
+            $moduleInfo | Should -Not -BeNullOrEmpty
+            @($moduleInfo).Count | Should -Be 1
+            $moduleInfo.Name | Should -Be 'Pester'
+            $moduleInfo.ModuleType | Should -Be 'Script'
+        }
+    }
 
-        It "should throw an exception" {
-            {
-                Mock -CommandName "Invoke-MyMethod" `
-                    -ModuleName  "MyNonExistentModule" `
-                    -MockWith { write-host "my mock called!" }
-            } | Should -Throw "No modules named 'MyNonExistentModule' are currently loaded."
+    Context 'when module name matches imported manifest module' {
+        BeforeAll {
+            $moduleName = 'testManifestModule'
+            $moduleManifestPath = "TestDrive:/$moduleName.psd1"
+            New-ModuleManifest -Path $moduleManifestPath
+            Import-Module $moduleManifestPath -Force
         }
 
+        AfterAll {
+            Get-Module $moduleName -ErrorAction SilentlyContinue | Remove-Module
+            Remove-Item $moduleManifestPath -Force -ErrorAction SilentlyContinue
+        }
+
+        It 'should return a single ModuleInfo object' {
+            $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName testManifestModule }
+            $moduleInfo | Should -Not -BeNullOrEmpty
+            @($moduleInfo).Count | Should -Be 1
+            $moduleInfo.Name | Should -Be 'testManifestModule'
+            $moduleInfo.ModuleType | Should -Be 'Manifest'
+        }
+    }
+
+    Context 'when module name does not resolve to imported module' {
+        It "should throw an exception" {
+            $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName MyNonExistentModule } }
+            $sb | Should -Throw "No modules named 'MyNonExistentModule' are currently loaded."
+        }
+    }
+
+    Context 'when module name matches multiple imported modules' {
+        BeforeAll {
+            Get-Module 'MyDuplicateModule' -ErrorAction SilentlyContinue | Remove-Module
+            New-Module -Name 'MyDuplicateModule' { } | Import-Module -Force
+            New-Module -Name 'MyDuplicateModule' { } | Import-Module -Force
+        }
+
+        AfterAll {
+            Get-Module 'MyDuplicateModule' -ErrorAction SilentlyContinue | Remove-Module
+        }
+
+        It "should throw an exception" {
+            $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName MyDuplicateModule } }
+            $sb | Should -Throw "Multiple script or manifest modules named 'MyDuplicateModule' are currently loaded. Make sure to remove any extra copies of the module from your session before testing."
+        }
     }
 
 }
@@ -259,5 +303,41 @@ Describe "Using variables within module scope" {
 
     AfterAll {
         Remove-Module TestModule2 -Force
+    }
+}
+
+Describe 'Working with manifest modules' {
+    BeforeAll {
+        $moduleName = 'inManifestModule'
+        $moduleManifestPath = "TestDrive:/$moduleName.psd1"
+        $scriptPath = "TestDrive:/$moduleName-functions.ps1"
+
+        Set-Content -Path $scriptPath -Value {
+            function myPublicFunction {
+                myPrivateFunction
+            }
+
+            function myPrivateFunction {
+                'real'
+            }
+        }
+
+        New-ModuleManifest -Path $moduleManifestPath -NestedModules "$moduleName-functions.ps1" -FunctionsToExport 'myPublicFunction'
+        Import-Module $moduleManifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $moduleName -ErrorAction SilentlyContinue | Remove-Module
+        Remove-Item $moduleManifestPath, $scriptPath -Force -ErrorAction SilentlyContinue
+    }
+
+    It "Should invoke inside module's sessions state" {
+        $res = InModuleScope -ModuleName $moduleName -ScriptBlock { $ExecutionContext.SessionState.Module }
+        $res.Name | Should -Be $moduleName
+    }
+
+    It 'Should be able to invoke private functions' {
+        $res = InModuleScope -ModuleName $moduleName -ScriptBlock { myPrivateFunction }
+        $res | Should -Be 'real'
     }
 }

@@ -1,5 +1,5 @@
 # session state bound functions that act as endpoints,
-# so the internal funtions can make their session state
+# so the internal functions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
 
@@ -77,9 +77,9 @@ function Mock {
     verifiable mock is not called, Should -InvokeVerifiable will throw an
     exception and indicate all mocks not called.
 
-    If you wish to mock commands that are called from inside a script module,
-    you can do so by using the -ModuleName parameter to the Mock command. This
-    injects the mock into the specified module. If you do not specify a
+    If you wish to mock commands that are called from inside a script or manifest
+    module, you can do so by using the -ModuleName parameter to the Mock command.
+    This injects the mock into the specified module. If you do not specify a
     module name, the mock will be created in the same scope as the test script.
     You may mock the same command multiple times, in different scopes, as needed.
     Each module's mock maintains a separate call history and verified status.
@@ -630,7 +630,7 @@ function Assert-VerifiableMock {
     Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
     & $sb
 }
-function Should-InvokeVerifiable ([switch]$Negate) {
+function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.
@@ -662,12 +662,15 @@ function Should-InvokeVerifiable ([switch]$Negate) {
     This will not throw an exception because the mock was invoked.
     #>
     $behaviors = @(Get-VerifiableBehaviors)
-    Should-InvokeVerifiableInternal -Behaviors $behaviors -Negate:$Negate
+    Should-InvokeVerifiableInternal @PSBoundParameters -Behaviors $behaviors
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name InvokeVerifiable `
     -InternalName Should-InvokeVerifiable `
     -Test         ${function:Should-InvokeVerifiable}
+
+Set-ShouldOperatorHelpMessage -OperatorName InvokeVerifiable `
+    -HelpMessage 'Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.'
 
 function Assert-MockCalled {
     <#
@@ -888,7 +891,7 @@ function Should-Invoke {
         #
         # Mock FunctionUnderTest {}
         #
-        # Consider the normal expection:
+        # Consider the normal expectation:
         # `Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' }`
         #
         # | Invocations               | Should raises an error |
@@ -980,6 +983,11 @@ function Should-Invoke {
                 $level++
                 $i = $i.Parent
             }
+
+            if ($null -eq $i) {
+                # Reached parent of root-block which means we never called break (got a hit) in the while-loop
+                throw "Assertion is not placed directly nor nested inside a $Scope block, but -Scope $Scope is specified."
+            }
         }
     }
 
@@ -1028,6 +1036,9 @@ function Should-Invoke {
 & $script:SafeCommands['Add-ShouldOperator'] -Name Invoke `
     -InternalName Should-Invoke `
     -Test         ${function:Should-Invoke}
+
+Set-ShouldOperatorHelpMessage -OperatorName Invoke `
+    -HelpMessage 'Checks if a Mocked command has been called a certain number of times and throws an exception if it has not.'
 
 function Invoke-Mock {
     [CmdletBinding()]
@@ -1148,7 +1159,7 @@ function Invoke-Mock {
                 }
             }
             else {
-                # not the targetted module, skip it
+                # not the targeted module, skip it
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
                 }
@@ -1187,10 +1198,12 @@ function Invoke-Mock {
         }
     }
 
-    # if we are targetting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
+    # if we are targeting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
     # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
     # then the default mock for Remove-Item should be effective.
-    $behaviors = if ($targettingAModule) {
+
+    # using @() to always get array. This avoids null error in Invoke-MockInternal when no behaviors where found (if-else unwraps the lists)
+    $behaviors = @(if ($targettingAModule) {
         # we have default module behavior add it to the filtered behaviors if there are any
         if ($null -ne $moduleDefaultBehavior) {
             $moduleBehaviors.Add($moduleDefaultBehavior)
@@ -1205,14 +1218,14 @@ function Invoke-Mock {
         $moduleBehaviors
     }
     else {
-        # we are not targetting a mock in a module use the non module behaviors
+        # we are not targeting a mock in a module use the non module behaviors
         if ($null -ne $nonModuleDefaultBehavior) {
             # add the default non-module behavior if we have any
             $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
         }
 
         $nonModuleBehaviors
-    }
+    })
 
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 

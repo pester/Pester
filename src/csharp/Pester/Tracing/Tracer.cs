@@ -24,11 +24,11 @@ namespace Pester.Tracing
         public static bool IsEnabled { get; private set; }
 
         /// <summary>
-        /// Check if we should call Register or Patch functions for the given tracer. It returns false when tracer is not present in slot 1, 
+        /// Check if we should call Register or Patch functions for the given tracer. It returns false when tracer is not present in slot 1,
         /// or if overwrite is true (default) and slot 1 has the same tracer as what we are registering. Use overwrite to check the type of the registered tracer
         /// and allow replacing it with the new tracer if the types are the same. (e.g you are adding tracer for Pester code coverage, and user aborted the run
         /// so Pester tracer from the previous run is still present, and you are now replacing it with another Pester code coverage tracer). You would rarely want
-        /// overwrite set to false. But for example when you run Profiler in Profiler, you would want to register the second tracer into slot2 not even though slot1 
+        /// overwrite set to false. But for example when you run Profiler in Profiler, you would want to register the second tracer into slot2 not even though slot1
         /// has tracer of the same type.
         /// </summary>
         /// <param name="tracer">The tracer to use.</param>
@@ -123,10 +123,7 @@ namespace Pester.Tracing
             // replace it with out patched up UI that writes to profiler on debug
             externalUIField.SetValue(ui, new TracerHostUI(externalUI, (message) => TraceLine(message, false)));
 
-            ResetUI = () =>
-            {
-                externalUIField.SetValue(ui, externalUI);
-            };
+            ResetUI = () => externalUIField.SetValue(ui, externalUI);
 
             // getting MethodInfo of context._context.Debugger.TraceLine
             var bf = BindingFlags.NonPublic | BindingFlags.Instance;
@@ -142,7 +139,7 @@ namespace Pester.Tracing
             var countBindingFlags = BindingFlags.Instance | BindingFlags.NonPublic;
             if (powerShellVersion == 3)
             {
-                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList 
+                // in PowerShell 3 callstack is List<CallStackInfo> not a struct CallStackList
                 // Count is public property
                 countBindingFlags = BindingFlags.Instance | BindingFlags.Public;
             }
@@ -154,12 +151,12 @@ namespace Pester.Tracing
 
             if (powerShellVersion == 3)
             {
-                // we do the same operation as in the TraceLineAction below, but here 
-                // we resolve the static things like types and properties, and then in the 
-                // action we just use them to get the live data without the overhead of looking 
+                // we do the same operation as in the TraceLineAction below, but here
+                // we resolve the static things like types and properties, and then in the
+                // action we just use them to get the live data without the overhead of looking
                 // up properties all the time. This might be internally done in the reflection code
                 // did not measure the impact, and it is probably done for us in the reflection api itself
-                // in modern verisons of runtime
+                // in modern versions of runtime
                 var callStack1 = callStackField.GetValue(debugger);
                 var callStackList1 = (NonGeneric.IList)callStack1;
                 var level1 = callStackList1.Count - initialLevel;

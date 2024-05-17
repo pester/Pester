@@ -7,9 +7,9 @@ namespace Pester.Tracing
 {
     class ExternalTracerAdapter : ITracer
     {
-        private object _tracer;
-        private MethodInfo _traceMethod;
-        private int _version = 0;
+        private readonly object _tracer;
+        private readonly MethodInfo _traceMethod;
+        private readonly int _version = 0;
 
         public object Tracer => _tracer;
 

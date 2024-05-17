@@ -624,8 +624,31 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                param($Header, $Message, $Expected)
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
+            }
+        }
+
+        Context "Azure Devops Warning Format" {
+            It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
+                @{
+                    Header   = 'header'
+                    Message  = 'message'
+                    Expected = @(
+                        '##vso[task.logissue type=warning] header',
+                        '##[warning] message'
+                    )
+                }
+                @{
+                    Header   = 'header'
+                    Message  = @('message1', 'message2')
+                    Expected = @(
+                        '##vso[task.logissue type=warning] header',
+                        '##[warning] message1',
+                        '##[warning] message2'
+                    )
+                }
+            ) {
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
 
@@ -664,8 +687,46 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                     )
                 }
             ) {
-                param($Header, $Message, $Expected)
-                Format-CIErrorMessage -CIFormat 'GithubActions' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
+            }
+        }
+
+        Context 'Github Actions Warning Format' {
+            It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
+                @{
+                    Header   = 'header'
+                    Message  = 'message'
+                    Expected = @(
+                        '::warning::header',
+                        '::group::Message',
+                        'message',
+                        '::endgroup::'
+                    )
+                }
+                @{
+                    Header   = 'header'
+                    Message  = @('message1', 'message2')
+                    Expected = @(
+                        '::warning::header',
+                        '::group::Message',
+                        'message1',
+                        'message2',
+                        '::endgroup::'
+                    )
+                }
+                @{
+                    Header   = 'header'
+                    Message  = @('  message1', '  message2')
+                    Expected = @(
+                        '::warning::header',
+                        '::group::Message',
+                        'message1',
+                        'message2',
+                        '::endgroup::'
+                    )
+                }
+            ) {
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
             }
         }
     }

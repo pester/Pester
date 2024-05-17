@@ -19,7 +19,7 @@ namespace Pester
 {
     public abstract class ConfigurationSection
     {
-        private string _description;
+        private readonly string _description;
         public ConfigurationSection(string description)
         {
             _description = description;

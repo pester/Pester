@@ -21,17 +21,14 @@ namespace Pester
     {
         public BoolOption(BoolOption option, bool value) : base(option, value)
         {
-
         }
 
         public BoolOption(string description, bool defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public BoolOption(string description, bool defaultValue, bool value) : base(description, defaultValue, value)
         {
-
         }
 
         public static implicit operator BoolOption(bool value)

@@ -25,7 +25,6 @@ Describe "Is-Value" {
         @{ Value = @(1) },
         @{ Value = { abc } }
     ) {
-        param($Value)
         Is-Value -Value $Value | Verify-True
     }
 
@@ -40,7 +39,6 @@ Describe "Is-Value" {
         @{ Value = [type] },
         @{ Value = (New-Object -TypeName Diagnostics.Process) }
     ) {
-        param($Value)
         Is-Value -Value $Value | Verify-False
     }
 }
@@ -55,7 +53,6 @@ Describe "Is-DecimalNumber" {
         @{ Value = [single] 1.1; },
         @{ Value = [decimal] 1.1; }
     ) {
-        param ($Value)
         Is-DecimalNumber -Value $Value | Verify-True
     }
 
@@ -70,7 +67,6 @@ Describe "Is-ScriptBlock" {
         @{ Value = { abc } },
         @{ Value = { Get-Process } }
     ) {
-        param ($Value)
         Is-ScriptBlock -Value $Value | Verify-True
     }
 
@@ -80,7 +76,6 @@ Describe "Is-ScriptBlock" {
         @{ Value = 'abc' },
         @{ Value = [Type] }
     ) {
-        param ($Value)
         Is-ScriptBlock -Value $Value | Verify-False
     }
 }
@@ -91,8 +86,6 @@ Describe "Is-Hashtable" {
         @{Value = @{} }
         @{Value = @{Name = "Jakub" } }
     ) {
-        param($Value)
-
         Is-Hashtable -Value $Value | Verify-True
     }
 
@@ -100,8 +93,6 @@ Describe "Is-Hashtable" {
         @{ Value = "Jakub" }
         @{ Value = 1..4 }
     ) {
-        param ($Value)
-
         Is-Hashtable -Value $Value | Verify-False
     }
 }
@@ -111,8 +102,6 @@ Describe "Is-Dictionary" {
         @{ Value = New-Object "Collections.Generic.Dictionary[string,object]" }
         @{ Value = New-Dictionary @{Name = "Jakub" } }
     ) {
-        param($Value)
-
         Is-Dictionary -Value $Value | Verify-True
     }
 
@@ -120,8 +109,6 @@ Describe "Is-Dictionary" {
         @{ Value = "Jakub" }
         @{ Value = 1..4 }
     ) {
-        param ($Value)
-
         Is-Dictionary -Value $Value | Verify-False
     }
 }
@@ -138,7 +125,6 @@ Describe "Is-Collection" {
         @{ Value = [Collections.Generic.List[Int]]([int[]](1, 2, 3)) }
         # @{ Value = (Get-Process) } <- fails in docker because there is just one process
     ) {
-        param($Value)
         Is-Collection -Value $Value | Verify-True
     }
 
@@ -171,7 +157,6 @@ Describe "Is-Collection" {
         @{ Value = (Get-Process -Id $PID) }
         @{ Value = New-Object -TypeName Diagnostics.Process }
     ) {
-        param($Value)
         Verify-NotNull $Value
         Is-Collection -Value $Value | Verify-False
     }

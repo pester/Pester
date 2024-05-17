@@ -25,6 +25,7 @@ namespace Pester
         private StringOption _verbosity;
         private StringOption _stackTraceVerbosity;
         private StringOption _ciFormat;
+        private StringOption _ciLogLevel;
         private StringOption _renderMode;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
@@ -40,6 +41,7 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(Verbosity), v => Verbosity = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(StackTraceVerbosity), v => StackTraceVerbosity = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(CIFormat), v => CIFormat = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(CILogLevel), v => CILogLevel = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RenderMode), v => RenderMode = v);
             }
         }
@@ -49,6 +51,7 @@ namespace Pester
             Verbosity = new StringOption("The verbosity of output, options are None, Normal, Detailed and Diagnostic.", "Normal");
             StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
             CIFormat = new StringOption("The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.", "Auto");
+            CILogLevel = new StringOption("The CI log level in build logs, options are Error and Warning.", "Error");
             RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.", "Auto");
         }
 
@@ -96,6 +99,22 @@ namespace Pester
                 else
                 {
                     _ciFormat = new StringOption(_ciFormat, value?.Value);
+                }
+            }
+        }
+
+        public StringOption CILogLevel
+        {
+            get { return _ciLogLevel; }
+            set
+            {
+                if (_ciLogLevel == null)
+                {
+                    _ciLogLevel = value;
+                }
+                else
+                {
+                    _ciLogLevel = new StringOption(_ciLogLevel, value?.Value);
                 }
             }
         }

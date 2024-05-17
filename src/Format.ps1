@@ -15,9 +15,13 @@ function Format-Collection ($Value, [switch]$Pretty) {
     $trimmed = $count -gt $Limit
 
     $formattedCollection = @()
-    for ($i = 0; $i -lt [System.Math]::Min($count, $Limit); $i++) {
-        $formattedValue = Format-Nicely -Value $Value[$i] -Pretty:$Pretty
+    # Using foreach to support ICollection
+    $i = 0
+    foreach ($v in $Value) {
+        if ($i -eq $Limit) { break }
+        $formattedValue = Format-Nicely -Value $v -Pretty:$Pretty
         $formattedCollection += $formattedValue
+        $i++
     }
 
     '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'
@@ -198,15 +202,22 @@ function Format-Type ([Type]$Value) {
     [string]$Value
 }
 
-function Join-And ($Items, $Threshold = 2) {
-
+function Join-With ($Items, $Threshold = 2, $Separator = ', ', $LastSeparator = ' and ') {
     if ($null -eq $items -or $items.count -lt $Threshold) {
-        $items -join ', '
+        $items -join $Separator
     }
     else {
         $c = $items.count
-        ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
+        ($items[0..($c - 2)] -join $Separator) + $LastSeparator + $items[-1]
     }
+}
+
+function Join-And ($Items, $Threshold = 2) {
+    Join-With -Items $Items -Threshold $Threshold -Separator ', ' -LastSeparator ' and '
+}
+
+function Join-Or ($Items, $Threshold = 2) {
+    Join-With -Items $Items -Threshold $Threshold -Separator ', ' -LastSeparator ' or '
 }
 
 function Add-SpaceToNonEmptyString ([string]$Value) {

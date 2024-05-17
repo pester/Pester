@@ -21,6 +21,7 @@ pr:
     include:
       - main
       - rel/*
+      - dev/*
   paths:
     exclude:
       - .devcontainer
@@ -37,7 +38,11 @@ pr:
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: 0
+  DOTNET_NOLOGO: 1
   CI: 1
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
 
 stages:
   - stage: Build
@@ -46,12 +51,21 @@ stages:
         workspace:
           clean: all
         pool:
-          vmImage: windows-2019
-        timeoutInMinutes: 3
+          vmImage: windows-2022
+        timeoutInMinutes: 5
         steps:
           - checkout: self
             fetchDepth: 1
-          - powershell: ./build.ps1 -Clean -Inline
+          - task: Cache@2
+            displayName: Cache
+            inputs:
+              # https://docs.microsoft.com/en-us/azure/devops/pipelines/artifacts/caching-nuget?view=azure-devops
+              key: 'nuget | "$(Agent.OS)" | **/packages.lock.json,!**/bin/**,!**/obj/**'
+              path: '$(NUGET_PACKAGES)'
+              cacheHitVar: 'CACHE_RESTORED'
+          - powershell: |
+              "Running .NET SDK v$(dotnet --version)"
+              ./build.ps1 -LockedRestore -Clean -Inline
           - publish: $(Build.SourcesDirectory)
             artifact: all
 
@@ -62,17 +76,17 @@ stages:
           clean: all
         strategy:
           matrix:
-            PS7_Ubuntu_18_04:
-              vmImage: ubuntu-18.04
-              pwsh: true
             PS7_Ubuntu_20_04:
               vmImage: ubuntu-20.04
               pwsh: true
-            PS7_macOS_10_15:
-              vmImage: macOS-10.15
+            PS7_Ubuntu_22_04:
+              vmImage: ubuntu-22.04
               pwsh: true
             PS7_macOS_11:
               vmImage: macOS-11
+              pwsh: true
+            PS7_macOS_12:
+              vmImage: macOS-12
               pwsh: true
             PS7_Windows_Server2019:
               vmImage: windows-2019
@@ -100,56 +114,8 @@ stages:
               script: |
                 & ./test.ps1 -CI -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: 'JaCoCo'
-              summaryFileLocation: 'coverage.xml'
-              pathToSources: 'src/'
-              failIfCoverageEmpty: false
-            condition: succeededOrFailed()
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFormat: 'NUnit'
-              testResultsFiles: 'testResults.xml'
-              failTaskOnFailedTests: true
-            condition: succeededOrFailed()
-        timeoutInMinutes: 20
-      - job:
-        workspace:
-          clean: all
-        strategy:
-          matrix:
-            PS3:
-              agent: 'ps3'
-              pwsh: false
-            PS4:
-              agent: 'ps4'
-              pwsh: false
-            PS6_2:
-              agent: 'ps6'
-              pwsh: true
-        pool:
-          name: Default
-          demands:
-            - agent.name -equals $(agent)
-        steps:
-          - checkout: none
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'all'
-              targetPath: '$(Build.SourcesDirectory)'
-          - task: PowerShell@2
-            displayName: 'Test Pester'
-            inputs:
-              targetType: 'inline'
-              pwsh: $(pwsh)
-              script: |
-                & ./test.ps1 -CI -PassThru -NoBuild
-              workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@1
-            inputs:
-              codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: 'src/'
               failIfCoverageEmpty: false

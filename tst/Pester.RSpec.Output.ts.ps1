@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -20,26 +21,6 @@ $global:PesterPreference = @{
     }
 }
 $PSDefaultParameterValues = @{}
-
-function Invoke-InNewProcess ([ScriptBlock] $ScriptBlock) {
-    # get the path of the currently loaded Pester to re-import it in the child process
-    $pesterPath = Get-Module Pester | Select-Object -ExpandProperty Path
-    $powershell = Get-Process -Id $pid | Select-Object -ExpandProperty Path
-    # run any scriptblock in a separate process to be able to grab all the output
-    # doesn't enforce Invoke-Pester usage so we can test other public functions directly
-    $command = {
-        param ($PesterPath, [ScriptBlock] $ScriptBlock)
-        Import-Module $PesterPath
-
-        . $ScriptBlock
-    }.ToString()
-
-    # we need to escape " with \" because otherwise the " are eaten when the process we are starting recieves them
-    $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
-    & $powershell -NoProfile -ExecutionPolicy Bypass -Command $cmd
-}
-
-
 
 i -PassThru:$PassThru {
     b 'Output in VSCode mode' {
@@ -203,7 +184,7 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','both' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
+                'Hello', 'both' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green -BackgroundColor Blue
                 'green' | & $cmd -RenderMode 'Ansi' -ForegroundColor Green
                 'blue' | & $cmd -RenderMode 'Ansi'  -BackgroundColor Blue
                 & $cmd 'NoColorsOnlyReset' -RenderMode 'Ansi'
@@ -243,17 +224,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | & $cmd -RenderMode 'Ansi'
-                'No','NewLine' | & $cmd -RenderMode 'Ansi' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'Ansi'
-                'hello',('no','newline') | & $cmd -RenderMode 'Ansi' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'Ansi' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'Ansi'
+                'No', 'NewLine' | & $cmd -RenderMode 'Ansi' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'Ansi'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'Ansi' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'Ansi' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -268,17 +249,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | & $cmd -RenderMode 'Plaintext'
-                'No','NewLine' | & $cmd -RenderMode 'Plaintext' -NoNewline
-                'hello',('foo','bar') | & $cmd -RenderMode 'Plaintext'
-                'hello',('no','newline') | & $cmd -RenderMode 'Plaintext' -NoNewline
-                & $cmd -RenderMode 'Plaintext' -Object 'foo','bar' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'Plaintext'
+                'No', 'NewLine' | & $cmd -RenderMode 'Plaintext' -NoNewline
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'Plaintext'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'Plaintext' -NoNewline
+                & $cmd -RenderMode 'Plaintext' -Object 'foo', 'bar' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -293,17 +274,17 @@ i -PassThru:$PassThru {
             $sb = {
                 $cmd = & (Get-Module Pester) { Get-Command Write-PesterHostMessage }
 
-                'Hello','world' | Write-Host
-                'No','NewLine' | Write-Host -NoNewLine
-                'hello',('foo','bar') | Write-Host
-                'hello',('no','newline') | Write-Host -NoNewLine
-                Write-Host -Object 'foo','bar' -Separator ';'
+                'Hello', 'world' | Write-Host
+                'No', 'NewLine' | Write-Host -NoNewLine
+                'hello', ('foo', 'bar') | Write-Host
+                'hello', ('no', 'newline') | Write-Host -NoNewLine
+                Write-Host -Object 'foo', 'bar' -Separator ';'
 
-                'Hello','world' | & $cmd -RenderMode 'ConsoleColor'
-                'No','NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
-                'hello',('foo','bar') | & $cmd -RenderMode 'ConsoleColor'
-                'hello',('no','newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
-                & $cmd -Object 'foo','bar' -RenderMode 'ConsoleColor' -Separator ';'
+                'Hello', 'world' | & $cmd -RenderMode 'ConsoleColor'
+                'No', 'NewLine' | & $cmd -RenderMode 'ConsoleColor' -NoNewLine
+                'hello', ('foo', 'bar') | & $cmd -RenderMode 'ConsoleColor'
+                'hello', ('no', 'newline') | & $cmd -RenderMode 'ConsoleColor' -NoNewline
+                & $cmd -Object 'foo', 'bar' -RenderMode 'ConsoleColor' -Separator ';'
             }
 
             $output = Invoke-InNewProcess -ScriptBlock $sb
@@ -312,6 +293,27 @@ i -PassThru:$PassThru {
             $writehostOutput = $output[0..4] -join "`n"
             $normalOutput = $output[5..9] -join "`n"
             $normalOutput | Verify-Equal $writehostOutput
+        }
+    }
+
+    b 'Pending is deprecated' {
+        t 'Shows deprecated message when -pending is used' {
+            $sb = {
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd' {
+                        It 'i' {
+                            Set-ItResult -Pending
+                        }
+                    }
+                }
+
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+
+            $deprecated = $output | Select-String -Pattern '\*DEPRECATED\*'
+            @($deprecated).Count | Verify-Equal 1
         }
     }
 }

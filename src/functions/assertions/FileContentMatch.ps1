@@ -42,18 +42,25 @@
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
-        }
-        else {
-            $failureMessage = ShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
+    }
+    else {
+        $failureMessage = ShouldFileContentMatchFailureMessage -ActualValue $ActualValue -ExpectedContent $ExpectedContent -Because $Because
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = $ExpectedContent
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -65,6 +72,9 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
     return "Expected $(Format-Nicely $ExpectedContent) to not be found in file '$ActualValue',$(Format-Because $Because) but it was found."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatch `
+& $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatch `
     -InternalName Should-FileContentMatch `
     -Test         ${function:Should-FileContentMatch}
+
+Set-ShouldOperatorHelpMessage -OperatorName FileContentMatch `
+    -HelpMessage 'Checks to see if a file contains the specified text. This search is not case sensitive and uses regular expressions.'

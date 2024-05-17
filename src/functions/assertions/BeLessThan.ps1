@@ -14,13 +14,18 @@
     }
 
     if ($ActualValue -ge $ExpectedValue) {
-        return [PSCustomObject] @{
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be less than $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
@@ -47,26 +52,37 @@ function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate,
     }
 
     if ($ActualValue -lt $ExpectedValue) {
-        return [PSCustomObject] @{
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = "Expected the actual value to be greater than or equal to $(Format-Nicely $ExpectedValue),$(Format-Because $Because) but got $(Format-Nicely $ActualValue)."
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLessThan `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeLessThan `
     -InternalName Should-BeLessThan `
     -Test         ${function:Should-BeLessThan} `
     -Alias        'LT'
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeGreaterOrEqual `
+Set-ShouldOperatorHelpMessage -OperatorName BeLessThan `
+    -HelpMessage "Asserts that a number (or other comparable value) is lower than an expected value. Uses PowerShell's -lt operator to compare the two values."
+
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeGreaterOrEqual `
     -InternalName Should-BeGreaterOrEqual `
     -Test         ${function:Should-BeGreaterOrEqual} `
     -Alias        'GE'
+
+Set-ShouldOperatorHelpMessage -OperatorName BeGreaterOrEqual `
+    -HelpMessage "Asserts that a number (or other comparable value) is greater than or equal to an expected value. Uses PowerShell's -ge operator to compare the two values."
 
 #keeping tests happy
 function ShouldBeLessThanFailureMessage() {

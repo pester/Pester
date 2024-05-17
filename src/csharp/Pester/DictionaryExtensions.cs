@@ -26,7 +26,18 @@ namespace Pester
     {
         public static T? GetValueOrNull<T>(this IDictionary dictionary, string key) where T : struct
         {
-            return dictionary.Contains(key) ? dictionary[key] as T? : null;
+            if (!dictionary.Contains(key))
+                return null;
+
+            var value = dictionary[key];
+
+            if (typeof(T) == typeof(decimal))
+            {
+                if (value is int or double)
+                    return (T)Convert.ChangeType(value, typeof(decimal));
+            }
+
+            return value as T?;
         }
 
         public static T GetObjectOrNull<T>(this IDictionary dictionary, string key) where T : class
@@ -46,9 +57,9 @@ namespace Pester
             if (!dictionary.Contains(key))
                 return null;
 
-            if (dictionary[key] is PSObject)
+            if (dictionary[key] is PSObject pso)
             {
-                return ((PSObject)dictionary[key]).BaseObject as IDictionary;
+                return pso.BaseObject as IDictionary;
             }
             else
             {
@@ -58,7 +69,7 @@ namespace Pester
 
         public static T[] GetArrayOrNull<T>(this IDictionary dictionary, string key) where T : class
         {
-            if (!dictionary.Contains(key))
+            if (!dictionary.Contains(key) || dictionary[key] is null)
                 return null;
 
             var value = dictionary[key];
@@ -73,7 +84,7 @@ namespace Pester
                     return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
 
             if (typeof(T) == typeof(string))
-                if (dictionary[key] is PSObject o)
+                if (value is PSObject o)
                     return new[] { (T)Convert.ChangeType(o.ToString(), typeof(string)) };
 
             if (value is IList v)
@@ -85,9 +96,9 @@ namespace Pester
                     var i = 0;
                     foreach (var j in v)
                     {
-                        if (j is T)
+                        if (j is T t)
                         {
-                            arr[i] = (T) j;
+                            arr[i] = t;
                         }
 
                         if (j is PSObject || j is PathInfo)

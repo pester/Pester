@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -12,33 +13,8 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $true
         WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "Mock"
+        WriteDebugMessagesFrom = 'Mock'
         ReturnRawResultObject  = $true
-    }
-}
-
-function Verify-PathEqual {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        $Expected
-    )
-
-    if ([string]::IsNullOrEmpty($Expected)) {
-        throw "Expected is null or empty."
-    }
-
-    if ([string]::IsNullOrEmpty($Actual)) {
-        throw "Actual is null or empty."
-    }
-
-    $e = ($expected -replace "\\", '/').Trim('/')
-    $a = ($actual -replace "\\", '/').Trim('/')
-
-    if ($e -ne $a) {
-        throw "Expected path '$e' to be equal to '$a'."
     }
 }
 
@@ -96,6 +72,10 @@ i -PassThru:$PassThru {
 
         t "Output.CIFormat is Auto" {
             [PesterConfiguration]::Default.Output.CIFormat.Value | Verify-Equal Auto
+        }
+
+        t "Output.CILogLevel is Error" {
+            [PesterConfiguration]::Default.Output.CILogLevel.Value | Verify-Equal 'Error'
         }
 
         t "Output.RenderMode is Auto" {
@@ -248,12 +228,61 @@ i -PassThru:$PassThru {
             Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
         }
 
+        t 'StringArrayOption can be assigned an arraylist' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned an arraylist from hashtable' {
+            $expectedPaths = [System.Collections.ArrayList]@('one', 'two', 'three')
+            $config = [PesterConfiguration]@{ Run = @{ Path = $expectedPaths } }
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1]
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2]
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
+        t 'StringArrayOption can be assigned array of FileInfo and DirectoryInfo from hashtable' {
+            $file = Get-Item -Path "$PSScriptRoot/Pester.RSpec.Configuration.ts.ps1"
+            $directory = Get-Item -Path "$PSScriptRoot/testProjects"
+            $expectedPaths = @('myFile.ps1', $file, $directory)
+            $config = [PesterConfiguration]::Default
+            $config.Run.Path = $expectedPaths
+            $config.Run.Path.Value[0] | Verify-Equal $expectedPaths[0]
+            $config.Run.Path.Value[1] | Verify-Equal $expectedPaths[1].FullName
+            $config.Run.Path.Value[2] | Verify-Equal $expectedPaths[2].FullName
+        }
+
         t "StringArrayOption can be assigned PSCustomObjects in object array" {
             $path = (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)), (Join-Path (Split-Path $PWD) (Split-Path $PWD -Leaf)) | Resolve-Path
             $config = [PesterConfiguration]@{ Run = @{ Path = $path } }
 
             Verify-Equal $path[0].ToString() -Actual $config.Run.Path.Value[0]
             Verify-Equal $path[1].ToString() -Actual $config.Run.Path.Value[1]
+        }
+
+        t "DecimalOption can be assigned an int from hashtable" {
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = [int] 90 } }
+            $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 90
+        }
+
+        t "DecimalOption can be assigned an double from hashtable" {
+            $config = [PesterConfiguration]@{ CodeCoverage = @{ CoveragePercentTarget = [double] 12.34 } }
+            $config.CodeCoverage.CoveragePercentTarget.Value | Verify-Equal 12.34
         }
 
         t "Modifying the private Default property of an option throws" {
@@ -271,6 +300,27 @@ i -PassThru:$PassThru {
             $config.Run.Path.IsModified | Verify-False
             $config.Run.Path = $config.Run.Path.Default
             $config.Run.Path.IsModified | Verify-True
+        }
+
+        t "Assigning null to array option using hashtable does not throw" {
+            # https://github.com/pester/Pester/issues/2026
+            $config = [PesterConfiguration]@{ Run = @{ Path = $null } }
+            $config.Run.Path | Verify-NotNull
+        }
+
+        t "Assigning null to string option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ TestExtension = $null } }
+            $config.Run.TestExtension | Verify-NotNull
+        }
+
+        t "Assigning null to value option using hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = @{ Exit = $null } }
+            $config.Run.Exit.Value | Verify-NotNull
+        }
+
+        t "Assigning null to config-section in hashtable does not throw" {
+            $config = [PesterConfiguration]@{ Run = $null }
+            $config.Run | Verify-NotNull
         }
     }
 
@@ -773,7 +823,7 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Debug  = @{
                     ShowFullErrors = $false
@@ -784,8 +834,14 @@ i -PassThru:$PassThru {
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported level of stacktrace output 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Output.StackTraceVerbosity must be .* it was 'Something'" | Verify-True
+                $failed = $true
+            }
+            $failed | Verify-True
         }
     }
 
@@ -1020,15 +1076,21 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration] @{
                 Run    = @{
                     ScriptBlock = $sb
-                    PassThru    = $true
+                    Throw       = $true
                 }
                 Output = @{
                     CIFormat = "Something"
                 }
             }
 
-            $r = Invoke-Pester -Configuration $c
-            $r.Containers[0].Blocks[0].ErrorRecord[0] | Verify-Equal "Unsupported CI format 'Something'"
+            try {
+                Invoke-Pester -Configuration $c
+            }
+            catch {
+                $_.Exception.Message -match "Output.CIFormat must be .* it was 'Something'" | Verify-True
+                $failed = $true
+            }
+            $failed | Verify-True
         }
 
         t "Output.CIFormat is None when set" {
@@ -1045,6 +1107,45 @@ i -PassThru:$PassThru {
 
             $r = Invoke-Pester -Configuration $c
             $r.Configuration.Output.CIFormat.Value | Verify-Equal "None"
+        }
+    }
+
+    b "Output.CILogLevel" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in "Error", "Warning") {
+                $c.Output.CILogLevel = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CILogLevel.Value | Verify-Equal $option
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                    Throw       = $true
+                }
+                Output = @{
+                    CIFormat = 'None'
+                    CILogLevel = 'Something'
+                }
+            }
+
+            { Invoke-Pester -Configuration $c } | Verify-Throw
         }
     }
 
@@ -1175,9 +1276,12 @@ i -PassThru:$PassThru {
 
             try {
                 Invoke-Pester -Configuration $c
+                $true | Verify-False # Should not get here
             } catch {
-                $_.Exception.Message -match "Unsupported Output.RenderMode option 'Something'" | Verify-True
+                $_.Exception.Message -match "Output.RenderMode must be .* it was 'Something'" | Verify-True
+                $failed = $true
             }
+            $failed | Verify-True
         }
     }
 

@@ -1,9 +1,6 @@
 ﻿param ([switch] $PassThru)
 
-Get-Item function:wrapper -ErrorAction SilentlyContinue | remove-item
-
-
-Get-Module Pester.Runtime.Wrapper, Pester.Utility, P, Pester, Axiom | Remove-Module
+Get-Module Pester.Runtime.Wrapper, P, PTestHelpers, Pester, Axiom | Remove-Module
 
 . $PSScriptRoot\..\src\Pester.Utility.ps1
 New-Module -Name Pester.Runtime.Wrapper -ScriptBlock {
@@ -65,7 +62,6 @@ i -PassThru:$PassThru {
             [String[]] $Path,
             [String[]] $Tag,
             [System.Collections.IDictionary] $Data,
-            [String] $Id,
             [ScriptBlock] $ScriptBlock,
             [int] $StartLine,
             [Switch] $Focus,
@@ -819,7 +815,7 @@ i -PassThru:$PassThru {
 
             # here I have the failed tests, I need to accumulate paths
             # on them and use them for filtering the run in the next run
-            # I should probably re-do the navigation to make it see how deep # I am in the scope, I have som Scopes prototype in the Mock imho
+            # I should probably re-do the navigation to make it see how deep # I am in the scope, I have some Scopes prototype in the Mock imho
 
             $lines = $pre | Where-Failed | % { "$($_.ScriptBlock.File):$($_.StartLine)" }
             $lines.Length | Verify-Equal 2
@@ -1229,52 +1225,49 @@ i -PassThru:$PassThru {
             $container.EachTestTeardown | Verify-Equal 0
         }
 
-        t "skipping all items in a block will skip the parent block" {
-            # this is not implemented, but is a possible feature
-            # which could be implemented together with "if any test is explicitly unskipped in child
-            # then the block should run, this will be needed for running tests explicitly by path I think
-            # it also should be taken into consideration whether or not adding a lazySkip is a good idea and how it would
-            # affect implementation of this. Right now skipping the block goes from parent down, and skipping all items in a block
-            # will not prevent the parent block setups from running
+        t 'skipping all items in a block will skip the parent block' {
+            $container = @{
+                OneTimeTestSetup    = 0
+                OneTimeTestTeardown = 0
+                EachTestSetup       = 0
+                EachTestTeardown    = 0
+                TestRun             = 0
+            }
 
-            #     $container = @{
-            #         OneTimeTestSetup = 0
-            #         OneTimeTestTeardown = 0
-            #         EachTestSetup = 0
-            #         EachTestTeardown = 0
-            #         TestRun = 0
-            #     }
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
+                New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
-            #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-            #         New-Block "parent block" {
-            #             New-Block "parent block" {
-            #                 # putting this in child block because each test setup is not supported in root block
-            #                 New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
-            #                 New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+                New-Block 'parent block' {
+                        New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                        New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
 
-            #                 New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
-            #                 New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+                        New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+                        New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
 
-            #                 New-Test "test1" -Skip {
-            #                     $container.TestRun++
-            #                     "a"
-            #                 }
+                        New-Test 'test1' -Skip {
+                            $container.TestRun++
+                            'a'
+                        }
 
-            #                 New-Test "test2" -Skip {
-            #                     $container.TestRun++
-            #                     "a"
-            #                 }
-            #             }
-            #         }
-            #     })
+                        New-Block 'inner block' -Skip {
+                            New-Test 'test2' {
+                                $container.TestRun++
+                                'a'
+                            }
+                        }
+                    }
+                })
 
-            #     # $actual.Blocks[0].Skip | Verify-True
-            #     $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
-            #     $container.TestRun | Verify-Equal 0
-            #     $container.OneTimeTestSetup | Verify-Equal 0
-            #     $container.OneTimeTestTeardown | Verify-Equal 0
-            #     $container.EachTestSetup | Verify-Equal 0
-            #     $container.EachTestTeardown | Verify-Equal 0
+            # Should be marked as Skip by runtime
+            $actual.Blocks[0].Skip | Verify-True
+            $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+
+            $container.TestRun | Verify-Equal 0
+            $container.OneTimeTestSetup | Verify-Equal 0
+            $container.OneTimeTestTeardown | Verify-Equal 0
+            $container.EachTestSetup | Verify-Equal 0
+            $container.EachTestTeardown | Verify-Equal 0
         }
     }
 
@@ -1344,6 +1337,52 @@ i -PassThru:$PassThru {
             $container.EachBlockSetup1 | Verify-Equal 1
             $container.EachBlockTeardown1 | Verify-Equal 1
             # $container.OneTimeBlockTeardown1 | Verify-Equal 1
+        }
+
+        t 'setup and teardown are executed on skipped parent blocks when a test is explicitly included' {
+            $container = @{
+                OneTimeTestSetup    = 0
+                OneTimeTestTeardown = 0
+                EachTestSetup       = 0
+                EachTestTeardown    = 0
+                TestRun             = 0
+            }
+
+            $sb = {
+                    New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                    New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+                    New-Block 'parent block' -Skip {
+                        New-OneTimeTestSetup -ScriptBlock { $container.OneTimeTestSetup++ }
+                        New-OneTimeTestTeardown -ScriptBlock { $container.OneTimeTestTeardown++ }
+
+                        New-EachTestSetup -ScriptBlock { $container.EachTestSetup++ }
+                        New-EachTestTeardown -ScriptBlock { $container.EachTestTeardown++ }
+
+                        New-Test 'test1' -Skip { # <--- Linefilter here ($sb assignment + 11 lines). Should run
+                            $container.TestRun++
+                            'a'
+                        }
+
+                        New-Test 'test2' -Skip { # Should not run
+                            $container.TestRun++
+                            'a'
+                        }
+                    }
+                }
+
+            $f = New-FilterObject -Line "$($sb.File):$($sb.StartPosition.StartLine + 11)"
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock $sb) -Filter $f
+
+            # Should be marked as Skip = false by runtime
+            $actual.Blocks[0].Skip | Verify-False
+            $actual.Blocks[0].ErrorRecord.Count | Verify-Equal 0
+
+            $container.TestRun | Verify-Equal 1
+            $container.OneTimeTestSetup | Verify-Equal 2
+            $container.OneTimeTestTeardown | Verify-Equal 2
+            $container.EachTestSetup | Verify-Equal 1
+            $container.EachTestTeardown | Verify-Equal 1
         }
     }
 
@@ -1591,37 +1630,6 @@ i -PassThru:$PassThru {
 
             $actual.Blocks[0].Tests.Count | Verify-Equal 2
         }
-
-        # #is the Id still needed? does this test have any value?
-        # t "Each parametrized test has unique id and they both successfully execute and have the correct data" {
-        #     $data = @(
-        #         @{ Value = 1 }
-        #         @{ Value = 2 }
-        #     )
-
-        #     $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-        #         New-BlockContainerObject -ScriptBlock {
-        #             New-Block -Name "block1" {
-        #                 New-ParametrizedTest "test" {
-
-        #                 } -Data $data
-        #             }
-        #         }
-        #     )
-
-        #     $actual.Blocks[0].Tests[0].Id | Verify-Equal 0
-        #     $actual.Blocks[0].Tests[1].Id | Verify-Equal 1
-
-        #     $actual.Blocks[0].Tests[0].Executed | Verify-True
-        #     $actual.Blocks[0].Tests[1].Executed | Verify-True
-
-        #     $actual.Blocks[0].Tests[0].Passed | Verify-True
-        #     $actual.Blocks[0].Tests[1].Passed | Verify-True
-
-        #     $actual.Blocks[0].Tests[0].Data.Value | Verify-Equal 1
-        #     $actual.Blocks[0].Tests[1].Data.Value | Verify-Equal 2
-
-        # }
     }
 
     b "running from files" {
@@ -1940,160 +1948,6 @@ i -PassThru:$PassThru {
     #     }
     # }
 
-    # # do these tests still have value? Is the Id needed, or it is useless with the new new runtime?
-    # b "generating tests" {
-    #     t "generating tests without external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-    #                     foreach ($notUsed in 1..3) {
-    #                         New-Test "test 1" { } # no -Id here
-    #                     }
-    #                 }
-    #             }
-    #         )
-
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 2
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 3
-    #     }
-
-    #     t "generating paremetrized tests without external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-    #                     foreach ($notUsed in 1..3) {
-    #                         New-ParametrizedTest "test 1" -Data @{ Value = "a" } { }
-    #                     }
-    #                 }
-    #             }
-    #         )
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal "2"
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 3
-    #     }
-
-    #     t "generating multiple tests from one foreach without external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-    #                     foreach ($notUsed in 1..3) {
-    #                         New-Test "test 1" { } # no -Id here
-    #                         New-Test "test 2" { } # no -Id here
-    #                     }
-    #                 }
-    #             }
-    #         )
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-
-    #         $actual.Blocks[0].Tests[2].Name | Verify-Equal "test 1"
-    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 1
-
-    #         $actual.Blocks[0].Tests[3].Name | Verify-Equal "test 2"
-    #         $actual.Blocks[0].Tests[3].Id | Verify-Equal 1
-
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 6
-    #     }
-
-    #     t "generating tests with external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-    #                     foreach ($id in 80..82) {
-    #                         New-Test "test 1" { } -Id $id
-    #                     }
-    #                 }
-    #             }
-    #         )
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Blocks[0].Tests[2].Id | Verify-Equal 82
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 3
-    #     }
-    # }
-
-    # # do these tests still have value? Is the Id needed, or it is useless with the new new runtime?
-    # b "generating blocks" {
-    #     t "generating blocks without external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-    #                 foreach ($notUsed in 1..3) {
-    #                     New-Block -Name "block1" {
-    #                         New-Test "test 1" { }
-    #                     } # no -Id here
-    #                 }
-    #             }
-    #         )
-
-
-    #         $actual.Blocks[1].ErrorRecord | Verify-Null
-    #         $actual.Blocks[1].Id | Verify-Equal 1
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 3
-    #     }
-
-    #     t "generating multiple blocks from one foreach without external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 foreach ($notUsed in 1..3) {
-    #                     New-Block -Name "block1" {
-    #                         New-Test "test 1" { }
-    #                     } # no -Id here
-
-    #                     New-Block -Name "block2" {
-    #                         New-Test "test 2" { }
-    #                     } # no -Id here
-    #                 }
-    #             }
-    #         )
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Blocks[0].Id | Verify-Equal 0 # block1-0
-
-    #         $actual.Blocks[1].ErrorRecord | Verify-Null
-    #         $actual.Blocks[1].Id | Verify-Equal 0 # block2-0
-
-    #         $actual.Blocks[2].ErrorRecord | Verify-Null
-    #         $actual.Blocks[2].Id | Verify-Equal 1 # block1-1
-
-    #         $actual.Blocks[3].ErrorRecord | Verify-Null
-    #         $actual.Blocks[3].Id | Verify-Equal 1 # block2-1
-
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 6
-    #     }
-
-    #     t "generating blocks with external id" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 foreach ($id in 80..82) {
-    #                     New-Block -Name "block1" {
-    #                         New-Test "test 1" { }
-    #                     } -Id $id
-    #                 }
-    #             }
-    #         )
-
-    #         $actual.Blocks[0].ErrorRecord | Verify-Null
-    #         $actual.Blocks[2].Id | Verify-Equal 82
-    #         $passedTests = @($actual | View-Flat | where { $_.Passed })
-    #         $passedTests.Count | Verify-Equal 3
-    #     }
-    # }
-
     b "expandable variables in names" {
         t "can run tests that have expandable variable in their name" {
             # this should cause no problems, the test name is the same during
@@ -2234,8 +2088,6 @@ i -PassThru:$PassThru {
 
 
         t "total time is roughly the same as time measured externally (measured on a second test)" {
-            # this is the same as above, if I add one time setups then the framework time should grow
-            # but not the user code time
             $container = @{
                 Test   = $null
                 Block  = $null
@@ -2298,8 +2150,6 @@ i -PassThru:$PassThru {
         }
 
         t "total time is roughly the same as time measured externally (on many tests)" {
-            # this is the same as above, if I add one time setups then the framework time should grow
-            # but not the user code time
             $container = @{
                 Test   = $null
                 Block  = $null
@@ -2356,6 +2206,54 @@ i -PassThru:$PassThru {
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
 
             # TODO: revisit the difference on many tests, it is still missing some parts of the common discovery processing I guess (replicates on 10k tests)
+        }
+
+        t "OneTimeTestSetup and OneTimeTestTeardown is measured as user code in block" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name 'b1' {
+                        New-OneTimeTestSetup {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-OneTimeTestTeardown {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-Test 't1' {
+                            $true
+                        }
+                    }
+                }
+            )
+
+            $actual.UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].OwnDuration.TotalMilliseconds -ge 100 | Verify-True
+            # test should not include time spent in block setup/teardown
+            $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds -lt 100 | Verify-True
+        }
+
+        t "EachTestSetup and EachTestTeardown is measured as user code in test" {
+            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
+                New-BlockContainerObject -ScriptBlock {
+                    New-Block -Name 'b1' {
+                        New-EachTestSetup {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-EachTestTeardown {
+                            Start-Sleep -Milliseconds 50
+                        }
+                        New-Test 't1' {
+                            $true
+                        }
+                    }
+                }
+            )
+
+            $actual.UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            $actual.Blocks[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
+            # block is not responsible for setup/teardown per test.
+            $actual.Blocks[0].OwnDuration.TotalMilliseconds -lt 100 | Verify-True
+            $actual.Blocks[0].Tests[0].UserDuration.TotalMilliseconds -ge 100 | Verify-True
         }
     }
 

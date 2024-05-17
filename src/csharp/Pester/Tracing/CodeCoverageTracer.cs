@@ -8,8 +8,8 @@ namespace Pester.Tracing
 {
     public class CodeCoverageTracer : ITracer
     {
-        bool _debug;
-        string _debugFile;
+        private readonly bool _debug;
+        private readonly string _debugFile;
 
         public static CodeCoverageTracer Create(List<CodeCoveragePoint> points)
         {
@@ -41,7 +41,6 @@ namespace Pester.Tracing
                     var pointsOnLineAndColumn = hits[key];
                     pointsOnLineAndColumn.Add(point);
                 }
-
             }
         }
 
@@ -67,7 +66,6 @@ namespace Pester.Tracing
                     }
                     Console.WriteLine($"DBG: {message?.Trim()}");
                     Console.WriteLine($"EXP: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
-
                 }
                 finally
                 {
@@ -85,7 +83,6 @@ namespace Pester.Tracing
             if (!lineColumn.ContainsKey(key2))
                 return;
 
-
             var points = lineColumn[key2];
             if (points.TrueForAll(a => a.Hit))
             {
@@ -102,5 +99,13 @@ namespace Pester.Tracing
 
             lineColumn[key2] = points;
         }
+
+#pragma warning disable IDE0060
+        // Profiler v3.1 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock _, int __) => Trace(null, extent, _, __);
+
+        // Profiler v4 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock _, int __, string ___, string ____) => Trace(null, extent, _, __);
+#pragma warning restore IDE0060
     }
 }

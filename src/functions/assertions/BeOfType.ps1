@@ -28,9 +28,10 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
     #>
     if ($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
-        $parsedType = ($ExpectedType -replace '^\[(.*)\]$', '$1') -as [Type]
+        $trimmedType = $ExpectedType -replace '^\[(.*)\]$', '$1'
+        $parsedType = $trimmedType -as [Type]
         if ($null -eq $parsedType) {
-            throw [ArgumentException]"Could not find type [$ParsedType]. Make sure that the assembly that contains that type is loaded."
+            throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded."
         }
 
         $ExpectedType = $parsedType
@@ -50,26 +51,37 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
         $actualType = $null
     }
 
-    if (-not $succeded) {
-        if ($Negate) {
-            $failureMessage = "Expected the value to not have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
-        }
-        else {
-            $failureMessage = "Expected the value to have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+
+    if ($Negate) {
+        $failureMessage = "Expected the value to not have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
+    }
+    else {
+        $failureMessage = "Expected the value to have type $(Format-Nicely $ExpectedType) or any of its subtypes,$(Format-Because $Because) but got $(Format-Nicely $ActualValue) with type $(Format-Nicely $actualType)."
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = if ($Negate) { "not $(Format-Nicely $ExpectedType) or any of its subtypes" } else { "a $(Format-Nicely $ExpectedType) or any of its subtypes" }
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeOfType `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeOfType `
     -InternalName Should-BeOfType `
     -Test         ${function:Should-BeOfType} `
     -Alias        'HaveType'
+
+Set-ShouldOperatorHelpMessage -OperatorName BeOfType `
+    -HelpMessage "Asserts that the actual value should be an object of a specified type (or a subclass of the specified type) using PowerShell's -is operator."
 
 function ShouldBeOfTypeFailureMessage() {
 }

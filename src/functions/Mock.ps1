@@ -155,7 +155,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     # MockCallState initialization is injected only into the begin block by the code that generates this prototype
     # also it is not a good idea to share it via the function local data because then it will get overwritten by nested
-    # mock if there is any, instead it should be a varible that gets defined in begin and so it survives during the whole
+    # mock if there is any, instead it should be a variable that gets defined in begin and so it survives during the whole
     # pipeline, but does not overwrite other variables, because we are running in different scopes. Mindblowing.
     & `$MyInvocation.MyCommand.Mock.Invoke_Mock -CommandName '#FUNCTIONNAME#' -ModuleName '#MODULENAME#' ```
         -BoundParameters `$PSBoundParameters ```
@@ -237,12 +237,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     $defineFunctionAndAliases = {
         param($___Mock___parameters)
         # Make sure the you don't use _______parameters variable here, otherwise you overwrite
-        # the variable that is defined in the same scope and the subsequent invocation of scrips will
+        # the variable that is defined in the same scope and the subsequent invocation of scripts will
         # be seriously broken (e.g. you will start resolving setups). But such is life of running in once scope.
         # from upper scope for no reason. But the reason is that you deleted ______param in this scope,
         # and so ______param from the parent scope was inherited
 
-        ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND COSUME
+        ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME
 
 
         # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
@@ -300,10 +300,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
 function Should-InvokeVerifiableInternal {
     [CmdletBinding()]
+    [OutputType([Pester.ShouldResult])]
     param(
         [Parameter(Mandatory)]
         $Behaviors,
-        [switch]$Negate
+        [switch] $Negate,
+        [string] $Because
     )
 
     $filteredBehaviors = [System.Collections.Generic.List[Object]]@()
@@ -314,47 +316,62 @@ function Should-InvokeVerifiableInternal {
     }
 
     if ($filteredBehaviors.Count -gt 0) {
-        if ($Negate) { $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:" }
-        else { $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:" }
-
+        [string]$filteredBehaviorMessage = ''
         foreach ($b in $filteredBehaviors) {
-            $message += "$([System.Environment]::NewLine) Command $($b.CommandName) "
+            $filteredBehaviorMessage += "$([System.Environment]::NewLine) Command $($b.CommandName) "
             if ($b.ModuleName) {
-                $message += "from inside module $($b.ModuleName) "
+                $filteredBehaviorMessage += "from inside module $($b.ModuleName) "
             }
-            if ($null -ne $b.Filter) { $message += "with { $($b.Filter.ToString().Trim()) }" }
+            if ($null -ne $b.Filter) { $filteredBehaviorMessage += "with { $($b.Filter.ToString().Trim()) }" }
         }
 
-        return [PSCustomObject] @{
+        if ($Negate) {
+            $message = "$([System.Environment]::NewLine)Expected no verifiable mocks to be called,$(Format-Because $Because) but these were:$filteredBehaviorMessage"
+            $ExpectedValue = 'No verifiable mocks to be called'
+            $ActualValue = "These mocks were called:$filteredBehaviorMessage"
+        }
+        else {
+            $message = "$([System.Environment]::NewLine)Expected all verifiable mocks to be called,$(Format-Because $Because) but these were not:$filteredBehaviorMessage"
+            $ExpectedValue = 'All verifiable mocks to be called'
+            $ActualValue = "These mocks were not called:$filteredBehaviorMessage"
+        }
+
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $message
+            ExpectResult   = @{
+                Expected = $ExpectedValue
+                Actual   = $ActualValue
+                Because  = Format-Because $Because
+            }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null
     }
 }
 
 function Should-InvokeInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
+    [OutputType([Pester.ShouldResult])]
     param(
         [Parameter(Mandatory = $true)]
         [hashtable] $ContextInfo,
 
-        [int]$Times = 1,
+        [int] $Times = 1,
 
         [Parameter(ParameterSetName = 'ParameterFilter')]
-        [ScriptBlock]$ParameterFilter = { $True },
+        [ScriptBlock] $ParameterFilter = { $True },
 
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
         [string] $ModuleName,
 
-        [switch]$Exactly,
-        [switch]$Negate,
+        [switch] $Exactly,
+        [switch] $Negate,
+        [string] $Because,
 
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
@@ -450,43 +467,67 @@ function Should-InvokeInternal {
 
     if ($Negate) {
         # Negative checks
-        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey("Times"))) {
-            return [PSCustomObject] @{
+        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} not to be called exactly $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called less than $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
     }
     else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called $Times times exactly"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to be called at least $Times times"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
+                    Because  = Format-Because $Because
+                }
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter, but $($nonMatchingCalls.Count) non-matching calls were made"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} to only be called with with parameters matching the specified filter"
+                    Actual   = "${commandName}${moduleMessage} was called $($nonMatchingCalls.Count) times with non-matching parameters"
+                    Because  = Format-Because $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $true
-        FailureMessage = $null
     }
 }
 
@@ -511,7 +552,7 @@ function Remove-MockHook {
             }
         }
         else {
-            # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+            # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarily
             # if ($Write_Debug_Enabled) {
             #     & $Write_Debug -Scope Mock -Message "ERROR: Function $($CommandName) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
             # }
@@ -525,7 +566,7 @@ function Remove-MockHook {
                 }
             }
             else {
-                # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarilly
+                # # this runs from OnContainerRunEnd in the mock plugin, it might be running unnecessarily
                 # if ($Write_Debug_Enabled) {
                 #     & $Write_Debug -Scope Mock -Message "ERROR: Alias $($alias) was not found$(if ($ExecutionContext.SessionState.Module) { " in module $($ExecutionContext.SessionState.Module) session state"} else { " in script session state"})."
                 # }
@@ -613,7 +654,7 @@ function Resolve-Command {
             $SessionState = $callerSessionState
         }
         else {
-            $module = Get-ScriptModule -ModuleName $ModuleName -ErrorAction Stop
+            $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction Stop
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
             }
@@ -644,7 +685,7 @@ function Resolve-Command {
     else {
         # we used to fallback to the script scope when command was not found in the module, we no longer do that
         # now we just search the script scope when module name is not specified. This was probably needed because of
-        # some incosistencies of resolving the mocks. But it never made sense to me.
+        # some inconsistencies of resolving the mocks. But it never made sense to me.
 
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "Searching for command $CommandName in the script scope."
@@ -687,7 +728,7 @@ function Resolve-Command {
             # true if we inserted the mock into a module
             IsFromModule            = $null -ne $module
             TargetModule            = $ModuleName
-            # true if the commmand comes from the target module
+            # true if the command comes from the target module
             IsFromTargetModule      = $null -ne $module -and $ModuleName -eq $command.Mock.Hook.OriginalCommand.Module.Name
             IsMockBootstrapFunction = $true
             Hook                    = $command.Mock.Hook
@@ -1571,40 +1612,42 @@ function Test-IsClosure {
 }
 
 function Remove-MockFunctionsAndAliases ($SessionState) {
-    # when a test is terminated (e.g. by stopping at a breakpoint and then stoping the execution of the script)
+    # when a test is terminated (e.g. by stopping at a breakpoint and then stopping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
     # Then on subsequent runs the bootstrap function will be picked up instead of the real command,
     # because there is still an alias associated with it, and the test will fail.
     # So before putting Pester state in place we should make sure that all Pester mocks are gone
     # by deleting every alias pointing to a function that starts with PesterMock_. Then we also delete the
     # bootstrap function.
+    #
+    # Avoid using Get-Command to find mock functions, it is slow. https://github.com/pester/Pester/discussions/2331
     $Get_Alias = $script:SafeCommands['Get-Alias']
-    $Get_Command = $script:SafeCommands['Get-Command']
+    $Get_ChildItem = $script:SafeCommands['Get-ChildItem']
     $Remove_Item = $script:SafeCommands['Remove-Item']
     foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
         & $Remove_Item "alias:/$($alias.Name)"
     }
 
-    foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
-        & $Remove_Item "function:/$($bootstrapFunction.Name)"
+    foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+        & $Remove_Item "function:/$($bootstrapFunction)" -Recurse -Force -Confirm:$false
     }
 
     $ScriptBlock = {
-        param ($Get_Alias, $Get_Command, $Remove_Item)
+        param ($Get_Alias, $Get_ChildItem, $Remove_Item)
         foreach ($alias in (& $Get_Alias -Definition "PesterMock_*")) {
             & $Remove_Item "alias:/$($alias.Name)"
         }
 
-        foreach ($bootstrapFunction in (& $Get_Command -Name "PesterMock_*")) {
-            & $Remove_Item "function:/$($bootstrapFunction.Name)"
+        foreach ($bootstrapFunction in (& $Get_ChildItem -Name "function:/PesterMock_*")) {
+            & $Remove_Item "function:/$($bootstrapFunction)" -Recurse -Force -Confirm:$false
         }
     }
 
     # clean up in caller session state
     Set-ScriptBlockScope -SessionState $SessionState -ScriptBlock $ScriptBlock
-    & $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+    & $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
 
-    # clean up also in all loaded script modules
+    # clean up also in all loaded script and manifest modules
     $modules = & $script:SafeCommands['Get-Module']
     foreach ($module in $modules) {
         # we cleaned up in module on the start of this method without overhead of moving to module scope
@@ -1612,11 +1655,11 @@ function Remove-MockFunctionsAndAliases ($SessionState) {
             continue
         }
 
-        # some script modules aparently can have no session state
+        # some script modules apparently can have no session state
         # https://github.com/PowerShell/PowerShell/blob/658837323599ab1c7a81fe66fcd43f7420e4402b/src/System.Management.Automation/engine/runtime/Operations/MiscOps.cs#L51-L55
         # https://github.com/pester/Pester/issues/1921
-        if ('Script' -eq $module.ModuleType -and $null -ne $module.SessionState) {
-            & ($module) $ScriptBlock $Get_Alias $Get_Command $Remove_Item
+        if ('Script', 'Manifest' -contains $module.ModuleType -and $null -ne $module.SessionState) {
+            & ($module) $ScriptBlock $Get_Alias $Get_ChildItem $Remove_Item
         }
     }
 }
@@ -1647,7 +1690,7 @@ function Repair-ConflictingParameters {
             continue
         }
 
-        # rewrite the metadata to avoid defining confliting parameters
+        # rewrite the metadata to avoid defining conflicting parameters
         # in the function such as $PSEdition
         if ($conflictingParams -contains $paramMetadata.Name) {
             $paramName = $paramMetadata.Name
@@ -1659,7 +1702,7 @@ function Repair-ConflictingParameters {
             $repairedMetadata.Parameters.Add($newName, $paramMetadata)
         }
 
-        $attrIndexesToRemove = [System.Collections.Generic.List[object]]@()
+        $attrIndexesToRemove = [System.Collections.Generic.List[int]]@()
 
         if ($RemoveParameterType -contains $paramMetadata.Name) {
             $paramMetadata.ParameterType = [object]
@@ -1682,6 +1725,9 @@ function Repair-ConflictingParameters {
             }
         }
 
+        # remove attributes in reverse order to avoid index shifting
+        $attrIndexesToRemove.Sort()
+        $attrIndexesToRemove.Reverse()
         foreach ($index in $attrIndexesToRemove) {
             $null = $paramMetadata.Attributes.RemoveAt($index)
         }
@@ -1821,13 +1867,13 @@ function Repair-EnumParameters {
     # https://github.com/PowerShell/PowerShell/issues/17546
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
     $brokenValidateRange = $ast.FindAll({
-        param($node)
-        $node -is [System.Management.Automation.Language.AttributeAst] -and
-        $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
-        $node.NamedArguments.Count -gt 0 -and
-        # triple checking for broken argument - it won't have a value/expression
-        $node.NamedArguments.ExpressionOmitted -notcontains $false
-    }, $false)
+            param($node)
+            $node -is [System.Management.Automation.Language.AttributeAst] -and
+            $node.TypeName.Name -match '(?:ValidateRange|System\.Management\.Automation\.ValidateRangeAttribute)$' -and
+            $node.NamedArguments.Count -gt 0 -and
+            # triple checking for broken argument - it won't have a value/expression
+            $node.NamedArguments.ExpressionOmitted -notcontains $false
+        }, $false)
 
     if ($brokenValidateRange.Count -eq 0) {
         # No errors found. Return original string

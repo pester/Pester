@@ -23,27 +23,40 @@
 
     if (-not $succeeded) {
         if ($Negate) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected case sensitive like wildcard $(Format-Nicely $ExpectedValue) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
+                ExpectResult           = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
         else {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected case sensitive like wildcard $(Format-Nicely $ExpectedValue) to match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did not match."
+                ExpectResult           = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeLikeExactly `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeLikeExactly `
     -InternalName Should-BeLikeExactly `
     -Test         ${function:Should-BeLikeExactly}
+
+Set-ShouldOperatorHelpMessage -OperatorName BeLikeExactly `
+    -HelpMessage "Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator. This comparison is case-sensitive."
 
 function ShouldBeLikeExactlyFailureMessage() {
 }

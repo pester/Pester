@@ -21,17 +21,14 @@ namespace Pester
     {
         public DecimalOption(DecimalOption option, decimal value) : base(option, value)
         {
-
         }
 
         public DecimalOption(string description, decimal defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public DecimalOption(string description, decimal defaultValue, decimal value) : base(description, defaultValue, value)
         {
-
         }
 
         public static implicit operator DecimalOption(decimal value)

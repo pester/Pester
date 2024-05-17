@@ -59,3 +59,57 @@ Describe "TestRegistry scoping" {
     }
 }
 
+Describe 'Repair missing TestRegistry' {
+    BeforeAll {
+        $tempValueName = 'MyValue'
+        $tempValue = New-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName -Value 1
+    }
+
+    Context 'Broken' {
+        It 'Removes TestRegistry' {
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+            Remove-PSDrive -Name 'TestRegistry'
+            { Get-PSDrive -Name 'TestRegistry' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+        }
+    }
+
+    Context 'Fixed' {
+        It 'TestRegistry exists again' {
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+        }
+    }
+}
+
+Describe 'Running Pester in Invoke-Pester' {
+    BeforeAll {
+        $tempValueName = 'OuterValue'
+        $tempValue = New-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName -Value 1
+    }
+
+    It 'Value exists before' {
+        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+    }
+
+    It 'Works in nested run' {
+        $sb = {
+            Describe 'Nested' {
+                It 'Value created in outer run are available using absolute path' {
+                    (Get-ItemProperty -Path $TempKeyPath -Name $TempValueName).$TempValueName | Should -Be 1
+                }
+
+                It 'TestRegistry PSDrive points to clean location' {
+                    (Get-Item -Path 'TestRegistry:/').Property | Should -BeNullOrEmpty
+                }
+            }
+        }
+
+        $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempKeyPath = $tempValue.PSPath; TempValueName = $tempValueName }
+        $innerRun = Invoke-Pester -Container $c -PassThru -Output None
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 2
+    }
+
+    It 'Value still exists after nested run' {
+        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+    }
+}

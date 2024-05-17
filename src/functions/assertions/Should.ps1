@@ -31,7 +31,7 @@ function Should {
 
     Should can be used more than once in the It block if more than one assertion
     need to be verified. Each Should keyword needs to be on a separate line.
-    Test will be passed only when all assertion will be met (logical conjuction).
+    Test will be passed only when all assertion will be met (logical conjunction).
 
     .PARAMETER ActualValue
     The actual value that was obtained in the test which should be verified against
@@ -90,7 +90,7 @@ function Should {
     https://pester.dev/docs/commands/Should
 
     .LINK
-    https://pester.dev/docs/assertions/assertions
+    https://pester.dev/docs/assertions
     #>
     [CmdletBinding()]
     param (
@@ -166,7 +166,7 @@ function Should {
                         $shouldThrow = $true
                     }
                     else {
-                        # ErrorAction was not specified explictily, figure out what to do from the configuration
+                        # ErrorAction was not specified explicitly, figure out what to do from the configuration
                         $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
                     }
                 }
@@ -258,8 +258,7 @@ function Invoke-Assertion {
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
     if (-not $testResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow)
-
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately

@@ -1,5 +1,6 @@
-﻿using System.Linq;
-using System.Management.Automation;
+﻿using System.Management.Automation;
+using System.Collections;
+using System.Collections.Generic;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -24,32 +25,26 @@ namespace Pester
     {
         public StringArrayOption(StringArrayOption option, string[] value) : base(option, value)
         {
-
         }
 
         public StringArrayOption(string description, string[] defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public StringArrayOption(string description, string[] defaultValue, string[] value) : base(description, defaultValue, value)
         {
-
         }
 
         public StringArrayOption(string[] value) : base("", new string[0], value)
         {
-
         }
 
         public StringArrayOption(string value) : base("", new string[0], new string[] { value })
         {
-
         }
 
-        public StringArrayOption(object[] value) : base("", new string[0], value.Select(oneValue => oneValue.ToString()).ToArray())
+        public StringArrayOption(IList value) : base("", new string[0], GetStringArray(value))
         {
-
         }
 
         public static implicit operator StringArrayOption(string[] value)
@@ -63,10 +58,23 @@ namespace Pester
             return new StringArrayOption(string.Empty, array, array);
         }
 
-        public static implicit operator StringArrayOption (PathInfo pathInfo)
+        public static implicit operator StringArrayOption(PathInfo pathInfo)
         {
             var array = new[] { pathInfo?.ToString() };
             return new StringArrayOption(string.Empty, array, array);
+        }
+
+        private static string[] GetStringArray(IList values)
+        {
+            var strings = new List<string>(values.Count);
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                string path = values[i]?.ToString();
+                strings.Add(path);
+            }
+
+            return strings.ToArray();
         }
     }
 }
