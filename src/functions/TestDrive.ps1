@@ -125,7 +125,7 @@ function Clear-TestDrive {
 function New-RandomTempDirectory {
     do {
         $tempPath = Get-TempDirectory
-        $dirName = [IO.Path]::GetRandomFileName().Substring(0, 4)
+        $dirName = 'Pester_' + [IO.Path]::GetRandomFileName().Substring(0, 4)
         $Path = [IO.Path]::Combine($tempPath, $dirName)
     } until (-not [IO.Directory]::Exists($Path))
 
