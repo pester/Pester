@@ -363,10 +363,10 @@ function New-PesterConfiguration {
       CoveragePercentTarget: Target percent of code coverage that you want to achieve, default 75%.
       Default value: 75
 
-      UseBreakpoints: EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.
-      Default value: $true
+      UseBreakpoints: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.
+      Default value: $false
 
-      SingleHitBreakpoints: Remove breakpoint when it is hit.
+      SingleHitBreakpoints: Remove breakpoint when it is hit. This increases performance of breakpoint based CodeCoverage.
       Default value: $true
 
     TestResult:
