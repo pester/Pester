@@ -7,20 +7,13 @@
     Sometimes a test shouldn't be executed, sometimes the condition cannot be evaluated.
     By default such tests would typically fail and produce a big red message.
     Using Set-ItResult it is possible to set the result from the inside of the It script
-    block to either inconclusive, pending or skipped.
-
-    As of Pester 5, there is no "Inconclusive" or "Pending" test state, so all tests will now go to state skipped,
-    however the test result notes will include information about being inconclusive or testing to keep this command
-    backwards compatible
+    block to either inconclusive, or skipped.
 
     .PARAMETER Inconclusive
-    Sets the test result to inconclusive. Cannot be used at the same time as -Pending or -Skipped
-
-    .PARAMETER Pending
-    **DEPRECATED** Sets the test result to pending. Cannot be used at the same time as -Inconclusive or -Skipped
+    Sets the test result to inconclusive. Cannot be used at the same time as -Skipped
 
     .PARAMETER Skipped
-    Sets the test result to skipped. Cannot be used at the same time as -Inconclusive or -Pending
+    Sets the test result to skipped. Cannot be used at the same time as -Inconclusive.
 
     .PARAMETER Because
     Similarly to failing tests, skipped and inconclusive tests should have reason. It allows
@@ -54,7 +47,6 @@
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false, ParameterSetName = "Inconclusive")][switch]$Inconclusive,
-        [Parameter(Mandatory = $false, ParameterSetName = "Pending")][switch]$Pending,
         [Parameter(Mandatory = $false, ParameterSetName = "Skipped")][switch]$Skipped,
         [string]$Because
     )
@@ -79,11 +71,6 @@
         'Inconclusive' {
             [String]$errorId = 'PesterTestInconclusive'
             [String]$message = "is inconclusive"
-            break
-        }
-        'Pending' {
-            [String]$errorId = 'PesterTestPending'
-            [String]$message = "is pending"
             break
         }
         'Skipped' {

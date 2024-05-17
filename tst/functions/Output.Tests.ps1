@@ -51,12 +51,12 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
     Describe 'Default OutputTypes' -Fixture {
         It 'Fails output type contains all except passed' {
-            $expected = [Pester.OutputTypes]'Default, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
+            $expected = [Pester.OutputTypes]'Default, Failed, Skipped, Inconclusive, Describe, Context, Summary, Header'
             [Pester.OutputTypes]::Fails | Should -Be $expected
         }
 
         It 'All output type contains all flags' {
-            $expected = [Pester.OutputTypes]'Default, Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
+            $expected = [Pester.OutputTypes]'Default, Passed, Failed, Skipped, Inconclusive, Describe, Context, Summary, Header'
             [Pester.OutputTypes]::All | Should -Be $expected
         }
     }

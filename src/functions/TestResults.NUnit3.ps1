@@ -481,7 +481,6 @@ function Write-NUnit3TestCaseElement {
 
     switch ($TestResult.Result) {
         Skipped { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
-        Pending { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
         Inconclusive { Write-NUnitReasonElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
         Failed { Write-NUnit3FailureElement -TestResult $TestResult -XmlWriter $XmlWriter; break }
     }
@@ -522,7 +521,6 @@ function Write-NUnit3TestCaseAttributes {
         Failed { $XmlWriter.WriteAttributeString('result', 'Failed'); break }
         Passed { $XmlWriter.WriteAttributeString('result', 'Passed'); break }
         Skipped { $XmlWriter.WriteAttributeString('result', 'Skipped'); break }
-        Pending { $XmlWriter.WriteAttributeString('result', 'Inconclusive'); break }
         Inconclusive { $XmlWriter.WriteAttributeString('result', 'Inconclusive'); break }
         # result-attribute is required, so intentionally making xml invalid if unknown state occurs
     }

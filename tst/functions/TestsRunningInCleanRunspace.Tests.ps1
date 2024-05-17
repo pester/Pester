@@ -57,26 +57,20 @@ function Invoke-PesterInJob ($ScriptBlock, [switch] $GenerateNUnitReport, [switc
 }
 
 Describe "Tests running in clean runspace" {
-    It "It - Skip and Pending tests" {
+    It "It - Skip tests" {
         #tests to be run in different runspace using different Pester instance
         $TestSuite = {
-            Describe 'It - Skip and Pending tests' {
+            Describe 'It - Skip tests' {
 
                 It "Skip without ScriptBlock" -skip
                 It "Skip with empty ScriptBlock" -skip {}
                 It "Skip with not empty ScriptBlock" -Skip { "something" }
-
-                It "Implicit pending" {}
-                It "Pending without ScriptBlock" -Pending
-                It "Pending with empty ScriptBlock" -Pending {}
-                It "Pending with not empty ScriptBlock" -Pending { "something" }
             }
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite
         $result.SkippedCount | Should -Be 3
-        $result.PendingCount | Should -Be 4
-        $result.TotalCount | Should -Be 7
+        $result.TotalCount | Should -Be 3
     }
 
     It "It - It without ScriptBlock fails" {
@@ -103,7 +97,6 @@ Describe "Tests running in clean runspace" {
                 it "Passes" { "pass" }
                 it "fails" { throw }
                 it "Skipped" -Skip {}
-                it "Pending" -Pending {}
             }
         }
 
@@ -111,9 +104,8 @@ Describe "Tests running in clean runspace" {
         $result.PassedCount | Should -Be 1
         $result.FailedCount | Should -Be 1
         $result.SkippedCount | Should -Be 1
-        $result.PendingCount | Should -Be 1
 
-        $result.TotalCount | Should -Be 4
+        $result.TotalCount | Should -Be 3
     }
 
     It 'Produces valid NUnit output when syntax errors occur in test scripts' {
@@ -139,15 +131,11 @@ Describe "Tests running in clean runspace" {
     It "Invoke-Pester - Strict mode" {
         #tests to be run in different runspace using different Pester instance
         $TestSuite = {
-            Describe 'Mark skipped and pending tests as failed' {
+            Describe 'Mark skipped and inconclusive tests as failed' {
                 It "skip" -Skip { $true | Should -Be $true }
-                It "pending" -Pending { $true | Should -Be $true }
                 It "inconclusive forced" { Set-TestInconclusive ; $true | Should -Be $true }
                 It 'skipped by Set-ItResult' {
                     Set-ItResult -Skipped -Because "it is a test"
-                }
-                It 'pending by Set-ItResult' {
-                    Set-ItResult -Pending -Because "it is a test"
                 }
                 It 'inconclusive by Set-ItResult' {
                     Set-ItResult -Inconclusive -Because "it is a test"
@@ -157,9 +145,9 @@ Describe "Tests running in clean runspace" {
 
         $result = Invoke-PesterInJob -ScriptBlock $TestSuite -UseStrictPesterMode
         $result.PassedCount | Should Be 0
-        $result.FailedCount | Should Be 6
+        $result.FailedCount | Should Be 4
 
-        $result.TotalCount | Should Be 6
+        $result.TotalCount | Should Be 4
     }
 }
 
@@ -208,13 +196,13 @@ Describe 'Guarantee It fail on setup or teardown fail (running in clean runspace
 
             Describe 'Make sure all the tests in the suite run' {
                 #when the previous test fails in after each and
-                It 'It is pending' -Pending {}
+                It 'It is skipped' -Skip {}
             }
         }
 
         $result = Invoke-PesterInJob -ScriptBlock $testSuite
 
-        if ($result.PendingCount -ne 1) {
+        if ($result.SkippedCount -ne 1) {
             throw "The test suite in separate runspace did not run to completion, it was likely terminated by an uncaught exception thrown in AfterEach."
         }
 
