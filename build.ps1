@@ -115,10 +115,8 @@ if ($Clean) {
         , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
         , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
         , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net452/Pester.dll", "$PSScriptRoot/bin/bin/net452/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net452/Pester.pdb", "$PSScriptRoot/bin/bin/net452/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/netstandard2.0/Pester.dll", "$PSScriptRoot/bin/bin/netstandard2.0/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/netstandard2.0/Pester.pdb", "$PSScriptRoot/bin/bin/netstandard2.0/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
     )
 }
 
@@ -127,10 +125,10 @@ Copy-Content -Content $content
 if ($Clean) {
     # update help for New-PesterConfiguration
     if ($PSVersionTable.PSVersion.Major -gt 5) {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/netstandard2.0/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
     }
     else {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net452/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/Pester.dll")
     }
 
     function Format-NicelyMini ($value) {
