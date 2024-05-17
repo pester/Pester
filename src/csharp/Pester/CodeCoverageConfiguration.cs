@@ -47,9 +47,9 @@ namespace Pester
             Path = new StringArrayOption("Directories or files to be used for code coverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
             ExcludeTests = new BoolOption("Exclude tests from code coverage. This uses the TestFilter from general configuration.", true);
             RecursePaths = new BoolOption("Will recurse through directories in the Path option.", true);
-            UseBreakpoints = new BoolOption("EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", true);
+            UseBreakpoints = new BoolOption("When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", false);
             CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
-            SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit.", true);
+            SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit. This increases performance of breakpoint based CodeCoverage.", true);
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
