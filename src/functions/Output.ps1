@@ -271,7 +271,6 @@ function Write-PesterReport {
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
         [Pester.Run] $RunResult
     )
-    # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
     Write-PesterHostMessage ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 

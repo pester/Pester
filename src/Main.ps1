@@ -287,20 +287,6 @@ function Get-AssertionDynamicParams {
     return $script:AssertionDynamicParams
 }
 
-function Has-Flag {
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [Pester.OutputTypes]
-        $Setting,
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [Pester.OutputTypes]
-        $Value
-    )
-
-    0 -ne ($Setting -band $Value)
-}
-
 function Invoke-Pester {
     <#
     .SYNOPSIS
@@ -663,7 +649,7 @@ function Invoke-Pester {
         [object]$PesterOption,
 
         [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [Pester.OutputTypes]$Show = 'All'
+        [String] $Show = 'All'
     )
     begin {
         $start = [DateTime]::Now
