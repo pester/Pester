@@ -10,15 +10,6 @@ Describe "Testing Set-ItResult" {
         }
     }
 
-    It "This test should be pending" {
-        try {
-            Set-ItResult -Pending -Because "we are forcing it to pending"
-        }
-        catch {
-            $_.FullyQualifiedErrorID | Should -Be "PesterTestPending"
-        }
-    }
-
     It "This test should be skipped" {
         try {
             Set-ItResult -Skipped -Because "we are forcing it to skip"

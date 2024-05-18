@@ -287,20 +287,6 @@ function Get-AssertionDynamicParams {
     return $script:AssertionDynamicParams
 }
 
-function Has-Flag {
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [Pester.OutputTypes]
-        $Setting,
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [Pester.OutputTypes]
-        $Value
-    )
-
-    0 -ne ($Setting -band $Value)
-}
-
 function Invoke-Pester {
     <#
     .SYNOPSIS
@@ -331,7 +317,7 @@ function Invoke-Pester {
     EnableExit parameter to return an exit code that contains the number of failed
     tests.
 
-    You can also use the Strict parameter to fail all pending and skipped tests.
+    You can also use the Strict parameter to fail all skipped tests.
     This feature is ideal for build systems and other processes that require success
     on every test.
 
@@ -510,7 +496,7 @@ function Invoke-Pester {
     (Deprecated v4)
     Replace with ConfigurationProperty Output.Verbosity
     Customizes the output Pester writes to the screen. Available options are None, Default,
-    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+    Passed, Failed, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
     The options can be combined to define presets.
     ConfigurationProperty Output.Verbosity supports the following values:
     None
@@ -535,7 +521,7 @@ function Invoke-Pester {
 
     .PARAMETER Strict
     (Deprecated v4)
-    Makes Pending and Skipped tests to Failed tests. Useful for continuous
+    Makes Skipped tests to Failed tests. Useful for continuous
     integration where you need to make sure all tests passed.
 
     .PARAMETER TagFilter
@@ -663,7 +649,7 @@ function Invoke-Pester {
         [object]$PesterOption,
 
         [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [Pester.OutputTypes]$Show = 'All'
+        [String] $Show = 'All'
     )
     begin {
         $start = [DateTime]::Now
@@ -1074,7 +1060,7 @@ function Convert-PesterLegacyParameterSet ($BoundParameters) {
             if ($null -ne $Show) {
                 # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
                 # without switching the whole param set just to get Diagnostic output
-                # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
+                # {None | Default | Passed | Failed | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
                 $verbosity = switch ($Show) {
                     'All' { 'Detailed' }
                     'Default' { 'Detailed' }
@@ -1308,7 +1294,6 @@ function Set-PesterStatistics($Node) {
             $Node.PassedCount += $action.PassedCount
             $Node.FailedCount += $action.FailedCount
             $Node.SkippedCount += $action.SkippedCount
-            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {
@@ -1323,9 +1308,6 @@ function Set-PesterStatistics($Node) {
                 }
                 Skipped {
                     $Node.SkippedCount++; break;
-                }
-                Pending {
-                    $Node.PendingCount++; break;
                 }
                 Inconclusive {
                     $Node.InconclusiveCount++; break;
@@ -1393,7 +1375,6 @@ function ConvertTo-Pester4Result {
             PassedCount       = 0
             FailedCount       = 0
             SkippedCount      = 0
-            PendingCount      = 0
             InconclusiveCount = 0
             Time              = [TimeSpan]::Zero
             TestResult        = [System.Collections.Generic.List[object]]@()
@@ -1463,7 +1444,6 @@ function ConvertTo-Pester4Result {
             }
         }
         $legacyResult.TotalCount = $legacyResult.TestResult.Count
-        $legacyResult.PendingCount = 0
         $legacyResult.Time = $PesterResult.Duration
 
         $legacyResult

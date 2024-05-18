@@ -681,7 +681,7 @@ function Invoke-TestItem {
 
                 $Test.FrameworkData.Runtime.ExecutionStep = 'Finished'
 
-                if (@('PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
+                if (@('PesterTestSkipped', 'PesterTestInconclusive') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
                     #Same logic as when setting a test block to skip
                     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                         $path = $Test.Path -join '.'
@@ -693,12 +693,6 @@ function Invoke-TestItem {
                     }
                     else {
                         $Test.Skipped = $true
-
-                        # Pending test is still considered a skipped, we don't have a special category for it.
-                        # Mark the run to show deprecation message.
-                        if ('PesterTestPending' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
-                            $test.Block.Root.FrameworkData['ShowPendingDeprecation'] = $true
-                        }
                     }
                 }
                 else {

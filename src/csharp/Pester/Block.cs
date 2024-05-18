@@ -83,7 +83,6 @@ namespace Pester
         public Hashtable FrameworkData { get; set; } = new Hashtable();
         public Hashtable PluginData { get; set; } = new Hashtable();
 
-        public int PendingCount { get; set; }
         public int InconclusiveCount { get; set; }
 
         public bool OwnPassed { get; set; }
@@ -91,7 +90,6 @@ namespace Pester
         public int OwnPassedCount { get; set; }
         public int OwnFailedCount { get; set; }
         public int OwnSkippedCount { get; set; }
-        public int OwnPendingCount { get; set; }
         public int OwnNotRunCount { get; set; }
         public int OwnInconclusiveCount { get; set; }
 

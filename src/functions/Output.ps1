@@ -27,7 +27,6 @@ $script:ReportStrings = DATA {
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
         TestsSkipped      = 'Skipped: {0}, '
-        TestsPending      = 'Pending: {0}, '
         TestsInconclusive = 'Inconclusive: {0}, '
         TestsNotRun       = 'NotRun: {0}'
     }
@@ -46,8 +45,6 @@ $script:ReportTheme = DATA {
         FailDetail       = 'Red'
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
-        Pending          = 'Gray'
-        PendingTime      = 'DarkGray'
         NotRun           = 'Gray'
         NotRunTime       = 'DarkGray'
         Total            = 'Gray'
@@ -235,7 +232,7 @@ function ConvertTo-PesterResult {
         return $testResult
     }
 
-    if (@('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $ErrorRecord.FullyQualifiedErrorID) {
+    if (@('PesterAssertionFailed', 'PesterTestSkipped', 'PesterTestInconclusive') -contains $ErrorRecord.FullyQualifiedErrorID) {
         # we use TargetObject to pass structured information about the error.
         $details = $ErrorRecord.TargetObject
 
@@ -248,9 +245,6 @@ function ConvertTo-PesterResult {
             switch ($ErrorRecord.FullyQualifiedErrorID) {
                 PesterTestInconclusive {
                     $testResult.Result = 'Inconclusive'; break;
-                }
-                PesterTestPending {
-                    $testResult.Result = 'Pending'; break;
                 }
                 PesterTestSkipped {
                     $testResult.Result = 'Skipped'; break;
@@ -277,7 +271,6 @@ function Write-PesterReport {
         [Parameter(mandatory = $true, valueFromPipeline = $true)]
         [Pester.Run] $RunResult
     )
-    # if(-not ($PesterState.Show | Has-Flag Summary)) { return }
 
     Write-PesterHostMessage ($ReportStrings.Timing -f (Get-HumanTime ($RunResult.Duration))) -Foreground $ReportTheme.Foreground
 
@@ -309,12 +302,6 @@ function Write-PesterReport {
         $ReportTheme.Information
     }
 
-    # $Pending = if ($RunResult.PendingCount -gt 0) {
-    #     $ReportTheme.Pending
-    # }
-    # else {
-    #     $ReportTheme.Information
-    # }
     $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
         $ReportTheme.Inconclusive
     }
@@ -359,18 +346,6 @@ function Write-PesterReport {
         }
         Write-PesterHostMessage ('Container failed: {0}' -f $RunResult.FailedContainersCount) -Foreground $ReportTheme.Fail
         Write-PesterHostMessage ($cs -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
-    }
-    # & $SafeCommands['Write-Host'] ($ReportStrings.TestsPending -f $RunResult.PendingCount) -Foreground $Pending -NoNewLine
-    # & $SafeCommands['Write-Host'] ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive
-    # }
-
-    $rootFrameworkData = @($RunResult.Containers.Blocks.Root.FrameworkData)
-    foreach ($frameworkData in $rootFrameworkData) {
-        if ($null -ne $frameworkData -and $frameworkData['ShowPendingDeprecation']) {
-            Write-PesterHostMessage '**DEPRECATED**: The -Pending parameter of Set-ItResult is deprecated. The parameter will be removed in a future version of Pester.' -ForegroundColor $ReportTheme.Warning
-            # Show it only once.
-            break
-        }
     }
 }
 
@@ -713,7 +688,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $margin = $ReportStrings.Margin * ($level)
             $error_margin = $margin + $ReportStrings.Margin
             $out = $_test.ExpandedName
-            if (-not $_test.Skip -and @('PesterTestSkipped', 'PesterTestInconclusive', 'PesterTestPending') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
+            if (-not $_test.Skip -and @('PesterTestSkipped', 'PesterTestInconclusive') -contains $Result.ErrorRecord.FullyQualifiedErrorId) {
                 $skippedMessage = [String]$_Test.ErrorRecord
                 [String]$out += " $skippedMessage"
             }
@@ -785,16 +760,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "$margin[!] $out" -NoNewLine
                     Write-PesterHostMessage -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
-                }
-                break
-            }
-
-            Pending {
-                if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-                    $because = if ($_test.FailureMessage) { ", because $($_test.FailureMessage)" } else { $null }
-                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Pending "$margin[?] $out" -NoNewLine
-                    Write-PesterHostMessage -ForegroundColor $ReportTheme.Pending ", is pending$because" -NoNewLine
-                    Write-PesterHostMessage -ForegroundColor $ReportTheme.PendingTime " $humanTime"
                 }
                 break
             }

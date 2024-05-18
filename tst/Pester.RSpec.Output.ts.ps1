@@ -295,25 +295,4 @@ i -PassThru:$PassThru {
             $normalOutput | Verify-Equal $writehostOutput
         }
     }
-
-    b 'Pending is deprecated' {
-        t 'Shows deprecated message when -pending is used' {
-            $sb = {
-                $container = New-PesterContainer -ScriptBlock {
-                    Describe 'd' {
-                        It 'i' {
-                            Set-ItResult -Pending
-                        }
-                    }
-                }
-
-                Invoke-Pester -Container $container
-            }
-
-            $output = Invoke-InNewProcess -ScriptBlock $sb
-
-            $deprecated = $output | Select-String -Pattern '\*DEPRECATED\*'
-            @($deprecated).Count | Verify-Equal 1
-        }
-    }
 }

@@ -116,7 +116,7 @@ Describe 'Multiple Test Case teardown blocks' {
             $container.Value = 'Set in the first Context AfterEach'
         }
 
-        It 'Performs a test in Context' { "some output to prevent the It being marked as Pending and failing because of Strict mode" }
+        It 'Performs a test in Context' { "some output" }
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
             $container.Value | Should -Be 'Set in the second Describe AfterEach'

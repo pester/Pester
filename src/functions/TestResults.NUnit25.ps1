@@ -159,7 +159,6 @@ function Get-ParameterizedTestSuiteInfo {
         PassedCount       = 0
         FailedCount       = 0
         SkippedCount      = 0
-        PendingCount      = 0
         InconclusiveCount = 0
     }
 
@@ -174,9 +173,6 @@ function Get-ParameterizedTestSuiteInfo {
             }
             Skipped {
                 $node.SkippedCount++; break;
-            }
-            Pending {
-                $node.PendingCount++; break;
             }
             Inconclusive {
                 $node.InconclusiveCount++; break;
@@ -330,20 +326,6 @@ function Write-NUnitTestCaseAttributes {
             break
         }
 
-        Pending {
-            $XmlWriter.WriteAttributeString('result', 'Inconclusive')
-            $XmlWriter.WriteAttributeString('executed', 'True')
-
-            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
-            if ($TestResult.FailureMessage) {
-                $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
-                $XmlWriter.WriteEndElement() # Close reason tag
-            }
-
-            break
-        }
-
         Inconclusive {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
@@ -383,9 +365,6 @@ function Get-GroupResult ($InputObject) {
     }
     if ($InputObject.SkippedCount -gt 0) {
         return 'Ignored'
-    }
-    if ($InputObject.PendingCount -gt 0) {
-        return 'Inconclusive'
     }
     if ($InputObject.InconclusiveCount -gt 0) {
         return 'Inconclusive'
