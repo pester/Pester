@@ -52,8 +52,8 @@ function Measure-SafeCommands {
                         [string]$correction = "& `$SafeCommands['$commandName']"
                         [string]$file = $MyInvocation.MyCommand.Definition
                         [string]$description = 'Replacing with SafeCommands-type'
-                        $correctionExtent = New-Object 'Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent' $startLineNumber, $endLineNumber, $startColumnNumber, $endColumnNumber, $correction, $file, $description
-                        $suggestedCorrections = New-Object System.Collections.ObjectModel.Collection['Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent']
+                        $correctionExtent = [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent]::new($startLineNumber, $endLineNumber, $startColumnNumber, $endColumnNumber, $correction, $file, $description)
+                        $suggestedCorrections = [System.Collections.ObjectModel.Collection[Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.CorrectionExtent]]::new()
                         $suggestedCorrections.add($correctionExtent) > $null
 
                         # Output error
