@@ -186,7 +186,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message.Count | Should -be 6
 
             $r.Trace[0] | Should -match "'One' | Should -be 'Two'"
-            $r.Trace[1] | Should -be "at <ScriptBlock>, ${PSCommandPath}:230"
+            $r.Trace[1] | Should -be "at <ScriptBlock>, ${PSCommandPath}:172"
             $r.Trace.Count | Should -be 2
         }
         # TODO: should fails with a very weird error, probably has something to do with dynamic params...
@@ -276,7 +276,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:306"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:248"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -337,7 +337,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:372"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:314"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -346,7 +346,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:372"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:314"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -435,7 +435,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 447"
+                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 389"
                 $messages.Count | Should -BeGreaterThan 1
             }
 
