@@ -1880,7 +1880,7 @@ function Repair-EnumParameters {
         return $ParamBlock
     }
 
-    $sb = & $SafeCommands['New-Object'] System.Text.StringBuilder($ParamBlock)
+    $sb = [System.Text.StringBuilder]::new($ParamBlock)
 
     foreach ($attr in $brokenValidateRange) {
         $paramName = $attr.Parent.Name.VariablePath.UserPath

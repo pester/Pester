@@ -287,7 +287,7 @@ function ConvertTo-NUnitReport {
     $stringWriter = $null
     $xmlWriter = $null
     try {
-        $stringWriter = & $SafeCommands['New-Object'] IO.StringWriter
+        $stringWriter = [IO.StringWriter]::new()
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
         switch ($Format) {
@@ -374,7 +374,7 @@ function ConvertTo-JUnitReport {
     $stringWriter = $null
     $xmlWriter = $null
     try {
-        $stringWriter = & $SafeCommands['New-Object'] IO.StringWriter
+        $stringWriter = [IO.StringWriter]::new()
         $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
         Write-JUnitReport -XmlWriter $xmlWriter -Result $Result
