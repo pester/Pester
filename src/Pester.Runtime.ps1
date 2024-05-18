@@ -167,6 +167,7 @@ function New-ParametrizedBlock {
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock,
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
+        [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
@@ -174,14 +175,14 @@ function New-ParametrizedBlock {
         $Data
     )
 
-    # using the position of Describe/Context as Id to group data-generated blocks. Should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple blocks with ForEach, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    # using the position of Describe/Context as Id to group data-generated blocks. Should be unique enough because it only needs to be unique for the current block
     # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
-    $id = $StartLine
+    $groupId = "${StartLine}:${StartColumn}"
 
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -Id $id -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
+        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
     }
 }
 
@@ -197,7 +198,7 @@ function New-Block {
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
         [Switch] $Focus,
-        [String] $Id,
+        [String] $GroupId,
         [Switch] $Skip,
         $Data
     )
@@ -235,7 +236,7 @@ function New-Block {
     $block.StartLine = $StartLine
     $block.FrameworkData = $FrameworkData
     $block.Focus = $Focus
-    $block.Id = $Id
+    $block.GroupId = $GroupId
     $block.Skip = $Skip
     $block.Data = $Data
 
@@ -482,7 +483,7 @@ function New-Test {
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         $Data,
-        [String] $Id,
+        [String] $GroupId,
         [Switch] $Focus,
         [Switch] $Skip
     )
@@ -504,7 +505,7 @@ function New-Test {
     }
 
     $test = [Pester.Test]::Create()
-    $test.Id = $Id
+    $test.GroupId = $GroupId
     $test.ScriptBlock = $ScriptBlock
     $test.Name = $Name
     # using the non-expanded name as default to fallback to it if we don't
@@ -687,7 +688,18 @@ function Invoke-TestItem {
                         Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                     }
                     $Test.Passed = $true
-                    $Test.Skipped = $true
+                    if ('PesterTestInconclusive' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
+                        $Test.Inconclusive = $true
+                    }
+                    else {
+                        $Test.Skipped = $true
+
+                        # Pending test is still considered a skipped, we don't have a special category for it.
+                        # Mark the run to show deprecation message.
+                        if ('PesterTestPending' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
+                            $test.Block.Root.FrameworkData['ShowPendingDeprecation'] = $true
+                        }
+                    }
                 }
                 else {
                     $Test.Passed = $result.Success
@@ -2061,6 +2073,7 @@ function PostProcess-DiscoveredBlock {
         }
 
         $blockShouldRun = $false
+        $allTestsSkipped = $true
         if ($tests.Count -gt 0) {
             foreach ($t in $tests) {
                 $t.Block = $b
@@ -2140,11 +2153,19 @@ function PostProcess-DiscoveredBlock {
                     $testsToRun[-1].Last = $true
                     $blockShouldRun = $true
                 }
+
+                foreach ($t in $testsToRun) {
+                    if (-not $t.Skip) {
+                        $allTestsSkipped = $false
+                        break
+                    }
+                }
             }
         }
 
         $childBlocks = $b.Blocks
         $anyChildBlockShouldRun = $false
+        $allChildBlockSkipped = $true
         if ($childBlocks.Count -gt 0) {
             foreach ($cb in $childBlocks) {
                 $cb.Parent = $b
@@ -2159,9 +2180,17 @@ function PostProcess-DiscoveredBlock {
                 $childBlocksToRun[0].First = $true
                 $childBlocksToRun[-1].Last = $true
             }
+
+            foreach ($cb in $childBlocksToRun) {
+                if (-not $cb.Skip) {
+                    $allChildBlockSkipped = $false
+                    break
+                }
+            }
         }
 
         $shouldRunBasedOnChildren = $blockShouldRun -or $anyChildBlockShouldRun
+        $shouldSkipBasedOnChildren = $allTestsSkipped -and $allChildBlockSkipped
 
         if ($b.ShouldRun -and -not $shouldRunBasedOnChildren) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -2170,6 +2199,26 @@ function PostProcess-DiscoveredBlock {
         }
 
         $b.ShouldRun = $shouldRunBasedOnChildren
+
+        if ($b.ShouldRun) {
+            if (-not $b.Skip -and $shouldSkipBasedOnChildren) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    if ($b.IsRoot) {
+                        Write-PesterDebugMessage -Scope Skip "($($b.BlockContainer)) Container will be skipped because all included children are marked as skipped."
+                    } else {
+                        Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block will be skipped because all included children are marked as skipped."
+                    }
+                }
+                $b.Skip = $true
+            } elseif ($b.Skip -and -not $shouldSkipBasedOnChildren) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Skip "($($b.Path -join '.')) Block was marked as skipped, but one or more children are explicitly requested to be run, so the block itself will not be skipped."
+                }
+                # This is done to execute setup and teardown before explicitly included tests, e.g. using line filter
+                # Remaining children have already inherited block-level Skip earlier in this function as expected
+                $b.Skip = $false
+            }
+        }
     }
 }
 
@@ -2194,6 +2243,7 @@ function PostProcess-ExecutedBlock {
             $b.OwnFailedCount = 0
             $b.OwnPassedCount = 0
             $b.OwnSkippedCount = 0
+            $b.OwnInconclusiveCount = 0
             $b.OwnNotRunCount = 0
 
             $testDuration = [TimeSpan]::Zero
@@ -2204,6 +2254,9 @@ function PostProcess-ExecutedBlock {
                 $b.OwnTotalCount++
                 if (-not $t.ShouldRun) {
                     $b.OwnNotRunCount++
+                }
+                elseif ($t.ShouldRun -and $t.Inconclusive) {
+                    $b.OwnInconclusiveCount++
                 }
                 elseif ($t.ShouldRun -and $t.Skipped) {
                     $b.OwnSkippedCount++
@@ -2245,6 +2298,7 @@ function PostProcess-ExecutedBlock {
                 $b.FailedCount = $b.OwnFailedCount
                 $b.PassedCount = $b.OwnPassedCount
                 $b.SkippedCount = $b.OwnSkippedCount
+                $b.InconclusiveCount = $b.OwnInconclusiveCount
                 $b.NotRunCount = $b.OwnNotRunCount
             }
             else {
@@ -2266,6 +2320,7 @@ function PostProcess-ExecutedBlock {
                     $b.PassedCount += $child.PassedCount
                     $b.FailedCount += $child.FailedCount
                     $b.SkippedCount += $child.SkippedCount
+                    $b.InconclusiveCount += $child.InconclusiveCount
                     $b.NotRunCount += $child.NotRunCount
                 }
 
@@ -2274,6 +2329,7 @@ function PostProcess-ExecutedBlock {
                 $b.PassedCount += $b.OwnPassedCount
                 $b.FailedCount += $b.OwnFailedCount
                 $b.SkippedCount += $b.OwnSkippedCount
+                $b.InconclusiveCount += $b.OwnInconclusiveCount
                 $b.NotRunCount += $b.OwnNotRunCount
 
                 $b.Passed = -not ($thisBlockFailed -or $anyTestFailed -or $anyChildBlockFailed)
@@ -2627,6 +2683,7 @@ function New-ParametrizedTest () {
         [Parameter(Mandatory = $true, Position = 1)]
         [ScriptBlock] $ScriptBlock,
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
+        [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [object[]] $Data,
@@ -2634,11 +2691,11 @@ function New-ParametrizedTest () {
         [Switch] $Skip
     )
 
-    # using the position of It as Id for the the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block, so the way to break this would be to inline multiple tests, but that is unlikely to happen. When it happens just use StartLine:StartPosition
+    # using the position of It as Id for the the test so we can join multiple testcases together, this should be unique enough because it only needs to be unique for the current block.
     # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
-    $id = $StartLine
+    $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
-        New-Test -Id $id -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
     }
 }
 

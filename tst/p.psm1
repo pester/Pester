@@ -104,7 +104,7 @@ function t {
     )
 
     if (-not $script:discovery) {
-        if (-not $script:filter -or $script:filter -like "*$name") {
+        if (-not $script:filter -or $script:filter -like "*$([System.Management.Automation.WildcardPattern]::Escape($name))") {
             try {
                 $script:total++
                 $null = & $ScriptBlock

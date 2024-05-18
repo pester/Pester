@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.IO;
 using System.Management.Automation;
 
 namespace Pester
@@ -12,34 +12,32 @@ namespace Pester
                 "Passed" => "[+]",
                 "Failed" => "[-]",
                 "Skipped" => "[!]",
+                "Inconclusive" => "[?]",
                 "NotRun" => "[ ]",
                 _ => "[ERR]",
             };
         }
 
+        internal static string ContainerItemToString(string type, object item)
+        {
+            return type switch
+            {
+                Constants.File => item is FileInfo f ? f.FullName : item.ToString(),
+                Constants.ScriptBlock => item is ScriptBlock s && !string.IsNullOrWhiteSpace(s.File)
+                    ? $"<ScriptBlock>:{s.File}:{s.StartPosition.StartLine}"
+                    : "<ScriptBlock>",
+                _ => $"<{type}>"
+            };
+        }
+
         internal static string ContainerToString(Container container)
         {
-            string path;
-            switch (container.Type)
-            {
-                case Constants.File:
-                    path = container.Item.ToString();
-                    break;
-                case Constants.ScriptBlock:
-                    path = "<ScriptBlock>";
-                    if (container.Item is ScriptBlock s) {
-                        if (!string.IsNullOrWhiteSpace(s.File))
-                        {
-                            path += $":{s.File}:{s.StartPosition.StartLine}";
-                        }
-                    }
-                    break;
-                default:
-                    path = $"<{container.Type}>";
-                    break;
-            }
+            return $"{ResultToString(container.Result)} {container.Name}";
+        }
 
-            return $"{ResultToString(container.Result)} {path}";
+        internal static string ContainerInfoToString(ContainerInfo containerInfo)
+        {
+            return ContainerItemToString(containerInfo.Type, containerInfo.Item);
         }
 
         internal static string TestToString(Test test)

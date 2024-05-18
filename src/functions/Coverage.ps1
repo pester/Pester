@@ -4,7 +4,7 @@
         [object[]] $CodeCoverage,
         [ScriptBlock] $Logger,
         [bool] $UseSingleHitBreakpoints = $true,
-        [bool] $UseBreakpoints = $true
+        [bool] $UseBreakpoints = $false
     )
 
     if ($null -ne $logger) {

@@ -22,5 +22,6 @@
       "systemId": "https://raw.githubusercontent.com/PowerShell/PowerShell/master/src/Schemas/Types.xsd",
       "pattern": "**/*.Types.ps1xml"
     }
-  ]
+  ],
+  "dotnet.defaultSolution": "src/csharp/Pester.sln"
 }

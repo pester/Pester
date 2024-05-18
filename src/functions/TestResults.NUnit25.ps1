@@ -1,5 +1,5 @@
 ﻿function Write-NUnitReport {
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
 
@@ -13,8 +13,8 @@
 }
 
 function Write-NUnitTestResultAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
@@ -23,7 +23,7 @@ function Write-NUnitTestResultAttributes {
     $XmlWriter.WriteAttributeString('errors', '0')
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
-    $XmlWriter.WriteAttributeString('inconclusive', '0') # $Result.PendingCount + $Result.InconclusiveCount) #TODO: reflect inconclusive count once it is added
+    $XmlWriter.WriteAttributeString('inconclusive', $Result.InconclusiveCount)
     $XmlWriter.WriteAttributeString('ignored', '0')
     $XmlWriter.WriteAttributeString('skipped', $Result.SkippedCount)
     $XmlWriter.WriteAttributeString('invalid', '0')
@@ -32,8 +32,8 @@ function Write-NUnitTestResultAttributes {
 }
 
 function Write-NUnitTestResultChildNodes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($Result, [System.Xml.XmlWriter] $XmlWriter)
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
+    param([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter)
 
     Write-NUnitEnvironmentInformation -Result $Result -XmlWriter $XmlWriter
     Write-NUnitCultureInformation -Result $Result -XmlWriter $XmlWriter
@@ -53,16 +53,7 @@ function Write-NUnitTestResultChildNodes {
             continue
         }
 
-        if ('File' -eq $container.Type) {
-            $path = $container.Item.FullName
-        }
-        elseif ('ScriptBlock' -eq $container.Type) {
-            $path = "<ScriptBlock>$($container.Item.File):$($container.Item.StartPosition.StartLine)"
-        }
-        else {
-            throw "Container type '$($container.Type)' is not supported."
-        }
-        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $path
+        Write-NUnitTestSuiteElements -XmlWriter $XmlWriter -Node $container -Path $container.Name
     }
 
     $XmlWriter.WriteEndElement()
@@ -98,7 +89,7 @@ function Write-NUnitCultureInformation {
 }
 
 function Write-NUnitTestSuiteElements {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($Node, [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
 
     $suiteInfo = Get-TestSuiteInfo -TestSuite $Node -Path $Path
@@ -118,12 +109,12 @@ function Write-NUnitTestSuiteElements {
     }
 
     $suites = @(
-        # Tests only have Id if parameterized. All other tests are put in group with '' value
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property Id
+        # Tests only have GroupId if parameterized. All other tests are put in group with '' value
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId
     )
 
     foreach ($suite in $suites) {
-        # TODO: when suite has name it belongs into a test group (test cases that are generated from the same test, based on the provided data) so we want extra level of nesting for them, right now this is encoded as having an Id that is non empty, but this is not ideal, it would be nicer to make it more explicit
+        # When group has name it is a parameterized tests (data-generated using -ForEach/TestCases) so we want extra level of nesting for them
         $testGroupId = $suite.Name
         if ($testGroupId) {
             $parameterizedSuiteInfo = Get-ParameterizedTestSuiteInfo -TestSuiteGroup $suite
@@ -159,11 +150,8 @@ function Write-NUnitTestSuiteElements {
 function Get-ParameterizedTestSuiteInfo {
     param([Microsoft.PowerShell.Commands.GroupInfo] $TestSuiteGroup)
     # this is generating info for a group of tests that were generated from the same test when TestCases are used
-    # I am using the Name from the first test as the name of the test group, even though we are grouping at
-    # the Id of the test (which is the line where the ScriptBlock of that test starts). This allows us to have
-    # unique Id (the line number) and also a readable name
-    # the possible edgecase here is putting $(Get-Date) into the test name, which would prevent us from
-    # grouping the tests together if we used just the name, and not the linenumber (which remains static)
+    # Using the Name from the first test as the name of the test group to make it readable,
+    # even though we are grouping using GroupId of the tests.
     $node = [PSCustomObject] @{
         Path              = $TestSuiteGroup.Group[0].Path
         TotalCount        = 0
@@ -249,7 +237,7 @@ function Get-TestSuiteInfo {
 }
 
 function Write-NUnitTestSuiteAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestSuiteInfo, [string] $TestSuiteType = 'TestFixture', [System.Xml.XmlWriter] $XmlWriter, [string] $Path)
 
     $name = $TestSuiteInfo.Name
@@ -279,7 +267,7 @@ function Write-NUnitTestCaseElement {
 }
 
 function Write-NUnitTestCaseAttributes {
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
     param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ParameterizedSuiteName)
 
     $testName = $TestResult.ExpandedPath
@@ -397,6 +385,9 @@ function Get-GroupResult ($InputObject) {
         return 'Ignored'
     }
     if ($InputObject.PendingCount -gt 0) {
+        return 'Inconclusive'
+    }
+    if ($InputObject.InconclusiveCount -gt 0) {
         return 'Inconclusive'
     }
     return 'Success'

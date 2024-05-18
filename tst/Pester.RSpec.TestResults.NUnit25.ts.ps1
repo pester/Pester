@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -12,44 +13,6 @@ $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors = $false
     }
-}
-
-function Verify-XmlTime {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [AllowNull()]
-        [Nullable[TimeSpan]]
-        $Expected
-    )
-
-    if ($null -eq $Expected) {
-        throw [Exception]'Expected value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw [Exception]'Actual value is $null.'
-    }
-
-    if ('0.0000' -eq $Actual) {
-        # it is unlikely that anything takes less than
-        # 0.0001 seconds (one tenth of a millisecond) so
-        # throw when we see 0, because that probably means
-        # we are not measuring at all
-        throw [Exception]'Actual value is zero.'
-    }
-
-    $e = [string][Math]::Round($Expected.TotalSeconds, 4)
-    if ($e -ne $Actual) {
-        $message = "Expected and actual values differ!`n" +
-        "Expected: '$e' seconds (raw '$($Expected.TotalSeconds)' seconds)`n" +
-        "Actual  : '$Actual' seconds"
-
-        throw [Exception]$message
-    }
-
-    $Actual
 }
 
 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/NUnit25/nunit_schema_2.5.xsd'
@@ -144,6 +107,51 @@ i -PassThru:$PassThru {
 
         }
 
+        t "should write a skipped test result" {
+            $sb = {
+                Describe "Mocked Describe 1" {
+                    It "Skipped testcase" -Skip {
+                    }
+                }
+                Describe "Mocked Describe 2" {
+                    It "Skipped testcase" {
+                        Set-ItResult -Skipped
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlTestSuite = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'
+            $xmlTestCase1 = $xmlTestSuite.results.'test-case'[0]
+            $xmlTestCase2 = $xmlTestSuite.results.'test-case'[1]
+
+            $xmlTestCase1.name | Verify-Equal "Mocked Describe 1.Skipped testcase"
+            $xmlTestCase1.result | Verify-Equal "Ignored"
+            $xmlTestCase1.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+
+            $xmlTestCase2.name | Verify-Equal "Mocked Describe 2.Skipped testcase"
+            $xmlTestCase2.result | Verify-Equal "Ignored"
+            $xmlTestCase2.time | Verify-XmlTime $r.Containers[0].Blocks[1].Tests[0].Duration
+        }
+
+        t "should write an inconclusive test result" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Inconclusive testcase" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
+            $xmlTestCase.name | Verify-Equal "Mocked Describe.Inconclusive testcase"
+            $xmlTestCase.result | Verify-Equal "Inconclusive"
+            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+        }
+
         t "should write the test summary" {
             $sb = {
                 Describe "Mocked Describe" {
@@ -160,6 +168,41 @@ i -PassThru:$PassThru {
             $xmlTestResult.failures | Verify-Equal 0
             $xmlTestResult.date | Verify-Equal (Get-Date -Format "yyyy-MM-dd" $r.ExecutedAt)
             $xmlTestResult.time | Verify-Equal (Get-Date -Format "HH:mm:ss" $r.ExecutedAt)
+        }
+
+        t "should write inconclusive count" {
+            $sb = {
+                Describe "Mocked Describe 1" {
+                    It "Inconclusive testcase 1" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+                Describe "Mocked Describe 2" {
+                    It "Inconclusive testcase 2" {
+                        Set-ItResult -Inconclusive
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlResult.'test-results'.inconclusive | Verify-Equal 2
+        }
+
+        t "should write skipped count" {
+            $sb = {
+                Describe "Mocked Describe 1" {
+                    It "Skipped testcase 1" -Skip {
+                    }
+                }
+                Describe "Mocked Describe 2" {
+                    It "Skippde testcase 2" {
+                        Set-ItResult -Skipped
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+            $xmlResult = $r | ConvertTo-NUnitReport
+            $xmlResult.'test-results'.skipped | Verify-Equal 2
         }
 
         t "should write the test-suite information" {
@@ -244,6 +287,22 @@ i -PassThru:$PassThru {
                 Describe "Describe #2" {
                     It "Failed testcase" {
                         $false | Should -Be $true 5
+                    }
+                }
+
+                Describe "Describe #3" {
+                    It "Skipped testcase #1" -Skip {}
+                }
+
+                Describe "Describe #4" {
+                    It "Skipped testcase #2" {
+                        Set-ItResult -Skipped
+                    }
+                }
+
+                Describe "Describe #5" {
+                    It "Inconclusive testcase" {
+                        Set-ItResult -Inconclusive
                     }
                 }
             }

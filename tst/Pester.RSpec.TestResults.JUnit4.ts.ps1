@@ -1,9 +1,10 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -14,47 +15,8 @@ $global:PesterPreference = @{
     }
 }
 
-function Verify-XmlTime {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [AllowNull()]
-        [Nullable[TimeSpan]]
-        $Expected
-    )
-
-    if ($null -eq $Expected) {
-        throw [Exception]'Expected value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw [Exception]'Actual value is $null.'
-    }
-
-    if ('0.0000' -eq $Actual) {
-        # it is unlikely that anything takes less than
-        # 0.0001 seconds (one tenth of a millisecond) so
-        # throw when we see 0, because that probably means
-        # we are not measuring at all
-        throw [Exception]'Actual value is zero.'
-    }
-
-    # using this over Math.Round because it will output all the numbers for 0.1
-    $e = $Expected.TotalSeconds.ToString('0.000', [CultureInfo]::InvariantCulture)
-    if ($e -ne $Actual) {
-        $message = "Expected and actual values differ!`n" +
-        "Expected: '$e' seconds (raw '$($Expected.TotalSeconds)' seconds)`n" +
-        "Actual  : '$Actual' seconds"
-
-        throw [Exception]$message
-    }
-
-    $Actual
-}
-
 function Get-ScriptBlockName ($ScriptBlock) {
-    "<ScriptBlock>$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
+    "<ScriptBlock>:$($ScriptBlock.File):$($ScriptBlock.StartPosition.StartLine)"
 }
 
 $schemaPath = (Get-Module -Name Pester).Path | Split-Path | Join-Path -ChildPath 'schemas/JUnit4/junit_schema_4.xsd'
@@ -77,7 +39,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
             $xmlTestCase.status | Verify-Equal "Passed"
-            $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+            $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
         }
 
         t "should write a failed test result" {
@@ -94,7 +56,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
             $xmlTestCase.status | Verify-Equal "Failed"
-            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
 
             $message = $xmlTestCase.failure.message -split "`n" -replace "`r"
             $message[0] | Verify-Equal "Expected strings to be the same, but they were different."
@@ -160,7 +122,7 @@ i -PassThru:$PassThru {
             $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
             $xmlTestCase.name | Verify-Equal "Mocked Describe.Failed testcase"
             $xmlTestCase.status | Verify-Equal "Failed"
-            $xmlTestCase.time | Verify-XmlTime $r.Containers[0].Blocks[0].Tests[0].Duration
+            $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
 
             $message = $xmlTestCase.failure.message -split "`n" -replace "`r"
             $message[0] | Verify-Equal "[0] Expected strings to be the same, but they were different."
@@ -210,7 +172,7 @@ i -PassThru:$PassThru {
             $xmlTestResult = $xmlResult.'testsuites'
             $xmlTestResult.tests | Verify-Equal 1
             $xmlTestResult.failures | Verify-Equal 0
-            $xmlTestResult.time | Verify-XmlTime $r.Containers[0].Duration
+            $xmlTestResult.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Duration
         }
 
         t "should write two test-suite elements for two containers" {
@@ -235,11 +197,11 @@ i -PassThru:$PassThru {
             $xmlResult = $r | ConvertTo-JUnitReport
             $xmlTestSuite1 = $xmlResult.'testsuites'.'testsuite'[0]
             $xmlTestSuite1.name | Verify-Equal (Get-ScriptBlockName $sb1)
-            $xmlTestSuite1.time | Verify-XmlTime $r.Containers[0].Duration
+            $xmlTestSuite1.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Duration
 
             $xmlTestSuite2 = $xmlResult.'testsuites'.'testsuite'[1]
             $xmlTestSuite2.name | Verify-Equal (Get-ScriptBlockName $sb2)
-            $xmlTestSuite2.time | Verify-XmlTime $r.Containers[1].Duration
+            $xmlTestSuite2.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[1].Duration
         }
 
         t "should write the environment information in properties" {
@@ -335,7 +297,7 @@ i -PassThru:$PassThru {
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
                 $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
                 $xmlTestCase.status | Verify-Equal "Passed"
-                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+                $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
             }
             finally {
                 if (Test-Path $temp) {
@@ -376,7 +338,7 @@ i -PassThru:$PassThru {
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
                 $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
                 $xmlTestCase.status | Verify-Equal "Passed"
-                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+                $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
             }
             finally {
                 if (Test-Path $temp) {
@@ -411,7 +373,7 @@ i -PassThru:$PassThru {
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
                 $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
                 $xmlTestCase.status | Verify-Equal "Passed"
-                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+                $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
             }
             finally {
                 if (Test-Path $temp) {
@@ -442,7 +404,7 @@ i -PassThru:$PassThru {
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
                 $xmlTestCase.name | Verify-Equal "Mocked Describe.Successful testcase"
                 $xmlTestCase.status | Verify-Equal "Passed"
-                $xmlTestCase.time | Verify-XmlTime -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
+                $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
             }
             finally {
                 if (Test-Path $script) {

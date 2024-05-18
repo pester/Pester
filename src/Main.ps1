@@ -630,39 +630,39 @@ function Invoke-Pester {
         [PesterConfiguration] $Configuration,
 
         # rest of the Legacy set
-        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy", DontShow)]  # Legacy set for v4 compatibility during migration - deprecated
         [switch]$EnableExit,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [object[]] $CodeCoverage = @(),
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [string] $CodeCoverageOutputFile,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [string] $CodeCoverageOutputFileEncoding = 'utf8',
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [ValidateSet('JaCoCo')]
         [String]$CodeCoverageOutputFileFormat = "JaCoCo",
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [Switch]$Strict,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [string] $OutputFile,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
         [string] $OutputFormat = 'NUnitXml',
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [Switch]$Quiet,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [object]$PesterOption,
 
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
+        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
         [Pester.OutputTypes]$Show = 'All'
     )
     begin {
@@ -747,12 +747,12 @@ function Invoke-Pester {
             }
 
             $plugins.Add((
-                # decorator plugin needs to be added after output
-                # because on teardown they will run in opposite order
-                # and that way output can consume the fixed object that decorator
-                # decorated, not nice but works
-                Get-RSpecObjectDecoratorPlugin
-            ))
+                    # decorator plugin needs to be added after output
+                    # because on teardown they will run in opposite order
+                    # and that way output can consume the fixed object that decorator
+                    # decorated, not nice but works
+                    Get-RSpecObjectDecoratorPlugin
+                ))
 
             if ($PesterPreference.TestDrive.Enabled.Value) {
                 $plugins.Add((Get-TestDrivePlugin))
@@ -861,7 +861,8 @@ function Invoke-Pester {
                 Remove-RSPecNonPublicProperties $run
             }
 
-            if ($PesterPreference.Run.PassThru.Value) {
+            $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            if ($PesterPreference.Run.PassThru.Value -and -not ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount)) {
                 $run
             }
 
@@ -888,12 +889,10 @@ function Invoke-Pester {
         # go back to original CWD
         if ($null -ne $initialPWD) { & $SafeCommands['Set-Location'] -Path $initialPWD }
 
-        # exit with exit code if we fail and even if we succeed, otherwise we could inherit
-        # exit code of some other app end exit with it's exit code instead with ours
-        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
         # always set exit code. This both to:
-        # - prevent previous commands failing with non-zero exit code from failing the run
+        # - avoid inheriting a previous commands non-zero exit code
         # - setting the exit code when there were some failed tests, blocks, or containers
+        $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
         $global:LASTEXITCODE = $failedCount
 
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
@@ -1458,11 +1457,13 @@ function ConvertTo-Pester4Result {
                 "Skipped" {
                     $legacyResult.SkippedCount++
                 }
+                "Inconclusive" {
+                    $legacyResult.InconclusiveCount++
+                }
             }
         }
         $legacyResult.TotalCount = $legacyResult.TestResult.Count
         $legacyResult.PendingCount = 0
-        $legacyResult.InconclusiveCount = 0
         $legacyResult.Time = $PesterResult.Duration
 
         $legacyResult

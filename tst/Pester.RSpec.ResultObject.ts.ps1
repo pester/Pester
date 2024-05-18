@@ -1,46 +1,19 @@
 ﻿param ([switch] $PassThru)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 Import-Module $PSScriptRoot/../bin/Pester.psd1
-
 
 $global:PesterPreference = @{
     Debug = @{
         ShowFullErrors         = $false
         WriteDebugMessages     = $false
-        WriteDebugMessagesFrom = "Mock"
+        WriteDebugMessagesFrom = 'Mock'
         ReturnRawResultObject  = $true
-    }
-}
-
-function Verify-Property {
-    param (
-        [Parameter(ValueFromPipeline = $true)]
-        $Actual,
-        [Parameter(Mandatory = $true, Position = 0)]
-        [String] $PropertyName,
-        [Parameter(Position = 1)]
-        $Value
-    )
-
-    if ($null -eq $PropertyName) {
-        throw 'PropertyName value is $null.'
-    }
-
-    if ($null -eq $Actual) {
-        throw 'Actual value is $null.'
-    }
-
-    if (-not $Actual.PSObject.Properties.Item($PropertyName)) {
-        throw "Expected object to have property $PropertyName!"
-    }
-
-    if ($null -ne $Value -and $Value -ne $Actual.$PropertyName) {
-        throw "Expected property $PropertyName to have value '$Value', but it was '$($Actual.$PropertyName)'!"
     }
 }
 
@@ -100,6 +73,14 @@ i -PassThru:$PassThru {
                         It "not run" -Tag "Slow" {
                             1 | Should -Be 1
                         }
+
+                        It "Set-ItResult -Inconclusive" {
+                            Set-ItResult -Inconclusive
+                        }
+
+                        It "Set-ItResult -Skipped" {
+                            Set-ItResult -Skipped
+                        }
                     }
                 }
                 $result = Invoke-Pester -Configuration @{
@@ -119,7 +100,7 @@ i -PassThru:$PassThru {
             $result | Verify-Property "Containers"
             $result.Containers.Count | Verify-Equal 2
 
-            $result.TotalCount | Verify-Equal 4
+            $result.TotalCount | Verify-Equal 6
             $result.Tests | Verify-NotNull
 
             $result.PassedCount | Verify-Equal 1
@@ -128,11 +109,14 @@ i -PassThru:$PassThru {
             $result.FailedCount | Verify-Equal 1
             $result.Failed | Verify-NotNull
 
-            $result.SkippedCount | Verify-Equal 1
+            $result.SkippedCount | Verify-Equal 2
             $result.Skipped | Verify-NotNull
 
             $result.NotRunCount | Verify-Equal 1
             $result.NotRun | Verify-NotNull
+
+            $result.InconclusiveCount | Verify-Equal 1
+            $result.Inconclusive | Verify-NotNull
 
             $result.Duration | Verify-Equal ($result.Containers[0].Duration + $result.Containers[1].Duration)
             $result.UserDuration | Verify-Equal ($result.Containers[0].UserDuration + $result.Containers[1].UserDuration)

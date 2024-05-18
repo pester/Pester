@@ -334,7 +334,7 @@ function Fold-Block {
         foreach ($b in $Block) {
             $Accumulator = & $OnBlock $Block $Accumulator
             foreach ($test in $Block.Tests) {
-                $Accumulator = &$OnTest $test $Accumulator
+                $Accumulator = & $OnTest $test $Accumulator
             }
 
             foreach ($b in $Block.Blocks) {

@@ -34,14 +34,16 @@ namespace Pester
         public object Data { get; set; }
         public string ExpandedName { get; set; }
         public string ExpandedPath { get; set; }
-
         public string Result { get; set; }
         public List<object> ErrorRecord { get; set; }
         public object StandardOutput { get; set; }
         public TimeSpan Duration { get => UserDuration + FrameworkDuration; }
 
         public string ItemType { get; private set; }
-        public string Id { get; set; }
+
+        [Obsolete("Id is obsolete and should no longer be used. Use GroupId instead.")]
+        public string Id { get => GroupId; }
+        public string GroupId { get; set; }
         public ScriptBlock ScriptBlock { get; set; }
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }
@@ -63,6 +65,7 @@ namespace Pester
         public DateTime? ExecutedAt { get; set; }
         public bool Passed { get; set; }
         public bool Skipped { get; set; }
+        public bool Inconclusive { get; set; }
 
         public TimeSpan UserDuration { get; set; }
         public TimeSpan FrameworkDuration { get; set; }

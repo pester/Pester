@@ -107,6 +107,9 @@ function Add-RSpecTestObjectProperties {
     $TestObject.Result = if ($TestObject.Skipped) {
         "Skipped"
     }
+    elseif ($TestObject.Inconclusive) {
+        "Inconclusive"
+    }
     elseif ($TestObject.Passed) {
         "Passed"
     }
@@ -160,6 +163,9 @@ function PostProcess-RspecTestRun ($TestRun) {
             "Skipped" {
                 $null = $TestRun.Skipped.Add($t)
             }
+            "Inconclusive" {
+                $null = $TestRun.Inconclusive.Add($t)
+            }
             default { throw "Result $($t.Result) is not supported." }
         }
 
@@ -200,7 +206,7 @@ function PostProcess-RspecTestRun ($TestRun) {
         ## decorate
 
         # here we add result
-        $b.result = if ($b.Skipped) {
+        $b.result = if ($b.Skip) {
             "Skipped"
         }
         elseif ($b.Passed) {
@@ -236,6 +242,7 @@ function PostProcess-RspecTestRun ($TestRun) {
     $TestRun.PassedCount = $TestRun.Passed.Count
     $TestRun.FailedCount = $TestRun.Failed.Count
     $TestRun.SkippedCount = $TestRun.Skipped.Count
+    $TestRun.InconclusiveCount = $TestRun.Inconclusive.Count
     $TestRun.NotRunCount = $TestRun.NotRun.Count
 
     $TestRun.TotalCount = $TestRun.Tests.Count
@@ -356,10 +363,10 @@ function New-PesterConfiguration {
       CoveragePercentTarget: Target percent of code coverage that you want to achieve, default 75%.
       Default value: 75
 
-      UseBreakpoints: EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.
-      Default value: $true
+      UseBreakpoints: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.
+      Default value: $false
 
-      SingleHitBreakpoints: Remove breakpoint when it is hit.
+      SingleHitBreakpoints: Remove breakpoint when it is hit. This increases performance of breakpoint based CodeCoverage.
       Default value: $true
 
     TestResult:
