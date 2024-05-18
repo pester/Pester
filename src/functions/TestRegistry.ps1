@@ -73,7 +73,7 @@ function Get-TestRegistryChildItem ([string]$TestRegistryPath) {
 function New-RandomTempRegistry {
     do {
         $tempPath = Get-TempRegistry
-        $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([Guid]::NewGuid())
+        $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([IO.Path]::GetRandomFileName().Substring(0, 4))
     } until (-not (& $SafeCommands['Test-Path'] -Path $Path -PathType Container))
 
     try {
