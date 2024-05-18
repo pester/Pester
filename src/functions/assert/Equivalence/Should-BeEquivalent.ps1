@@ -624,6 +624,9 @@ function Assert-Equivalent {
     .PARAMETER Expected
     The expected object to compare.
 
+    .PARAMETER Because
+    The reason why the input should be the expected value.
+
     .PARAMETER Options
     Options for the comparison. Get-EquivalencyOption function is called to get the default options.
 
@@ -669,11 +672,17 @@ function Assert-Equivalent {
     #>
     [CmdletBinding()]
     param(
+        [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
+        [Parameter(Position = 0, Mandatory)]
         $Expected,
+        [String]$Because,
         $Options = (Get-EquivalencyOption),
         [Switch] $StrictOrder
     )
+
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
+    $Actual = $collectedInput.Actual
 
     $areDifferent = Compare-Equivalent -Actual $Actual -Expected $Expected -Options $Options | Out-String
 

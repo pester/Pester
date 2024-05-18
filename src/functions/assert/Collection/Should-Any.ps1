@@ -39,7 +39,7 @@
     param (
         [Parameter(ValueFromPipeline = $true, Position = 1)]
         $Actual,
-        [Parameter(Position = 0, Mandatory = $true)]
+        [Parameter(Position = 0, Mandatory)]
         [scriptblock]$FilterScript,
         [String]$Because
     )
