@@ -265,7 +265,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:306"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:248"
                         $r.Trace.Count | Should -be 4
                     }
                 }
