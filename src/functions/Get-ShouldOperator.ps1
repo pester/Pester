@@ -55,7 +55,7 @@
             & $SafeCommands['Select-Object'] -Property Name, Alias |
             & $SafeCommands['ForEach-Object'] { $_.Name; $_.Alias }
 
-        $ValidateSetAttribute = [System.Management.Automation.ValidateSetAttribute]::new($arrSet)
+        $ValidateSetAttribute = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$arrSet)
         $AttributeCollection.Add($ValidateSetAttribute)
 
         $RuntimeParameter = [System.Management.Automation.RuntimeDefinedParameter]::new($ParameterName, [string], $AttributeCollection)
