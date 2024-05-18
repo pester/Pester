@@ -1529,7 +1529,7 @@ function Get-DynamicParametersForCmdlet {
             $Parameters = @{ }
         }
 
-        $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
+        $cmdlet = ($command.ImplementingType)::new()
 
         $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
         $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
