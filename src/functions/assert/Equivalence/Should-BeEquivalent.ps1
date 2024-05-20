@@ -723,9 +723,13 @@ function Get-EquivalencyOption {
     This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.
 
     .LINK
-    https://pester.dev/docs/functions/Get-EquivalencyOption
+    https://pester.dev/docs/commands/Get-EquivalencyOption
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
 
+    [CmdletBinding()]
     param(
         [string[]] $ExcludePath = @(),
         [switch] $ExcludePathsNotOnExpected,
