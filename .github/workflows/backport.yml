@@ -13,6 +13,13 @@ permissions:
   actions: write
 
 jobs:
+ debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print
+        run: env | sort
+
   backport:
     uses: dotnet/arcade/.github/workflows/backport-base.yml@main
     with:
