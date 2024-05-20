@@ -100,10 +100,10 @@
         }
 
         if ($Ago) {
-            $Expected = $currentTime - (Get-TimeSpanFromStringWithUnits -Value $Time)
+            $Expected = $currentTime - (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
         else {
-            $Expected = $currentTime + (Get-TimeSpanFromStringWithUnits -Value $Time)
+            $Expected = $currentTime + (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
     }
 

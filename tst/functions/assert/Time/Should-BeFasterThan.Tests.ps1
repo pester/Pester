@@ -1,9 +1,9 @@
 ﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
-    Describe "Get-TimeSpanFromStringWithUnits" {
+    Describe "Get-TimeSpanFromStringWithUnit" {
         It "Throws when string is not a valid timespan string" {
-            { Get-TimeSpanFromStringWithUnits 1f } | Verify-Throw
+            { Get-TimeSpanFromStringWithUnit 1f } | Verify-Throw
         }
 
         It "Parses string with units correctly" -ForEach @(
@@ -18,7 +18,7 @@ InPesterModuleScope {
             @{ Value = "1second"; Expected = [timespan]::FromSeconds(1) }
             @{ Value = "1.5hours"; Expected = [timespan]::FromHours(1.5) }
         ) {
-            Get-TimeSpanFromStringWithUnits -Value $Value | Verify-Equal -Expected $Expected
+            Get-TimeSpanFromStringWithUnit -Value $Value | Verify-Equal -Expected $Expected
         }
     }
 }

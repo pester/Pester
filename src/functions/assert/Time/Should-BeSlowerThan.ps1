@@ -52,7 +52,7 @@
     )
 
     if ($Expected -isnot [timespan]) {
-        $Expected = Get-TimeSpanFromStringWithUnits -Value $Expected
+        $Expected = Get-TimeSpanFromStringWithUnit -Value $Expected
     }
 
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput

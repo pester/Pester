@@ -102,6 +102,8 @@
         'Assert-Before'
         'Assert-After'
 
+        'Get-EquivalencyOption'
+
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'

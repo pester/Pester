@@ -118,6 +118,8 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Assert-Before'
     'Assert-After'
 
+    'Get-EquivalencyOption'
+
     # export
     'Export-NUnitReport'
     'ConvertTo-NUnitReport'
