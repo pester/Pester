@@ -44,7 +44,7 @@ function Add-ShouldOperator {
             }
         }
 
-        return New-Object psobject -Property @{
+        return [PSCustomObject]@{
             Succeeded      = $succeeded
             FailureMessage = $failureMessage
         }
@@ -80,17 +80,12 @@ function Add-ShouldOperator {
         [switch] $SupportsArrayInput
     )
 
-    $entry = & $SafeCommands['New-Object'] psobject -Property @{
+    $entry = [PSCustomObject]@{
         Test               = $Test
         SupportsArrayInput = [bool]$SupportsArrayInput
         Name               = $Name
         Alias              = $Alias
-        InternalName       = If ($InternalName) {
-            $InternalName
-        }
-        Else {
-            $Name
-        }
+        InternalName       = If ($InternalName) { $InternalName } else { $Name }
     }
     if (Test-AssertionOperatorIsDuplicate -Operator $entry) {
         # This is an exact duplicate of an existing assertion operator.
@@ -197,20 +192,20 @@ function Add-AssertionDynamicParameterSet {
     $commandInfo = & $SafeCommands['Get-Command'] __AssertionTest__ -CommandType Function
     $metadata = [System.Management.Automation.CommandMetadata]$commandInfo
 
-    $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
+    $attribute = [Management.Automation.ParameterAttribute]::new()
     $attribute.ParameterSetName = $AssertionEntry.Name
 
 
-    $attributeCollection = & $SafeCommands['New-Object'] Collections.ObjectModel.Collection[Attribute]
+    $attributeCollection = [Collections.ObjectModel.Collection[Attribute]]::new()
     $null = $attributeCollection.Add($attribute)
     if (-not ([string]::IsNullOrWhiteSpace($AssertionEntry.Alias))) {
         Assert-ValidAssertionAlias -Alias $AssertionEntry.Alias
-        $attribute = & $SafeCommands['New-Object'] System.Management.Automation.AliasAttribute($AssertionEntry.Alias)
+        $attribute = [System.Management.Automation.AliasAttribute]::new($AssertionEntry.Alias)
         $attributeCollection.Add($attribute)
     }
 
     # Register assertion
-    $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($AssertionEntry.Name, [switch], $attributeCollection)
+    $dynamic = [System.Management.Automation.RuntimeDefinedParameter]::new($AssertionEntry.Name, [switch], $attributeCollection)
     $null = $script:AssertionDynamicParams.Add($AssertionEntry.Name, $dynamic)
 
     # Register -Not in the assertion's parameter set. Create parameter if not already present (first assertion).
@@ -218,11 +213,11 @@ function Add-AssertionDynamicParameterSet {
         $dynamic = $script:AssertionDynamicParams['Not']
     }
     else {
-        $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter('Not', [switch], (& $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[Attribute]))
+        $dynamic = [System.Management.Automation.RuntimeDefinedParameter]::new('Not', [switch], ([System.Collections.ObjectModel.Collection[Attribute]]::new()))
         $null = $script:AssertionDynamicParams.Add('Not', $dynamic)
     }
 
-    $attribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
+    $attribute = [System.Management.Automation.ParameterAttribute]::new()
     $attribute.ParameterSetName = $AssertionEntry.Name
     $attribute.Mandatory = $false
     $attribute.HelpMessage = 'Reverse the assertion'
@@ -264,11 +259,11 @@ function Add-AssertionDynamicParameterSet {
                 $type = [object]
             }
 
-            $dynamic = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($parameter.Name, $type, (& $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[Attribute]))
+            $dynamic = [System.Management.Automation.RuntimeDefinedParameter]::new($parameter.Name, $type, ([System.Collections.ObjectModel.Collection[Attribute]]::new()))
             $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
         }
 
-        $attribute = & $SafeCommands['New-Object'] Management.Automation.ParameterAttribute
+        $attribute = [Management.Automation.ParameterAttribute]::new()
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
@@ -285,20 +280,6 @@ function Get-AssertionOperatorEntry([string] $Name) {
 
 function Get-AssertionDynamicParams {
     return $script:AssertionDynamicParams
-}
-
-function Has-Flag {
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [Pester.OutputTypes]
-        $Setting,
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [Pester.OutputTypes]
-        $Value
-    )
-
-    0 -ne ($Setting -band $Value)
 }
 
 function Invoke-Pester {
@@ -331,7 +312,7 @@ function Invoke-Pester {
     EnableExit parameter to return an exit code that contains the number of failed
     tests.
 
-    You can also use the Strict parameter to fail all pending and skipped tests.
+    You can also use the Strict parameter to fail all skipped tests.
     This feature is ideal for build systems and other processes that require success
     on every test.
 
@@ -510,7 +491,7 @@ function Invoke-Pester {
     (Deprecated v4)
     Replace with ConfigurationProperty Output.Verbosity
     Customizes the output Pester writes to the screen. Available options are None, Default,
-    Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
+    Passed, Failed, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
     The options can be combined to define presets.
     ConfigurationProperty Output.Verbosity supports the following values:
     None
@@ -535,7 +516,7 @@ function Invoke-Pester {
 
     .PARAMETER Strict
     (Deprecated v4)
-    Makes Pending and Skipped tests to Failed tests. Useful for continuous
+    Makes Skipped tests to Failed tests. Useful for continuous
     integration where you need to make sure all tests passed.
 
     .PARAMETER TagFilter
@@ -663,7 +644,7 @@ function Invoke-Pester {
         [object]$PesterOption,
 
         [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [Pester.OutputTypes]$Show = 'All'
+        [String] $Show = 'All'
     )
     begin {
         $start = [DateTime]::Now
@@ -1074,7 +1055,7 @@ function Convert-PesterLegacyParameterSet ($BoundParameters) {
             if ($null -ne $Show) {
                 # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
                 # without switching the whole param set just to get Diagnostic output
-                # {None | Default | Passed | Failed | Pending | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
+                # {None | Default | Passed | Failed | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
                 $verbosity = switch ($Show) {
                     'All' { 'Detailed' }
                     'Default' { 'Detailed' }
@@ -1189,7 +1170,7 @@ function New-PesterOption {
         $script:DisableScopeHints = $true
     }
 
-    return & $script:SafeCommands['New-Object'] psobject -Property @{
+    return [PSCustomObject]@{
         ReadMe              = "New-PesterOption is deprecated and kept only for backwards compatibility when executing Pester v5 using the " +
         "legacy parameter set. When the object is used with Invoke-Pester -PesterOption it will be ignored."
         IncludeVSCodeMarker = [bool] $IncludeVSCodeMarker
@@ -1239,7 +1220,7 @@ function ResolveTestScripts {
                         & $script:SafeCommands['Write-Error'] "Script path '$unresolvedPath' is not a ps1 file."
                     }
                     else {
-                        & $script:SafeCommands['New-Object'] psobject -Property @{
+                        [PSCustomObject]@{
                             Path       = $unresolvedPath
                             Script     = $null
                             Arguments  = $arguments
@@ -1257,7 +1238,7 @@ function ResolveTestScripts {
                         & $script:SafeCommands['Where-Object'] { -not $_.PSIsContainer } |
                         & $script:SafeCommands['Select-Object'] -ExpandProperty FullName -Unique |
                         & $script:SafeCommands['ForEach-Object'] {
-                            & $script:SafeCommands['New-Object'] psobject -Property @{
+                            [PSCustomObject]@{
                                 Path       = $_
                                 Script     = $null
                                 Arguments  = $arguments
@@ -1267,7 +1248,7 @@ function ResolveTestScripts {
                 }
             }
             elseif (-not [string]::IsNullOrEmpty($script)) {
-                & $script:SafeCommands['New-Object'] psobject -Property @{
+                [PSCustomObject]@{
                     Path       = $null
                     Script     = $script
                     Arguments  = $arguments
@@ -1308,7 +1289,6 @@ function Set-PesterStatistics($Node) {
             $Node.PassedCount += $action.PassedCount
             $Node.FailedCount += $action.FailedCount
             $Node.SkippedCount += $action.SkippedCount
-            $Node.PendingCount += $action.PendingCount
             $Node.InconclusiveCount += $action.InconclusiveCount
         }
         elseif ($action.Type -eq 'TestCase') {
@@ -1323,9 +1303,6 @@ function Set-PesterStatistics($Node) {
                 }
                 Skipped {
                     $Node.SkippedCount++; break;
-                }
-                Pending {
-                    $Node.PendingCount++; break;
                 }
                 Inconclusive {
                     $Node.InconclusiveCount++; break;
@@ -1393,7 +1370,6 @@ function ConvertTo-Pester4Result {
             PassedCount       = 0
             FailedCount       = 0
             SkippedCount      = 0
-            PendingCount      = 0
             InconclusiveCount = 0
             Time              = [TimeSpan]::Zero
             TestResult        = [System.Collections.Generic.List[object]]@()
@@ -1463,7 +1439,6 @@ function ConvertTo-Pester4Result {
             }
         }
         $legacyResult.TotalCount = $legacyResult.TestResult.Count
-        $legacyResult.PendingCount = 0
         $legacyResult.Time = $PesterResult.Duration
 
         $legacyResult

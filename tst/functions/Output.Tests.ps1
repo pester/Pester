@@ -4,64 +4,6 @@ BeforeAll {
     $PSDefaultParameterValues = @{ 'Should:ErrorAction' = 'Stop' }
 }
 
-InModuleScope -ModuleName Pester -ScriptBlock {
-    Describe 'Has-Flag' -Fixture {
-        It 'Returns true when setting and value are the same' {
-            $setting = [Pester.OutputTypes]::Passed
-            $value = [Pester.OutputTypes]::Passed
-
-            $value | Has-Flag $setting | Should -Be $true
-        }
-
-        It 'Returns false when setting and value are the different' {
-            $setting = [Pester.OutputTypes]::Passed
-            $value = [Pester.OutputTypes]::Failed
-
-            $value | Has-Flag $setting | Should -Be $false
-        }
-
-        It 'Returns true when setting contains value' {
-            $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
-            $value = [Pester.OutputTypes]::Passed
-
-            $value | Has-Flag $setting | Should -Be $true
-        }
-
-        It 'Returns false when setting does not contain the value' {
-            $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
-            $value = [Pester.OutputTypes]::Summary
-
-            $value | Has-Flag $setting | Should -Be $false
-        }
-
-        It 'Returns true when at least one setting is contained in value' {
-            $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
-            $value = [Pester.OutputTypes]::Summary -bor [Pester.OutputTypes]::Failed
-
-            $value | Has-Flag $setting | Should -Be $true
-        }
-
-        It 'Returns false when none of settings is contained in value' {
-            $setting = [Pester.OutputTypes]::Passed -bor [Pester.OutputTypes]::Failed
-            $value = [Pester.OutputTypes]::Summary -bor [Pester.OutputTypes]::Describe
-
-            $value | Has-Flag $setting | Should -Be $false
-        }
-    }
-
-    Describe 'Default OutputTypes' -Fixture {
-        It 'Fails output type contains all except passed' {
-            $expected = [Pester.OutputTypes]'Default, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
-            [Pester.OutputTypes]::Fails | Should -Be $expected
-        }
-
-        It 'All output type contains all flags' {
-            $expected = [Pester.OutputTypes]'Default, Passed, Failed, Pending, Skipped, Inconclusive, Describe, Context, Summary, Header'
-            [Pester.OutputTypes]::All | Should -Be $expected
-        }
-    }
-}
-
 BeforeAll {
     $thisScriptRegex = [regex]::Escape((Get-Item $PSCommandPath).FullName)
 }
@@ -244,7 +186,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.Message.Count | Should -be 6
 
             $r.Trace[0] | Should -match "'One' | Should -be 'Two'"
-            $r.Trace[1] | Should -be "at <ScriptBlock>, ${PSCommandPath}:230"
+            $r.Trace[1] | Should -be "at <ScriptBlock>, ${PSCommandPath}:172"
             $r.Trace.Count | Should -be 2
         }
         # TODO: should fails with a very weird error, probably has something to do with dynamic params...
@@ -323,7 +265,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:306"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:248"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -334,7 +276,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                         $r.Trace[0] | Should -be "at f1, ${testPath}:2"
                         $r.Trace[1] | Should -be "at f2, ${testPath}:5"
                         $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:306"
+                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:248"
                         $r.Trace.Count | Should -be 4
                     }
                 }
@@ -395,7 +337,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:372"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:314"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -404,7 +346,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
                         $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:372"
+                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:314"
                         $r.Trace.Count | Should -be 2
                     }
                 }
@@ -493,7 +435,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 447"
+                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 389"
                 $messages.Count | Should -BeGreaterThan 1
             }
 

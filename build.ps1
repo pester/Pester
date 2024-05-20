@@ -230,7 +230,7 @@ if ($Clean) {
         $listControl = $builder.EndEntry().EndList()
 
         $ViewDef = $formatViewCtor.Invoke(($section.FullName, $listControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
-        New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' $section.FullName, $ViewDef
+        [System.Management.Automation.ExtendedTypeDefinition]::new($section.FullName, $ViewDef)
     }
 
     # Create view for Option to ensure Table and hide IsModified
@@ -241,7 +241,7 @@ if ($Clean) {
     $tableControl = $builder.EndRowDefinition().EndTable()
 
     $ViewDef = $formatViewCtor.Invoke(('Pester.Option', $tableControl, [guid]::NewGuid())) -as [System.Collections.Generic.List[System.Management.Automation.FormatViewDefinition]]
-    $typeDefs += New-Object -TypeName 'System.Management.Automation.ExtendedTypeDefinition' 'Pester.Option', $ViewDef
+    $typeDefs += [System.Management.Automation.ExtendedTypeDefinition]::new('Pester.Option', $ViewDef)
 
     # Export all formatdata
     Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
