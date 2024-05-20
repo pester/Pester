@@ -35,7 +35,7 @@ function Assert-Like {
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-BeLikeString"h*"
+    "hello" | Should-BeLikeString "h*"
     ```
 
     This assertion will pass, because the actual value is like the expected value.
@@ -43,7 +43,7 @@ function Assert-Like {
     .EXAMPLE
     ```powershell
 
-    "hello" | Should-BeLikeString"H*" -CaseSensitive
+    "hello" | Should-BeLikeString "H*" -CaseSensitive
     ```
 
     This assertion will fail, because the actual value is not like the expected value.
