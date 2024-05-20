@@ -557,7 +557,7 @@ function Compare-Equivalent {
         return Get-ValueNotEquivalentMessage -Expected $Expected -Actual $Actual -Property $Path
     }
 
-    v "`$Expected has type $$Expected.GetType(), `$Actual has type $$Actual.GetType(), they are both non-null."
+    v "`$Expected has type $(Format-Nicely2 $Expected.GetType()), `$Actual has type $(Format-Nicely2 $Actual.GetType()), they are both non-null."
 
     # test value types, strings, and single item arrays with values in them as values
     # expand the single item array to get to the value in it
