@@ -609,7 +609,7 @@ function Compare-Equivalent {
         return
     }
 
-    v "`$Expected is an object of type $$Expected.GetType(), we will be comparing `$Actual to objects."
+    v "`$Expected is an object of type $(Format-Nicely2 $Expected.GetType()), we will be comparing `$Actual to objects."
     Compare-ObjectEquivalent -Expected $Expected -Actual $Actual -Property $Path -Options $Options
 }
 
