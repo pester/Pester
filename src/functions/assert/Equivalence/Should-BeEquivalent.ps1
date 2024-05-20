@@ -698,6 +698,34 @@ function Assert-Equivalent {
 }
 
 function Get-EquivalencyOption {
+    <#
+    .SYNOPSIS
+    Generates an object containing options for checking equivalency.
+
+    .DESCRIPTION
+    The `Get-EquivalencyOption` function creates a custom object with options that determine how equivalency between two objects is assessed. This can be used in scenarios where a deep comparison of objects is required, with the ability to exclude specific paths from the comparison and to choose between different comparison strategies.
+
+    .PARAMETER ExcludePath
+    An array of strings specifying the paths to exclude from the comparison. Each path should correspond to a property name or a chain of property names separated by dots for nested properties.
+
+    .PARAMETER ExcludePathsNotOnExpected
+    A switch parameter that, when set, excludes any paths from the comparison that are not present on the expected object. This is useful for ignoring extra properties on the actual object that are not relevant to the comparison.
+
+    .PARAMETER Comparator
+    Specifies the comparison strategy to use. The options are 'Equivalency' for a deep comparison that considers the structure and values of objects, and 'Equality' for a simple equality comparison. The default is 'Equivalency'.
+
+    .EXAMPLE
+    $option = Get-EquivalencyOption -ExcludePath 'Id', 'Timestamp' -Comparator 'Equality'
+    This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
+
+    .EXAMPLE
+    $option = Get-EquivalencyOption -ExcludePathsNotOnExpected
+    This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.
+
+    .LINK
+    https://pester.dev/docs/functions/Get-EquivalencyOption
+    #>
+
     param(
         [string[]] $ExcludePath = @(),
         [switch] $ExcludePathsNotOnExpected,
