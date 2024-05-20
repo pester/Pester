@@ -35,7 +35,7 @@ function Assert-Throw {
 
     .EXAMPLE
     ```powershell
-    $err = { throw 'error' } | Should-Throw -PassThru
+    $err = { throw 'error' } | Should-Throw
     $err.Exception.Message | Should-BeLike '*err*'
     ```
 
@@ -75,7 +75,7 @@ function Assert-Throw {
     }
     catch {
         $errorThrown = $true
-        $err = Get-Error $_
+        $err = Get-ErrorObject $_
     }
 
     $buts = @()
@@ -127,7 +127,7 @@ function Assert-Throw {
     $err.ErrorRecord
 }
 
-function Get-Error ($ErrorRecord) {
+function Get-ErrorObject ($ErrorRecord) {
 
     if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
         $e = $ErrorRecord.Exception.InnerException.ErrorRecord

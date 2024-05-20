@@ -11,12 +11,12 @@ InPesterModuleScope {
             ) {
                 param ($Path)
 
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     Name = "Jakub"
                     Age  = 30
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     Name = "Jakub"
                 }
 
@@ -30,11 +30,11 @@ InPesterModuleScope {
                 @{ Path = "ParentProperty1.ParentProperty2" }
             ) {
                 param ($Path)
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     Name = "Jakub"
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     Name = "Jakub"
                     Age  = 30
                 }
@@ -45,24 +45,24 @@ InPesterModuleScope {
 
 
             It "Given a full path to a property on object that is in collection it ignores it on the Expected object" {
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     ProgrammingLanguages = @(
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "C#"
                             Type = "OO"
                         }),
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "PowerShell"
                         })
                     )
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     ProgrammingLanguages = @(
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "C#"
                         }),
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "PowerShell"
                         })
                     )
@@ -74,24 +74,24 @@ InPesterModuleScope {
             }
 
             It "Given a full path to a property on object that is in collection it ignores it on the Actual object" {
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     ProgrammingLanguages = @(
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "C#"
                         }),
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "PowerShell"
                         })
                     )
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     ProgrammingLanguages = @(
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "C#"
                             Type = "OO"
                         }),
-                    (New-PSObject @{
+                    ([PSCustomObject]@{
                             Name = "PowerShell"
                         })
                     )
@@ -103,24 +103,24 @@ InPesterModuleScope {
             }
 
             It "Given a full path to a property on object that is in hashtable it ignores it on the Expected object" {
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     ProgrammingLanguages = @{
-                        Language1 = (New-PSObject @{
+                        Language1 = ([PSCustomObject]@{
                                 Name = "C#"
                                 Type = "OO"
                             });
-                        Language2 = (New-PSObject @{
+                        Language2 = ([PSCustomObject]@{
                                 Name = "PowerShell"
                             })
                     }
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     ProgrammingLanguages = @{
-                        Language1 = (New-PSObject @{
+                        Language1 = ([PSCustomObject]@{
                                 Name = "C#"
                             });
-                        Language2 = (New-PSObject @{
+                        Language2 = ([PSCustomObject]@{
                                 Name = "PowerShell"
                             })
                     }
@@ -193,13 +193,13 @@ InPesterModuleScope {
             }
 
             It "Given options it passes them correctly from Should-BeEquivalent" {
-                $expected = New-PSObject @{
+                $expected = [PSCustomObject]@{
                     Name     = "Jakub"
                     Location = "Prague"
                     Age      = 30
                 }
 
-                $actual = New-PSObject @{
+                $actual = [PSCustomObject]@{
                     Name = "Jakub"
                 }
 
@@ -347,11 +347,11 @@ InPesterModuleScope {
 
     Describe "Compare-Equiavlent - equality comparison options" {
         It "Given objects that are equivalent and -Comparator Equality option it compares them as different" {
-            $expected = New-PsObject @{
+            $expected = [PSCustomObject]@{
                 LikesIfsInMocks = $false
             }
 
-            $actual = New-PsObject @{
+            $actual = [PSCustomObject]@{
                 LikesIfsInMocks = "False"
             }
 

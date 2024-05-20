@@ -203,7 +203,7 @@ Describe "General try catch behavior" {
 }
 
 InPesterModuleScope {
-    Describe "Get-Error" {
+    Describe "Get-ErrorObject" {
         It 'Unwraps error from invoke with context' {
             $ErrorActionPreference = 'stop'
             try {
@@ -218,7 +218,7 @@ InPesterModuleScope {
                 $e = $_
             }
 
-            $err = Get-Error $e
+            $err = Get-ErrorObject $e
             $err.ExceptionMessage | Verify-Like "Cannot find path*because it does not exist."
             $err.ExceptionType | Verify-Equal ([Management.Automation.ItemNotFoundException])
             $err.FullyQualifiedErrorId | Verify-Equal 'PathNotFound,Microsoft.PowerShell.Commands.GetItemCommand'

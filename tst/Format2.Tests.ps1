@@ -64,7 +64,7 @@ InPesterModuleScope {
 
     Describe "Format-Object2" {
         It "Formats object '<value>' to '<expected>'" -TestCases @(
-            @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28 }); Expected = "PSObject{Age=28; Name='Jakub'}" },
+            @{ Value = ([PSCustomObject]@{Name = 'Jakub'; Age = 28 }); Expected = "PSObject{Age=28; Name='Jakub'}" },
             @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name='Jakub'}" }
         ) {
             param ($Value, $Expected)
@@ -72,7 +72,7 @@ InPesterModuleScope {
         }
 
         It "Formats object '<value>' with selected properties '<selectedProperties>' to '<expected>'" -TestCases @(
-            @{ Value = (New-PSObject @{Name = 'Jakub'; Age = 28 }); SelectedProperties = "Age"; Expected = "PSObject{Age=28}" },
+            @{ Value = ([PSCustomObject]@{Name = 'Jakub'; Age = 28 }); SelectedProperties = "Age"; Expected = "PSObject{Age=28}" },
             @{
                 Value              = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 })
                 SelectedProperties = 'Name'
@@ -159,7 +159,7 @@ InPesterModuleScope {
             @{ Value = (1, 2, 3); Expected = '@(1, 2, 3)' },
             @{ Value = 1.1; Expected = '1.1' },
             @{ Value = [int]; Expected = '[int]' }
-            @{ Value = New-PSObject @{ Name = "Jakub" }; Expected = "PSObject{Name='Jakub'}" },
+            @{ Value = [PSCustomObject]@{ Name = "Jakub" }; Expected = "PSObject{Name='Jakub'}" },
             @{ Value = (New-Object -Type Assertions.TestType.Person -Property @{Name = 'Jakub'; Age = 28 }); Expected = "Assertions.TestType.Person{Age=28; Name='Jakub'}" }
             @{ Value = @{Name = 'Jakub'; Age = 28 }; Expected = "@{Age=28; Name='Jakub'}" }
             @{ Value = New-Dictionary @{Age = 28; Name = 'Jakub' }; Expected = "Dictionary{Age=28; Name='Jakub'}" }
@@ -199,7 +199,7 @@ InPesterModuleScope {
             @{ Value = 1.1; Expected = '[double]' },
             @{ Value = 'a' ; Expected = '[string]' },
             @{ Value = $null ; Expected = '[null]' },
-            @{ Value = New-PSObject @{Name = 'Jakub' } ; Expected = '[PSObject]' },
+            @{ Value = [PSCustomObject]@{Name = 'Jakub' } ; Expected = '[PSObject]' },
             @{ Value = [Object[]]1, 2, 3 ; Expected = '[collection]' }
         ) {
             param($Value, $Expected)

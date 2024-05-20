@@ -7,7 +7,8 @@
         # It is always $null or object[] containing all the received items.
         $PipelineInput,
         # This tell us if we were called by | syntax or not. Caller needs to pass in $MyInvocation.ExpectingInput.
-        $IsPipelineInput,
+        [Parameter(Mandatory)]
+        [bool] $IsPipelineInput,
         # This unwraps input provided by |. The effect of this is that we get single item input directly,
         # and not wrapped in array. E.g. 1 | Should-Be  -> 1, and not 1 | Should-Be -> @(1).
         #

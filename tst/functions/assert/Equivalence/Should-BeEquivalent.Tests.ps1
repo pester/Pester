@@ -83,13 +83,13 @@ InPesterModuleScope {
     Describe "Get-ValueNotEquivalentMessage" {
         It "Returns correct message when comparing value to an object" {
             $e = 'abc'
-            $a = New-PSObject @{ Name = 'Jakub'; Age = 28 }
+            $a = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
                 Verify-Equal "Expected 'abc' to be equivalent to the actual value, but got PSObject{Age=28; Name='Jakub'}."
         }
 
         It "Returns correct message when comparing object to a value" {
-            $e = New-PSObject @{ Name = 'Jakub'; Age = 28 }
+            $e = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
             $a = 'abc'
             Get-ValueNotEquivalentMessage -Actual $a -Expected $e |
                 Verify-Equal "Expected PSObject{Age=28; Name='Jakub'} to be equivalent to the actual value, but got 'abc'."
@@ -166,7 +166,7 @@ InPesterModuleScope {
             @{ Actual = "abc"; Expected = "a b c"; Message = "Expected 'a b c' to be equivalent to the actual value, but got 'abc'." },
             @{ Actual = @("abc", "bde"); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got @('abc', 'bde')." },
             @{ Actual = { def }; Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got { def }." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
+            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
             @{ Actual = (1, 2, 3); Expected = "abc"; Message = "Expected 'abc' to be equivalent to the actual value, but got @(1, 2, 3)." }
         ) {
             param($Actual, $Expected, $Message)
@@ -190,7 +190,7 @@ InPesterModuleScope {
 
         It "Given collection '<expected>' on the expected side and non-collection '<actual>' on the actual side it prints the correct message '<message>'" -TestCases @(
             @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." }
+            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -234,7 +234,7 @@ InPesterModuleScope {
         }
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
+            @{ Actual = 'a'; Expected = ([PSCustomObject]@{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-ObjectEquivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
@@ -319,9 +319,9 @@ InPesterModuleScope {
             @{ Actual = { abc }; Expected = { def }; Message = "Expected { def } to be equivalent to the actual value, but got { abc }." },
             @{ Actual = (1, 2, 3); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4 to be the same size as the actual collection, but got @(1, 2, 3) with length 3." },
             @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." },
-            @{ Actual = (New-PSObject @{ Name = 'Jakub' }); Expected = "a"; Message = "Expected 'a' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
-            @{ Actual = 'a'; Expected = (New-PSObject @{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
+            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." },
+            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = "a"; Message = "Expected 'a' to be equivalent to the actual value, but got PSObject{Name='Jakub'}." },
+            @{ Actual = 'a'; Expected = ([PSCustomObject]@{ Name = 'Jakub' }); Message = "Expected object PSObject{Name='Jakub'}, but got 'a'." }
             @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got 'a'." }
             @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got 'a'." }
         ) {
@@ -330,7 +330,7 @@ InPesterModuleScope {
         }
 
         It "Comparing the same instance of a psObject returns null" {
-            $actual = $expected = New-PSObject @{ Name = 'Jakub' }
+            $actual = $expected = [PSCustomObject]@{ Name = 'Jakub' }
             Verify-Same -Expected $expected -Actual $actual
 
             Compare-Equivalent -Expected $expected -Actual $actual | Verify-Null
@@ -338,16 +338,16 @@ InPesterModuleScope {
 
         It "Given PSObjects '<expected>' and '<actual> that are different instances but have the same values it returns report with Equivalent set to `$true" -TestCases @(
             @{
-                Expected = New-PSObject @{ Name = 'Jakub' }
-                Actual   = New-PSObject @{ Name = 'Jakub' }
+                Expected = [PSCustomObject]@{ Name = 'Jakub' }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub' }
             },
             @{
-                Expected = New-PSObject @{ Name = 'Jakub' }
-                Actual   = New-PSObject @{ Name = 'Jakub' }
+                Expected = [PSCustomObject]@{ Name = 'Jakub' }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub' }
             },
             @{
-                Expected = New-PSObject @{ Age = 28 }
-                Actual   = New-PSObject @{ Age = '28' }
+                Expected = [PSCustomObject]@{ Age = 28 }
+                Actual   = [PSCustomObject]@{ Age = '28' }
             }
         ) {
             param ($Expected, $Actual)
@@ -358,18 +358,18 @@ InPesterModuleScope {
 
         It "Given PSObjects '<expected>' and '<actual> that have different values in some of the properties it returns message '<message>'" -TestCases @(
             @{
-                Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
-                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 19 }
+                Expected = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub'; Age = 19 }
                 Message  = "Expected property .Age with value 28 to be equivalent to the actual value, but got 19."
             },
             @{
-                Expected = New-PSObject @{ Name = 'Jakub'; Age = 28 }
-                Actual   = New-PSObject @{ Name = 'Jakub' }
+                Expected = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub' }
                 Message  = "Expected has property 'Age' that the other object does not have."
             },
             @{
-                Expected = New-PSObject @{ Name = 'Jakub' }
-                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 28 }
+                Expected = [PSCustomObject]@{ Name = 'Jakub' }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
                 Message  = "Expected is missing property 'Age' that the other object has."
             }
         ) {
@@ -382,7 +382,7 @@ InPesterModuleScope {
         It "Given PSObject '<expected>' and object '<actual> that have the same values it returns `$null" -TestCases @(
             @{
                 Expected = New-Object -TypeName Assertions.TestType.Person2 -Property @{ Name = 'Jakub'; Age = 28 }
-                Actual   = New-PSObject @{ Name = 'Jakub'; Age = 28 }
+                Actual   = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
             }
         ) {
             param ($Expected, $Actual)
@@ -392,8 +392,8 @@ InPesterModuleScope {
 
         It "Given PSObjects '<expected>' and '<actual> that contain different arrays in the same property returns the correct message" -TestCases @(
             @{
-                Expected = New-PSObject @{ Numbers = 1, 2, 3 }
-                Actual   = New-PSObject @{ Numbers = 3, 4, 5 }
+                Expected = [PSCustomObject]@{ Numbers = 1, 2, 3 }
+                Actual   = [PSCustomObject]@{ Numbers = 3, 4, 5 }
             }
         ) {
             param ($Expected, $Actual)
@@ -403,8 +403,8 @@ InPesterModuleScope {
 
         It "Comparing psObjects that have collections of objects returns `$null when the objects have the same value" -TestCases @(
             @{
-                Expected = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Tomas" }) }
-                Actual   = New-PSObject @{ Objects = (New-PSObject @{ Name = "Tomas" }), (New-PSObject @{ Name = "Jan" }) }
+                Expected = [PSCustomObject]@{ Objects = ([PSCustomObject]@{ Name = "Jan" }), ([PSCustomObject]@{ Name = "Tomas" }) }
+                Actual   = [PSCustomObject]@{ Objects = ([PSCustomObject]@{ Name = "Tomas" }), ([PSCustomObject]@{ Name = "Jan" }) }
             }
         ) {
             param ($Expected, $Actual)
@@ -413,8 +413,8 @@ InPesterModuleScope {
 
         It "Comparing psObjects that have collections of objects returns the correct message when the items in the collection differ" -TestCases @(
             @{
-                Expected = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Petr" }) }
-                Actual   = New-PSObject @{ Objects = (New-PSObject @{ Name = "Jan" }), (New-PSObject @{ Name = "Tomas" }) }
+                Expected = [PSCustomObject]@{ Objects = ([PSCustomObject]@{ Name = "Jan" }), ([PSCustomObject]@{ Name = "Petr" }) }
+                Actual   = [PSCustomObject]@{ Objects = ([PSCustomObject]@{ Name = "Jan" }), ([PSCustomObject]@{ Name = "Tomas" }) }
             }
         ) {
             param ($Expected, $Actual)

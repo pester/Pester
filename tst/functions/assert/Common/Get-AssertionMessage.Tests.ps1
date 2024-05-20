@@ -17,13 +17,13 @@ InPesterModuleScope {
         It "returns correct message when complex objects are provided" {
             $expected = "We expected string to be PSObject{Age=28; Name='Jakub'}, but got 2."
             $customMessage = "We expected string to be <expected>, but got <actual>."
-            Get-AssertionMessage -CustomMessage $customMessage -Expected (New-PSObject @{Name = 'Jakub'; Age = 28 }) -Actual 2 | Verify-Equal $expected
+            Get-AssertionMessage -CustomMessage $customMessage -Expected ([PSCustomObject]@{Name = 'Jakub'; Age = 28 }) -Actual 2 | Verify-Equal $expected
         }
 
         It "returns correct message when type tokens are provided" {
             $expected = "We expected string to be [PSObject], but got [int]."
             $customMessage = "We expected string to be <expectedType>, but got <actualType>."
-            Get-AssertionMessage -CustomMessage $customMessage -Expected (New-PSObject @{Name = 'Jakub'; Age = 28 }) -Actual 2 | Verify-Equal $expected
+            Get-AssertionMessage -CustomMessage $customMessage -Expected ([PSCustomObject]@{Name = 'Jakub'; Age = 28 }) -Actual 2 | Verify-Equal $expected
         }
 
         It "returns correct type message when `$null is provided" {

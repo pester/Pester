@@ -5,7 +5,6 @@ vendor/packages/
 .vscode/
 # But don't exclude settings.json
 !.vscode/settings.json
-!.vscode/launch.json
 
 coverage.xml
 testResults.xml

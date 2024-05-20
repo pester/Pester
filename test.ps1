@@ -12,11 +12,8 @@
         so leaving it in code would run only one test from the file on the server.
 
     .PARAMETER SkipPTests
-        Skips P tests. Skip the tests written using the P module, Unit
+        Skips Passthrough P tests. Skip the tests written using the P module, Unit
         Tests for the Runtime, and Acceptance Tests for Pester
-
-    .PARAMETER SkipPesterTests
-        Skips Pester tests, but not P tests.
 
     .PARAMETER NoBuild
         Skips running build.ps1. Do not build the underlying csharp components.
@@ -32,22 +29,16 @@
         done, but makes local debugging difficult. When -CI is used, inlining is
         forced.
 
-    .PARAMETER VSCode
-        Set when calling from VSCode laucher file so we automatically figure out
-        what to run or what to skip.
     .NOTES
         Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
-[CmdletBinding()]
 param (
     # force P to fail when I leave `dt` in the tests
     [switch] $CI,
     [switch] $SkipPTests,
-    [switch] $SkipPesterTests,
     [switch] $NoBuild,
     [switch] $Inline,
-    [switch] $VSCode,
-    [string[]] $File = @()
+    [string[]] $File
 )
 
 Set-StrictMode -Version Latest
@@ -57,21 +48,6 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
-if ($VSCode) {
-    # Detect which tests to skip from the filenames.
-    $anyFile = 0 -lt $File.Count
-    $anyPesterTests = [bool]@($File | Where-Object { $_ -like "*.Tests.ps1" })
-    $anyPTests = [bool]@($File | Where-Object { $_ -like "*.ts.ps1" })
-
-    if ($SkipPTests -or ($anyFile -and -not $anyPTests)) {
-        $SkipPTests = $true
-    }
-
-    if ($SkipPesterTests -or ($anyFile -and -not $anyPesterTests)) {
-        $SkipPesterTests = $true
-    }
-}
-
 if (-not $NoBuild) {
     if ($CI) {
         & "$PSScriptRoot/build.ps1" -Inline
@@ -80,10 +56,6 @@ if (-not $NoBuild) {
         & "$PSScriptRoot/build.ps1" -Inline:$Inline
     }
 }
-
-# if ($CI -and ($SkipPTests -or $SkipPesterTests)) {
-#     throw "Cannot skip tests in CI mode!"
-# }
 
 # remove pester because we will be reimporting it in multiple other places
 Get-Module Pester | Remove-Module
@@ -146,7 +118,7 @@ New-Module -Name TestHelpers -ScriptBlock {
     }
 
     function New-Dictionary ([hashtable]$Hashtable) {
-        $d = new-object "Collections.Generic.Dictionary[string,object]"
+        $d = [System.Collections.Generic.Dictionary[string, object]]::new()
         $Hashtable.GetEnumerator() | ForEach-Object { $d.Add($_.Key, $_.Value) }
 
         $d
@@ -155,15 +127,8 @@ New-Module -Name TestHelpers -ScriptBlock {
     function Clear-WhiteSpace ($Text) {
         "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," ")".Trim()
     }
-
-    function New-PSObject ([hashtable]$Property) {
-        New-Object -Type PSObject -Property $Property
-    }
 } | Out-Null
 
-if ($SkipPesterTests) {
-    return
-}
 
 $configuration = [PesterConfiguration]::Default
 
@@ -189,8 +154,8 @@ if ($CI) {
     $configuration.Run.Exit = $true
 
     # not using code coverage, it is still very slow
-    $configuration.CodeCoverage.Enabled = $true
-    $configuration.CodeCoverage.Path = "$PSScriptRoot/bin/*"
+    $configuration.CodeCoverage.Enabled = $false
+    $configuration.CodeCoverage.Path = "$PSScriptRoot/src/*"
 
     # experimental, uses the Profiler based tracer to do code coverage without using breakpoints
     $configuration.CodeCoverage.UseBreakpoints = $false
