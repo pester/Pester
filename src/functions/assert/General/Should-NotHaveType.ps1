@@ -14,8 +14,8 @@
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-NotHaveType [Int32]
-    1 | Should-NotHaveType [String]
+    "hello" | Should-NotHaveType ([Int32])
+    1 | Should-NotHaveType ([String])
     ```
 
     These assertions will pass, because the actual value is not of the expected type.
