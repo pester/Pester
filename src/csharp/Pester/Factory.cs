@@ -25,10 +25,6 @@ namespace Pester
             return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         }
 
-        public static RuntimeDefinedParameterDictionary CreateRuntimeDefinedParameterDictionary() {
-            return new System.Management.Automation.RuntimeDefinedParameterDictionary();
-        }
-
         public static List<object> CreateCollection()
         {
             return new List<object>();

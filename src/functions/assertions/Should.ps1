@@ -15,7 +15,7 @@ function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Lin
     $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
     # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
     $targetObject = @{ Message = $Message; File = $File; Line = $Line; LineText = $LineText; Terminating = $Terminating }
-    $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
+    $errorRecord = [Management.Automation.ErrorRecord]::new($exception, $errorID, $errorCategory, $targetObject)
     return $errorRecord
 }
 

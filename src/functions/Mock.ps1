@@ -1529,7 +1529,7 @@ function Get-DynamicParametersForCmdlet {
             $Parameters = @{ }
         }
 
-        $cmdlet = & $SafeCommands['New-Object'] $command.ImplementingType.FullName
+        $cmdlet = ($command.ImplementingType)::new()
 
         $flags = [System.Reflection.BindingFlags]'Instance, Nonpublic'
         $context = $ExecutionContext.GetType().GetField('_context', $flags).GetValue($ExecutionContext)
@@ -1880,7 +1880,7 @@ function Repair-EnumParameters {
         return $ParamBlock
     }
 
-    $sb = & $SafeCommands['New-Object'] System.Text.StringBuilder($ParamBlock)
+    $sb = [System.Text.StringBuilder]::new($ParamBlock)
 
     foreach ($attr in $brokenValidateRange) {
         $paramName = $attr.Parent.Name.VariablePath.UserPath
