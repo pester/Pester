@@ -1127,7 +1127,8 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
             # https://no-color.org/)
             $PesterPreference.Output.RenderMode = 'Plaintext'
         }
-        elseif (($supportsVT = $host.UI.psobject.Properties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
+        # Null check $host.UI and its properties to avoid race condition when accessing them from multiple threads. https://github.com/pester/Pester/issues/2383
+        elseif ($null -ne $host.UI -and ($hostProperties = $host.UI.psobject.Properties) -and ($supportsVT = $hostProperties['SupportsVirtualTerminal']) -and $supportsVT.Value) {
             $PesterPreference.Output.RenderMode = 'Ansi'
         }
         else {
