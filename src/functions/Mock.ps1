@@ -411,7 +411,8 @@ function Should-InvokeInternal {
     $nonMatchingCalls = [System.Collections.Generic.List[object]]@()
 
     # Check for variables in ParameterFilter that already exists in session. Risk of conflict
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+    # Excluding native applications as they don't have parameters or metadata. Will always use $args
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and $null -ne $ContextInfo.Hook.Metadata) {
         $preExistingFilterVariables = @{}
         foreach ($v in $filter.Ast.FindAll( { $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
             if (-not $preExistingFilterVariables.ContainsKey($v.VariablePath.UserPath)) {
@@ -422,7 +423,7 @@ function Should-InvokeInternal {
         }
 
         # Check against parameters and aliases in mocked command as it may cause false positives
-        if ($preExistingFilterVariables.Count -gt 0) {
+        if ($preExistingFilterVariables.Count -gt 0 -and $null -ne $ContextInfo.Hook.Metadata.Parameters) {
             foreach ($p in $ContextInfo.Hook.Metadata.Parameters.GetEnumerator()) {
                 if ($preExistingFilterVariables.ContainsKey($p.Key)) {
                     Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($p.Key) with value '$($preExistingFilterVariables[$p.Key])' exists in current scope and matches a parameter in $CommandName which may cause false matches in ParameterFilter. Consider renaming the existing variable or use `$PesterBoundParameters.$($p.Key) in ParameterFilter."
