@@ -1,4 +1,4 @@
-﻿function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-ContainAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that collection contains a specific value.
@@ -45,8 +45,8 @@
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Contain `
-    -InternalName Should-Contain `
-    -Test         ${function:Should-Contain} `
+    -InternalName Should-ContainAssertion `
+    -Test         ${function:Should-ContainAssertion} `
     -SupportsArrayInput
 
 Set-ShouldOperatorHelpMessage -OperatorName Contain `

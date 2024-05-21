@@ -1,4 +1,4 @@
-﻿function Should-Exist($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-ExistAssertion($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider.
@@ -41,8 +41,8 @@
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Exist `
-    -InternalName Should-Exist `
-    -Test         ${function:Should-Exist}
+    -InternalName Should-ExistAssertion `
+    -Test         ${function:Should-ExistAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName Exist `
     -HelpMessage "Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider. The object must have valid path syntax. It essentially must pass a Test-Path call."

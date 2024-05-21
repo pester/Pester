@@ -66,6 +66,44 @@
         'New-PesterContainer'
         'New-PesterConfiguration'
 
+        # assert
+        'Assert-False'
+        'Assert-True'
+        'Assert-Falsy'
+        'Assert-Truthy'
+        'Assert-All'
+        'Assert-Any'
+        'Assert-Contain'
+        'Assert-NotContain'
+        'Assert-Collection'
+        'Assert-Equivalent'
+        'Assert-Throw'
+        'Assert-Equal'
+        'Assert-GreaterThan'
+        'Assert-GreaterThanOrEqual'
+        'Assert-LessThan'
+        'Assert-LessThanOrEqual'
+        'Assert-NotEqual'
+        'Assert-NotNull'
+        'Assert-NotSame'
+        'Assert-NotType'
+        'Assert-Null'
+        'Assert-Same'
+        'Assert-Type'
+        'Assert-Like'
+        'Assert-NotLike'
+        'Assert-StringEqual'
+        'Assert-StringNotEqual'
+        'Assert-StringEmpty'
+        'Assert-StringNotWhiteSpace'
+        'Assert-StringNotEmpty'
+        'Assert-Faster'
+        'Assert-Slower'
+        'Assert-Before'
+        'Assert-After'
+
+        'Get-EquivalencyOption'
+
         # legacy
         'Assert-VerifiableMock'
         'Assert-MockCalled'
@@ -85,6 +123,51 @@
     AliasesToExport   = @(
         'Add-AssertionOperator'
         'Get-AssertionOperator'
+
+        # assertion functions
+        # bool
+        'Should-BeFalse'
+        'Should-BeTrue'
+        'Should-BeFalsy'
+        'Should-BeTruthy'
+
+        # collection
+        'Should-All'
+        'Should-Any'
+        'Should-ContainCollection'
+        'Should-NotContainCollection'
+        'Should-BeCollection'
+        'Should-BeEquivalent'
+        'Should-Throw'
+        'Should-Be'
+        'Should-BeGreaterThan'
+        'Should-BeGreaterThanOrEqual'
+        'Should-BeLessThan'
+        'Should-BeLessThanOrEqual'
+        'Should-NotBe'
+        'Should-NotBeNull'
+        'Should-NotBeSame'
+        'Should-NotHaveType'
+        'Should-BeNull'
+        'Should-BeSame'
+        'Should-HaveType'
+
+        # string
+        'Should-BeString'
+        'Should-NotBeString'
+
+        'Should-BeEmptyString'
+
+        'Should-NotBeNullOrWhiteSpaceString'
+        'Should-NotBeNullOrEmptyString'
+
+        'Should-BeLikeString'
+        'Should-NotBeLikeString'
+
+        'Should-BeFasterThan'
+        'Should-BeSlowerThan'
+        'Should-BeBefore'
+        'Should-BeAfter'
     )
 
 

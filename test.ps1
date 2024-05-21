@@ -116,6 +116,17 @@ New-Module -Name TestHelpers -ScriptBlock {
         $module = Get-Module -Name Pester -ErrorAction Stop
         . $module $ScriptBlock
     }
+
+    function New-Dictionary ([hashtable]$Hashtable) {
+        $d = [System.Collections.Generic.Dictionary[string, object]]::new()
+        $Hashtable.GetEnumerator() | ForEach-Object { $d.Add($_.Key, $_.Value) }
+
+        $d
+    }
+
+    function Clear-WhiteSpace ($Text) {
+        "$($Text -replace "(`t|`n|`r)"," " -replace "\s+"," ")".Trim()
+    }
 } | Out-Null
 
 

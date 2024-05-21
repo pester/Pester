@@ -1,4 +1,4 @@
-﻿function Should-HaveCount($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-HaveCountAssertion($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a collection has the expected amount of items.
@@ -87,8 +87,8 @@
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name HaveCount `
-    -InternalName Should-HaveCount `
-    -Test         ${function:Should-HaveCount} `
+    -InternalName Should-HaveCountAssertion `
+    -Test         ${function:Should-HaveCountAssertion} `
     -SupportsArrayInput
 
 Set-ShouldOperatorHelpMessage -OperatorName HaveCount `

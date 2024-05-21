@@ -1,4 +1,4 @@
-﻿function Should-Match($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-MatchAssertion($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Uses a regular expression to compare two objects.
@@ -62,8 +62,8 @@ function NotShouldMatchFailureMessage($ActualValue, $RegularExpression, $Because
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Match `
-    -InternalName Should-Match `
-    -Test         ${function:Should-Match}
+    -InternalName Should-MatchAssertion `
+    -Test         ${function:Should-MatchAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName Match `
     -HelpMessage 'Uses a regular expression to compare two objects. This comparison is not case sensitive.'

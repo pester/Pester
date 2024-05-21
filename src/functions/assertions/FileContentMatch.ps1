@@ -1,4 +1,4 @@
-﻿function Should-FileContentMatch($ActualValue, $ExpectedContent, [switch] $Negate, $Because) {
+﻿function Should-FileContentMatchAssertion($ActualValue, $ExpectedContent, [switch] $Negate, $Because) {
     <#
     .SYNOPSIS
     Checks to see if a file contains the specified text.
@@ -73,8 +73,8 @@ function NotShouldFileContentMatchFailureMessage($ActualValue, $ExpectedContent,
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatch `
-    -InternalName Should-FileContentMatch `
-    -Test         ${function:Should-FileContentMatch}
+    -InternalName Should-FileContentMatchAssertion `
+    -Test         ${function:Should-FileContentMatchAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName FileContentMatch `
     -HelpMessage 'Checks to see if a file contains the specified text. This search is not case sensitive and uses regular expressions.'

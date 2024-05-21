@@ -9,16 +9,6 @@
     return (& $failureMessageFunction $value $expected)
 }
 
-function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText, $Terminating) {
-    $exception = [Exception] $Message
-    $errorID = 'PesterAssertionFailed'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{ Message = $Message; File = $File; Line = $Line; LineText = $LineText; Terminating = $Terminating }
-    $errorRecord = [Management.Automation.ErrorRecord]::new($exception, $errorID, $errorCategory, $targetObject)
-    return $errorRecord
-}
-
 function Should {
     <#
     .SYNOPSIS

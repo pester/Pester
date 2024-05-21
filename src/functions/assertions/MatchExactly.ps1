@@ -1,4 +1,4 @@
-﻿function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-MatchExactlyAssertion($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Uses a regular expression to compare two objects.
@@ -55,8 +55,8 @@ function NotShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name MatchExactly `
-    -InternalName Should-MatchExactly `
-    -Test         ${function:Should-MatchExactly} `
+    -InternalName Should-MatchExactlyAssertion `
+    -Test         ${function:Should-MatchExactlyAssertion} `
     -Alias        'CMATCH'
 
 Set-ShouldOperatorHelpMessage -OperatorName MatchExactly `

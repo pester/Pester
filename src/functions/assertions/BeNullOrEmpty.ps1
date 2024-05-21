@@ -1,5 +1,5 @@
 ﻿
-function Should-BeNullOrEmpty($ActualValue, [switch] $Negate, [string] $Because) {
+function Should-BeNullOrEmptyAssertion($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks values for null or empty (strings).
@@ -80,8 +80,8 @@ function NotShouldBeNullOrEmptyFailureMessage ($Because) {
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeNullOrEmpty `
-    -InternalName       Should-BeNullOrEmpty `
-    -Test               ${function:Should-BeNullOrEmpty} `
+    -InternalName       Should-BeNullOrEmptyAssertion `
+    -Test               ${function:Should-BeNullOrEmptyAssertion} `
     -SupportsArrayInput
 
 Set-ShouldOperatorHelpMessage -OperatorName BeNullOrEmpty `

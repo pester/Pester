@@ -1,4 +1,4 @@
-﻿function Should-HaveParameter (
+﻿function Should-HaveParameterAssertion (
     $ActualValue,
     [String] $ParameterName,
     $Type,
@@ -383,8 +383,8 @@
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name HaveParameter `
-    -InternalName Should-HaveParameter `
-    -Test         ${function:Should-HaveParameter}
+    -InternalName Should-HaveParameterAssertion `
+    -Test         ${function:Should-HaveParameterAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName HaveParameter `
     -HelpMessage 'Asserts that a command has the expected parameter.'

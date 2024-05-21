@@ -277,9 +277,12 @@ $script = @(
     "$PSScriptRoot/src/Pester.Runtime.ps1"
     "$PSScriptRoot/src/TypeClass.ps1"
     "$PSScriptRoot/src/Format.ps1"
+    # TODO: the original version of Format2 from assert, because it does not format strings and other stuff in Pester specific way. I've used this regex (Format-Collection|Format-Object|Format-Null|Format-Boolean|Format-ScriptBlock|Format-Number|Format-Hashtable|Format-Dictionary|Format-Nicely|Get-DisplayProperty|Get-ShortType|Format-Type), '$12' to replace in VS Code.
+    "$PSScriptRoot/src/Format2.ps1"
     "$PSScriptRoot/src/Pester.RSpec.ps1"
     "$PSScriptRoot/src/Main.ps1"
 
+    "$PSScriptRoot/src/functions/assert/*/*"
     "$PSScriptRoot/src/functions/assertions/*"
     "$PSScriptRoot/src/functions/*"
 

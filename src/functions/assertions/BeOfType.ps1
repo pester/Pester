@@ -1,5 +1,5 @@
 ﻿
-function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
+function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate, [string]$Because) {
     <#
     .SYNOPSIS
     Asserts that the actual value should be an object of a specified type
@@ -76,8 +76,8 @@ function Should-BeOfType($ActualValue, $ExpectedType, [switch] $Negate, [string]
 
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeOfType `
-    -InternalName Should-BeOfType `
-    -Test         ${function:Should-BeOfType} `
+    -InternalName Should-BeOfTypeAssertion `
+    -Test         ${function:Should-BeOfTypeAssertion} `
     -Alias        'HaveType'
 
 Set-ShouldOperatorHelpMessage -OperatorName BeOfType `

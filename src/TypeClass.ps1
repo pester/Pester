@@ -39,3 +39,11 @@ function Is-Object ($Value) {
 
     -not ($null -eq $Value -or (Is-Value -Value $Value) -or (Is-Collection -Value $Value))
 }
+
+function Is-DataRow ($Value) {
+    $Value -is [Data.DataRow] -or $Value.Psobject.TypeNames[0] -like '*System.Data.DataRow'
+}
+
+function Is-DataTable ($Value) {
+    $Value -is [Data.DataTable] -or $Value.Psobject.TypeNames[0] -like '*System.Data.DataTable'
+}

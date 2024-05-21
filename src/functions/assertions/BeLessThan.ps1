@@ -1,4 +1,4 @@
-﻿function Should-BeLessThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeLessThanAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a number (or other comparable value) is lower than an expected value.
@@ -48,7 +48,7 @@ function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate,
     This test also passes, as PowerShell evaluates `2 -ge 2` as true.
     #>
     if ($Negate) {
-        return Should-BeLessThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+        return Should-BeLessThanAssertion -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
     if ($ActualValue -lt $ExpectedValue) {
@@ -69,8 +69,8 @@ function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate,
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeLessThan `
-    -InternalName Should-BeLessThan `
-    -Test         ${function:Should-BeLessThan} `
+    -InternalName Should-BeLessThanAssertion `
+    -Test         ${function:Should-BeLessThanAssertion} `
     -Alias        'LT'
 
 Set-ShouldOperatorHelpMessage -OperatorName BeLessThan `

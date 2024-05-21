@@ -1,4 +1,4 @@
-﻿function Should-BeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeInAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a collection of values contain a specific value.
@@ -45,8 +45,8 @@
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeIn `
-    -InternalName Should-BeIn `
-    -Test         ${function:Should-BeIn}
+    -InternalName Should-BeInAssertion `
+    -Test         ${function:Should-BeInAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName BeIn `
     -HelpMessage "Asserts that a collection of values contain a specific value. Uses PowerShell's -contains operator to confirm."

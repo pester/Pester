@@ -1,4 +1,4 @@
-﻿function Should-Throw {
+﻿function Should-ThrowAssertion {
     <#
     .SYNOPSIS
     Checks if an exception was thrown. Enclose input in a script block.
@@ -168,8 +168,8 @@ function NotShouldThrowFailureMessage {
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Throw `
-    -InternalName Should-Throw `
-    -Test         ${function:Should-Throw}
+    -InternalName Should-ThrowAssertion `
+    -Test         ${function:Should-ThrowAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName Throw `
     -HelpMessage 'Checks if an exception was thrown. Enclose input in a scriptblock.'

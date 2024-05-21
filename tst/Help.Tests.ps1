@@ -32,8 +32,12 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
         It 'Has link sections' {
             $help.psobject.properties.name -match 'relatedLinks' | Should -Not -BeNullOrEmpty -Because 'all exported functions should at least have link to online version as first Uri'
 
+            $functionName = $_.Name
+            $alias = Get-Alias -Name Should* | Where-Object { $_.Definition -eq $functionName }
+            $helpName = if ($alias) { $alias.Name } else { $help.Name }
+
             $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
-            $firstUri | Should -Be "https://pester.dev/docs/commands/$($help.Name)" -Because 'first uri-link should be to online version of this help topic'
+            $firstUri | Should -Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
         }
 
         # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs
@@ -68,7 +72,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
                 (Get-AssertionDynamicParams).Values | Where-Object name -in $operators
             }
 
-            $parametersMissingHelp = @($operatorParams |Where-Object {
+            $parametersMissingHelp = @($operatorParams | Where-Object {
                     $attr = $_.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
                     $null -eq $attr -or $attr.HelpMessage -eq $null
                 } | ForEach-Object Name)

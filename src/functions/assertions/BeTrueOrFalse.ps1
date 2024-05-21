@@ -1,4 +1,4 @@
-﻿function Should-BeTrue($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeTrueAssertion($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that the value is true, or truthy.
@@ -20,7 +20,7 @@
     This test passes as a "truthy" result.
     #>
     if ($Negate) {
-        return Should-BeFalse -ActualValue $ActualValue -Negate:$false -Because $Because
+        return Should-BeFalseAssertion -ActualValue $ActualValue -Negate:$false -Because $Because
     }
 
     if (-not $ActualValue) {
@@ -42,7 +42,7 @@
     }
 }
 
-function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
+function Should-BeFalseAssertion($ActualValue, [switch] $Negate, $Because) {
     <#
     .SYNOPSIS
     Asserts that the value is false, or falsy.
@@ -64,7 +64,7 @@ function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
     This test passes as a "falsy" result.
     #>
     if ($Negate) {
-        return Should-BeTrue -ActualValue $ActualValue -Negate:$false -Because $Because
+        return Should-BeTrueAssertion -ActualValue $ActualValue -Negate:$false -Because $Because
     }
 
     if ($ActualValue) {
@@ -88,15 +88,15 @@ function Should-BeFalse($ActualValue, [switch] $Negate, $Because) {
 
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeTrue `
-    -InternalName Should-BeTrue `
-    -Test         ${function:Should-BeTrue}
+    -InternalName Should-BeTrueAssertion `
+    -Test         ${function:Should-BeTrueAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName BeTrue `
     -HelpMessage "Asserts that the value is true, or truthy."
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeFalse `
-    -InternalName Should-BeFalse `
-    -Test         ${function:Should-BeFalse}
+    -InternalName Should-BeFalseAssertion `
+    -Test         ${function:Should-BeFalseAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName BeFalse `
     -HelpMessage "Asserts that the value is false, or falsy."

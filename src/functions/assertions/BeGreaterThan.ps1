@@ -1,4 +1,4 @@
-﻿function Should-BeGreaterThan($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeGreaterThanAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a number (or other comparable value) is greater than an expected value.
@@ -48,7 +48,7 @@ function Should-BeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [s
     This test also passes, as PowerShell evaluates `10 -le 10` as true.
     #>
     if ($Negate) {
-        return Should-BeGreaterThan -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
+        return Should-BeGreaterThanAssertion -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Negate:$false -Because $Because
     }
 
     if ($ActualValue -gt $ExpectedValue) {
@@ -69,8 +69,8 @@ function Should-BeLessOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [s
 }
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeGreaterThan `
-    -InternalName Should-BeGreaterThan `
-    -Test         ${function:Should-BeGreaterThan} `
+    -InternalName Should-BeGreaterThanAssertion `
+    -Test         ${function:Should-BeGreaterThanAssertion} `
     -Alias        'GT'
 
 Set-ShouldOperatorHelpMessage -OperatorName BeGreaterThan `
