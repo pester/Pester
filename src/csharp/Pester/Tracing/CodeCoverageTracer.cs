@@ -73,6 +73,10 @@ namespace Pester.Tracing
                 }
             }
 
+            if (_debug) {
+                Console.WriteLine($">>> CC");
+            }
+
             // ignore unbound scriptblocks
             if (extent?.File == null)
                 return;

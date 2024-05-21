@@ -59,6 +59,7 @@ if (-not $NoBuild) {
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
 
+$env:PESTER_CC_DEBUG = 0
 $Enter_CoverageAnalysis = & (Get-Module Pester) { Get-Command Enter-CoverageAnalysis }
 $breakpoints = & $Enter_CoverageAnalysis -CodeCoverage "$PSScriptRoot/src/*" -UseBreakpoints $false
 $Start_TraceScript = & (Get-Module Pester) { Get-Command Start-TraceScript }
@@ -77,8 +78,8 @@ Get-Module Pester | Remove-Module
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
             ForEach-Object {
-                if ($_.FullName -eq 'S:\p\pester\tst\Pester.Mock.RSpec.ts.ps1') {
-                        # TODO: this file has 1 test failing when running under CC
+                if ($_.Name -eq 'Pester.RSpec.Coverage.ts.ps1') {
+                    # TODO: this is turning off cc by Set-Trace -off
                 }
                 else {
                     $r = & $_.FullName -PassThru -NoBuild:$true
@@ -164,7 +165,7 @@ if ($null -ne $File -and 0 -lt @($File).Count) {
 else {
     $configuration.Run.Path = "$PSScriptRoot/tst"
 }
-$configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
+$configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*', '*/tst/functions/Coverage.Tests.ps1'
 $configuration.Run.PassThru = $true
 
 $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
@@ -185,7 +186,9 @@ $Stop_TraceScript = & (Get-Module Pester) { Get-Command Stop-TraceScript }
 $measure = $tracer.Hits
 $Get_CoverageReport = & (Get-Module Pester) { Get-Command Get-CoverageReport }
 $coverageReport = & $Get_CoverageReport -CommandCoverage $breakpoints -Measure $measure
-Write-Host "Coverage: $($coverageReport.CoveragePercentage)%"
+$Write_CoverageReport = & (Get-Module Pester) { Get-Command Write-CoverageReport }
+
+& $Write_CoverageReport -CoverageReport $coverageReport
 
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"
