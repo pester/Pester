@@ -411,7 +411,10 @@ function Should-InvokeInternal {
     $nonMatchingCalls = [System.Collections.Generic.List[object]]@()
 
     # Check for variables in ParameterFilter that already exists in session. Risk of conflict
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+    # Excluding native applications as they don't have parameters or metadata. Will always use $args
+    if ($PesterPreference.Debug.WriteDebugMessages.Value -and
+        $null -ne $ContextInfo.Hook.Metadata -and
+        $ContextInfo.Hook.Metadata.Parameters.Count -gt 0) {
         $preExistingFilterVariables = @{}
         foreach ($v in $filter.Ast.FindAll( { $args[0] -is [System.Management.Automation.Language.VariableExpressionAst] }, $true)) {
             if (-not $preExistingFilterVariables.ContainsKey($v.VariablePath.UserPath)) {
