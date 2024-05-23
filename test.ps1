@@ -35,6 +35,7 @@
 param (
     # force P to fail when I leave `dt` in the tests
     [switch] $CI,
+    [switch] $CC,
     [switch] $SkipPTests,
     [switch] $NoBuild,
     [switch] $Inline,
@@ -59,27 +60,34 @@ if (-not $NoBuild) {
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop
 
-$env:PESTER_CC_DEBUG = 0
-$Enter_CoverageAnalysis = & (Get-Module Pester) { Get-Command Enter-CoverageAnalysis }
-$breakpoints = & $Enter_CoverageAnalysis -CodeCoverage "$PSScriptRoot/src/*" -UseBreakpoints $false
-$Start_TraceScript = & (Get-Module Pester) { Get-Command Start-TraceScript }
-$patched, $tracer = & $Start_TraceScript $breakpoints
 
+if ($CC) {
+    Write-Host "Running Code Coverage"
+    $env:PESTER_CC_DEBUG = 0
+    $env:PESTER_CC_IN_CC = 1
+    $here = {}
+    $bp = Set-PSBreakpoint -Script $PSCommandPath -Line $here.StartPosition.StartLine -Action {}
+    $null = $bp | Disable-PSBreakpoint
+    $Enter_CoverageAnalysis = & (Get-Module Pester) { Get-Command Enter-CoverageAnalysis }
+    if ($Inline) {
+        $breakpoints = & $Enter_CoverageAnalysis -CodeCoverage "$PSScriptRoot/bin/Pester*" -UseBreakpoints $false
+    }
+    else {
+        $breakpoints = & $Enter_CoverageAnalysis -CodeCoverage "$PSScriptRoot/src/*" -UseBreakpoints $false
+    }
+    $Start_TraceScript = & (Get-Module Pester) { Get-Command Start-TraceScript }
+    $patched, $tracer = & $Start_TraceScript $breakpoints
+}
 
 # remove pester because we will be reimporting it in multiple other places
 Get-Module Pester | Remove-Module
 
-
-
-
-
-
-
 if (-not $SkipPTests) {
     $result = @(Get-ChildItem $PSScriptRoot/tst/*.ts.ps1 -Recurse |
             ForEach-Object {
-                if ($_.Name -eq 'Pester.RSpec.Coverage.ts.ps1') {
-                    # TODO: this is turning off cc by Set-Trace -off
+                if ($CC -and $_.Name -eq 'Pester.RSpec.Coverage.ts.ps1') {
+                    # these tests are turning off cc by Set-Trace -Off,
+                    # so we can't run them with cc
                 }
                 else {
                     $r = & $_.FullName -PassThru -NoBuild:$true
@@ -165,7 +173,7 @@ if ($null -ne $File -and 0 -lt @($File).Count) {
 else {
     $configuration.Run.Path = "$PSScriptRoot/tst"
 }
-$configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*', '*/tst/functions/Coverage.Tests.ps1'
+$configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
 $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
@@ -173,7 +181,7 @@ $configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
 if ($CI) {
     $configuration.Run.Exit = $true
 
-    # not using code coverage, it is still very slow
+    # not using pester code coverage, because we measure it externally, see CC switch
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
@@ -181,14 +189,24 @@ if ($CI) {
 
 $r = Invoke-Pester -Configuration $configuration
 
-$Stop_TraceScript = & (Get-Module Pester) { Get-Command Stop-TraceScript }
-& $Stop_TraceScript -Patched $patched
-$measure = $tracer.Hits
-$Get_CoverageReport = & (Get-Module Pester) { Get-Command Get-CoverageReport }
-$coverageReport = & $Get_CoverageReport -CommandCoverage $breakpoints -Measure $measure
-$Write_CoverageReport = & (Get-Module Pester) { Get-Command Write-CoverageReport }
+if ($CC) {
+    try {
+        $Write_CoverageReport = & (Get-Module Pester) { Get-Command Write-CoverageReport }
+        $Stop_TraceScript = & (Get-Module Pester) { Get-Command Stop-TraceScript }
+        $Get_CoverageReport = & (Get-Module Pester) { Get-Command Get-CoverageReport }
 
-& $Write_CoverageReport -CoverageReport $coverageReport
+        & $Stop_TraceScript -Patched $patched
+        $measure = $tracer.Hits
+        $coverageReport = & $Get_CoverageReport -CommandCoverage $breakpoints -Measure $measure
+    }
+    finally {
+        if ($null -ne $bp) {
+            $bp | Remove-PSBreakpoint
+        }
+    }
+
+    & $Write_CoverageReport -CoverageReport $coverageReport
+}
 
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"

@@ -112,7 +112,7 @@ stages:
               targetType: inline
               pwsh: $(pwsh)
               script: |
-                & ./test.ps1 -CI -PassThru -NoBuild
+                & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
           - task: PublishCodeCoverageResults@2
             inputs:

@@ -1124,7 +1124,7 @@ function Start-TraceScript ($Breakpoints) {
     if (-not $registered) {
 
         # detect if code coverage is enabled throuh Pester tracer, and in that case just add us as a second tracer
-        if ([Pester.Tracing.Tracer]::ShouldRegisterTracer($tracer, <# overwrite: #> $false)) {
+        if (1 -eq $env:PESTER_CC_IN_CC -and [Pester.Tracing.Tracer]::ShouldRegisterTracer($tracer, <# overwrite: #> $false)) {
             $patched = $false
             $registered = $true
             [Pester.Tracing.Tracer]::Register($tracer)
@@ -1146,19 +1146,23 @@ function Stop-TraceScript {
 
     # if we patched powershell we need to unpatch it, if we did not patch it, then we need to unregister ourselves because we are the second tracer.
     if ($Patched) {
-        Set-PSDebug -Trace 0
+        $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
         [Pester.Tracing.Tracer]::Unpatch()
     }
     else {
+        # Stop tracing so we don't record Unregister
+        $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
         # detect if profiler is imported, if yes, unregister us from Profiler (because we are profiling Pester)
         $profilerType = "Profiler.Tracer" -as [Type]
         if ($null -ne $profilerType) {
             $profilerType::Unregister()
         }
-        else {
+        elseif (1 -eq $env:PESTER_CC_IN_CC) {
             # we are not profiling we are running code coverage in code coverage
             [Pester.Tracing.Tracer]::Unregister()
         }
+        # start tracing again so the other tracer can continue
+        Set-PSDebug -Trace 1
     }
 }
 

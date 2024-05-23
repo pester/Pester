@@ -3018,36 +3018,36 @@ Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVer
 }
 
 Describe "Debugging mocks" {
-    # It "Hits breakpoints in mock related scriptblocks" {
-    #     try {
-    #         $line = {}.StartPosition.StartLine
-    #         $sb = @(
-    #             Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 9) -Action { } # mock parameter filter
-    #             Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 11) -Action { } # mock with
-    #             Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 17) -Action { } # should invoke parameter filter
-    #         )
-    #         function f ($Name) { }
+    It "Hits breakpoints in mock related scriptblocks" {
+        try {
+            $line = {}.StartPosition.StartLine
+            $sb = @(
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 9) -Action { } # mock parameter filter
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 11) -Action { } # mock with
+                Set-PSBreakpoint -Script $PSCommandPath -Line ($line + 17) -Action { } # should invoke parameter filter
+            )
+            function f ($Name) { }
 
-    #         Mock f -ParameterFilter {
-    #             $Name -eq "Jakub"
-    #         } -MockWith {
-    #             [PSCustomObject]@{ Name = "Jakub"; Age = 31 }
-    #         }
+            Mock f -ParameterFilter {
+                $Name -eq "Jakub"
+            } -MockWith {
+                [PSCustomObject]@{ Name = "Jakub"; Age = 31 }
+            }
 
-    #         f "Jakub"
+            f "Jakub"
 
-    #         Should -Invoke f -ParameterFilter {
-    #             $Name -eq "Jakub"
-    #         }
+            Should -Invoke f -ParameterFilter {
+                $Name -eq "Jakub"
+            }
 
-    #         $sb[0].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[0].Line) is hit"
-    #         $sb[1].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[1].Line) is hit"
-    #         $sb[2].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[2].Line) is hit"
-    #     }
-    #     finally {
-    #         $sb | Remove-PSBreakpoint
-    #     }
-    # }
+            $sb[0].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[0].Line) is hit"
+            $sb[1].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[1].Line) is hit"
+            $sb[2].HitCount | Should -Be 1 -Because "breakpoint on line $($sb[2].Line) is hit"
+        }
+        finally {
+            $sb | Remove-PSBreakpoint
+        }
+    }
 }
 
 Describe "When inherited variables conflicts with parameters" {

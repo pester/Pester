@@ -74,10 +74,10 @@ public static class Tracer
     private static void EnsureTracingWasNotCorrupted()
     {
         // Code like Set-PSDebug -Trace 0, or Get-PSBreakPoint | Remove-PSBreakPoint will break the tracing, and we will lose data,
-        // the only line that is allowed to do that is $corruptionAutodetectionVariable = Set-PsDebug -Trace 0
+        // the only line that is allowed to do that is $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
         // This line should be the second to last line that was executed. We re-enable the trace in Profiler, so the last line (::Unregister or ::Unpatch) is
         // captured even when tracing is broken by user.
-        var corrupted = LastTraceItem.Extent?.Text != null && LastTraceItem.Extent.Text != "$corruptionAutodetectionVariable = Set-PsDebug -Trace 0";
+        var corrupted = LastTraceItem.Extent?.Text != null && LastTraceItem.Extent.Text != "$corruptionAutodetectionVariable = Set-PSDebug -Trace 0";
         if (corrupted)
         {
             throw new InvalidOperationException($"Trace was broken by: {LastTraceItem.Extent.Text} from {LastTraceItem.Extent.File}:{LastTraceItem.Extent.StartLineNumber}");
