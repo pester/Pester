@@ -49,13 +49,12 @@ $ErrorView = "NormalView"
 "Using PS: $($PsVersionTable.PSVersion)"
 "In path: $($pwd.Path)"
 
+if ($CI) {
+    $Inline = $true
+}
+
 if (-not $NoBuild) {
-    if ($CI) {
-        & "$PSScriptRoot/build.ps1" -Inline
-    }
-    else {
-        & "$PSScriptRoot/build.ps1" -Inline:$Inline
-    }
+    & "$PSScriptRoot/build.ps1" -Inline:$Inline
 }
 
 Import-Module $PSScriptRoot/bin/Pester.psd1 -ErrorAction Stop

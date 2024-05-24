@@ -1152,6 +1152,9 @@ function Stop-TraceScript {
     else {
         # Stop tracing so we don't record Unregister
         $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
+        # This variable name is used to detect if the tracer was broken, we cannot use comments because they are not part of the ast Extent.Text
+        # Assigning it here to null, because otherwise it gives warning about not being used.
+        $null = $corruptionAutodetectionVariable
         # detect if profiler is imported, if yes, unregister us from Profiler (because we are profiling Pester)
         $profilerType = "Profiler.Tracer" -as [Type]
         if ($null -ne $profilerType) {
