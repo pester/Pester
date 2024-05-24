@@ -117,7 +117,7 @@ stages:
           - task: PublishCodeCoverageResults@2
             inputs:
               summaryFileLocation: 'coverage.xml'
-              pathToSources: 'src/'
+              pathToSources: 'bin/'
               failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2

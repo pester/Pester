@@ -64,6 +64,7 @@ if ($CC) {
     Write-Host "Running Code Coverage"
     $env:PESTER_CC_DEBUG = 0
     $env:PESTER_CC_IN_CC = 1
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $here = {}
     $bp = Set-PSBreakpoint -Script $PSCommandPath -Line $here.StartPosition.StartLine -Action {}
     $null = $bp | Disable-PSBreakpoint
@@ -193,6 +194,7 @@ if ($CC) {
         $Write_CoverageReport = & (Get-Module Pester) { Get-Command Write-CoverageReport }
         $Stop_TraceScript = & (Get-Module Pester) { Get-Command Stop-TraceScript }
         $Get_CoverageReport = & (Get-Module Pester) { Get-Command Get-CoverageReport }
+        $Get_JaCoCoReportXml = & (Get-Module Pester) { Get-Command Get-JaCoCoReportXml }
 
         & $Stop_TraceScript -Patched $patched
         $measure = $tracer.Hits
@@ -204,6 +206,8 @@ if ($CC) {
         }
     }
 
+    [xml] $jaCoCoReport = [xml] (& $Get_JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $sw.ElapsedMilliseconds -CoverageReport $coverageReport -Format "JaCoCo")
+    $jaCoCoReport | Set-Content -Path $PSScriptRoot/coverage.xml
     & $Write_CoverageReport -CoverageReport $coverageReport
 }
 
