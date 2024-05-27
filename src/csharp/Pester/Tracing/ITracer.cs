@@ -1,4 +1,6 @@
-﻿using System.Management.Automation;
+// Copied from Profiler module, branch: Fix-error-autodetection, commit: 150bbcf Fix error autodetection 
+
+using System.Management.Automation;
 using System.Management.Automation.Language;
 
 # if PESTER

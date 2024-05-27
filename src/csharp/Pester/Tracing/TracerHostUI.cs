@@ -1,4 +1,6 @@
-﻿using System;
+// Copied from Profiler module, branch: Fix-error-autodetection, commit: 150bbcf Fix error autodetection 
+
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Management.Automation;
