@@ -114,8 +114,9 @@ stages:
               script: |
                 & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@2
+          - task: PublishCodeCoverageResults@1
             inputs:
+              codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: '$(Build.SourcesDirectory)/bin/'
               failIfCoverageEmpty: false
