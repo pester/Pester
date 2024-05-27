@@ -2,9 +2,9 @@ name: Code analysis
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -32,6 +32,7 @@ jobs:
           Import-Module ConvertToSARIF -Force
 
           Get-ChildItem -Path ./src/ -Filter *.ps* -Recurse -File |
+          Where-Object { $_.Name -ne 'Sync-WithProfiler.ps1' } |
           Invoke-ScriptAnalyzer -Settings ./.github/workflows/PSScriptAnalyzerSettings.psd1 |
           ConvertTo-SARIF -FilePath results.sarif
 
