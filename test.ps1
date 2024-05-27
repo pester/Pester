@@ -207,7 +207,7 @@ if ($CC) {
     }
 
     [xml] $jaCoCoReport = [xml] (& $Get_JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $sw.ElapsedMilliseconds -CoverageReport $coverageReport -Format "JaCoCo")
-    $jaCoCoReport | Set-Content -Path $PSScriptRoot/coverage.xml
+    $jaCoCoReport.OuterXml | Set-Content -Path $PSScriptRoot/coverage.xml
     & $Write_CoverageReport -CoverageReport $coverageReport
 }
 
