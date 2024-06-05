@@ -112,12 +112,13 @@ stages:
               targetType: inline
               pwsh: $(pwsh)
               script: |
-                & ./test.ps1 -CI -PassThru -NoBuild
+                & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@2
+          - task: PublishCodeCoverageResults@1
             inputs:
+              codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
-              pathToSources: 'src/'
+              pathToSources: '$(Build.SourcesDirectory)/bin/'
               failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2

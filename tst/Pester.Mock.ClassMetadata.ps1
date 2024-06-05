@@ -3,6 +3,8 @@
 Describe 'Use class with custom attribute' {
     BeforeAll {
         class ValidateClassAttribute : ValidateArgumentsAttribute {
+
+            ValidateClassAttribute () {} # without default ctor we fail in Profiler / Code Coverage https://github.com/nohwnd/Profiler/issues/63#issuecomment-1465181134
             [void] Validate([object]$arguments, [EngineIntrinsics]$engineIntrinsics) {
 
             }
