@@ -1,4 +1,4 @@
-Set-StrictMode -Version Latest
+﻿Set-StrictMode -Version Latest
 
 InPesterModuleScope {
     BeforeDiscovery {
@@ -46,7 +46,7 @@ InPesterModuleScope {
             @{ Value = $null },
             @{ Value = @() },
             @{ Value = [Type] },
-            @{ Value = (New-Object -TypeName Diagnostics.Process) }
+            @{ Value = ([System.Diagnostics.Process]::new()) }
         ) {
             param($Value)
             Test-Same -Expected $Value -Actual $Value | Verify-True
@@ -54,7 +54,7 @@ InPesterModuleScope {
 
         It "Given different instances of a reference type it returns `$false" -TestCases @(
             @{ Actual = @(); Expected = @() },
-            @{ Actual = (New-Object -TypeName Diagnostics.Process) ; Expected = (New-Object -TypeName Diagnostics.Process) }
+            @{ Actual = ([System.Diagnostics.Process]::new()) ; Expected = ([System.Diagnostics.Process]::new()) }
         ) {
             param($Expected, $Actual)
             Test-Same -Expected $Expected -Actual $Actual | Verify-False
@@ -390,7 +390,7 @@ InPesterModuleScope {
 
         It "Given PSObject '<expected>' and object '<actual> that have the same values it returns `$null" -TestCases @(
             @{
-                Expected = New-Object -TypeName Assertions.TestType.Person2 -Property @{ Name = 'Jakub'; Age = 28 }
+                Expected = [Assertions.TestType.Person2]@{ Name = 'Jakub'; Age = 28 }
                 Actual   = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
             }
         ) {
@@ -432,7 +432,7 @@ InPesterModuleScope {
 
         It "Comparing DataTable" {
             # todo: move this to it's own describe, split the tests to smaller parts, and make them use Verify-* axioms
-            $Expected = New-Object Data.DataTable 'Test'
+            $Expected = [System.Data.DataTable]::new('Test')
             $null = $Expected.Columns.Add('IDD', [System.Int32])
             $null = $Expected.Columns.Add('Name')
             $null = $Expected.Columns.Add('Junk')
@@ -440,7 +440,7 @@ InPesterModuleScope {
             $null = $Expected.Rows.Add(1, 'A', 'AAA', 5)
             $null = $Expected.Rows.Add(3, 'C', $null, $null)
 
-            $Actual = New-Object Data.DataTable 'Test'
+            $Actual = [System.Data.DataTable]::new('Test')
             $null = $Actual.Columns.Add('IDD', [System.Int32])
             $null = $Actual.Columns.Add('Name')
             $null = $Actual.Columns.Add('Junk')
