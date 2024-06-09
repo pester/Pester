@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version Latest
+Set-StrictMode -Version Latest
 
 InPesterModuleScope {
     BeforeDiscovery {
@@ -30,6 +30,15 @@ InPesterModuleScope {
                 }
             }
         }
+
+        # Using this to avoid warning when not providing -Options in Compare-Equivalent tests. Cleared in AfterAll
+        $defaultOptions = Get-EquivalencyOption
+        $PSDefaultParameterValues['Compare-Equivalent:Options'] = $defaultOptions
+    }
+
+    AfterAll {
+        # Remove default set in BeforeAll
+        $PSDefaultParameterValues.Remove('Compare-Equivalent:Options')
     }
 
     Describe "Test-Same" {
