@@ -104,13 +104,10 @@
 
         'Get-EquivalencyOption'
 
-        # legacy
-        'Assert-VerifiableMock'
-        'Assert-MockCalled'
-        'Set-ItResult'
+        # helpers
         'New-MockObject'
-
         'New-Fixture'
+        'Set-ItResult'
     )
 
     # # Cmdlets to export from this module
