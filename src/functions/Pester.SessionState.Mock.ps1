@@ -606,30 +606,6 @@ function Get-MockDataForCurrentScope {
     $location.PluginData.Mock
 }
 
-function Assert-VerifiableMock {
-    <#
-    .SYNOPSIS
-    Checks if all verifiable Mocks has been called at least once.
-
-    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-    USE Should -InvokeVerifiable INSTEAD.
-
-    .LINK
-    https://pester.dev/docs/commands/Assert-VerifiableMock
-    #>
-
-    # Should does not accept a session state, so invoking it directly would
-    # make the assertion run from inside of Pester module, we move it to the
-    # user scope instead an run it from there to keep the scoping correct
-    # for this compatibility adapter
-    [CmdletBinding()]param()
-    $sb = {
-        Should -InvokeVerifiable
-    }
-
-    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
-    & $sb
-}
 function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
@@ -671,51 +647,6 @@ function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
 
 Set-ShouldOperatorHelpMessage -OperatorName InvokeVerifiable `
     -HelpMessage 'Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.'
-
-function Assert-MockCalled {
-    <#
-    .SYNOPSIS
-    Checks if a Mocked command has been called a certain number of times
-    and throws an exception if it has not.
-
-    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-    USE Should -Invoke INSTEAD.
-
-    .LINK
-    https://pester.dev/docs/commands/Assert-MockCalled
-    #>
-    [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
-    param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$CommandName,
-
-        [Parameter(Position = 1)]
-        [int]$Times = 1,
-
-        [ScriptBlock]$ParameterFilter = { $True },
-
-        [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
-        [scriptblock] $ExclusiveFilter,
-
-        [string] $ModuleName,
-
-        [string] $Scope = 0,
-        [switch] $Exactly
-    )
-
-    # Should does not accept a session state, so invoking it directly would
-    # make the assertion run from inside of Pester module, we move it to the
-    # user scope instead an run it from there to keep the scoping correct
-    # for this compatibility adapter
-
-    $sb = {
-        param ($__params__p)
-        Should -Invoke @__params__p
-    }
-
-    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
-    & $sb $PSBoundParameters
-}
 
 function Should-Invoke {
     <#

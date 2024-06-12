@@ -23,7 +23,7 @@ Describe 'Use class with custom attribute' {
         # ValidateClassAttribute would be missing
         Mock Test-Foo
         Test-Foo
-        Assert-MockCalled Test-Foo
+        Should -Invoke Test-Foo
     }
 
     It 'should be able to run Test-Foo' {

@@ -23,7 +23,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
         }
 
-        # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs
+        # TODO: Missing on new Assert-* assertions
         It 'Description is defined' -Skip:($_.Name -match '^Assert-') {
             # Property is missing if undefined
             $help.description | Should -Not -BeNullOrEmpty
@@ -40,14 +40,12 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $firstUri | Should -Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
         }
 
-        # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs
-        It 'Has at least one example' -Skip:($_.Name -match '^Assert-') {
+        It 'Has at least one example' {
             $help.Examples | Should -Not -BeNullOrEmpty
             $help.Examples.example | Where-Object { -not $_.Code.Trim() } | Foreach-Object { $_.title.Trim("- ") } | Should -Be @() -Because 'no examples should be empty'
         }
 
-        # Skipping Assert-MockCalled which are deprecated and missing docs
-        It 'All static parameters have description' -Skip:($_.Name -match '^Assert-MockCalled') {
+        It 'All static parameters have description' {
             $RiskMitigationParameters = 'Whatif', 'Confirm'
 
             if ($help.parameters) {
@@ -65,7 +63,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
     }
 
     Context 'Should operators' {
-        # Parameter help for Should -OperatorName.. Set using Set-ShouldOperatorHelpMessage
+        # Parameter help for Should -OperatorName .. . This is set using Set-ShouldOperatorHelpMessage
         It 'All built-in operators have parameter help' {
             $operatorParams = InPesterModuleScope {
                 $operators = $script:AssertionOperators.Keys

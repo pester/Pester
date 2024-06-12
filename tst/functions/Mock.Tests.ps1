@@ -2997,26 +2997,6 @@ Describe "Mocks can be defined outside of BeforeAll" {
     }
 }
 
-Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for backwards compatibility" {
-
-    It  "Count calls" {
-        function f () { "real" }
-        Mock f { "mock" }
-        f
-        Assert-MockCalled -CommandName f -Exactly 1
-    }
-}
-
-Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
-
-    It  "Verify calls" {
-        function f () { "real" }
-        Mock f { "mock" } -Verifiable
-        f
-        Assert-VerifiableMock
-    }
-}
-
 Describe "Debugging mocks" {
     It "Hits breakpoints in mock related scriptblocks" {
         try {

@@ -127,13 +127,10 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'ConvertTo-JUnitReport'
     'ConvertTo-Pester4Result'
 
-    # legacy
-    'Assert-VerifiableMock'
-    'Assert-MockCalled'
-    'Set-ItResult'
+    # helpers
     'New-MockObject'
-
     'New-Fixture'
+    'Set-ItResult'
 ) -Alias @(
     'Add-AssertionOperator'
     'Get-AssertionOperator'
