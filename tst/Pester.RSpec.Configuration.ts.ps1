@@ -1344,7 +1344,7 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Configuration $c
             $err = $r.Containers.Blocks.Tests.ErrorRecord
 
-            $err.Message | Verify-Equal 'Pester Should -Be syntax is disabled. Use Should-Be (without space), or enable it by setting: $PesterPreference.Should.DisableV5 = $false'
+            $err.Exception.Message | Verify-Equal 'Pester Should -Be syntax is disabled. Use Should-Be (without space), or enable it by setting: $PesterPreference.Should.DisableV5 = $false'
         }
 
         t "Enabling V5 assertions makes Should -Be pass" {
