@@ -123,7 +123,7 @@ function Should {
         }
 
         # first check if we are in the context of Pester, if not we will always throw, and won't disable Should:
-        # This check is slightly hacky, here we are reaching out the the caller session state and
+        # This check is slightly hacky, here we are reaching out the caller session state and
         # look for $______parameters which we know we are using inside of the Pester runtime to
         # keep the current invocation context, when we find it, we are able to add non-terminating
         # errors without throwing and terminating the test.
