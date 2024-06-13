@@ -122,18 +122,23 @@ function Should {
             $shouldThrow = 'Stop' -eq $PSBoundParameters["ErrorAction"]
         }
 
+        # first check if we are in the context of Pester, if not we will always throw, and won't disable Should:
+        # This check is slightly hacky, here we are reaching out the the caller session state and
+        # look for $______parameters which we know we are using inside of the Pester runtime to
+        # keep the current invocation context, when we find it, we are able to add non-terminating
+        # errors without throwing and terminating the test.
+        $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
+        $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
+        $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
+
+        if ($isInsidePesterRuntime -and $pesterRuntimeInvocationContext.Configuration.Should.DisableV5.Value) {
+            throw "Pester Should -Be syntax is disabled. Use Should-Be (without space), or enable it by setting: `$PesterPreference.Should.DisableV5 = `$false"
+        }
+
         if ($null -eq $shouldThrow -or -not $shouldThrow) {
             # we are sure that we either:
             #    - should not throw because of explicit ErrorAction, and need to figure out a place where to collect the error
             #    - or we don't know what to do yet and need to figure out what to do based on the context and settings
-
-            # first check if we are in the context of Pester, if not we will always throw:
-            # this is slightly hacky, here we are reaching out the the caller session state and
-            # look for $______parameters which we know we are using inside of the Pester runtime to
-            # keep the current invocation context, when we find it, we are able to add non-terminating
-            # errors without throwing and terminating the test
-            $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
-            $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
             if (-not $isInsidePesterRuntime) {
                 $shouldThrow = $true
             }
