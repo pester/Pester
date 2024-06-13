@@ -1,4 +1,4 @@
-﻿function Assert-Before {
+﻿function Should-BeBefore {
     <#
     .SYNOPSIS
     Asserts that the provided [datetime] is before the expected [datetime].

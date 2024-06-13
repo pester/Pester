@@ -1,4 +1,4 @@
-﻿function Assert-After {
+﻿function Should-BeAfter {
     <#
     .SYNOPSIS
     Asserts that the provided [datetime] is after the expected [datetime].

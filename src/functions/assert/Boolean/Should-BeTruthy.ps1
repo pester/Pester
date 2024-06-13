@@ -1,4 +1,4 @@
-﻿function Assert-Truthy {
+﻿function Should-BeTruthy {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $true. It converts input values to boolean, and will fail for any value is not $true, or truthy.

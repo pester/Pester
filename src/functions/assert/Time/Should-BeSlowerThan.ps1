@@ -1,4 +1,4 @@
-﻿function Assert-Slower {
+﻿function Should-BeSlowerThan {
     <#
     .SYNOPSIS
     Asserts that the provided [timespan] is slower than the expected [timespan].

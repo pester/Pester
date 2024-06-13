@@ -1,20 +1,20 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Should-NotBeNullOrEmptyString" {
+Describe "Should-NotBeEmptyString" {
     It "Does not throw when string has value" -ForEach @(
         @{ Actual = "1" }
         @{ Actual = " " }
         @{ Actual = "`t" }
         @{ Actual = "`n" }
     ) {
-        $Actual | Should-NotBeNullOrEmptyString
+        $Actual | Should-NotBeEmptyString
     }
 
     It "Throws when string is `$null or empty" -ForEach @(
         @{ Actual = "" }
         @{ Actual = $null }
     ) {
-        { $Actual | Should-NotBeNullOrEmptyString } | Verify-AssertionFailed
+        { $Actual | Should-NotBeEmptyString } | Verify-AssertionFailed
     }
 
     It "Throws when value is not string" -ForEach @(
@@ -22,24 +22,24 @@ Describe "Should-NotBeNullOrEmptyString" {
         @{ Actual = @() }
         @{ Actual = $true }
     ) {
-        { $Actual | Should-NotBeNullOrEmptyString } | Verify-AssertionFailed
+        { $Actual | Should-NotBeEmptyString } | Verify-AssertionFailed
     }
 
 
     It "Allows actual to be passed from pipeline" {
-        "abc" | Should-NotBeNullOrEmptyString
+        "abc" | Should-NotBeEmptyString
     }
 
     It "Allows actual to be passed by position" {
-        Should-NotBeNullOrEmptyString "abc"
+        Should-NotBeEmptyString "abc"
     }
 
     It "Fails when empty collection is passed in by pipeline" {
-        { @() | Should-NotBeNullOrEmptyString } | Verify-AssertionFailed
+        { @() | Should-NotBeEmptyString } | Verify-AssertionFailed
     }
 
     It "Fails when `$null collection is passed in by pipeline" {
-        { $null | Should-NotBeNullOrEmptyString } | Verify-AssertionFailed
+        { $null | Should-NotBeEmptyString } | Verify-AssertionFailed
     }
 
     It "Fails with the expected message" -ForEach @(
@@ -49,7 +49,7 @@ Describe "Should-NotBeNullOrEmptyString" {
     ) {
         $actual = $Actual
         $expectedMessage = $ExpectedMessage
-        $err = { Should-NotBeNullOrEmptyString -Actual $actual -Because $Because } | Verify-AssertionFailed
+        $err = { Should-NotBeEmptyString -Actual $actual -Because $Because } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $ExpectedMessage
     }
 }

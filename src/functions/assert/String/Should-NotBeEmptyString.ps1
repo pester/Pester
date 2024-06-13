@@ -1,4 +1,4 @@
-﻿function Assert-StringNotEmpty {
+﻿function Should-NotBeEmptyString {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null or empty string.
@@ -12,7 +12,7 @@
     .EXAMPLE
     ```powershell
     $actual = "hello"
-    $actual | Should-NotBeNullOrEmptyString
+    $actual | Should-NotBeEmptyString
     ```
 
     This test will pass.
@@ -20,23 +20,23 @@
     .EXAMPLE
     ```powershell
     $actual = ""
-    $actual | Should-NotBeNullOrEmptyString
+    $actual | Should-NotBeEmptyString
     ```
 
     This test will fail, the input is an empty string.
 
     .EXAMPLE
     ```
-    $null | Should-NotBeNullOrEmptyString
-    $() | Should-NotBeNullOrEmptyString
-    $false | Should-NotBeNullOrEmptyString
-    1 | Should-NotBeNullOrEmptyString
+    $null | Should-NotBeEmptyString
+    $() | Should-NotBeEmptyString
+    $false | Should-NotBeEmptyString
+    1 | Should-NotBeEmptyString
     ```
 
     All the tests above will fail, the input is not a string.
 
     .LINK
-    https://pester.dev/docs/commands/Should-NotBeNullOrEmptyString
+    https://pester.dev/docs/commands/Should-NotBeEmptyString
 
     .LINK
     https://pester.dev/docs/assertions

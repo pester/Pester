@@ -1,4 +1,4 @@
-﻿function Assert-Type {
+﻿function Should-HaveType {
     <#
     .SYNOPSIS
     Asserts that the input is of the expected type.

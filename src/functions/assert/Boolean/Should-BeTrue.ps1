@@ -1,4 +1,4 @@
-﻿function Assert-True {
+﻿function Should-BeTrue {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $true. It does not convert input values to boolean, and will fail for any value is not $true.

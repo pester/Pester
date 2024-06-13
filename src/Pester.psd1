@@ -67,61 +67,6 @@
         'New-PesterConfiguration'
 
         # assert
-        'Assert-False'
-        'Assert-True'
-        'Assert-Falsy'
-        'Assert-Truthy'
-        'Assert-All'
-        'Assert-Any'
-        'Assert-Contain'
-        'Assert-NotContain'
-        'Assert-Collection'
-        'Assert-Equivalent'
-        'Assert-Throw'
-        'Assert-Equal'
-        'Assert-GreaterThan'
-        'Assert-GreaterThanOrEqual'
-        'Assert-LessThan'
-        'Assert-LessThanOrEqual'
-        'Assert-NotEqual'
-        'Assert-NotNull'
-        'Assert-NotSame'
-        'Assert-NotType'
-        'Assert-Null'
-        'Assert-Same'
-        'Assert-Type'
-        'Assert-Like'
-        'Assert-NotLike'
-        'Assert-StringEqual'
-        'Assert-StringNotEqual'
-        'Assert-StringEmpty'
-        'Assert-StringNotWhiteSpace'
-        'Assert-StringNotEmpty'
-        'Assert-Faster'
-        'Assert-Slower'
-        'Assert-Before'
-        'Assert-After'
-
-        'Get-EquivalencyOption'
-
-        # helpers
-        'New-MockObject'
-        'New-Fixture'
-        'Set-ItResult'
-    )
-
-    # # Cmdlets to export from this module
-    CmdletsToExport   = ''
-
-    # Variables to export from this module
-    VariablesToExport = @()
-
-    # # Aliases to export from this module
-    AliasesToExport   = @(
-        'Add-AssertionOperator'
-        'Get-AssertionOperator'
-
-        # assertion functions
         # bool
         'Should-BeFalse'
         'Should-BeTrue'
@@ -155,8 +100,8 @@
 
         'Should-BeEmptyString'
 
-        'Should-NotBeNullOrWhiteSpaceString'
-        'Should-NotBeNullOrEmptyString'
+        'Should-NotBeWhiteSpaceString'
+        'Should-NotBeEmptyString'
 
         'Should-BeLikeString'
         'Should-NotBeLikeString'
@@ -165,6 +110,25 @@
         'Should-BeSlowerThan'
         'Should-BeBefore'
         'Should-BeAfter'
+
+        'Get-EquivalencyOption'
+
+        # helpers
+        'New-MockObject'
+        'New-Fixture'
+        'Set-ItResult'
+    )
+
+    # # Cmdlets to export from this module
+    CmdletsToExport   = ''
+
+    # Variables to export from this module
+    VariablesToExport = @()
+
+    # # Aliases to export from this module
+    AliasesToExport   = @(
+        'Add-AssertionOperator'
+        'Get-AssertionOperator'
     )
 
 
