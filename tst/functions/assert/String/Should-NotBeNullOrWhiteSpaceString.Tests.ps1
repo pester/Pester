@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Should-NotBeNullOrWhiteSpaceString" {
+Describe "Should-NotBeWhiteSpaceString" {
     It "Does not throw when string has value" {
-        "bde" | Should-NotBeNullOrWhiteSpaceString
+        "bde" | Should-NotBeWhiteSpaceString
     }
 
     It "Throws when string is emptyish" -ForEach @(
@@ -12,7 +12,7 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
         @{ Actual = "`n" }
         @{ Actual = "`r" }
     ) {
-        { $Actual | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
+        { $Actual | Should-NotBeWhiteSpaceString } | Verify-AssertionFailed
     }
 
     It "Throws when value is not string" -ForEach @(
@@ -21,24 +21,24 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
         @{ Actual = $true }
         @{ Actual = $null }
     ) {
-        { $Actual | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
+        { $Actual | Should-NotBeWhiteSpaceString } | Verify-AssertionFailed
     }
 
 
     It "Allows actual to be passed from pipeline" {
-        "abc" | Should-NotBeNullOrWhiteSpaceString
+        "abc" | Should-NotBeWhiteSpaceString
     }
 
     It "Allows actual to be passed by position" {
-        Should-NotBeNullOrWhiteSpaceString "abc"
+        Should-NotBeWhiteSpaceString "abc"
     }
 
     It "Fails when empty collection is passed in by pipeline" {
-        { @() | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
+        { @() | Should-NotBeWhiteSpaceString } | Verify-AssertionFailed
     }
 
     It "Fails when `$null collection is passed in by pipeline" {
-        { $null | Should-NotBeNullOrWhiteSpaceString } | Verify-AssertionFailed
+        { $null | Should-NotBeWhiteSpaceString } | Verify-AssertionFailed
     }
 
     It "Fails with the expected message" -ForEach @(
@@ -48,7 +48,7 @@ Describe "Should-NotBeNullOrWhiteSpaceString" {
     ) {
         $actual = $Actual
         $expectedMessage = $ExpectedMessage
-        $err = { Should-NotBeNullOrWhiteSpaceString -Actual $actual -Because $Because } | Verify-AssertionFailed
+        $err = { Should-NotBeWhiteSpaceString -Actual $actual -Because $Because } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $ExpectedMessage
     }
 }

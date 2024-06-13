@@ -1,4 +1,4 @@
-﻿function Assert-Contain {
+﻿function Should-ContainCollection {
     <#
     .SYNOPSIS
     Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.

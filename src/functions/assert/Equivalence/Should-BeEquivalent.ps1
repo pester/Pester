@@ -613,7 +613,7 @@ function Compare-Equivalent {
     Compare-ObjectEquivalent -Expected $Expected -Actual $Actual -Property $Path -Options $Options
 }
 
-function Assert-Equivalent {
+function Should-BeEquivalent {
     <#
     .SYNOPSIS
     Compares two objects for equivalency, by recursively comparing their properties for equivalency.

@@ -1,4 +1,4 @@
-﻿function Assert-Falsy {
+﻿function Should-BeFalsy {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $false or a falsy value: 0, "", $null or @(). It converts the input value to a boolean.

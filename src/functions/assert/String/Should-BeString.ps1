@@ -23,7 +23,7 @@
     }
 }
 
-function Assert-StringEqual {
+function Should-BeString {
     <#
     .SYNOPSIS
     Asserts that the actual value is equal to the expected value.

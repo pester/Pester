@@ -1,4 +1,4 @@
-﻿function Assert-NotType {
+﻿function Should-NotHaveType {
     <#
     .SYNOPSIS
     Asserts that the input is not of the expected type.

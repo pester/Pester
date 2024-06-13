@@ -13,7 +13,7 @@
     }
 }
 
-function Assert-Like {
+function Should-BeLikeString {
     <#
     .SYNOPSIS
     Asserts that the actual value is like the expected value.

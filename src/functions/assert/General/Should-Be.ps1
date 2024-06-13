@@ -1,4 +1,4 @@
-﻿function Assert-Equal {
+﻿function Should-Be {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are equal.

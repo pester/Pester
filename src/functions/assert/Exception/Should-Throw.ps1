@@ -1,4 +1,4 @@
-function Assert-Throw {
+function Should-Throw {
     <#
     .SYNOPSIS
     Asserts that a script block throws an exception.

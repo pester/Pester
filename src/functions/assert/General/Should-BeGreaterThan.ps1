@@ -1,4 +1,4 @@
-﻿function Assert-GreaterThan {
+﻿function Should-BeGreaterThan {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is greater than the expected value.

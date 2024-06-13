@@ -1,4 +1,4 @@
-﻿function Assert-Faster {
+﻿function Should-BeFasterThan {
     <#
     .SYNOPSIS
     Asserts that the provided [timespan] or [scriptblock] is faster than the expected [timespan].

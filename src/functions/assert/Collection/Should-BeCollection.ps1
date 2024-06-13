@@ -1,4 +1,4 @@
-﻿function Assert-Collection {
+﻿function Should-BeCollection {
     <#
     .SYNOPSIS
     Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
