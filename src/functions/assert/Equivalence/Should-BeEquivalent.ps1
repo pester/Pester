@@ -1,4 +1,4 @@
-function Test-Same ($Expected, $Actual) {
+﻿function Test-Same ($Expected, $Actual) {
     [object]::ReferenceEquals($Expected, $Actual)
 }
 
@@ -534,7 +534,7 @@ function Compare-Equivalent {
         throw [System.ArgumentNullException]::new('Options', 'Options must be defined and not null. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues')
     }
 
-    if ($null -ne $Options.ExludedPaths -and $Options.ExcludedPaths -contains $Path) {
+    if ($null -ne $Options.ExcludedPaths -and $Options.ExcludedPaths -contains $Path) {
         Write-EquivalenceResult -Skip "Current path '$Path' is excluded from the comparison."
         return
     }
