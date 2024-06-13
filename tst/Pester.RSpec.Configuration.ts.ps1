@@ -1339,6 +1339,9 @@ i -PassThru:$PassThru {
                 Should = @{
                     DisableV5 = $true
                 }
+                Output = @{
+                    CIFormat = 'None'
+                }
             }
 
             $r = Invoke-Pester -Configuration $c
