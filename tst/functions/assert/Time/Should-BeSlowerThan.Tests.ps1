@@ -2,7 +2,7 @@
 
 Describe "Should-BeSlowerThan" {
     It "Does not throw when actual is slower than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "1ms" }
+        @{ Actual = { Start-Sleep -Milliseconds 100 }; Expected = "1ms" }
     ) {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
