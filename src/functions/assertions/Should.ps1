@@ -129,7 +129,6 @@ function Should {
         # errors without throwing and terminating the test.
         $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
         $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
-        $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
 
         if ($isInsidePesterRuntime -and $pesterRuntimeInvocationContext.Configuration.Should.DisableV5.Value) {
             throw "Pester Should -Be syntax is disabled. Use Should-Be (without space), or enable it by setting: `$PesterPreference.Should.DisableV5 = `$false"
