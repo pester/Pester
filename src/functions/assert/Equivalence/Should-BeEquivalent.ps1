@@ -527,13 +527,14 @@ function Compare-Equivalent {
         $Actual,
         $Expected,
         $Path,
-        $Options = (& {
-                & $SafeCommands['Write-Warning'] "Getting default equivalency options, this should never be seen. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues"
-                Get-EquivalencyOption
-            })
+        $Options
     )
 
-    if ($null -ne $Options.ExludedPaths -and $Options.ExcludedPaths -contains $Path) {
+    if (-not $PSBoundParameters.ContainsKey('Options')) {
+        throw [System.ArgumentException]::new('-Options must be provided. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues','Options')
+    }
+
+    if ($null -ne $Options.ExcludedPaths -and $Options.ExcludedPaths -contains $Path) {
         Write-EquivalenceResult -Skip "Current path '$Path' is excluded from the comparison."
         return
     }
