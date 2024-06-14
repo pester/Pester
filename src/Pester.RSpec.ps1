@@ -389,6 +389,9 @@ function New-PesterConfiguration {
       ErrorAction: Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
       Default value: 'Stop'
 
+      DisableV5: Disables usage of Should -Be assertions, that are replaced by Should-Be in version 6.
+      Default value: $false
+
     Debug:
       ShowFullErrors: Show full errors including Pester internal stack. This property is deprecated, and if set to true it will override Output.StackTraceVerbosity to 'Full'.
       Default value: $false
