@@ -3,7 +3,8 @@
         [String]$Expected,
         $Actual,
         [switch]$CaseSensitive,
-        [switch]$IgnoreWhitespace
+        [switch]$IgnoreWhitespace,
+        [switch]$TrimWhitespace
     )
 
     if ($Actual -isnot [string]) {
@@ -13,6 +14,11 @@
     if ($IgnoreWhitespace) {
         $Expected = $Expected -replace '\s'
         $Actual = $Actual -replace '\s'
+    }
+
+    if ($TrimWhitespace) {
+        $Expected = $Expected -replace '^\s+|\s+$'
+        $Actual = $Actual -replace '^\s+|\s+$'
     }
 
     if (-not $CaseSensitive) {
@@ -42,6 +48,9 @@ function Should-BeString {
 
     .PARAMETER IgnoreWhitespace
     Indicates that the comparison should ignore whitespace.
+
+    .PARAMETER TrimWhitespace
+    Trims whitespace at the start and end of the string.
 
     .PARAMETER Because
     The reason why the actual value should be equal to the expected value.
@@ -77,13 +86,14 @@ function Should-BeString {
         [String]$Expected,
         [String]$Because,
         [switch]$CaseSensitive,
-        [switch]$IgnoreWhitespace
+        [switch]$IgnoreWhitespace,
+        [switch]$TrimWhitespace
     )
 
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual
 
-    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace
+    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
     if (-not ($stringsAreEqual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
