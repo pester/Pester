@@ -531,7 +531,7 @@ function Compare-Equivalent {
     )
 
     if (-not $PSBoundParameters.ContainsKey('Options')) {
-        throw [System.ArgumentException]::new('-Options must be provided. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues','Options')
+        throw [System.ArgumentException]::new('-Options must be provided. If you see this and you are not developing Pester, please file issue at https://github.com/pester/Pester/issues', 'Options')
     }
 
     if ($null -ne $Options.ExcludedPaths -and $Options.ExcludedPaths -contains $Path) {
@@ -628,11 +628,26 @@ function Should-BeEquivalent {
     .PARAMETER Because
     The reason why the input should be the expected value.
 
-    .PARAMETER Options
-    Options for the comparison. Get-EquivalencyOption function is called to get the default options.
+    .PARAMETER ExcludePath
+    An array of strings specifying the paths to exclude from the comparison. Each path should correspond to a property name or a chain of property names separated by dots for nested properties. The paths use dot notation to navigate to a child property, such as "user.name".
 
-    .PARAMETER StrictOrder
-    If set, the order of items in collections will be compared.
+    .PARAMETER ExcludePathsNotOnExpected
+    A switch parameter that, when set, excludes any paths from the comparison that are not present on the expected object. This is useful for ignoring extra properties on the actual object that are not relevant to the comparison.
+
+    .PARAMETER Comparator
+    Specifies the comparison strategy to use. The options are 'Equivalency' for a deep comparison that considers the structure and values of objects, and 'Equality' for a simple equality comparison. The default is 'Equivalency'.
+
+    .EXAMPLE
+    ```powershell
+        Should-BeEquivalent ...  -ExcludePath 'Id', 'Timestamp' -Comparator 'Equality'
+    ```
+    This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
+
+    .EXAMPLE
+    ```powereshell
+        Should-BeEquivalent ... -ExcludePathsNotOnExpected
+    ```
+    This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.
 
     .EXAMPLE
     ```powershell
@@ -678,10 +693,15 @@ function Should-BeEquivalent {
         [Parameter(Position = 0, Mandatory)]
         $Expected,
         [String]$Because,
-        $Options = (Get-EquivalencyOption)
+        [string[]] $ExcludePath = @(),
+        [switch] $ExcludePathsNotOnExpected,
+        [ValidateSet('Equivalency', 'Equality')]
+        [string] $Comparator = 'Equivalency'
         # TODO: I am not sure this works.
         # [Switch] $StrictOrder
     )
+
+    $options = Get-EquivalencyOption -ExcludePath:$ExcludePath -ExcludePathsNotOnExpected:$ExcludePathsNotOnExpected -Comparator:$Comparator
 
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual

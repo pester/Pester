@@ -203,8 +203,7 @@ InPesterModuleScope {
                     Name = "Jakub"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath "Age", "NonExisting"
-                $err = { Should-BeEquivalent -Actual $actual -Expected $expected -Options $options } | Verify-AssertionFailed
+                $err = { Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath "Age", "NonExisting" } | Verify-AssertionFailed
 
                 $err.Exception.Message | Verify-Like "*Expected has property 'Location'*"
                 $err.Exception.Message | Verify-Like "*Exclude path 'Age'*"
@@ -222,8 +221,7 @@ InPesterModuleScope {
                     Name = "Jakub"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
 
             It "Given wildcarded path it ignores it on the actual object" {
@@ -236,8 +234,7 @@ InPesterModuleScope {
                     Location = "Prague"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
 
             It "Given wildcarded path it ignores it on the expected hashtable" {
@@ -250,8 +247,7 @@ InPesterModuleScope {
                     Name = "Jakub"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
 
             It "Given wildcarded path it ignores it on the actual hashtable" {
@@ -264,8 +260,7 @@ InPesterModuleScope {
                     Location = "Prague"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
 
             It "Given wildcarded path it ignores it on the expected dictionary" {
@@ -278,8 +273,7 @@ InPesterModuleScope {
                     Name = "Jakub"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
 
             It "Given wildcarded path it ignores it on the actual dictionary" {
@@ -292,8 +286,7 @@ InPesterModuleScope {
                     Location = "Prague"
                 }
 
-                $options = Get-EquivalencyOption -ExcludePath Loc*
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePath Loc*
             }
         }
 
@@ -309,8 +302,7 @@ InPesterModuleScope {
                     Age      = 30
                 }
 
-                $options = Get-EquivalencyOption -ExcludePathsNotOnExpected
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePathsNotOnExpected
             }
 
             It "Given actual hashtable that has more keys that expected it skips them" {
@@ -324,8 +316,7 @@ InPesterModuleScope {
                     Age      = 30
                 }
 
-                $options = Get-EquivalencyOption -ExcludePathsNotOnExpected
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePathsNotOnExpected
             }
 
             It "Given actual dictionary that has more keys that expected it skips them" {
@@ -339,8 +330,7 @@ InPesterModuleScope {
                     Age      = 30
                 }
 
-                $options = Get-EquivalencyOption -ExcludePathsNotOnExpected
-                Should-BeEquivalent -Actual $actual -Expected $expected -Options $Options
+                Should-BeEquivalent -Actual $actual -Expected $expected -ExcludePathsNotOnExpected
             }
         }
     }
@@ -355,8 +345,7 @@ InPesterModuleScope {
                 LikesIfsInMocks = "False"
             }
 
-            $options = Get-EquivalencyOption -Comparator Equality
-            { Should-BeEquivalent -Actual $actual -Expected $expected -Options $options } | Verify-AssertionFailed
+            { Should-BeEquivalent -Actual $actual -Expected $expected -Comparator Equality } | Verify-AssertionFailed
         }
     }
 

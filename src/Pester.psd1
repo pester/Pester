@@ -111,8 +111,6 @@
         'Should-BeBefore'
         'Should-BeAfter'
 
-        'Get-EquivalencyOption'
-
         # helpers
         'New-MockObject'
         'New-Fixture'
