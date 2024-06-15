@@ -86,6 +86,8 @@
                 if ($actualCopy[$a] -eq $expectedCopy[$e]) {
                     $expectedCopy[$e] = $same
                     $actualCopy[$a] = $same
+                }
+                else {
                     $different = $true
                 }
             }

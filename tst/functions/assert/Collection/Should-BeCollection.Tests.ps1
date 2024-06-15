@@ -3,6 +3,7 @@
 Describe "Should-BeCollection" {
     It "Passes when collections have the same count and items" -ForEach @(
         @{ Actual = @(1); Expected = @(1) }
+        @{ Actual = 1; Expected = @(1) }
         @{ Actual = @(1, 2); Expected = @(1, 2) }
         @{ Actual = @(1..3); Expected = @(1..3) }
     ) {
