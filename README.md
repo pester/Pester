@@ -86,12 +86,12 @@ below are a list of the used certificates you can expect to be used when importi
 
 Version|Authority|Thumbprint
 ---|---|---
-5.6.0++|CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US|2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738
-5.2.0 - 5.5.0|CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US|C7B0582906E5205B8399D92991694A614D0C0B22
-4.10.0 - 5.1.1|CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US|7B9157664392D633EDA2C0248605C1C868EBDE43
-4.4.3 - 4.9.0|CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US|CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1
+5.6.0++|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738`
+5.2.0 - 5.5.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`C7B0582906E5205B8399D92991694A614D0C0B22`
+4.10.0 - 5.1.1|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`7B9157664392D633EDA2C0248605C1C868EBDE43`
+4.4.3 - 4.9.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1`
 3.0.3 - 4.4.2|No Certificate Found|No Certificate Found
-3.4.0|CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US |71F53A26BB1625E466727183409A30D03D7923DF
+3.4.0|`CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US`|`71F53A26BB1625E466727183409A30D03D7923DF`
 
 in all cases in exeption to version 3.4.0, the Authenticode issuer for certificate should be `CN=Jakub Jareš, O=Jakub Jareš, L=Praha, C=CZ`.
 
