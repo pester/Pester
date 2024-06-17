@@ -3,6 +3,17 @@
     $Value -is [ValueType] -or $Value -is [string] -or $value -is [scriptblock]
 }
 
+function Is-Value2 ($Value) {
+    # Inverting this check does not work, PSObject for example does not have enumerator.
+    $isArray = $null -ne [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Value)
+    if ($isArray) {
+        return $false
+    }
+
+    $Value = $($Value)
+    $Value -is [ValueType] -or $Value -is [string] -or $value -is [scriptblock]
+}
+
 function Is-Collection ($Value) {
     # check for value types and strings explicitly
     # because otherwise it does not work for decimal
@@ -13,6 +24,10 @@ function Is-Collection ($Value) {
     }
 
     -not [object]::ReferenceEquals($Value, $($Value))
+}
+
+function Is-Collection2 ($Value) {
+    $null -ne [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Value)
 }
 
 function Is-ScriptBlock ($Value) {

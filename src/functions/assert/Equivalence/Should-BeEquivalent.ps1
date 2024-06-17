@@ -51,11 +51,11 @@ function Get-DataTableSizeNotTheSameMessage ($Actual, $Expected, $Property) {
 }
 
 function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) {
-    if (-not (Is-Collection -Value $Expected)) {
+    if (-not (Is-Collection2 -Value $Expected)) {
         throw [ArgumentException]"Expected must be a collection."
     }
 
-    if (-not (Is-Collection -Value $Actual)) {
+    if (-not (Is-Collection2 -Value $Actual)) {
         Write-EquivalenceResult -Difference "`$Actual is not a collection it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Collection2 -Value $Expected
         $expectedLength = $expected.Length
@@ -189,7 +189,7 @@ function Compare-DataTableEquivalent ($Expected, $Actual, $Property, $Options) {
 
 function Compare-ValueEquivalent ($Actual, $Expected, $Property, $Options) {
     $Expected = $($Expected)
-    if (-not (Is-Value -Value $Expected)) {
+    if (-not (Is-Value2 -Value $Expected)) {
         throw [ArgumentException]"Expected must be a Value."
     }
 
@@ -562,7 +562,7 @@ function Compare-Equivalent {
 
     # test value types, strings, and single item arrays with values in them as values
     # expand the single item array to get to the value in it
-    if (Is-Value -Value $Expected) {
+    if (Is-Value2 -Value $Expected) {
         Write-EquivalenceResult "`$Expected is a value (value type, string, single value array, or a scriptblock), we will be comparing `$Actual to value types."
         Compare-ValueEquivalent -Actual $Actual -Expected $Expected -Property $Path -Options $Options
         return
@@ -596,7 +596,7 @@ function Compare-Equivalent {
     }
 
     #compare collection
-    if (Is-Collection -Value $Expected) {
+    if (Is-Collection2 -Value $Expected) {
         Write-EquivalenceResult "`$Expected is a collection, we will be comparing `$Actual to collections."
         Compare-CollectionEquivalent -Expected $Expected -Actual $Actual -Property $Path -Options $Options
         return

@@ -118,7 +118,7 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-ScriptBlock2 -Value $Value
     }
 
-    if (Is-Value -Value $Value) {
+    if (Is-Value2 -Value $Value) {
         return $Value
     }
 
@@ -134,7 +134,7 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-DataTable2 -Value $Value -Pretty:$Pretty
     }
 
-    if (Is-Collection -Value $Value) {
+    if (Is-Collection2 -Value $Value) {
         return Format-Collection2 -Value $Value -Pretty:$Pretty
     }
 
@@ -183,7 +183,6 @@ function Format-Type2 ([Type]$Value) {
         -replace "^System\." `
         -replace "^Management\.Automation\.PSCustomObject$", "PSObject" `
         -replace "^PSCustomObject$", "PSObject" `
-        -replace "^Object\[\]$", "collection" `
 
     "[$($typeFormatted)]"
 }

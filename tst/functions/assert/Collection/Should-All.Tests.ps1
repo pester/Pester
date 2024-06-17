@@ -28,7 +28,7 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
 
     It "Fails when no items are passed" -TestCases @(
         @{ Actual = $null; Expected = "Expected all items in collection @(`$null) to pass filter { `$_ -eq 1 }, but 1 of them `$null did not pass the filter." }
-        @{ Actual = @(); Expected = "Expected all items in collection to pass filter { `$_ -eq 1 }, but [collection] @() contains no items to compare." }
+        @{ Actual = @(); Expected = "Expected all items in collection to pass filter { `$_ -eq 1 }, but [Object[]] @() contains no items to compare." }
     ) {
         $err = { $Actual | Should-All -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Expected
