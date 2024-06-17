@@ -182,8 +182,7 @@ function Format-Type2 ([Type]$Value) {
     $typeFormatted = $type `
         -replace "^System\." `
         -replace "^Management\.Automation\.PSCustomObject$", "PSObject" `
-        -replace "^PSCustomObject$", "PSObject" `
-        -replace "^Object\[\]$", "collection" `
+        -replace "^PSCustomObject$", "PSObject"
 
     "[$($typeFormatted)]"
 }

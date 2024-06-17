@@ -184,8 +184,7 @@ InPesterModuleScope {
             @{ Value = [double]; Expected = '[double]' },
             @{ Value = [string]; Expected = '[string]' },
             @{ Value = $null; Expected = '[null]' },
-            @{ Value = [Management.Automation.PSObject]; Expected = '[PSObject]' },
-            @{ Value = [Object[]]; Expected = '[collection]' }
+            @{ Value = [Management.Automation.PSObject]; Expected = '[PSObject]' }
         ) {
             param($Value, $Expected)
             Format-Type2 -Value $Value | Verify-Equal $Expected
@@ -199,8 +198,7 @@ InPesterModuleScope {
             @{ Value = 1.1; Expected = '[double]' },
             @{ Value = 'a' ; Expected = '[string]' },
             @{ Value = $null ; Expected = '[null]' },
-            @{ Value = [PSCustomObject]@{Name = 'Jakub' } ; Expected = '[PSObject]' },
-            @{ Value = [Object[]]1, 2, 3 ; Expected = '[collection]' }
+            @{ Value = [PSCustomObject]@{Name = 'Jakub' } ; Expected = '[PSObject]' }
         ) {
             param($Value, $Expected)
             Get-ShortType2 -Value $Value | Verify-Equal $Expected
