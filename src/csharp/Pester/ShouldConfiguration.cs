@@ -31,7 +31,7 @@ namespace Pester
             return Cloner.ShallowClone(configuration);
         }
 
-        public ShouldConfiguration() : base("Should configuration.")
+        public ShouldConfiguration() : base("Options to control the behavior of the Pester's Should assertions.")
         {
             ErrorAction = new StringOption("Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.", "Stop");
             DisableV5 = new BoolOption("Disables usage of Should -Be assertions, that are replaced by Should-Be in version 6.", false);

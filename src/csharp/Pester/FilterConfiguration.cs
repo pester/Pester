@@ -44,11 +44,11 @@ namespace Pester
                 configuration.AssignArrayIfNotNull<string>(nameof(FullName), v => FullName = v);
             }
         }
-        public FilterConfiguration() : base("Filter configuration")
+        public FilterConfiguration() : base("Filter options to include/exclude tests and blocks in the targeted containers using tags, name or location. Include by default when no include filters are provided. Exclude filters take precedence.")
         {
             Tag = new StringArrayOption("Tags of Describe, Context or It to be run.", new string[0]);
             ExcludeTag = new StringArrayOption("Tags of Describe, Context or It to be excluded from the run.", new string[0]);
-            Line = new StringArrayOption(@"Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'", new string[0]);
+            Line = new StringArrayOption(@"Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Explicit filter that overrides -Skip. Example: 'C:\tests\file1.Tests.ps1:37'", new string[0]);
             ExcludeLine = new StringArrayOption("Exclude by file and scriptblock start line, takes precedence over Line.", new string[0]);
             FullName = new StringArrayOption("Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'", new string[0]);
         }
