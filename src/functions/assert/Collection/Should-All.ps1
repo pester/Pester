@@ -1,4 +1,4 @@
-﻿function Assert-All {
+﻿function Should-All {
     <#
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for all the items in the collection, the assertion passes.

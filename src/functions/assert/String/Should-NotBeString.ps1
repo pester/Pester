@@ -2,7 +2,7 @@
     "Expected the strings to be different but they were the same '$Expected'."
 }
 
-function Assert-StringNotEqual {
+function Should-NotBeString {
     <#
     .SYNOPSIS
     Asserts that the actual value is not equal to the expected value.

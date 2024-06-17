@@ -12,7 +12,7 @@ namespace Pester
         {
             return Cloner.ShallowClone(configuration);
         }
-        public TestDriveConfiguration() : base("TestDrive configuration.")
+        public TestDriveConfiguration() : base("Options to configure the TestDrive feature.")
         {
             Enabled = new BoolOption("Enable TestDrive.", true);
         }

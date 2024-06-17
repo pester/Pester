@@ -56,7 +56,7 @@ namespace Pester
             }
         }
 
-        public RunConfiguration() : base("Run configuration.")
+        public RunConfiguration() : base("General runtime options for Pester including tests containers to execute.")
         {
             Path = new StringArrayOption("Directories to be searched for tests, paths directly to test files, or combination of both.", new string[] { "." });
             ExcludePath = new StringArrayOption("Directories or files to be excluded from the run.", new string[0]);

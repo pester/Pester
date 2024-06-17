@@ -1,4 +1,4 @@
-﻿function Assert-Null {
+﻿function Should-BeNull {
     <#
     .SYNOPSIS
     Asserts that the input is `$null`.

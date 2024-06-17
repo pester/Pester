@@ -97,6 +97,19 @@ Describe "Should-BeString" {
         It "Can compare strings without whitespace" {
             Should-BeString -Expected " a b c " -Actual "abc" -IgnoreWhitespace
         }
+
+        It "Can compare strings without whitespace at the start or end" -ForEach @(
+            @{ Value = " abc" }
+            @{ Value = "abc " }
+            @{ Value = "abc`t" }
+            @{ Value = "`tabc" }
+        ) {
+            "  abc   " | Should-BeString -Expected "abc" -TrimWhitespace
+        }
+
+        It "Trimming whitespace does not remove it from inside of the string" {
+            { "a bc" | Should-BeString -Expected "abc" -TrimWhitespace } | Verify-AssertionFailed
+        }
     }
 
     It "Can be called with positional parameters" {

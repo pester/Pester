@@ -21,7 +21,7 @@ function Get-NotLikeDefaultFailureMessage ([String]$Expected, $Actual, [switch]$
     "Expected the string '$Actual' to$caseSensitiveMessage not match '$Expected' but it matched it."
 }
 
-function Assert-NotLike {
+function Should-NotBeLikeString {
     <#
     .SYNOPSIS
     Asserts that the actual value is not like the expected value.

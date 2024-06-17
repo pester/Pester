@@ -1,4 +1,4 @@
-﻿function Assert-StringEmpty {
+﻿function Should-BeEmptyString {
     <#
     .SYNOPSIS
     Ensures that input is an empty string.

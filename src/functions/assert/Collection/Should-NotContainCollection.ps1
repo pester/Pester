@@ -1,4 +1,4 @@
-﻿function Assert-NotContain {
+﻿function Should-NotContainCollection {
     <#
     .SYNOPSIS
     Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.

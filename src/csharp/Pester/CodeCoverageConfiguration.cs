@@ -38,7 +38,7 @@ namespace Pester
         {
             return Cloner.ShallowClone(configuration);
         }
-        public CodeCoverageConfiguration() : base("CodeCoverage configuration.")
+        public CodeCoverageConfiguration() : base("Options to enable and configure Pester's code coverage feature.")
         {
             Enabled = new BoolOption("Enable CodeCoverage.", false);
             OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters", "JaCoCo");

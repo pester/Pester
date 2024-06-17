@@ -22,6 +22,7 @@ namespace Pester
     public class ShouldConfiguration : ConfigurationSection
     {
         private StringOption _errorAction;
+        private BoolOption _disableV5;
 
         public static ShouldConfiguration Default { get { return new ShouldConfiguration(); } }
 
@@ -30,14 +31,16 @@ namespace Pester
             return Cloner.ShallowClone(configuration);
         }
 
-        public ShouldConfiguration() : base("Should configuration.")
+        public ShouldConfiguration() : base("Options to control the behavior of the Pester's Should assertions.")
         {
             ErrorAction = new StringOption("Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.", "Stop");
+            DisableV5 = new BoolOption("Disables usage of Should -Be assertions, that are replaced by Should-Be in version 6.", false);
         }
 
         public ShouldConfiguration(IDictionary configuration) : this()
         {
             configuration?.AssignObjectIfNotNull<string>(nameof(ErrorAction), v => ErrorAction = v);
+            configuration?.AssignValueIfNotNull<bool>(nameof(DisableV5), v => DisableV5 = v);
         }
 
         public StringOption ErrorAction
@@ -52,6 +55,22 @@ namespace Pester
                 else
                 {
                     _errorAction = new StringOption(_errorAction, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption DisableV5
+        {
+            get { return _disableV5; }
+            set
+            {
+                if (_disableV5 == null)
+                {
+                    _disableV5 = value;
+                }
+                else
+                {
+                    _disableV5 = new BoolOption(_disableV5, value.Value);
                 }
             }
         }

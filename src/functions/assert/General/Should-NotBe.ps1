@@ -1,4 +1,4 @@
-﻿function Assert-NotEqual {
+﻿function Should-NotBe {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are not equal.

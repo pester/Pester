@@ -1,4 +1,4 @@
-﻿function Assert-StringNotWhiteSpace {
+﻿function Should-NotBeWhiteSpaceString {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
@@ -12,7 +12,7 @@
     .EXAMPLE
     ```powershell
     $actual = "hello"
-    $actual | Should-NotBeNullOrWhiteSpaceString
+    $actual | Should-NotBeWhiteSpaceString
     ```
 
     This test will pass.
@@ -20,24 +20,24 @@
     .EXAMPLE
     ```powershell
     $actual = "  "
-    $actual | Should-NotBeNullOrWhiteSpaceString
+    $actual | Should-NotBeWhiteSpaceString
     ```
 
     This test will fail, the input is a whitespace only string.
 
     .EXAMPLE
     ```
-    $null | Should-NotBeNullOrWhiteSpaceString
-    "" | Should-NotBeNullOrWhiteSpaceString
-    $() | Should-NotBeNullOrWhiteSpaceString
-    $false | Should-NotBeNullOrWhiteSpaceString
-    1 | Should-NotBeNullOrWhiteSpaceString
+    $null | Should-NotBeWhiteSpaceString
+    "" | Should-NotBeWhiteSpaceString
+    $() | Should-NotBeWhiteSpaceString
+    $false | Should-NotBeWhiteSpaceString
+    1 | Should-NotBeWhiteSpaceString
     ```
 
     All the tests above will fail, the input is not a string.
 
     .LINK
-    https://pester.dev/docs/commands/Should-NotBeNullOrWhiteSpaceString
+    https://pester.dev/docs/commands/Should-NotBeWhiteSpaceString
 
     .LINK
     https://pester.dev/docs/assertions

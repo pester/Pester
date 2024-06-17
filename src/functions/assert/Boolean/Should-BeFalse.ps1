@@ -1,4 +1,4 @@
-﻿function Assert-False {
+﻿function Should-BeFalse {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $false. It does not convert input values to boolean, and will fail for any value that is not $false.

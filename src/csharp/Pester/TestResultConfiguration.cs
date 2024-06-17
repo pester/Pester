@@ -34,7 +34,7 @@ namespace Pester
             return Cloner.ShallowClone(configuration);
         }
 
-        public TestResultConfiguration() : base("TestResult configuration.")
+        public TestResultConfiguration() : base("Export options to output Pester's testresult to knwon file formats like NUnit and JUnit XML.")
         {
             Enabled = new BoolOption("Enable TestResult.", false);
             OutputFormat = new StringOption("Format to use for test result report. Possible values: NUnitXml, NUnit2.5, NUnit3 or JUnitXml", "NUnitXml");

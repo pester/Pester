@@ -1,4 +1,4 @@
-﻿function Assert-NotSame {
+﻿function Should-NotBeSame {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is not the same instance as the expected value.
