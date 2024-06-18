@@ -6,7 +6,7 @@
 
 > 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
 
-> 📦🔐 Upgrading to 5.6.0 will show a "certificate changed" error, this is because a change in Root Certificate, and you have to specify `-SkipPublisherCheck` to update. [More info below.](#560-certificate-error).
+> 📦🔐 Upgrading to 5.6.0 will show a "certificate changed" error, this is because a change in Root Certificate, and you have to specify `-SkipPublisherCheck` to update. [More info below.](#signing-certificates).
 
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
 > There is also [contributor's guide](https://pester.dev/docs/contributing/introduction) that will hopefully help you.
@@ -79,7 +79,7 @@ Install-Module -Name Pester -Force
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://pester.dev/docs/introduction/installation).
 
-## Regarding Certificate for different versions
+## Signing certificates
 
 The certificate used for signing the code has changed in 5.6.0. Error is shown when updating the module.
 Below is the list of the certificates you can expect to be used when importing the module (going back to 2016)
