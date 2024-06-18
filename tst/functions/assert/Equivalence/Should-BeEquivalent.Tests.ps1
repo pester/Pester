@@ -261,9 +261,9 @@ InPesterModuleScope {
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
             @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got 'a'." }
-            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{}.`nExpected has key 'Name' that the other object does not have." }
+            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{}.`nExpected has key 'Name' that the actual object does not have." }
             @{ Actual = @{ Name = 'Tomas' }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
+            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
@@ -282,9 +282,9 @@ InPesterModuleScope {
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
             @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got 'a'." }
-            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{}.`nExpected has key 'Name' that the other object does not have." }
+            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{}.`nExpected has key 'Name' that the actual object does not have." }
             @{ Actual = New-Dictionary @{ Name = 'Tomas' }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the other object has." }
+            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
@@ -374,12 +374,12 @@ InPesterModuleScope {
             @{
                 Expected = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
                 Actual   = [PSCustomObject]@{ Name = 'Jakub' }
-                Message  = "Expected has property 'Age' that the other object does not have."
+                Message  = "Expected has property 'Age' that the actual object does not have."
             },
             @{
                 Expected = [PSCustomObject]@{ Name = 'Jakub' }
                 Actual   = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
-                Message  = "Expected is missing property 'Age' that the other object has."
+                Message  = "Expected is missing property 'Age' that the actual object has."
             }
         ) {
             param ($Expected, $Actual, $Message)
