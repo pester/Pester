@@ -278,7 +278,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the other object does not have."
+            $result += "Expected has key '$k' that the actual object does not have."
             continue
         }
 
@@ -303,7 +303,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the other object has."
+            $result += "Expected is missing key '$k' that the actual object has."
         }
     }
 
@@ -344,7 +344,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the other object does not have."
+            $result += "Expected has key '$k' that the actual object does not have."
             continue
         }
 
@@ -367,7 +367,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the other object has."
+            $result += "Expected is missing key '$k' that the actual object has."
         }
     }
 
@@ -406,7 +406,7 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
         $actualProperty = $actualProperties | & $SafeCommands['Where-Object'] { $_.Name -eq $propertyName }
         if (-not $actualProperty) {
             Write-EquivalenceResult -Difference "Property '$propertyName' was not found on `$Actual."
-            "Expected has property '$PropertyName' that the other object does not have."
+            "Expected has property '$PropertyName' that the actual object does not have."
             continue
         }
         Write-EquivalenceResult "Property '$propertyName` was found on `$Actual, comparing them for equivalence."
@@ -439,7 +439,7 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
 
         # fix for powershell v2 where foreach goes once over null
         foreach ($p in $filteredPropertiesNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            "Expected is missing property '$($p.Name)' that the other object has."
+            "Expected is missing property '$($p.Name)' that the actual object has."
         }
     }
 }
@@ -463,7 +463,7 @@ function Compare-DataRowEquivalent ($Actual, $Expected, $Property, $Options) {
         $propertyName = $p.Name
         $actualProperty = $actualProperties | & $SafeCommands['Where-Object'] { $_.Name -eq $propertyName }
         if (-not $actualProperty) {
-            "Expected has property '$PropertyName' that the other object does not have."
+            "Expected has property '$PropertyName' that the actual object does not have."
             continue
         }
 
@@ -477,7 +477,7 @@ function Compare-DataRowEquivalent ($Actual, $Expected, $Property, $Options) {
 
     # fix for powershell v2 where foreach goes once over null
     foreach ($p in $propertiesNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-        "Expected is missing property '$($p.Name)' that the other object has."
+        "Expected is missing property '$($p.Name)' that the actual object has."
     }
 }
 
