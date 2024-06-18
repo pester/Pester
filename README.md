@@ -6,7 +6,7 @@
 
 > 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
 
-> 📦🔐 If you upgrade to 5.6.0 you will get a "certificate changed" error if you dont skip publisher check. This is related to a new module certificate. [more info here](#regarding-certificate-for-different-versions).
+> 📦🔐 Upgrading to 5.6.0 will show a "certificate changed" error, this is because a change in Root Certificate, and you have to specify `-SkipPublisherCheck` to update. [More info below.](#560-certificate-error).
 
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
 > There is also [contributor's guide](https://pester.dev/docs/contributing/introduction) that will hopefully help you.
@@ -81,8 +81,8 @@ Not running Windows 10 or facing problems? See the [full installation and update
 
 ## Regarding Certificate for different versions
 
-with 5.6.0 the certificate used for deplyment has changed. this will give you a error when updating.
-below are a list of the used certificates you can expect to be used when importing the module (going back to 2016)
+The certificate used for signing the code has changed in 5.6.0. Error is shown when updating the module.
+Below is the list of the certificates you can expect to be used when importing the module (going back to 2016)
 
 Version|Authority|Thumbprint
 ---|---|---
@@ -93,11 +93,9 @@ Version|Authority|Thumbprint
 3.0.3 - 4.4.2|No Certificate Found|No Certificate Found
 3.4.0|`CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US`|`71F53A26BB1625E466727183409A30D03D7923DF`
 
-in all cases in exeption to version 3.4.0, the Authenticode issuer for certificate should be `CN=Jakub Jareš, O=Jakub Jareš, L=Praha, C=CZ`.
+In all cases, except for version 3.4.0 that was signed directly by Microsoft, the Authenticode issuer for certificate is `CN=Jakub Jareš, O=Jakub Jareš, L=Praha, C=CZ`.
 
-3.4.0 is a special case as this is the version signed my microsoft and deployed to w10.
-
-to fix any issue when using a module that have changed certificate is to append `-SkipPublisherCheck` to the install command.
+To successfully update the module when certificate changed, you need to provide `-SkipPublisherCheck` to the `Install-Module` command.
 
 ## Features
 
