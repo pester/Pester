@@ -329,7 +329,7 @@ function New-PesterConfiguration {
       ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
       Default value: @()
 
-      Line: Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
+      Line: Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Explicit filter that overrides -Skip. Example: 'C:\tests\file1.Tests.ps1:37'
       Default value: @()
 
       ExcludeLine: Exclude by file and scriptblock start line, takes precedence over Line.
