@@ -68,11 +68,6 @@ Describe "Should-NotBe" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = 1
-        $expected | Should-NotBe 9 | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-NotBe 1 1 } | Verify-AssertionFailed
     }

@@ -87,11 +87,6 @@ Describe "Should-BeGreaterThanOrEqual" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = 1
-        $expected | Should-BeGreaterThanOrEqual 0 | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-BeGreaterThanOrEqual 2 1 } | Verify-AssertionFailed
     }

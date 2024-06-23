@@ -52,13 +52,6 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         $err.Exception.Message | Verify-Equal $Message
     }
 
-    It "Returns the value on output" {
-        $expected = "a", "b"
-        $v = $expected | Should-Any { $true }
-        $v[0] | Verify-Equal $expected[0]
-        $v[1] | Verify-Equal $expected[1]
-    }
-
     It "Accepts FilterScript and Actual by position" {
         Should-Any { $true } 1, 2
     }

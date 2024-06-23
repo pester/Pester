@@ -50,6 +50,4 @@
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because  -DefaultMessage "Expected <expectedType> <expected>,<because> but got: <actualType> <actual>."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
-
-    $Actual
 }

@@ -45,13 +45,6 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         $err.Exception.Message | Verify-Equal $Message
     }
 
-    It "Returns the value on output" {
-        $expected = "a", "b"
-        $v = $expected | Should-All { $true }
-        $v[0] | Verify-Equal $expected[0]
-        $v[1] | Verify-Equal $expected[1]
-    }
-
     It "Can filter using variables from the sorrounding context" {
         $f = 1
         2, 4 | Should-All { $_ / $f }

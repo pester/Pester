@@ -9,10 +9,6 @@ Describe "Should-NotHaveType" {
         1 | Should-NotHaveType ([string])
     }
 
-    It "Returns the given value" {
-        'b' | Should-NotHaveType ([int]) | Verify-Equal 'b'
-    }
-
     It "Can be called with positional parameters" {
         { Should-NotHaveType ([int]) 1 } | Verify-AssertionFailed
     }

@@ -25,11 +25,6 @@ Describe "Should-BeTrue" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = $true
-        $expected | Should-BeTrue | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-BeTrue $false } | Verify-AssertionFailed
     }
