@@ -539,19 +539,20 @@ function Write-NUnit3TestCaseAttributes {
 }
 
 function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
+    [int]$unicodeControlPictures = 0x2400
+    [int[]]$validChars = (0x9,0xA,0xD)
     $outputString = @(foreach ($o in $Output) {
         if ($null -eq $o) {
             [string]::Empty
         } else {
             $result = ""
             0..($o.Length-1) |% {
-                $char = $o[$_]
-                if (0x1B  -eq [int]$char) {
-                    $result += "`${ESC}"
-                } elseif (0x07 -eq [int]$char) {
-                    $result += "`${BELL}"
+                $s = $o[$_]
+                $char = [int]$s
+                if ((0x20 -gt $char) -and (0x00 -lt $char) -and (-not ($validChars -contains $char))) {
+                    $result += [char]($char + $unicodeControlPictures)
                 } else {
-                    $result += $char
+                    $result += $s
                 }
             }
             $result
