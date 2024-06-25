@@ -349,6 +349,24 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
+        t "handles virtual terminal escape sequences" {
+            $sb = {
+                Describe 'Describe VT Sequences' {
+                    It "Successful" {
+                        Write-Output "`e[32mHello World`e[0m"
+                        Write-Host "`e[32mHello World`e[0m"
+                        $true | Should -Be $true
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate({ throw $args[1].Exception })
+        }
+
         t 'should use TestResult.TestSuiteName configuration value as name-attribute for run and root Assembly test-suite' {
             $sb = {
                 Describe 'Describe' {

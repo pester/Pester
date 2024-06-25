@@ -169,6 +169,7 @@ function Export-XmlReport {
     $settings = [Xml.XmlWriterSettings] @{
         Indent              = $true
         NewLineOnAttributes = $false
+        CheckCharacters     = $false
     }
 
     $xmlFile = $null
