@@ -546,9 +546,9 @@ function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) 
             $result = ""
             0..($o.Length-1) |% {
                 $char = $o[$_]
-                if ("`e" -eq $char) {
+                if (0x1B  -eq [int]$char) {
                     $result += "{ESC}"
-                } elseif ("`a" -eq $char) {
+                } elseif (0x07 -eq [int]$char) {
                     $result += "{BELL}"
                 } else {
                     $result += $char

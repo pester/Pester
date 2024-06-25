@@ -353,9 +353,11 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe 'Describe VT Sequences' {
                     It "Successful" {
+                        $esc = [char][int]0x1B
+                        $bell = [char][int]0x07
                         $testCases = (
-                            "`e[32mHello World`e[0m",
-                            "Ring the bell`a")
+                            "$esc[32mHello World$esc[0m",
+                            "Ring the bell$bell")
                         $testCases |% { 
                             Write-Output $_ 
                         }
@@ -373,7 +375,7 @@ i -PassThru:$PassThru {
             $xmlTest = $xmlDescribe.'test-case'
             $message = $xmlTest.output.'#cdata-section' -split "`n"
             $message[0] | Verify-Equal '{ESC}[32mHello World{ESC}[0m'
-            $message[1] | Verify-Equal 'Ring the bell{ESC}'
+            $message[1] | Verify-Equal 'Ring the bell{BELL}'
         }
 
         t 'should use TestResult.TestSuiteName configuration value as name-attribute for run and root Assembly test-suite' {
