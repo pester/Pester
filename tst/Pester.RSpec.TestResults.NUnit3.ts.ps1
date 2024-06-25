@@ -354,7 +354,6 @@ i -PassThru:$PassThru {
                 Describe 'Describe VT Sequences' {
                     It "Successful" {
                         Write-Output "`e[32mHello World`e[0m"
-                        Write-Host "`e[32mHello World`e[0m"
                         $true | Should -Be $true
                     }
                 }
