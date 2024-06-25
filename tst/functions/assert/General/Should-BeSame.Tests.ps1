@@ -24,11 +24,6 @@ Describe "Should-BeSame" {
         $err.Exception.Message | Verify-Equal $Message
     }
 
-    It "Returns the value on output" {
-        $expected = New-Object Diagnostics.Process
-        $expected | Should-BeSame $expected | Verify-Equal $expected
-    }
-
     Context "Throws when `$expected is a value type or string to warn user about unexpected behavior" {
         It "throws for value <value>" -TestCases @(
             @{ Value = 1 }

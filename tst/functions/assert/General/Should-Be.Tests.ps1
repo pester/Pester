@@ -69,11 +69,6 @@ Describe "Should-Be" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = 1
-        $expected | Should-Be 1 | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-Be 1 2 } | Verify-AssertionFailed
     }

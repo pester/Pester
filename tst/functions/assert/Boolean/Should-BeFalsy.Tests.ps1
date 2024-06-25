@@ -29,11 +29,6 @@ Describe "Should-BeFalsy" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = $false
-        $expected | Should-BeFalsy | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-BeFalsy $true } | Verify-AssertionFailed
     }

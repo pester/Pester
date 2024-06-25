@@ -111,7 +111,5 @@
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -Data @{ expectedDifference = $expectedDifference; actualDifference = $actualDifference } -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>"
             throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
         }
-
-        $Actual
     }
 }

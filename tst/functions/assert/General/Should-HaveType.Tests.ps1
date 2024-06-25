@@ -9,10 +9,6 @@ Describe "Should-HaveType" {
         { 1 | Should-HaveType ([string]) } | Verify-AssertionFailed
     }
 
-    It "Returns the given value" {
-        'b' | Should-HaveType ([string]) | Verify-Equal 'b'
-    }
-
     It "Can be called with positional parameters" {
         { Should-HaveType ([string]) 1 } | Verify-AssertionFailed
     }

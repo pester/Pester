@@ -24,11 +24,6 @@ Describe "Should-NotBeSame" {
         $err.Exception.Message | Verify-Equal $Message
     }
 
-    It "Returns the value on output" {
-        $expected = 1
-        $expected | Should-NotBeSame 7 | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         {
             $obj = New-Object -TypeName PSObject

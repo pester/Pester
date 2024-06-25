@@ -10,10 +10,6 @@ InPesterModuleScope {
             { $null | Should-NotBeNull } | Verify-AssertionFailed
         }
 
-        It "Returns the given value" {
-            1 | Should-NotBeNull | Verify-NotNull
-        }
-
         It "Can be called with positional parameters" {
             { Should-NotBeNull $null } | Verify-AssertionFailed
         }

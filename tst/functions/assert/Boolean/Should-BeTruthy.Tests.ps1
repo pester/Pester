@@ -24,11 +24,6 @@ Describe "Should-BeTruthy" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = $true
-        $expected | Should-BeTruthy | Verify-Equal $expected
-    }
-
     It "Can be called with positional parameters" {
         { Should-BeTruthy $false } | Verify-AssertionFailed
     }

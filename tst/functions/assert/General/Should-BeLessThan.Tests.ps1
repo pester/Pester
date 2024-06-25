@@ -87,15 +87,6 @@ Describe "Should-BeLessThan" {
         }
     }
 
-    It "Returns the value on output" {
-        $expected = 0
-        $expected | Should-BeLessThan 1 | Verify-Equal $expected
-    }
-
-    It "Can be called with positional parameters" {
-        { Should-BeLessThan 1 2 } | Verify-AssertionFailed
-    }
-
     It "Given collection to Expected it throws" {
         $err = { "dummy" | Should-BeLessThan @() } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
