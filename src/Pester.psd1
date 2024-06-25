@@ -158,10 +158,10 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/6.0.0-alpha1'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/6.0.0-alpha2'
 
             # Prerelease string of this module
-            Prerelease   = 'alpha1'
+            Prerelease   = 'alpha2'
         }
 
         # Minimum assembly version required
