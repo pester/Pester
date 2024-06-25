@@ -374,8 +374,8 @@ i -PassThru:$PassThru {
             $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlTest = $xmlDescribe.'test-case'
             $message = $xmlTest.output.'#cdata-section' -split "`n"
-            $message[0] | Verify-Equal '{ESC}[32mHello World{ESC}[0m'
-            $message[1] | Verify-Equal 'Ring the bell{BELL}'
+            $message[0] | Verify-Equal "`${ESC}[32mHello World`${ESC}[0m"
+            $message[1] | Verify-Equal "Ring the bell`${BELL}"
         }
 
         t 'should use TestResult.TestSuiteName configuration value as name-attribute for run and root Assembly test-suite' {
