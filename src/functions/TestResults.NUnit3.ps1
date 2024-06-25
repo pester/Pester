@@ -541,7 +541,18 @@ function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) 
         if ($null -eq $o) {
             [string]::Empty
         } else {
-            $o.ToString()
+            $result = ""
+            0..($o.Length-1) |% {
+                $char = $o[$_]
+                if ("`e" -eq $char) {
+                    $result += "{ESC}"
+                } elseif ("`a" -eq $char) {
+                    $result += "{BELL}"
+                } else {
+                    $result += $char
+                }
+            }
+            $result
         }
     }) -join [System.Environment]::NewLine
 

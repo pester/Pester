@@ -353,7 +353,12 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe 'Describe VT Sequences' {
                     It "Successful" {
-                        Write-Output "`e[32mHello World`e[0m"
+                        $testCases = (
+                            "`e[32mHello World`e[0m",
+                            "Ring the bell`a")
+                        $testCases |% { 
+                            Write-Output $_ 
+                        }
                         $true | Should -Be $true
                     }
                 }
