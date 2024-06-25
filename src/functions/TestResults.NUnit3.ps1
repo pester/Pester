@@ -539,8 +539,12 @@ function Write-NUnit3TestCaseAttributes {
 }
 
 function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
+    # The characters in the range 0x01 to 0x19 are invalid for CData
+    # (with the exception of the characters 0x09, 0x0A and 0x0D)
+    # We convert each of these using the unicode printable version,
+    # which is obtained by adding 0x2400
     [int]$unicodeControlPictures = 0x2400
-    [int[]]$validChars = (0x9,0xA,0xD)
+    [int[]]$validChars = (0x09,0x0A,0x0D)
     $outputString = @(foreach ($o in $Output) {
         if ($null -eq $o) {
             [string]::Empty
