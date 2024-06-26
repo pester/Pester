@@ -175,7 +175,8 @@ if ($Clean) {
         foreach ($r in $section.PSObject.Properties.Name) {
             $option = $section.$r
             $default = Format-NicelyMini $option.Default
-            "  ${r}: $($option.Description)$eol  Default value: ${default}$eol"
+            $type = $option.Default.GetType() -as [string]
+            "  ${r}: $($option.Description)$eol  Type: ${type}$eol  Default value: ${default}$eol"
         }
     }
 
