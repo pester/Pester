@@ -55,7 +55,6 @@
 
     $failReasons = $null
     $appendMore = $false
-    $pass = $false
     foreach ($item in $Actual) {
         $underscore = [PSVariable]::new('_', $item)
         try {
@@ -72,9 +71,18 @@
                 $appendMore = $true
             }
 
-            $pass = $false
+            # InvokeWithContext returns collection. This makes it easier to check the value if we throw and don't assign the value.
+            $pass = @($false)
         }
-        if ($pass) { break }
+
+        # The API returns a collection and user can return anything from their script
+        # or there can be no output when assertion is used, so we are checking if the first item
+        # in the output is a boolean $false. The scriptblock should not fail in $null for example,
+        # hence the explicit type check
+        if (-not (($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0]))) {
+            $pass = $true
+            break
+        }
     }
 
     if (-not $pass) {

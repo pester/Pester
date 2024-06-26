@@ -9,6 +9,12 @@ Describe "Should-Any" {
         $Actual | Should-Any -FilterScript { $_ -eq 1 }
     }
 
+    It "Passes when at least one item in the given collection passes the predicate with assertion" -TestCases @(
+        @{ Actual = @(1, 2, 3) }
+    ) {
+        $Actual | Should-Any -FilterScript { $_ | Should-Be 1 }
+    }
+
     It "Fails when none of the items passes the predicate" -TestCases @(
         @{ Actual = @(1, 2, 3) }
         @{ Actual = @(1) }
