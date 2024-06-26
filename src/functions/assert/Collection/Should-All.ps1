@@ -76,9 +76,16 @@
                 $appendMore = $true
             }
 
-            $pass = $false
+            $pass = @($false)
         }
-        if (-not $pass) { $item }
+
+        # The API returns a collection and user can return anything from their script
+        # or there can be no output when assertion is used, so we are checking if the first item
+        # in the output is a boolean $false. The scriptblock should not fail in $null for example,
+        # hence the explicit type check
+        if (($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0])) {
+            $item
+        }
     }
 
     # Make sure are checking the count of the filtered items, not just truthiness of a single item.
