@@ -5,15 +5,20 @@ SHORT DESCRIPTION
     Pester uses a PesterConfiguration-object to configure all of it's options. It is the source of truth for the defaults and provides all supported options.
 
 LONG DESCRIPTION
-    Pester can be invoked using a limited set of parameters in Invoke-Pester (Simple interface) or
+    Pester can be invoked using either a limited set of parameters in Invoke-Pester (Simple interface) or
     by providing a PesterConfiguration object (Advanced interface) that supports all available options.
-    Internally the simple parameters are translated to a full configuration-object, using the default values for any undefined options.
+
+    When Invoke-Pester is invoked using the simple parameters it is internally translated to a full configuration-object,
+    using the default values for any undefined options.
+
+    The configuration object can be navigated interactively in the console to view all options including description, current and default values.
 
 EXAMPLE
+    Below we can se an example of how to run Pester using a configuration object:
 
     # Get default configuration
     $configuration = New-PesterConfiguration
-    # Adding properties & discover via intellisense
+    # Changing a few options including the path for our test files.
     $configuration.Run.Path = '.\tests'
     $configuration.Filter.Tag = 'Acceptance'
     $configuration.Filter.ExcludeTag = 'WindowsOnly'
