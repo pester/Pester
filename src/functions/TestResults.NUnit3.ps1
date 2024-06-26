@@ -543,24 +543,29 @@ function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) 
     # which is obtained by adding 0x2400
     [int]$unicodeControlPictures = 0x2400
     [int[]]$validChars = (0x09,0x0A,0x0D)
-    $outputString = @(foreach ($o in $Output) {
-        if ($null -eq $o) {
-            [string]::Empty
-        } else {
-            $result = ""
-            0..($o.Length-1) |% {
-                $s = $o[$_]
-                $char = [int]$s
+    $sb = [System.Text.StringBuilder]::new()
+    $outputLines = @($Output)
+    for ($i = 0; $i -lt $outputLines.Length; $i++) {
+        $line = $outputLines[$i]
+        if ($null -eq $line) {
+            $sb.AppendLine() | Out-null
+        } elseif ($line -is [string]) {
+            foreach($char in [char[]]$line) {
                 if ((0x20 -gt $char) -and (0x00 -lt $char) -and (-not ($validChars -contains $char))) {
-                    $result += [char]($char + $unicodeControlPictures)
+                    $sb.Append([char]([int]$char + $unicodeControlPictures)) | Out-null
                 } else {
-                    $result += $s
+                    $sb.Append($char) | Out-null
                 }
             }
-            $result
+            # Append a newline for all lines except the last one
+            if ($i -lt ($outputLines.Length - 1)) {
+                $sb.AppendLine() | Out-null
+            }
+        } else {
+            $sb.AppendLine($line.ToString()) | Out-null
         }
-    }) -join [System.Environment]::NewLine
-
+    }
+    $outputString = $sb.ToString()
     $XmlWriter.WriteStartElement('output')
     $XmlWriter.WriteCData($outputString)
     $XmlWriter.WriteEndElement()
