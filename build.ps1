@@ -180,43 +180,35 @@ if ($Clean) {
         }
     }
 
-    $p = "$PSScriptRoot/src/Pester.RSpec.ps1"
+    $helpPath = "$PSScriptRoot/src/en-US/about_PesterConfiguration.help.txt"
     # in older versions utf8 means with BOM
-    $e = if ($PSVersionTable.PSVersion.Major -ge 7) { 'utf8BOM' } else { 'utf8' }
-    $f = Get-Content $p -Encoding $e
+    $enc = if ($PSVersionTable.PSVersion.Major -ge 7) { 'utf8BOM' } else { 'utf8' }
+    $helpContent = Get-Content $helpPath -Encoding $enc
+
+    # Get section margin from the topic name on line 2
+    $margin = if ($helpContent[1] -match '^(?<margin>\s*)about_') { $matches.margin } else { '' }
     $sbf = [System.Text.StringBuilder]''
     $generated = $false
-    foreach ($l in $f) {
-        if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
-            $null = $sbf.AppendLine("$l$eol")
+    foreach ($line in $helpContent) {
+        if (-not $generated -and $line -match '^SECTIONS AND OPTIONS\s*$') {
             $generated = $true
-            $margin = $matches.margin
-            $null = $sbf.AppendLine("$margin``````")
+            $null = $sbf.AppendLine("$line$eol")
 
-            $generatedLines = @($generatedConfig -split $eol)
-            for ($i = 0; $i -lt $generatedLines.Count; $i++) {
-                $l = $generatedLines[$i]
+            foreach ($l in @($generatedConfig -split $eol)) {
                 $m = if ($l) { $margin } else { $null }
-
-                if ($i -eq $generatedLines.Count - 1) {
-                    #last line should be blank - replace with codeblock end
-                    $null = $sbf.AppendLine("$margin``````$eol")
-                }
-                else {
-                    $null = $sbf.AppendLine("$m$l")
-                }
+                $null = $sbf.AppendLine("$m$l")
             }
         }
-        elseif ($generated -and ($l -match '^\s*(.PARAMETER|.EXAMPLE).*')) {
+        elseif ($generated -and ($line -cmatch '^SEE ALSO\s*$')) {
             $generated = $false
         }
 
         if (-not $generated) {
-            $null = $sbf.AppendLine($l)
+            $null = $sbf.AppendLine($line)
         }
     }
 
-    Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
+    Set-Content -Encoding $enc -Value $sbf.ToString().TrimEnd() -Path $helpPath
 
     # generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
     $configSections = $configObject.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
