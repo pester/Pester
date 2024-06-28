@@ -26,8 +26,7 @@ LONG DESCRIPTION
     tests to the build scripts of a continuous integration system, and add new
     tests at any time.
 
-
- WHAT CAN PESTER TEST?
+WHAT CAN PESTER TEST?
     Pester is designed to support "test-driven development" (TDD), in which you
     write and run tests before writing your code, thereby using the test as a
     code specification.
@@ -51,8 +50,7 @@ LONG DESCRIPTION
     or database, or commenting-out and inserting code just for testing. For more
     information, see about_Mocking.
 
-
- THE PESTER LANGUAGE
+THE PESTER LANGUAGE
     To make it easier to write tests, Pester uses a language especially designed
     for testing. This "domain-specific language" (DSL) hides the standard
     verb-noun syntax of PowerShell commands.
@@ -80,6 +78,11 @@ LONG DESCRIPTION
                      lists all valid values of Be, which specify the
                      comparison operator used in the test.
 
+
+HOW DO I GET STARTED?
+
+You've already done the hard part by discovering and installing this module. Visit https://pester.dev/docs/quick-start
+to get a introduction, examples and more to.
 
 
  HOW TO CREATE TEST FILES
@@ -189,59 +192,6 @@ LONG DESCRIPTION
 
         New-Fixture -Path C:\TestPester -Name Get-Hello
 
-        Directory: C:\TestPester
-
-
-        Mode                LastWriteTime         Length Name
-        ----                -------------         ------ ----
-        -a----        4/18/2016   9:51 AM             30 Get-Hello.ps1
-        -a----        4/18/2016   9:51 AM            262 Get-Hello.Tests.ps1
-
-
-    The Get-Hello.ps1 script contains an empty Get-Hello.ps1 function.
-
-        function Get-Hello {}
-
-    The Get-Hello.Tests.ps1 file contains an empty Pester test that is named
-    for the Get-Hello function.
-
-        Describe "Get-Hello" {
-            It "does something useful" {
-                $true | Should -Be $false
-            }
-        }
-
-    To run the test, use Invoke-Pester. For example,
-
-       Invoke-Pester C:\TestPester
-
-    When you run the test, it fails by design, because Should compares $True to
-    $False using the equal operator ("Be") and $True doesn't equal $False.
-
-
-    To start testing the Get-Hello function, change $True to Get-Hello and
-    $False to "Hello". Now, the test compares the output of Get-Hello output to
-    'hello'.
-
-    It should still fail, because Get-Hello doesn't return anything.
-
-        Describe "New-Log" {
-            It "does something useful" {
-                Get-Hello | Should -Be 'Hello'
-            }
-        }
-
-
-    To make the test pass, change the Get-Hello function so it returns 'hello'.
-    Then, in steps, change $False to more interesting values, then change the
-    Get-Hello function output to make the test pass.
-
-    You can also experiment with other comparison operators, such as the BeLike
-    (supports wildcards) and BeExactly (case sensitive), and BeLikeExactly
-    operators. For more, information about comparison operators in Pester, see
-    about_Should.
-
-
  PESTER TEST OUTPUT
     When you run a test, Pester use a variation of Write-Host to write
     color-coded text to the console. You'll quickly learn to recognize the
@@ -274,24 +224,9 @@ LONG DESCRIPTION
 
   REAL-WORLD EXAMPLES
     For help in writing Pester tests, examine the extensive collection of tests
-    that Pester uses to verify its Windows PowerShell code.
-
-    To find the Pester tests in the Pester module directory, type:
-
-        dir <Pester_module_path>\*Tests.ps1 -Recurse
-
-       -or-
-
-    dir (Get-Module Pester -ListAvailable).ModuleBase -Include *Tests.ps1 -Recurse
 
 
 SEE ALSO
     Pester website: https://pester.dev
-    Describe
-    Context
-    It
-    New-Fixture
     Invoke-Pester
-    about_Mocking
-    about_Should
-    about_TestDrive
+    about_PesterConfiguration
