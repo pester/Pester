@@ -400,16 +400,8 @@ function Invoke-Pester {
     https://github.com/danielpalme/ReportGenerator
 
     .PARAMETER Configuration
-    (Introduced v5)
     [PesterConfiguration] object for Advanced Configuration
-
-    Pester supports Simple and Advanced Configuration.
-
-    Invoke-Pester -Configuration <PesterConfiguration> [<CommonParameters>]
-
-    Default is New-PesterConfiguration.
-
-    For help on each option see New-PesterConfiguration, or inspect the object it returns.
+    Create object using `New-PesterConfiguration`. For help on each option see about_PesterConfiguration or inspect the object it returns.
 
     .PARAMETER Container
     Specifies one or more ContainerInfo-objects that define containers with tests.
@@ -552,7 +544,7 @@ function Invoke-Pester {
     even if the first fails.
 
     .EXAMPLE
-    $config = [PesterConfiguration]::Default
+    $config = New-PesterConfiguration
     $config.TestResult.Enabled = $true
     Invoke-Pester -Configuration $config
 
