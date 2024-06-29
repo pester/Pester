@@ -92,39 +92,9 @@ if ($Clean) {
     }
 }
 
-function Copy-Content ($Content) {
-    foreach ($c in $content) {
-        $source, $destination = $c
-
-        $null = New-Item -Force $destination -ItemType Directory
-
-        Get-ChildItem $source -File | Copy-Item -Destination $destination
-    }
-}
-
-$content = @(
-    , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
-    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
-)
-
 if ($Clean) {
-    $content += @(
-        , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
-        , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
-        , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
-        , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
-    )
-}
-
-Copy-Content -Content $content
-
-if ($Clean) {
-    # update help for New-PesterConfiguration
-    if ($PSVersionTable.PSVersion.Major -gt 5) {
+    # Update PesterConfiguration help in about_PesterConfiguration
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
         $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
     }
     else {
@@ -176,7 +146,7 @@ if ($Clean) {
             $option = $section.$r
             $default = Format-NicelyMini $option.Default
             $type = $option.Default.GetType() -as [string]
-            "  ${r}: $($option.Description)$eol  Type: ${type}$eol  Default value: ${default}$eol"
+            "    ${r}: $($option.Description)$eol    Type: ${type}$eol    Default value: ${default}$eol"
         }
     }
 
@@ -209,8 +179,40 @@ if ($Clean) {
     }
 
     Set-Content -Encoding $enc -Value $sbf.ToString().TrimEnd() -Path $helpPath
+}
 
-    # generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
+function Copy-Content ($Content) {
+    foreach ($c in $content) {
+        $source, $destination = $c
+
+        $null = New-Item -Force $destination -ItemType Directory
+
+        Get-ChildItem $source -File | Copy-Item -Destination $destination
+    }
+}
+
+$content = @(
+    , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
+    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
+)
+
+if ($Clean) {
+    $content += @(
+        , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
+        , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
+        , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
+        , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
+    )
+}
+
+Copy-Content -Content $content
+
+if ($Clean) {
+    # Generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
     $configSections = $configObject.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
     # Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
     $formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
@@ -228,7 +230,7 @@ if ($Clean) {
 
     # Create view for Option to ensure Table and hide IsModified
     $builder = [System.Management.Automation.TableControl]::Create().StartRowDefinition()
-    [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsModified' | ForEach-Object {
+    [Pester.Option[bool]].GetProperties() | Where-Object Name -NotIn 'IsModified' | ForEach-Object {
         $builder.AddPropertyColumn($_.Name, [System.Management.Automation.Alignment]::Undefined, $null) > $null
     }
     $tableControl = $builder.EndRowDefinition().EndTable()
@@ -240,12 +242,12 @@ if ($Clean) {
     Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
 }
 
-if (-not $PSBoundParameters.ContainsKey("Inline")) {
+if (-not $PSBoundParameters.ContainsKey('Inline')) {
     # Force inlining by env variable, build.ps1 is used in
     # multiple places and passing the $inline everywhere is
     # difficult.
     # Only read this option here. Don't write it.
-    if ($env:PESTER_BUILD_INLINE -eq "1") {
+    if ($env:PESTER_BUILD_INLINE -eq '1') {
         $Inline = $true
     }
     else {
@@ -258,7 +260,6 @@ else {
     # test script would reset the option incorrectly.
     $env:PESTER_BUILD_INLINE = [string][int][bool] $Inline
 }
-
 
 $null = New-Item "$PSScriptRoot/bin" -ItemType Directory -Force
 
