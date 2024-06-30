@@ -2593,16 +2593,6 @@ function Recurse-Up {
     }
 }
 
-function ConvertTo-HumanTime {
-    param ([TimeSpan]$TimeSpan)
-    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
-        "$([int]($TimeSpan.TotalMilliseconds))ms"
-    }
-    else {
-        "$([int]($TimeSpan.TotalSeconds))s"
-    }
-}
-
 function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     # running in a script file will push a new script scope up the stack in the provided
     # session state. To do this from a module we need to transport the file invocation into the
