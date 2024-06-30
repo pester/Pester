@@ -30,8 +30,6 @@ else {
 # 'New-EachBlockTeardown'
 # 'New-OneTimeBlockSetup'
 # 'New-OneTimeBlockTeardown'
-# 'Add-FrameworkDependency'
-# 'Anywhere'
 # 'Invoke-Test',
 # 'Find-Test',
 # 'Invoke-PluginStep'
@@ -2552,102 +2550,6 @@ function Invoke-File {
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
     & $sb $Path $Data
-}
-
-function Import-Dependency {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        $Dependency,
-        # [Parameter(Mandatory=$true)]
-        [Management.Automation.SessionState] $SessionState
-    )
-
-    if ($Dependency -is [ScriptBlock]) {
-        . $Dependency
-    }
-    else {
-
-        # when importing a file we need to
-        # dot source it into the user scope, the path has
-        # no bound session state, so simply dot sourcing it would
-        # import it into module scope
-        # instead we wrap it into a scriptblock that we attach to user
-        # scope, and dot source the file, that will import the functions into
-        # that script block, and then we dot source it again to import it
-        # into the caller scope, effectively defining the functions there
-        $sb = {
-            param ($p, $private:Remove_Variable)
-
-            . $($p; & $private:Remove_Variable -Scope Local -Name p)
-        }
-
-        $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-        $SessionStateInternal = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
-
-        # attach the original session state to the wrapper scriptblock
-        # making it invoke in the caller session state
-        $sb.GetType().GetProperty('SessionStateInternal', $flags).SetValue($sb, $SessionStateInternal, $null)
-
-        # dot source the caller bound scriptblock which imports it into user scope
-        . $sb $Dependency $SafeCommands['Remove-Variable']
-    }
-}
-
-function Add-FrameworkDependency {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Dependency
-    )
-
-    # adds dependency that is dotsourced during discovery & execution
-    # this should be rarely needed, but is useful when you wrap Pester pieces
-    # into your own functions, and want to have them available during both
-    # discovery and execution
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Runtime "Adding framework dependency '$Dependency'"
-    }
-    Import-Dependency -Dependency $Dependency -SessionState $SessionState
-}
-
-function Add-Dependency {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        $Dependency,
-        [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
-    )
-
-
-    # adds dependency that is dotsourced after discovery and before execution
-    if (-not (Is-Discovery)) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "Adding run-time dependency '$Dependency'"
-        }
-        Import-Dependency -Dependency $Dependency -SessionState $SessionState
-    }
-}
-
-function Anywhere {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-
-    # runs piece of code during execution, useful for backwards compatibility
-    # when you have stuff laying around inbetween describes and want to run it
-    # only during execution and not twice. works the same as Add-Dependency, but I name
-    # it differently because this is a bad-practice mitigation tool and should probably
-    # write a warning to make you use Before* blocks instead
-    if (-not (Is-Discovery)) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Runtime "Invoking free floating piece of code"
-        }
-        Import-Dependency $ScriptBlock
-    }
 }
 
 function New-ParametrizedTest () {
