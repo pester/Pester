@@ -76,9 +76,8 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
 }
 
 if ($Clean) {
-    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
-    # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
-    # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
+    # Using Import-LocalizedData over Test-ModuleManifest because the latter requires psm1 and
+    # PesterConfiguration.Format.xml to exists which are both generated later in build script
     $manifest = Import-LocalizedData -FileName 'Pester.psd1' -BaseDirectory "$PSScriptRoot/src"
     if (-not $LockedRestore) {
         dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
@@ -95,10 +94,10 @@ if ($Clean) {
 if ($Clean) {
     # Update PesterConfiguration help in about_PesterConfiguration
     if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll")
     }
     else {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll")
     }
 
     function Format-NicelyMini ($value) {
