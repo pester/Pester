@@ -400,8 +400,8 @@ function Invoke-Pester {
     https://github.com/danielpalme/ReportGenerator
 
     .PARAMETER Configuration
-    [PesterConfiguration] object for Advanced Configuration
-    Create object using `New-PesterConfiguration`. For help on each option see about_PesterConfiguration or inspect the object it returns.
+    [PesterConfiguration] object for Advanced Configuration created using `New-PesterConfiguration`.
+    For help on each option see about_PesterConfiguration or inspect the object.
 
     .PARAMETER Container
     Specifies one or more ContainerInfo-objects that define containers with tests.
