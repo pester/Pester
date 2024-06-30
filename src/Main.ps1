@@ -1192,42 +1192,6 @@ function Get-DictionaryValueFromFirstKeyFound {
     }
 }
 
-function Set-PesterStatistics($Node) {
-    if ($null -eq $Node) {
-        $Node = $pester.TestActions
-    }
-
-    foreach ($action in $Node.Actions) {
-        if ($action.Type -eq 'TestGroup') {
-            Set-PesterStatistics -Node $action
-
-            $Node.TotalCount += $action.TotalCount
-            $Node.PassedCount += $action.PassedCount
-            $Node.FailedCount += $action.FailedCount
-            $Node.SkippedCount += $action.SkippedCount
-            $Node.InconclusiveCount += $action.InconclusiveCount
-        }
-        elseif ($action.Type -eq 'TestCase') {
-            $node.TotalCount++
-
-            switch ($action.Result) {
-                Passed {
-                    $Node.PassedCount++; break;
-                }
-                Failed {
-                    $Node.FailedCount++; break;
-                }
-                Skipped {
-                    $Node.SkippedCount++; break;
-                }
-                Inconclusive {
-                    $Node.InconclusiveCount++; break;
-                }
-            }
-        }
-    }
-}
-
 function Contain-AnyStringLike ($Filter, $Collection) {
     foreach ($item in $Collection) {
         foreach ($value in $Filter) {
