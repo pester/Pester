@@ -110,6 +110,7 @@ function Reset-PerContainerState {
 }
 
 function Find-Test {
+    [OutputType([Pester.Container])]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -138,6 +139,7 @@ function Find-Test {
 }
 
 function ConvertTo-DiscoveredBlockContainer {
+    [OutputType([Pester.Container])]
     param (
         [Parameter(Mandatory = $true)]
         $Block
@@ -148,6 +150,7 @@ function ConvertTo-DiscoveredBlockContainer {
 }
 
 function ConvertTo-ExecutedBlockContainer {
+    [OutputType([Pester.Container])]
     param (
         [Parameter(Mandatory = $true)]
         $Block
@@ -156,8 +159,6 @@ function ConvertTo-ExecutedBlockContainer {
     foreach ($b in $Block) {
         [Pester.Container]::CreateFromBlock($b)
     }
-
-
 }
 
 function New-ParametrizedBlock {
@@ -2479,6 +2480,7 @@ function Invoke-BlockContainer {
 }
 
 function New-BlockContainerObject {
+    [OutputType([Pester.ContainerInfo])]
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ParameterSetName = 'ScriptBlock')]
