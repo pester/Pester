@@ -37,12 +37,7 @@ else {
 # # here I have doubts if that is too much to expose
 # 'Get-CurrentTest'
 # 'Get-CurrentBlock'
-# 'Recurse-Up',
 # 'Is-Discovery'
-
-# # those are quickly implemented to be useful for demo
-# 'Where-Failed'
-# 'View-Flat'
 
 # # those need to be refined and probably wrapped to something
 # # that is like an object builder
@@ -2324,38 +2319,6 @@ function PostProcess-ExecutedBlock {
     }
 }
 
-function Where-Failed {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Block
-    )
-
-    $Block | View-Flat | & $SafeCommands['Where-Object'] { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
-}
-
-function View-Flat {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        $Block
-    )
-
-    begin {
-        $tests = [System.Collections.Generic.List[Object]]@()
-    }
-    process {
-        # TODO: normally I would output to pipeline but in fold there is accumulator and so it does not output
-        foreach ($b in $Block) {
-            Fold-Container $b -OnTest { param($t) $tests.Add($t) }
-        }
-    }
-
-    end {
-        $tests
-    }
-}
-
 function New-FilterObject {
     [CmdletBinding()]
     param (
@@ -2573,23 +2536,6 @@ function New-ParametrizedTest () {
     $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
         New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
-    }
-}
-
-function Recurse-Up {
-    param(
-        [Parameter(Mandatory)]
-        $InputObject,
-        [ScriptBlock] $Action
-    )
-
-    $i = $InputObject
-    $level = 0
-    while ($null -ne $i) {
-        &$Action $i
-
-        $level--
-        $i = $i.Parent
     }
 }
 

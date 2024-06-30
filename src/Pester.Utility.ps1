@@ -416,3 +416,53 @@ function Contain-AnyStringLike ($Filter, $Collection) {
     }
     return $false
 }
+
+# TODO: Remove?
+function Recurse-Up {
+    param(
+        [Parameter(Mandatory)]
+        $InputObject,
+        [ScriptBlock] $Action
+    )
+
+    $i = $InputObject
+    $level = 0
+    while ($null -ne $i) {
+        &$Action $i
+
+        $level--
+        $i = $i.Parent
+    }
+}
+
+function Where-Failed {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Block
+    )
+
+    $Block | View-Flat | & $SafeCommands['Where-Object'] { $_.ShouldRun -and (-not $_.Executed -or -not $_.Passed) }
+}
+
+function View-Flat {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Block
+    )
+
+    begin {
+        $tests = [System.Collections.Generic.List[Object]]@()
+    }
+    process {
+        # TODO: normally I would output to pipeline but in fold there is accumulator and so it does not output
+        foreach ($b in $Block) {
+            Fold-Container $b -OnTest { param($t) $tests.Add($t) }
+        }
+    }
+
+    end {
+        $tests
+    }
+}
