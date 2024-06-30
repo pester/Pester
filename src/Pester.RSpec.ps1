@@ -481,6 +481,7 @@ function New-PesterConfiguration {
     https://pester.dev/docs/commands/Invoke-Pester
     #>
     [CmdletBinding()]
+    [OutputType([PesterConfiguration])]
     param(
         [System.Collections.IDictionary] $Hashtable
     )
@@ -683,6 +684,7 @@ function New-PesterContainer {
     https://pester.dev/docs/usage/data-driven-tests
     #>
     [CmdletBinding(DefaultParameterSetName = "Path")]
+    [OutputType([Pester.ContainerInfo])]
     param(
         [Parameter(Mandatory, ParameterSetName = "Path")]
         [String[]] $Path,
