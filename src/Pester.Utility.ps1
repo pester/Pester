@@ -395,3 +395,24 @@ function Get-StringOptionErrorMessage {
     $supportedValuesString = Join-Or ($SupportedValues -replace '^|$', "'")
     return "$OptionPath must be $supportedValuesString, but it was '$Value'. Please review your configuration."
 }
+
+function Get-DictionaryValueFromFirstKeyFound {
+    param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
+
+    foreach ($keyToTry in $Key) {
+        if ($Dictionary.Contains($keyToTry)) {
+            return $Dictionary[$keyToTry]
+        }
+    }
+}
+
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) {
+        foreach ($value in $Filter) {
+            if ($item -like $value) {
+                return $true
+            }
+        }
+    }
+    return $false
+}
