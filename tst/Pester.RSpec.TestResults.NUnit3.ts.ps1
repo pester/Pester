@@ -349,7 +349,7 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
-        dt 'replaces virtual terminal escape sequences with their printable representations' {
+        t 'replaces virtual terminal escape sequences with their printable representations' {
             $sb = {
                 Describe 'Describe VT Sequences' {
                     It "Successful" {
