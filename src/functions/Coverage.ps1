@@ -167,6 +167,10 @@ function Get-CoverageInfoFromDictionary {
     $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests'
     $recursePaths = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'RecursePaths'
 
+    # TODO: Implement or remove the IDictionary config logic from CodeCoverage
+    # Jank fix for https://github.com/pester/Pester/issues/2514 until CodeCoverage config logic is updated
+    if ($null -eq $includeTests) { $includeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value -ne $true }
+
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
     [bool] $includeTests = Convert-UnknownValueToInt -Value $includeTests -DefaultValue 0
