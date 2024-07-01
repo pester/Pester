@@ -76,9 +76,8 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
 }
 
 if ($Clean) {
-    # Import-LocalizedData (and ModuleVersion-property) used as workaround due to unknown error on PS3 build with Test-ModuleManifest
-    # and because Test-ModuleManifest needs the psd1 and psm1 to be complete, but we want to generate help for config from the type
-    # so we need to build up here, and not after the module build, so xml based solution is better than one that validates the manifest
+    # Using Import-LocalizedData over Test-ModuleManifest because the latter requires psm1 and
+    # PesterConfiguration.Format.xml to exists which are both generated later in build script
     $manifest = Import-LocalizedData -FileName 'Pester.psd1' -BaseDirectory "$PSScriptRoot/src"
     if (-not $LockedRestore) {
         dotnet restore "$PSScriptRoot/src/csharp/Pester.sln"
@@ -92,43 +91,13 @@ if ($Clean) {
     }
 }
 
-function Copy-Content ($Content) {
-    foreach ($c in $content) {
-        $source, $destination = $c
-
-        $null = New-Item -Force $destination -ItemType Directory
-
-        Get-ChildItem $source -File | Copy-Item -Destination $destination
-    }
-}
-
-$content = @(
-    , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
-    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
-    , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
-)
-
 if ($Clean) {
-    $content += @(
-        , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
-        , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
-        , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
-        , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
-    )
-}
-
-Copy-Content -Content $content
-
-if ($Clean) {
-    # update help for New-PesterConfiguration
-    if ($PSVersionTable.PSVersion.Major -gt 5) {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net6.0/Pester.dll")
+    # Update PesterConfiguration help in about_PesterConfiguration
+    if ($PSVersionTable.PSVersion.Major -ge 6) {
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll")
     }
     else {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/bin/bin/net462/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll")
     }
 
     function Format-NicelyMini ($value) {
@@ -175,49 +144,74 @@ if ($Clean) {
         foreach ($r in $section.PSObject.Properties.Name) {
             $option = $section.$r
             $default = Format-NicelyMini $option.Default
-            "  ${r}: $($option.Description)$eol  Default value: ${default}$eol"
+            $type = $option.Default.GetType() -as [string]
+            "    ${r}: $($option.Description)$eol    Type: ${type}$eol    Default value: ${default}$eol"
         }
     }
 
-    $p = "$PSScriptRoot/src/Pester.RSpec.ps1"
+    $helpPath = "$PSScriptRoot/src/en-US/about_PesterConfiguration.help.txt"
     # in older versions utf8 means with BOM
-    $e = if ($PSVersionTable.PSVersion.Major -ge 7) { 'utf8BOM' } else { 'utf8' }
-    $f = Get-Content $p -Encoding $e
+    $enc = if ($PSVersionTable.PSVersion.Major -ge 7) { 'utf8BOM' } else { 'utf8' }
+    $helpContent = Get-Content $helpPath -Encoding $enc
+
+    # Get section margin from the topic name on line 2
+    $margin = if ($helpContent[1] -match '^(?<margin>\s*)about_') { $matches.margin } else { '' }
     $sbf = [System.Text.StringBuilder]''
     $generated = $false
-    foreach ($l in $f) {
-        if ($l -match '^(?<margin>\s*)Sections and options:\s*$') {
-            $null = $sbf.AppendLine("$l$eol")
+    foreach ($line in $helpContent) {
+        if (-not $generated -and $line -match '^SECTIONS AND OPTIONS\s*$') {
             $generated = $true
-            $margin = $matches.margin
-            $null = $sbf.AppendLine("$margin``````")
+            $null = $sbf.AppendLine("$line$eol")
 
-            $generatedLines = @($generatedConfig -split $eol)
-            for ($i = 0; $i -lt $generatedLines.Count; $i++) {
-                $l = $generatedLines[$i]
+            foreach ($l in @($generatedConfig -split $eol)) {
                 $m = if ($l) { $margin } else { $null }
-
-                if ($i -eq $generatedLines.Count - 1) {
-                    #last line should be blank - replace with codeblock end
-                    $null = $sbf.AppendLine("$margin``````$eol")
-                }
-                else {
-                    $null = $sbf.AppendLine("$m$l")
-                }
+                $null = $sbf.AppendLine("$m$l")
             }
         }
-        elseif ($generated -and ($l -match '^\s*(.PARAMETER|.EXAMPLE).*')) {
+        elseif ($generated -and ($line -cmatch '^SEE ALSO\s*$')) {
             $generated = $false
         }
 
         if (-not $generated) {
-            $null = $sbf.AppendLine($l)
+            $null = $sbf.AppendLine($line)
         }
     }
 
-    Set-Content -Encoding $e -Value $sbf.ToString().TrimEnd() -Path $p
+    Set-Content -Encoding $enc -Value $sbf.ToString().TrimEnd() -Path $helpPath
+}
 
-    # generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
+function Copy-Content ($Content) {
+    foreach ($c in $content) {
+        $source, $destination = $c
+
+        $null = New-Item -Force $destination -ItemType Directory
+
+        Get-ChildItem $source -File | Copy-Item -Destination $destination
+    }
+}
+
+$content = @(
+    , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
+    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
+)
+
+if ($Clean) {
+    $content += @(
+        , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
+        , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
+        , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
+        , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
+    )
+}
+
+Copy-Content -Content $content
+
+if ($Clean) {
+    # Generate PesterConfiguration.Format.ps1xml to ensure list view for all sections
     $configSections = $configObject.GetType().Assembly.GetExportedTypes() | Where-Object { $_.BaseType -eq [Pester.ConfigurationSection] }
     # Get internal ctor as public ctor always returns instanceId = zero guid prior to PS v7.1.0
     $formatViewCtor = [System.Management.Automation.FormatViewDefinition].GetConstructors('Instance,NonPublic')
@@ -235,7 +229,7 @@ if ($Clean) {
 
     # Create view for Option to ensure Table and hide IsModified
     $builder = [System.Management.Automation.TableControl]::Create().StartRowDefinition()
-    [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsModified' | ForEach-Object {
+    [Pester.Option[bool]].GetProperties() | Where-Object Name -NotIn 'IsModified' | ForEach-Object {
         $builder.AddPropertyColumn($_.Name, [System.Management.Automation.Alignment]::Undefined, $null) > $null
     }
     $tableControl = $builder.EndRowDefinition().EndTable()
@@ -247,12 +241,12 @@ if ($Clean) {
     Export-FormatData -InputObject $typeDefs -Path "$PSScriptRoot/bin/PesterConfiguration.Format.ps1xml"
 }
 
-if (-not $PSBoundParameters.ContainsKey("Inline")) {
+if (-not $PSBoundParameters.ContainsKey('Inline')) {
     # Force inlining by env variable, build.ps1 is used in
     # multiple places and passing the $inline everywhere is
     # difficult.
     # Only read this option here. Don't write it.
-    if ($env:PESTER_BUILD_INLINE -eq "1") {
+    if ($env:PESTER_BUILD_INLINE -eq '1') {
         $Inline = $true
     }
     else {
@@ -265,7 +259,6 @@ else {
     # test script would reset the option incorrectly.
     $env:PESTER_BUILD_INLINE = [string][int][bool] $Inline
 }
-
 
 $null = New-Item "$PSScriptRoot/bin" -ItemType Directory -Force
 
