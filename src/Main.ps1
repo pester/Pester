@@ -562,6 +562,7 @@ function Invoke-Pester {
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
     # [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Remove-Variable', Justification = 'Remove-Variable can't remove "optimized variables" when using "alias" for Remove-Variable.')]
     [CmdletBinding(DefaultParameterSetName = 'Simple')]
+    [OutputType([Pester.Run])]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
