@@ -349,19 +349,16 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
-        t "handles virtual terminal escape sequences" {
+        dt 'replaces virtual terminal escape sequences with their printable representations' {
             $sb = {
                 Describe 'Describe VT Sequences' {
                     It "Successful" {
                         $esc = [char][int]0x1B
                         $bell = [char][int]0x07
-                        $testCases = (
-                            "$esc[32mHello`tWorld$esc[0m",
-                            "Ring the bell$bell")
-                        $testCases |% { 
-                            Write-Output $_ 
-                        }
-                        $true | Should -Be $true
+
+                        # write escape sequences to output
+                        "$esc[32mHello`tWorld$esc[0m"
+                        "Ring the bell$bell"
                     }
                 }
             }
@@ -374,6 +371,8 @@ i -PassThru:$PassThru {
             $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
             $xmlTest = $xmlDescribe.'test-case'
             $message = $xmlTest.output.'#cdata-section' -split "`n"
+
+            # message has the escape sequences replaced with their printable representations
             $message[0] | Verify-Equal "␛[32mHello`tWorld␛[0m"
             $message[1] | Verify-Equal "Ring the bell␇"
         }
