@@ -288,151 +288,11 @@ function New-PesterConfiguration {
 
     Calling New-PesterConfiguration is equivalent to calling [PesterConfiguration]::Default which was used in early versions of Pester 5.
 
-    Sections and options:
-
-    ```
-    Run:
-      Path: Directories to be searched for tests, paths directly to test files, or combination of both.
-      Default value: @('.')
-
-      ExcludePath: Directories or files to be excluded from the run.
-      Default value: @()
-
-      ScriptBlock: ScriptBlocks containing tests to be executed.
-      Default value: @()
-
-      Container: ContainerInfo objects containing tests to be executed.
-      Default value: @()
-
-      TestExtension: Filter used to identify test files.
-      Default value: '.Tests.ps1'
-
-      Exit: Exit with non-zero exit code when the test run fails. Exit code is always set to `$LASTEXITCODE` even when this option is `$false`. When used together with Throw, throwing an exception is preferred.
-      Default value: $false
-
-      Throw: Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.
-      Default value: $false
-
-      PassThru: Return result object to the pipeline after finishing the test run.
-      Default value: $false
-
-      SkipRun: Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.
-      Default value: $false
-
-      SkipRemainingOnFailure: Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.
-      Default value: 'None'
-
-    Filter:
-      Tag: Tags of Describe, Context or It to be run.
-      Default value: @()
-
-      ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
-      Default value: @()
-
-      Line: Filter by file and scriptblock start line, useful to run parsed tests programmatically to avoid problems with expanded names. Example: 'C:\tests\file1.Tests.ps1:37'
-      Default value: @()
-
-      ExcludeLine: Exclude by file and scriptblock start line, takes precedence over Line.
-      Default value: @()
-
-      FullName: Full name of test with -like wildcards, joined by dot. Example: '*.describe Get-Item.test1'
-      Default value: @()
-
-    CodeCoverage:
-      Enabled: Enable CodeCoverage.
-      Default value: $false
-
-      OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters
-      Default value: 'JaCoCo'
-
-      OutputPath: Path relative to the current directory where code coverage report is saved.
-      Default value: 'coverage.xml'
-
-      OutputEncoding: Encoding of the output file.
-      Default value: 'UTF8'
-
-      Path: Directories or files to be used for code coverage, by default the Path(s) from general settings are used, unless overridden here.
-      Default value: @()
-
-      ExcludeTests: Exclude tests from code coverage. This uses the TestFilter from general configuration.
-      Default value: $true
-
-      RecursePaths: Will recurse through directories in the Path option.
-      Default value: $true
-
-      CoveragePercentTarget: Target percent of code coverage that you want to achieve, default 75%.
-      Default value: 75
-
-      UseBreakpoints: EXPERIMENTAL: When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.
-      Default value: $true
-
-      SingleHitBreakpoints: Remove breakpoint when it is hit.
-      Default value: $true
-
-    TestResult:
-      Enabled: Enable TestResult.
-      Default value: $false
-
-      OutputFormat: Format to use for test result report. Possible values: NUnitXml, NUnit2.5, NUnit3 or JUnitXml
-      Default value: 'NUnitXml'
-
-      OutputPath: Path relative to the current directory where test result report is saved.
-      Default value: 'testResults.xml'
-
-      OutputEncoding: Encoding of the output file.
-      Default value: 'UTF8'
-
-      TestSuiteName: Set the name assigned to the root 'test-suite' element.
-      Default value: 'Pester'
-
-    Should:
-      ErrorAction: Controls if Should throws on error. Use 'Stop' to throw on error, or 'Continue' to fail at the end of the test.
-      Default value: 'Stop'
-
-    Debug:
-      ShowFullErrors: Show full errors including Pester internal stack. This property is deprecated, and if set to true it will override Output.StackTraceVerbosity to 'Full'.
-      Default value: $false
-
-      WriteDebugMessages: Write Debug messages to screen.
-      Default value: $false
-
-      WriteDebugMessagesFrom: Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.
-      Default value: @('Discovery', 'Skip', 'Mock', 'CodeCoverage')
-
-      ShowNavigationMarkers: Write paths after every block and test, for easy navigation in VSCode.
-      Default value: $false
-
-      ReturnRawResultObject: Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.
-      Default value: $false
-
-    Output:
-      Verbosity: The verbosity of output, options are None, Normal, Detailed and Diagnostic.
-      Default value: 'Normal'
-
-      StackTraceVerbosity: The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.
-      Default value: 'Filtered'
-
-      CIFormat: The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.
-      Default value: 'Auto'
-
-      CILogLevel: The CI log level in build logs, options are Error and Warning.
-      Default value: 'Error'
-
-      RenderMode: The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.
-      Default value: 'Auto'
-
-    TestDrive:
-      Enabled: Enable TestDrive.
-      Default value: $true
-
-    TestRegistry:
-      Enabled: Enable TestRegistry.
-      Default value: $true
-    ```
+    For a complete list of options, see `Get-Help about_PesterConfiguration` or https://pester.dev/docs/usage/configuration
 
     .PARAMETER Hashtable
     Override the default values for the options defined in the provided dictionary/hashtable.
-    See Description in this help or inspect a PesterConfiguration-object to learn about the schema and
+    See about_PesterConfiguration help topic or inspect a PesterConfiguration-object to learn about the schema and
     available options.
 
     .EXAMPLE
@@ -476,6 +336,9 @@ function New-PesterConfiguration {
 
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
+
+    .LINK
+    about_PesterConfiguration
     #>
     [CmdletBinding()]
     param(
