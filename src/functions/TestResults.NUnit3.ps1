@@ -546,10 +546,13 @@ function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) 
     [int]$unicodeControlPictures = 0x2400
     [char[]] $invalidChars = "`u{0001}`u{0002}`u{0003}`u{0004}`u{0005}`u{0006}`u{0007}`u{0008}`u{000B}`u{000C}`u{000E}`u{000F}`u{0010}`u{0011}`u{0012}`u{0013}`u{0014}`u{0015}`u{0016}`u{0017}`u{0018}`u{0019}`u{001A}`u{001B}`u{001C}`u{001D}`u{001E}`u{001F}"
 
-    $linesCount = @($Output).Length
+    # Avoid indexing into an enumerable, such as a `string`, when there is only one item in the
+    # output array.
+    $out = @($Output)
+    $linesCount = $out.Length
     $o = for ($i = 0; $i -lt $linesCount; $i++) {
         # The input is array of objects, convert them to strings.
-        $line = if ($null -eq $Output[$i]) { [String]::Empty } else { $Output[$i].ToString() }
+        $line = if ($null -eq $out[$i]) { [String]::Empty } else { $out[$i].ToString() }
 
         if (0 -gt $line.IndexOfAny($invalidChars)) {
             # No special chars that need replacing.
