@@ -518,16 +518,6 @@ function ConvertTo-FailureLines {
     }
 }
 
-function ConvertTo-HumanTime {
-    param ([TimeSpan]$TimeSpan)
-    if ($TimeSpan.Ticks -lt [timespan]::TicksPerSecond) {
-        "$([int]($TimeSpan.TotalMilliseconds))ms"
-    }
-    else {
-        "$([math]::round($TimeSpan.TotalSeconds ,2))s"
-    }
-}
-
 function Get-WriteScreenPlugin ($Verbosity) {
     # add -FrameworkSetup Write-PesterStart $pester $Script and -FrameworkTeardown { $pester | Write-PesterReport }
     # The plugin is not imported when output None is specified so the usual level of output is Normal.
@@ -583,7 +573,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
 
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(ConvertTo-HumanTime $Context.Duration)."
+        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }

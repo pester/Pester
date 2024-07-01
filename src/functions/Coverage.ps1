@@ -151,6 +151,7 @@ function New-CoverageInfo {
     }
 }
 
+# TODO: Remove this and other code related to hashtable syntax?
 function Get-CoverageInfoFromDictionary {
     param ([System.Collections.IDictionary] $Dictionary)
 
@@ -174,6 +175,7 @@ function Get-CoverageInfoFromDictionary {
     return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests -RecursePaths $recursePaths
 }
 
+# TODO: Remove or move til Utility?
 function Convert-UnknownValueToInt {
     param ([object] $Value, [int] $DefaultValue = 0)
 
