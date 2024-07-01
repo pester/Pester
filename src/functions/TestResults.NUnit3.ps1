@@ -539,35 +539,37 @@ function Write-NUnit3TestCaseAttributes {
 }
 
 function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
-    # The characters in the range 0x01 to 0x19 are invalid for CData
+    # The characters in the range 0x01 to 0x20 are invalid for CData
     # (with the exception of the characters 0x09, 0x0A and 0x0D)
     # We convert each of these using the unicode printable version,
     # which is obtained by adding 0x2400
     [int]$unicodeControlPictures = 0x2400
-    [int[]]$validChars = (0x09,0x0A,0x0D)
-    $sb = [System.Text.StringBuilder]::new()
-    $outputLines = @($Output)
-    for ($i = 0; $i -lt $outputLines.Length; $i++) {
-        $line = $outputLines[$i]
-        if ($null -eq $line) {
-            $sb.AppendLine() | Out-null
-        } elseif ($line -is [string]) {
-            foreach($char in [char[]]$line) {
-                if ((0x20 -gt $char) -and (0x00 -lt $char) -and (-not ($validChars -contains $char))) {
-                    $sb.Append([char]([int]$char + $unicodeControlPictures)) | Out-null
-                } else {
-                    $sb.Append($char) | Out-null
+    [char[]] $invalidChars = "`u{0001}`u{0002}`u{0003}`u{0004}`u{0005}`u{0006}`u{0007}`u{0008}`u{000B}`u{000C}`u{000E}`u{000F}`u{0010}`u{0011}`u{0012}`u{0013}`u{0014}`u{0015}`u{0016}`u{0017}`u{0018}`u{0019}`u{001A}`u{001B}`u{001C}`u{001D}`u{001E}`u{001F}"
+
+    $linesCount = @($Output).Length
+    $o = for ($i = 0; $i -lt $linesCount; $i++) {
+        # The input is array of objects, convert them to strings.
+        $line = if ($null -eq $Output[$i]) { [String]::Empty } else { $Output[$i].ToString() }
+
+        if (0 -gt $line.IndexOfAny($invalidChars)) {
+            # No special chars that need replacing.
+            $line
+        }
+        else {
+            $chars = [char[]]$line;
+            $charCount = $chars.Length
+            for ($j = 0; $j -lt $charCount; $j++) {
+                $char = $chars[$j]
+                if ($char -in $invalidChars) {
+                    $chars[$j] = [char]([int]$char + $unicodeControlPictures)
                 }
             }
-            # Append a newline for all lines except the last one
-            if ($i -lt ($outputLines.Length - 1)) {
-                $sb.AppendLine() | Out-null
-            }
-        } else {
-            $sb.AppendLine($line.ToString()) | Out-null
+
+            $chars -join ''
         }
     }
-    $outputString = $sb.ToString()
+
+    $outputString = $o -join [Environment]::NewLine
     $XmlWriter.WriteStartElement('output')
     $XmlWriter.WriteCData($outputString)
     $XmlWriter.WriteEndElement()
