@@ -1,5 +1,7 @@
 ﻿# NUnit3 schema docs: https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
 
+[char[]] $script:invalidCDataChars = foreach ($ch in (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0B, 0x0C, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F)) { [char]$ch }
+
 function Write-NUnit3Report([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
     $XmlWriter.WriteStartDocument($false)
@@ -539,14 +541,39 @@ function Write-NUnit3TestCaseAttributes {
 }
 
 function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
-    $outputString = @(foreach ($o in $Output) {
-        if ($null -eq $o) {
-            [string]::Empty
-        } else {
-            $o.ToString()
-        }
-    }) -join [System.Environment]::NewLine
+    # The characters in the range 0x01 to 0x20 are invalid for CData
+    # (with the exception of the characters 0x09, 0x0A and 0x0D)
+    # We convert each of these using the unicode printable version,
+    # which is obtained by adding 0x2400
+    [int]$unicodeControlPictures = 0x2400
 
+    # Avoid indexing into an enumerable, such as a `string`, when there is only one item in the
+    # output array.
+    $out = @($Output)
+    $linesCount = $out.Length
+    $o = for ($i = 0; $i -lt $linesCount; $i++) {
+        # The input is array of objects, convert them to strings.
+        $line = if ($null -eq $out[$i]) { [String]::Empty } else { $out[$i].ToString() }
+
+        if (0 -gt $line.IndexOfAny($script:invalidCDataChars)) {
+            # No special chars that need replacing.
+            $line
+        }
+        else {
+            $chars = [char[]]$line;
+            $charCount = $chars.Length
+            for ($j = 0; $j -lt $charCount; $j++) {
+                $char = $chars[$j]
+                if ($char -in $script:invalidCDataChars) {
+                    $chars[$j] = [char]([int]$char + $unicodeControlPictures)
+                }
+            }
+
+            $chars -join ''
+        }
+    }
+
+    $outputString = $o -join [Environment]::NewLine
     $XmlWriter.WriteStartElement('output')
     $XmlWriter.WriteCData($outputString)
     $XmlWriter.WriteEndElement()
