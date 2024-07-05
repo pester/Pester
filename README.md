@@ -86,7 +86,8 @@ Below is the list of the certificates you can expect to be used when importing t
 
 Version|Authority|Thumbprint
 ---|---|---
-5.6.0++|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738`
+6.0.0-alpha4+|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`147C2FD397677DC76DD198E83E7D9D234AA59D1A`
+5.6.0+|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738`
 5.2.0 - 5.5.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`C7B0582906E5205B8399D92991694A614D0C0B22`
 4.10.0 - 5.1.1|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`7B9157664392D633EDA2C0248605C1C868EBDE43`
 4.4.3 - 4.9.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1`
