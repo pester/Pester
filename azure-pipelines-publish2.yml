@@ -1,0 +1,21 @@
+trigger: none
+
+variables:
+  - group: signing
+
+jobs:
+  - job: build
+    workspace:
+      clean: all
+    pool:
+      vmImage: windows-2022
+    timeoutInMinutes: 60
+    steps:
+      - task: AzureCLI@2
+        displayName: Publish
+        inputs:
+          azureSubscription: CodeSigner
+          scriptType: ps
+          scriptLocation: inlineScript
+          inlineScript: |
+            .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)'
