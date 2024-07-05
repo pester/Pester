@@ -270,8 +270,9 @@ function ConvertTo-NUnitReport {
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
     #>
+    [OutputType([xml], [string])]
     param (
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [Pester.Run] $Result,
         [Switch] $AsString,
 
@@ -360,8 +361,9 @@ function ConvertTo-JUnitReport {
     .LINK
     https://pester.dev/docs/commands/Invoke-Pester
     #>
+    [OutputType([xml], [string])]
     param (
-        [parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [Pester.Run] $Result,
         [Switch] $AsString
     )

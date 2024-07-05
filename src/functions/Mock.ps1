@@ -457,7 +457,7 @@ function Should-InvokeInternal {
         }
 
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
-        #     $params.ScriptBlock = New-BlockWithoutParameterAliasesNew-BlockWithoutParameterAliases -Metadata $ContextInfo.Hook.Metadata -Block $params.ScriptBlock
+        #     $params.ScriptBlock = New-BlockWithoutParameterAliases -Metadata $ContextInfo.Hook.Metadata -Block $params.ScriptBlock
         # }
 
         if (Test-ParameterFilter @params) {
@@ -1792,6 +1792,7 @@ function Get-ConflictingParameterNames {
     $script:ConflictingParameterNames
 }
 
+# TODO: Remove?
 function Get-ScriptBlockAST {
     param (
         [scriptblock]
@@ -1811,6 +1812,7 @@ function Get-ScriptBlockAST {
     return $ast
 }
 
+# TODO: Remove?
 function New-BlockWithoutParameterAliases {
     [OutputType([scriptblock])]
     param(

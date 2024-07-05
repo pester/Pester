@@ -69,6 +69,7 @@
     .LINK
     https://pester.dev/docs/commands/Should
     #>
+    [OutputType([System.IO.FileInfo])]
     param (
         [Parameter(Mandatory = $true)]
         [String]$Name,
@@ -78,7 +79,7 @@
     $Name = $Name -replace '.ps(m?)1', ''
 
     if ($Name -notmatch '^\S+$') {
-        throw "Name is not valid. Whitespace are not allowed in a function name."
+        throw 'Name is not valid. Whitespace are not allowed in a function name.'
     }
 
     #keep this formatted as is. the format is output to the file as is, including indentation
@@ -94,7 +95,7 @@ Describe "#name#" {
     It "Returns expected output" {
         #name# | Should -Be "YOUR_EXPECTED_VALUE"
     }
-}' -replace "#name#", $Name
+}' -replace '#name#', $Name
 
     $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 
@@ -104,6 +105,7 @@ Describe "#name#" {
 
 function Create-File {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', 'Write-Warning', Justification = 'Mocked in unit test for New-Fixture.')]
+    [OutputType([System.IO.FileInfo])]
     param($Path, $Name, $Content)
     if (-not (& $SafeCommands['Test-Path'] -Path $Path)) {
         & $SafeCommands['New-Item'] -ItemType Directory -Path $Path | & $SafeCommands['Out-Null']

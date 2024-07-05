@@ -349,6 +349,34 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
 
+        t 'replaces virtual terminal escape sequences with their printable representations' {
+            $sb = {
+                Describe 'Describe VT Sequences' {
+                    It "Successful" {
+                        $esc = [char][int]0x1B
+                        $bell = [char][int]0x07
+
+                        # write escape sequences to output
+                        "$esc[32mHello`tWorld$esc[0m"
+                        "Ring the bell$bell"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate({ throw $args[1].Exception })
+            $xmlDescribe = $xmlResult.'test-run'.'test-suite'.'test-suite'
+            $xmlTest = $xmlDescribe.'test-case'
+            $message = $xmlTest.output.'#cdata-section' -split "`n"
+
+            # message has the escape sequences replaced with their printable representations
+            $message[0] | Verify-Equal "␛[32mHello`tWorld␛[0m"
+            $message[1] | Verify-Equal "Ring the bell␇"
+        }
+
         t 'should use TestResult.TestSuiteName configuration value as name-attribute for run and root Assembly test-suite' {
             $sb = {
                 Describe 'Describe' {
