@@ -571,12 +571,10 @@ function New-PesterContainer {
         # the @() is significant here, it will make it iterate even if there are no data
         # which allows files without data to run
         foreach ($d in @($dt)) {
-            foreach ($p in $Path) {
-                # resolve the path we are given in the same way we would resolve -Path on Invoke-Pester
-                $files = @(Find-File -Path $p -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
-                foreach ($file in $files) {
-                    New-BlockContainerObject -File $file -Data $d
-                }
+            # resolve the path we are given in the same way we would resolve -Path on Invoke-Pester
+            $files = @(Find-File -Path $Path -ExcludePath $PesterPreference.Run.ExcludePath.Value -Extension $PesterPreference.Run.TestExtension.Value)
+            foreach ($file in $files) {
+                New-BlockContainerObject -File $file -Data $d
             }
         }
     }
