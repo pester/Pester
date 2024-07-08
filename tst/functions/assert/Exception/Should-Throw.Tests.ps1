@@ -18,6 +18,11 @@ Describe "Should-Throw" {
         { { Write-Error "fail!" } | Should-Throw -AllowNonTerminatingError } | Verify-AssertionFailed
     }
 
+    It 'Supports same positional parameters as Should -Throw' {
+        { Write-Error -Message 'MockErrorMessage' -ErrorId 'MockErrorId' -Category 'InvalidOperation' -TargetObject 'MockTargetObject' -ErrorAction 'Stop' } |
+            Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString'
+    }
+
     Context "Filtering with exception type" {
         It "Passes when exception has the expected type" {
             { throw [ArgumentException]"A is null!" } | Should-Throw -ExceptionType ([ArgumentException])
