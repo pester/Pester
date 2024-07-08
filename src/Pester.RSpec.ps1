@@ -8,9 +8,7 @@
         [string] $Extension
     )
 
-
-    $files =
-    foreach ($p in $Path) {
+    $files = foreach ($p in $Path) {
         if ([String]::IsNullOrWhiteSpace($p)) {
             continue
         }
@@ -66,11 +64,13 @@
         }
     }
 
-    Filter-Excluded -Files $files -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
+    # Deduplicate files if overlapping -Path values
+    $uniquePaths = [System.Collections.Generic.HashSet[string]]::new(@($files).Count)
+    $uniqueFiles = foreach ($f in $files) { if ($uniquePaths.Add($f.FullName)) { $f } }
+    Filter-Excluded -Files $uniqueFiles -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
 }
 
 function Filter-Excluded ($Files, $ExcludePath) {
-
     if ($null -eq $ExcludePath -or @($ExcludePath).Length -eq 0) {
         return @($Files)
     }
@@ -81,12 +81,9 @@ function Filter-Excluded ($Files, $ExcludePath) {
         $excluded = $false
 
         foreach ($exclusion in (@($ExcludePath) -replace "/", "\")) {
-            if ($excluded) {
-                continue
-            }
-
             if ($p -like $exclusion) {
                 $excluded = $true
+                continue
             }
         }
 
