@@ -1,4 +1,4 @@
-function Context {
+﻿function Context {
     <#
     .SYNOPSIS
     Provides logical grouping of It blocks within a single Describe block.
@@ -112,13 +112,15 @@ function Context {
         }
 
         if ($PSBoundParameters.ContainsKey('ForEach')) {
-            if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
-                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
+                if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
+                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+                }
+                # @() or $null is provided and allowed, do nothing
+                return
             }
-            else {
-                # @() or $null is provided do nothing
 
-            }
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
         }
         else {
             New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip

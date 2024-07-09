@@ -1,4 +1,4 @@
-function It {
+﻿function It {
     <#
     .SYNOPSIS
     Validates the results of a test inside of a Describe block.
@@ -153,12 +153,15 @@ function It {
     }
 
     if ($PSBoundParameters.ContainsKey('ForEach')) {
-        if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
-            New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
+        if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
+            if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
+                throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+            }
+            # @() or $null is provided and allowed, do nothing
+            return
         }
-        else {
-            # @() or $null is provided do nothing
-        }
+
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
     }
     else {
         New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
