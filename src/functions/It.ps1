@@ -1,4 +1,4 @@
-﻿function It {
+function It {
     <#
     .SYNOPSIS
     Validates the results of a test inside of a Describe block.
@@ -30,6 +30,10 @@
     .PARAMETER Skip
     Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
     commenting out a test, because the test remains listed in the output.
+
+    .PARAMETER AllowNullOrEmptyForEach
+    Allows empty or null values for -ForEach when Run.FailOnNullOrEmptyForEach is enabled.
+    This might be excepted in certain scenarios like using external data.
 
     .PARAMETER ForEach
     (Formerly called TestCases.) Optional array of hashtable (or any IDictionary) objects.
@@ -128,7 +132,8 @@
         [String[]] $Tag,
 
         [Parameter(ParameterSetName = 'Skip')]
-        [Switch] $Skip
+        [Switch] $Skip,
+        [Switch] $AllowNullOrEmptyForEach
 
         # [Parameter(ParameterSetName = 'Skip')]
         # [String] $SkipBecause,
