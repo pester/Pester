@@ -69,6 +69,10 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: 'None'
 
+        FailOnNullOrEmptyForEach: Fails the block or test when -ForEach is provided `$null or @(). Can be overriden using -AllowNullOrEmptyForEach on a specific block or test.
+        Type: bool
+        Default value: $true
+
     Filter:
         Tag: Tags of Describe, Context or It to be run.
         Type: string[]

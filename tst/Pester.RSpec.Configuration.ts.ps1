@@ -55,6 +55,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Run.SkipRemainingOnFailure.Value | Verify-Equal "None"
         }
 
+        t 'Run.FailOnNullOrEmptyForEach is $true' {
+            [PesterConfiguration]::Default.Run.FailOnNullOrEmptyForEach.Value | Verify-Equal $true
+        }
+
         # Output configuration
         t "Output.Verbosity is Normal" {
             [PesterConfiguration]::Default.Output.Verbosity.Value | Verify-Equal "Normal"
