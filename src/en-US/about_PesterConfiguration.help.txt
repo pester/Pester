@@ -69,7 +69,7 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: 'None'
 
-        FailOnNullOrEmptyForEach: Fails the block or test when -ForEach is provided `$null or @(). Can be overriden using -AllowNullOrEmptyForEach on a specific block or test.
+        FailOnNullOrEmptyForEach: Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overriden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.
         Type: bool
         Default value: $true
 
