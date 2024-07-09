@@ -1698,19 +1698,6 @@ i -PassThru:$PassThru {
             $sb = {
                 Describe "d" {
                     It "i" {
-                    } -TestCases @(@{ Value = 1 }, @{ Value = 2 })
-                }
-            }
-
-            $container = New-PesterContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru
-            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
-        }
-
-        t "-ForEach is alias to -TestCases" {
-            $sb = {
-                Describe "d" {
-                    It "i" {
                     } -ForEach @(@{ Value = 1 }, @{ Value = 2 })
                 }
             }
@@ -1720,52 +1707,221 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
         }
 
-        t "Providing empty or `$null -TestCases will generate nothing" {
+        t "-TestCases is alias to -ForEach" {
             $sb = {
                 Describe "d" {
-                    It "i" { } -ForEach @()
-                }
-
-                Describe "d" {
-                    It "i" { } -ForEach $null
+                    It "i" {
+                    } -TestCases @(@{ Value = 1 }, @{ Value = 2 })
                 }
             }
 
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 2
+        }
+
+        t "Providing empty or `$null -ForEach will generate nothing when Run.FailOnNullOrEmptyForEach is False" {
+            $sb = {
+                Describe 'd' {
+                    It 'i' { } -ForEach @()
+                }
+
+                Describe 'd' {
+                    It 'i' { } -ForEach $null
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.FailOnNullOrEmptyForEach = $false
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 0
+            $r.Containers[0].Blocks[1].Tests.Count | Verify-Equal 0
+        }
+
+        t "Providing empty or `$null -ForEach will throw when Run.FailOnNullOrEmptyForEach is True" {
+            $sbEmpty = {
+                Describe 'd' {
+                    It 'i' { } -ForEach @()
+                }
+            }
+
+            $sbNull = {
+                Describe 'd' {
+                    It 'i' { } -ForEach $null
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sbEmpty, $sbNull
+            $c.Run.FailOnNullOrEmptyForEach = $true
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Result = 'Failed'
+            $r.Containers[0].Result = 'Failed'
+            $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[1].Result = 'Failed'
+            $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+        }
+
+        t "Providing empty or `$null -ForEach will generate nothing when using -AllowNullOrEmptyForEach" {
+            $sb = {
+                Describe 'd' {
+                    It 'i' { } -ForEach @() -AllowNullOrEmptyForEach
+                }
+
+                Describe 'd' {
+                    It 'i' { } -ForEach $null -AllowNullOrEmptyForEach
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.FailOnNullOrEmptyForEach = $true # Default but AllowNullOrEmptyForEach doesn't make sense without it
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
             $r.Containers[0].Blocks[0].Tests.Count | Verify-Equal 0
             $r.Containers[0].Blocks[1].Tests.Count | Verify-Equal 0
         }
     }
 
-    b "Parametric blocks" {
-        t "Providing data will generate as many blocks as there are data sets" {
+    b 'Parametric blocks' {
+        t 'Providing data will generate as many blocks as there are data sets' {
             $sb = {
-                Describe "d" {
-                    It "i" {
-                    }
+                Describe 'd' {
+                    Context 'c' {
+                        It 'i' {
+                        }
+                    } -ForEach @(@{ Value = 1 }, @{ Value = 2 })
                 } -ForEach @(@{ Value = 1 }, @{ Value = 2 })
             }
 
             $container = New-PesterContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru #
+            $r = Invoke-Pester -Container $container -PassThru
+
             $r.Containers[0].Blocks.Count | Verify-Equal 2
+            $r.Containers[0].Blocks[0].Blocks.Count | Verify-Equal 2
+            $r.Containers[0].Blocks[1].Blocks.Count | Verify-Equal 2
         }
 
-        t "Providing empty or `$null -ForEach will generate nothing" {
-            $sb = {
-                Describe "d" {
-                    It "i" { }
+        t "Providing empty or `$null to -ForEach will generate nothing when Run.FailOnNullOrEmptyForEach is False" {
+            $sbDescribe = {
+                Describe 'dEmpty' {
+                    It 'i' { }
                 } -ForEach @()
 
-                Describe "d" {
-                    It "i" { }
+                Describe 'dNull' {
+                    It 'i' { }
                 } -ForEach $null
             }
 
-            $container = New-PesterContainer -ScriptBlock $sb
-            $r = Invoke-Pester -Container $container -PassThru
-            $r.Containers[0].Blocks.Count | Verify-Equal 0
+            $sbContext = {
+                Describe 'dContext' {
+                    Context 'cEmpty' {
+                        It 'i' { }
+                    } -ForEach @()
+
+                    Context 'cNull' {
+                        It 'i' { }
+                    } -ForEach $null
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sbDescribe, $sbContext
+            $c.Run.FailOnNullOrEmptyForEach = $false
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks.Count | Verify-Equal 0 # No Describe-blocks will be generated
+
+            $r.Containers[1].Blocks.Count | Verify-Equal 1
+            $r.Containers[1].Blocks[0].Name | Verify-Equal 'dContext'
+            $r.Containers[1].Blocks[0].Blocks.Count | Verify-Equal 0 # No Context-blocks will be generated
+        }
+
+        t "Providing empty or `$null to -ForEach will throw when Run.FailOnNullOrEmptyForEach is True" {
+            $sbDescribeEmpty = {
+                Describe 'dEmpty' {
+                    It 'i' { }
+                } -ForEach @()
+            }
+            $sbDescribeNull = {
+                Describe 'dNull' {
+                    It 'i' { }
+                } -ForEach $null
+            }
+
+            $sbContextEmpty = {
+                Describe 'dContext' {
+                    Context 'cEmpty' {
+                        It 'i' { }
+                    } -ForEach @()
+                }
+            }
+            $sbContextNull = {
+                Describe 'dContext' {
+                    Context 'cNull' {
+                        It 'i' { }
+                    } -ForEach $null
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sbDescribeEmpty, $sbDescribeNull, $sbContextEmpty, $sbContextNull
+            $c.Run.FailOnNullOrEmptyForEach = $true
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Result = 'Failed'
+            $r.Containers[0].Result = 'Failed'
+            $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[1].Result = 'Failed'
+            $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[2].Result = 'Failed'
+            $r.Containers[2].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[3].Result = 'Failed'
+            $r.Containers[3].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+        }
+
+        t "Providing empty or `$null to -ForEach will generate nothing when using -AllowNullOrEmptyForEach" {
+            $sbDescribe = {
+                Describe 'dEmpty' {
+                    It 'i' { }
+                } -ForEach @() -AllowNullOrEmptyForEach
+
+                Describe 'dNull' {
+                    It 'i' { }
+                } -ForEach $null -AllowNullOrEmptyForEach
+            }
+
+            $sbContext = {
+                Describe 'dContext' {
+                    Context 'cEmpty' {
+                        It 'i' { }
+                    } -ForEach @() -AllowNullOrEmptyForEach
+
+                    Context 'cNull' {
+                        It 'i' { }
+                    } -ForEach $null -AllowNullOrEmptyForEach
+                }
+            }
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sbDescribe, $sbContext
+            $c.Run.FailOnNullOrEmptyForEach = $true # Default but AllowNullOrEmptyForEach doesn't make sense without it
+            $c.Run.PassThru = $true
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Containers[0].Blocks.Count | Verify-Equal 0 # No Describe-blocks will be generated
+
+            $r.Containers[1].Blocks.Count | Verify-Equal 1
+            $r.Containers[1].Blocks[0].Name | Verify-Equal 'dContext'
+            $r.Containers[1].Blocks[0].Blocks.Count | Verify-Equal 0 # No Context-blocks will be generated
         }
 
         t "Data will be available in the respective block during Run" {
