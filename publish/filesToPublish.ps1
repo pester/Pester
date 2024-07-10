@@ -1,0 +1,17 @@
+﻿@(
+    'Pester.ps1'
+    'Pester.psd1'
+    'Pester.psm1'
+    'Pester.Format.ps1xml'
+    'PesterConfiguration.Format.ps1xml'
+    'bin/net462/Pester.dll'
+    'bin/net6.0/Pester.dll'
+    'en-US/about_Pester.help.txt'
+    'en-US/about_PesterConfiguration.help.txt'
+    'schemas/JaCoCo/report.dtd'
+    'schemas/JUnit4/junit_schema_4.xsd'
+    'schemas/NUnit25/nunit_schema_2.5.xsd'
+    'schemas/NUnit3/TestDefinitions.xsd'
+    'schemas/NUnit3/TestFilterDefinitions.xsd'
+    'schemas/NUnit3/TestResult.xsd'
+)
