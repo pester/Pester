@@ -35,7 +35,7 @@ InPesterModuleScope {
 
         It "returns the correct assertion message when collection is not empty" {
             $err = { @(1) | Should -HaveCount 0 -Because 'reason' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal 'Expected an empty collection, because reason, but got collection with size 1 1.'
+            $err.Exception.Message | Verify-Equal 'Expected an empty collection, because reason, but got collection with size 1 @(1).'
         }
 
         It "validates the expected size to be bigger than 0" {
