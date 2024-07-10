@@ -1,16 +1,10 @@
-﻿param($Thumbprint, $Path)
+﻿param(
+    [String] $TenantId,
+    [String] $VaultUrl,
+    [String] $CertificateName,
+    [String] $Path
+)
 $ErrorActionPreference = 'Stop'
-
-$cert = Get-ChildItem Cert:\CurrentUser\My |
-    Where-Object Thumbprint -eq $Thumbprint
-
-if ($null -eq $cert) {
-    throw "No certificate was found."
-}
-
-if (@($cert).Length -gt 1) {
-    throw "More than one cerfificate with the given thumbprint was found."
-}
 
 "Signing Files"
 $files = Get-ChildItem -Recurse -ErrorAction SilentlyContinue $Path |
@@ -28,14 +22,16 @@ if (-not @($filesToSign)) {
     return "There are no files to sign, all the files in the repository are already signed."
 }
 
-$results = $filesToSign |
-    ForEach-Object {
-        $r = Set-AuthenticodeSignature $_ -Certificate $cert -TimestampServer 'http://timestamp.digicert.com' -ErrorAction Stop
-        $r | Out-String | Write-Host
-        $r
-    }
+dotnet tool install --global AzureSignTool
+if (0 -ne $LASTEXITCODE) { 
+    throw "Failed to install AzureSignTool"
+}
+azuresigntool sign -kvu $VaultUrl -kvm -kvc $CertificateName -kvt $TenantId -du "https://pester.dev" -tr "http://timestamp.digicert.com" -v $filesToSign
+if (0 -ne $LASTEXITCODE) { 
+    throw "Failed to sign files"
+}
 
-$failed = $results | Where-Object { $_.Status -ne "Valid" }
+$failed = $filesToSign | Get-AuthenticodeSignature | Where-Object { $_.Status -ne "Valid" }
 
 if ($failed) {
     throw "Failed signing $($failed.Path -join "`n")"
