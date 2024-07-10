@@ -1,4 +1,4 @@
-﻿function Should-Throw {
+﻿function Should-ThrowAssertion {
     <#
     .SYNOPSIS
     Checks if an exception was thrown. Enclose input in a script block.
@@ -30,7 +30,7 @@
     It does not throw an error, so the test passes.
     #>
     param (
-        [ScriptBlock] $ActualValue,
+        $ActualValue,
         [string] $ExpectedMessage,
         [string] $ErrorId,
         [type] $ExceptionType,
@@ -45,8 +45,8 @@
     $actualException = $null
     $actualExceptionLine = $null
 
-    if ($null -eq $ActualValue) {
-        throw [ArgumentNullException] "Input is not a ScriptBlock. Input to '-Throw' and '-Not -Throw' must be enclosed in curly braces."
+    if ($null -eq $ActualValue -or $ActualValue -isnot [ScriptBlock]) {
+        throw [ArgumentException] "Input is missing or not a ScriptBlock. Input to '-Throw' and '-Not -Throw' must be enclosed in curly braces."
     }
 
     try {
@@ -70,46 +70,24 @@
         # this is for Should -Not -Throw. Once *any* exception was thrown we should fail the assertion
         # there is no point in filtering the exception, because there should be none
         $succeeded = -not $actualExceptionWasThrown
-        if (-not $succeeded) {
-            $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
-            return [PSCustomObject] @{
-                Succeeded      = $succeeded
-                FailureMessage = $failureMessage
-            }
-        }
-        else {
-            return [PSCustomObject] @{
-                Succeeded = $true
-            }
+        if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+        $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
+        return [Pester.ShouldResult] @{
+            Succeeded      = $succeeded
+            FailureMessage = $failureMessage
         }
     }
 
     # the rest is for Should -Throw, we must fail the assertion when no exception is thrown
     # or when the exception does not match our filter
 
-    function Join-And ($Items, $Threshold = 2) {
-
-        if ($null -eq $items -or $items.count -lt $Threshold) {
-            $items -join ', '
-        }
-        else {
-            $c = $items.count
-            ($items[0..($c - 2)] -join ', ') + ' and ' + $items[-1]
-        }
-    }
-
-    function Add-SpaceToNonEmptyString ([string]$Value) {
-        if ($Value) {
-            " $Value"
-        }
-    }
-
     $buts = @()
     $filters = @()
 
     $filterOnExceptionType = $null -ne $ExceptionType
     if ($filterOnExceptionType) {
-        $filters += "with type $(Format-Nicely $ExceptionType)"
+        $filters += "type $(Format-Nicely $ExceptionType)"
 
         if ($actualExceptionWasThrown -and $actualException -isnot $ExceptionType) {
             $buts += "the exception type was $(Format-Nicely ($actualException.GetType()))"
@@ -118,7 +96,7 @@
 
     $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
     if ($filterOnMessage) {
-        $filters += "with message $(Format-Nicely $ExpectedMessage)"
+        $filters += "message like $(Format-Nicely $ExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
             $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
         }
@@ -126,28 +104,36 @@
 
     $filterOnId = -not [string]::IsNullOrWhitespace($ErrorId)
     if ($filterOnId) {
-        $filters += "with FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
+        $filters += "FullyQualifiedErrorId $(Format-Nicely $ErrorId)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualErrorId $ErrorId))) {
             $buts += "the FullyQualifiedErrorId was $(Format-Nicely $actualErrorId)"
         }
     }
 
     if (-not $actualExceptionWasThrown) {
-        $buts += "no exception was thrown"
+        $buts += 'no exception was thrown'
     }
 
     if ($buts.Count -ne 0) {
-        $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
+        $filter = Join-And $filters
         $but = Join-And $buts
-        $failureMessage = "Expected an exception,$filter to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
+        $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
-        return [PSCustomObject] @{
+        $ActualValue = $actualExceptionMessage
+        $ExpectedValue = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { 'any exception' }
+
+        return [Pester.ShouldResult] @{
             Succeeded      = $false
             FailureMessage = $failureMessage
+            ExpectResult   = @{
+                Actual   = Format-Nicely $ActualValue
+                Expected = Format-Nicely $ExpectedValue
+                Because  = $Because
+            }
         }
     }
 
-    $result = [PSCustomObject] @{
+    $result = [Pester.ShouldResult] @{
         Succeeded = $true
     }
 
@@ -181,6 +167,9 @@ function NotShouldThrowFailureMessage {
     # to make the should tests happy, for now
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Throw `
-    -InternalName Should-Throw `
-    -Test         ${function:Should-Throw}
+& $script:SafeCommands['Add-ShouldOperator'] -Name Throw `
+    -InternalName Should-ThrowAssertion `
+    -Test         ${function:Should-ThrowAssertion}
+
+Set-ShouldOperatorHelpMessage -OperatorName Throw `
+    -HelpMessage 'Checks if an exception was thrown. Enclose input in a scriptblock.'

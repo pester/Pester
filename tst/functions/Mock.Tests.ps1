@@ -693,7 +693,7 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
     It "Should throw and list all commands" {
         $result.Exception.Message | Should -Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
-    
+
     It 'Should include reason when -Because is used' {
         try {
             Should -InvokeVerifiable -Because 'of reasons'
@@ -1287,9 +1287,6 @@ Describe 'Dot Source Test' {
     }
 
     It "Doesn't call the mock with any other parameters" {
-        InPesterModuleScope {
-            $global:calls = $mockTable['||Test-Path'].CallHistory
-        }
         Should -Invoke Test-Path -Exactly 0 -ParameterFilter { $Path -ne 'Test' } -Scope Describe
     }
 }
@@ -2864,6 +2861,23 @@ Describe 'RemoveParameterValidation' {
     }
 }
 
+Describe 'Removing multiple attributes for same parameter' {
+    It 'Removes parameter type and validation for simple function' {
+        # Making sure attributes are removed correctly regardless of order
+        function t {
+            param(
+                [Alias('Number2')]
+                [ValidateSet(1)]
+                [PSTypeName('SomeType')]
+                $Number1
+            )
+            $Number1
+        }
+        Mock t -RemoveParameterType 'Number1' -RemoveParameterValidation 'Number1'
+        { t -Number1 2 } | Should -Not -Throw
+    }
+}
+
 Describe 'Mocking command with ValidateRange-attributes' {
     # https://github.com/pester/Pester/issues/1496
     # https://github.com/PowerShell/PowerShell/issues/17546
@@ -2983,26 +2997,6 @@ Describe "Mocks can be defined outside of BeforeAll" {
     }
 }
 
-Describe "Assert-MockCalled is available as a wrapper over Should -Invoke for backwards compatibility" {
-
-    It  "Count calls" {
-        function f () { "real" }
-        Mock f { "mock" }
-        f
-        Assert-MockCalled -CommandName f -Exactly 1
-    }
-}
-
-Describe "Assert-VerifiableMock is available as a wrapper over Should -InvokeVerifiable for backwards compatibility" {
-
-    It  "Verify calls" {
-        function f () { "real" }
-        Mock f { "mock" } -Verifiable
-        f
-        Assert-VerifiableMock
-    }
-}
-
 Describe "Debugging mocks" {
     It "Hits breakpoints in mock related scriptblocks" {
         try {
@@ -3119,5 +3113,40 @@ Describe 'Mocking in manifest modules' {
         Mock -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -MockWith { 'mocked private' }
         myManifestPublicFunction | Should -Be 'mocked private'
         Should -Invoke -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -Exactly -Times 1
+    }
+}
+
+Describe 'Mocking with nested Pester runs' {
+    BeforeAll {
+        Mock Get-Date { 1 }
+
+        $innerRun = Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
+                Describe 'inner' {
+                    It 'local mock works' {
+                        Mock Get-Command { 2 }
+                        Get-Command | Should -Be 2
+                    }
+
+                    It 'outer mock is not available' {
+                        Get-Date | Should -Not -Be 1
+                    }
+                }
+            }) -Output None -PassThru
+    }
+
+    It 'Mocks in outer run works after nested Invoke-Pester' {
+        # https://github.com/pester/Pester/issues/2074
+        Get-Date | Should -Be 1
+        # Outer mock should not have been called from nested run
+        Should -Invoke Get-Date -Exactly -Times 1
+    }
+
+    It 'Mocking works in nested run' {
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 2
+    }
+
+    It 'Mocks in nested run do not leak to outside' {
+        Get-Command Get-ChildItem | Should -Not -Be 2
     }
 }

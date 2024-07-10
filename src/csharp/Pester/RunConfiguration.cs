@@ -56,14 +56,14 @@ namespace Pester
             }
         }
 
-        public RunConfiguration() : base("Run configuration.")
+        public RunConfiguration() : base("General runtime options for Pester including tests containers to execute.")
         {
             Path = new StringArrayOption("Directories to be searched for tests, paths directly to test files, or combination of both.", new string[] { "." });
             ExcludePath = new StringArrayOption("Directories or files to be excluded from the run.", new string[0]);
             ScriptBlock = new ScriptBlockArrayOption("ScriptBlocks containing tests to be executed.", new ScriptBlock[0]);
             Container = new ContainerInfoArrayOption("ContainerInfo objects containing tests to be executed.", new ContainerInfo[0]);
             TestExtension = new StringOption("Filter used to identify test files.", ".Tests.ps1");
-            Exit = new BoolOption("Exit with non-zero exit code when the test run fails. When used together with Throw, throwing an exception is preferred.", false);
+            Exit = new BoolOption("Exit with non-zero exit code when the test run fails. Exit code is always set to `$LASTEXITCODE` even when this option is `$false`. When used together with Throw, throwing an exception is preferred.", false);
             Throw = new BoolOption("Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
@@ -197,7 +197,6 @@ namespace Pester
                 }
             }
         }
-
 
         public BoolOption SkipRun
         {

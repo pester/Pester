@@ -43,9 +43,9 @@
     DynamicParam {
         $ParameterName = 'Name'
 
-        $RuntimeParameterDictionary = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameterDictionary
-        $AttributeCollection = & $SafeCommands['New-Object'] System.Collections.ObjectModel.Collection[System.Attribute]
-        $ParameterAttribute = & $SafeCommands['New-Object'] System.Management.Automation.ParameterAttribute
+        $RuntimeParameterDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+        $AttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+        $ParameterAttribute = [System.Management.Automation.ParameterAttribute]::new()
         $ParameterAttribute.Position = 0
         $ParameterAttribute.HelpMessage = 'Name or alias of operator'
 
@@ -55,11 +55,10 @@
             & $SafeCommands['Select-Object'] -Property Name, Alias |
             & $SafeCommands['ForEach-Object'] { $_.Name; $_.Alias }
 
-        $ValidateSetAttribute = & $SafeCommands['New-Object']System.Management.Automation.ValidateSetAttribute($arrSet)
-
+        $ValidateSetAttribute = [System.Management.Automation.ValidateSetAttribute]::new([string[]]$arrSet)
         $AttributeCollection.Add($ValidateSetAttribute)
 
-        $RuntimeParameter = & $SafeCommands['New-Object'] System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+        $RuntimeParameter = [System.Management.Automation.RuntimeDefinedParameter]::new($ParameterName, [string], $AttributeCollection)
         $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
         return $RuntimeParameterDictionary
     }
@@ -72,8 +71,8 @@
     END {
         if ($Name) {
             $operator = $AssertionOperators.Values | & $SafeCommands['Where-Object'] { $Name -eq $_.Name -or $_.Alias -contains $Name }
-            $commandInfo = & $SafeCommands['Get-Command'] -Name $operator.InternalName -ErrorAction SilentlyContinue
-            $help = & $SafeCommands['Get-Help'] -Name $operator.InternalName -Examples -ErrorAction SilentlyContinue
+            $commandInfo = & $SafeCommands['Get-Command'] -Name $operator.InternalName -ErrorAction Ignore
+            $help = & $SafeCommands['Get-Help'] -Name $operator.InternalName -Examples -ErrorAction Ignore
 
             if (($help | & $SafeCommands['Measure-Object']).Count -ne 1) {
                 & $SafeCommands['Write-Warning'] ("No help found for Should operator '{0}'" -f ((Get-AssertionOperatorEntry $Name).InternalName))

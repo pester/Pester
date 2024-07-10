@@ -1,6 +1,6 @@
 param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
@@ -287,6 +287,40 @@ i -PassThru:$PassThru {
             }
 
             $r.Result | Verify-Equal 'Passed'
+        }
+    }
+
+    b 'Coverage path resolution' {
+        t 'Excludes test files when ExcludeTests is true' {
+            # https://github.com/pester/Pester/issues/2514
+            $c = New-PesterConfiguration
+            $c.Run.Path = "$PSScriptRoot/testProjects/CoverageTestFile.Tests.ps1"
+            $c.Run.PassThru = $true
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.ExcludeTests = $true # default
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1", "$PSScriptRoot/testProjects"
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Result | Verify-Equal 'Passed'
+            $r.CodeCoverage.FilesAnalyzedCount | Verify-Equal 1
+            @($r.CodeCoverage.FilesAnalyzed) -match '\.Tests.ps1$' | Verify-Null
+        }
+
+        t 'Includes test files when ExcludeTests is false' {
+            # https://github.com/pester/Pester/issues/2514
+            $c = New-PesterConfiguration
+            $c.Run.Path = "$PSScriptRoot/testProjects/CoverageTestFile.Tests.ps1"
+            $c.Run.PassThru = $true
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.ExcludeTests = $false
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1", "$PSScriptRoot/testProjects"
+
+            $r = Invoke-Pester -Configuration $c
+
+            $r.Result | Verify-Equal 'Passed'
+            $r.CodeCoverage.FilesAnalyzedCount | Verify-Equal 4
+            @($r.CodeCoverage.FilesAnalyzed) -match '\.Tests.ps1$' | Verify-NotNull
         }
     }
 }

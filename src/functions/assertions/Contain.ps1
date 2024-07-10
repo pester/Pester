@@ -1,4 +1,4 @@
-﻿function Should-Contain($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-ContainAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that collection contains a specific value.
@@ -16,28 +16,41 @@
 
     if (-not $succeeded) {
         if ($Negate) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to not be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
+                ExpectResult   = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
         else {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected $(Format-Nicely $ExpectedValue) to be found in collection $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
+                ExpectResult   = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Contain `
-    -InternalName Should-Contain `
-    -Test         ${function:Should-Contain} `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Contain `
+    -InternalName Should-ContainAssertion `
+    -Test         ${function:Should-ContainAssertion} `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName Contain `
+    -HelpMessage "Asserts that collection contains a specific value. Uses PowerShell's -contains operator to confirm."
 
 function ShouldContainFailureMessage() {
 }

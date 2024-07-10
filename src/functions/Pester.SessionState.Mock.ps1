@@ -1,5 +1,5 @@
 # session state bound functions that act as endpoints,
-# so the internal funtions can make their session state
+# so the internal functions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
 
@@ -606,30 +606,6 @@ function Get-MockDataForCurrentScope {
     $location.PluginData.Mock
 }
 
-function Assert-VerifiableMock {
-    <#
-    .SYNOPSIS
-    Checks if all verifiable Mocks has been called at least once.
-
-    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-    USE Should -InvokeVerifiable INSTEAD.
-
-    .LINK
-    https://pester.dev/docs/commands/Assert-VerifiableMock
-    #>
-
-    # Should does not accept a session state, so invoking it directly would
-    # make the assertion run from inside of Pester module, we move it to the
-    # user scope instead an run it from there to keep the scoping correct
-    # for this compatibility adapter
-    [CmdletBinding()]param()
-    $sb = {
-        Should -InvokeVerifiable
-    }
-
-    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
-    & $sb
-}
 function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
@@ -669,50 +645,8 @@ function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
     -InternalName Should-InvokeVerifiable `
     -Test         ${function:Should-InvokeVerifiable}
 
-function Assert-MockCalled {
-    <#
-    .SYNOPSIS
-    Checks if a Mocked command has been called a certain number of times
-    and throws an exception if it has not.
-
-    THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
-    USE Should -Invoke INSTEAD.
-
-    .LINK
-    https://pester.dev/docs/commands/Assert-MockCalled
-    #>
-    [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
-    param(
-        [Parameter(Mandatory = $true, Position = 0)]
-        [string]$CommandName,
-
-        [Parameter(Position = 1)]
-        [int]$Times = 1,
-
-        [ScriptBlock]$ParameterFilter = { $True },
-
-        [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
-        [scriptblock] $ExclusiveFilter,
-
-        [string] $ModuleName,
-
-        [string] $Scope = 0,
-        [switch] $Exactly
-    )
-
-    # Should does not accept a session state, so invoking it directly would
-    # make the assertion run from inside of Pester module, we move it to the
-    # user scope instead an run it from there to keep the scoping correct
-    # for this compatibility adapter
-
-    $sb = {
-        param ($__params__p)
-        Should -Invoke @__params__p
-    }
-
-    Set-ScriptBlockScope -ScriptBlock $sb -SessionState $PSCmdlet.SessionState
-    & $sb $PSBoundParameters
-}
+Set-ShouldOperatorHelpMessage -OperatorName InvokeVerifiable `
+    -HelpMessage 'Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.'
 
 function Should-Invoke {
     <#
@@ -888,7 +822,7 @@ function Should-Invoke {
         #
         # Mock FunctionUnderTest {}
         #
-        # Consider the normal expection:
+        # Consider the normal expectation:
         # `Should -Invoke FunctionUnderTest -ExclusiveFilter { $param1 -eq 'one' }`
         #
         # | Invocations               | Should raises an error |
@@ -1034,6 +968,9 @@ function Should-Invoke {
     -InternalName Should-Invoke `
     -Test         ${function:Should-Invoke}
 
+Set-ShouldOperatorHelpMessage -OperatorName Invoke `
+    -HelpMessage 'Checks if a Mocked command has been called a certain number of times and throws an exception if it has not.'
+
 function Invoke-Mock {
     [CmdletBinding()]
     param (
@@ -1153,7 +1090,7 @@ function Invoke-Mock {
                 }
             }
             else {
-                # not the targetted module, skip it
+                # not the targeted module, skip it
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
                 }
@@ -1192,10 +1129,12 @@ function Invoke-Mock {
         }
     }
 
-    # if we are targetting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
+    # if we are targeting a module use the behaviors for the current module, but if there is no default the fall back to the non-module default behavior.
     # do not fallback to non-module filtered behaviors. This is here for safety, and for compatibility when doing Mock Remove-Item {}, and then mocking in module
     # then the default mock for Remove-Item should be effective.
-    $behaviors = if ($targettingAModule) {
+
+    # using @() to always get array. This avoids null error in Invoke-MockInternal when no behaviors where found (if-else unwraps the lists)
+    $behaviors = @(if ($targettingAModule) {
         # we have default module behavior add it to the filtered behaviors if there are any
         if ($null -ne $moduleDefaultBehavior) {
             $moduleBehaviors.Add($moduleDefaultBehavior)
@@ -1210,14 +1149,14 @@ function Invoke-Mock {
         $moduleBehaviors
     }
     else {
-        # we are not targetting a mock in a module use the non module behaviors
+        # we are not targeting a mock in a module use the non module behaviors
         if ($null -ne $nonModuleDefaultBehavior) {
             # add the default non-module behavior if we have any
             $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
         }
 
         $nonModuleBehaviors
-    }
+    })
 
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 

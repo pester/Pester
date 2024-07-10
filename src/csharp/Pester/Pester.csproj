@@ -1,21 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
+    <TargetFrameworks>net6.0;net462</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <!-- this version is used specifically to support as old version of PS6 as we can.
-    issue: https://github.com/pester/Pester/issues/2207 -->
-    <PackageReference Include="System.Management.Automation" Version="6.0.4" />
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);PESTER</DefineConstants>
+  </PropertyGroup>
+
+  <!-- PowerShell 7.2.x is the oldest supported PowerShell version. That version is built using net6.0.
+  But there is a bug in 7.2.0 reference assemblies, up to 7.2.10, where the IExtens.File is missing from the reference assembly:
+  https://github.com/PowerShell/PowerShell/issues/16408
+
+  So we use the version released before 7.2.0 which was 7.1.7. We could probably use 7.2.10 safely as well,
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="System.Management.Automation" Version="7.1.7" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
-    <PackageReference Include="Microsoft.PowerShell.3.ReferenceAssemblies" Version="1.0.0" />
+  <!-- Windows PowerShell 5.1 is the only Windows PowerShell that is still in support, and it is built using .NET Framework 4.5.2.
+  But the oldest still supported OS on which WMF5.1 can be installed, is Windows 10 1607, which comes with .NET Framework 4.6.2. https://learn.microsoft.com/en-us/powershell/scripting/windows-powershell/wmf-overview?view=powershell-7.4#wmf-availability-across-windows-operating-systems
+  https://learn.microsoft.com/en-us/dotnet/framework/migration-guide/versions-and-dependencies#net-framework-462
+  .NET 4.6.2 is also the oldest supported version of .NET Framework (https://learn.microsoft.com/en-us/lifecycle/products/microsoft-net-framework)
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="Microsoft.PowerShell.5.1.ReferenceAssemblies" Version="1.0.0" />
 
-    <!-- To enable build support on unix-->
+    <!-- To enable build support on unix. -->
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>

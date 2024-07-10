@@ -1,24 +1,25 @@
-// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.209.5/containers/dotnet
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json
 {
 	"name": "Pester",
-	"build": {
-		"dockerfile": "Dockerfile",
-		"args": {
-			// Update 'VARIANT' to pick a .NET Core version: 3.1, 5.0, 6.0
-			// Append -bullseye or -focal to pin to an OS version. Using focal (Ubuntu) for pwsh support
-			"VARIANT": "6.0-focal"
+	"image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-jammy",
+	"remoteUser": "vscode",
+	"customizations": {
+		"codespaces": {
+			"openFiles": [
+				"CONTRIBUTING.md"
+			]
+		},
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"ms-vscode.powershell",
+				"ms-dotnettools.csharp",
+				"redhat.vscode-xml",
+				"ms-azure-devops.azure-pipelines",
+				"GitHub.vscode-github-actions"
+			]
 		}
 	},
-	// Set *default* container specific settings.json values on container create.
-	"settings": {},
-	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [
-		"ms-vscode.powershell",
-		"ms-dotnettools.csharp",
-		"redhat.vscode-xml"
-	],
-	// Use 'postCreateCommand' to run commands after the container is created.
 	// Restoring the c# projects
 	"postCreateCommand": "dotnet restore src/csharp"
 }

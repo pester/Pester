@@ -1,4 +1,4 @@
-﻿function Should-Match($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-MatchAssertion($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Uses a regular expression to compare two objects.
@@ -31,18 +31,25 @@
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
-        }
-        else {
-            $failureMessage = ShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
+    }
+    else {
+        $failureMessage = ShouldMatchFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = $RegularExpression
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -54,6 +61,9 @@ function NotShouldMatchFailureMessage($ActualValue, $RegularExpression, $Because
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         Match `
-    -InternalName Should-Match `
-    -Test         ${function:Should-Match}
+& $script:SafeCommands['Add-ShouldOperator'] -Name Match `
+    -InternalName Should-MatchAssertion `
+    -Test         ${function:Should-MatchAssertion}
+
+Set-ShouldOperatorHelpMessage -OperatorName Match `
+    -HelpMessage 'Uses a regular expression to compare two objects. This comparison is not case sensitive.'

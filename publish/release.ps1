@@ -4,7 +4,9 @@ param (
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = 'c7b0582906e5205b8399d92991694a614d0c0b22',
+    [String] $TenantId,
+    [String] $VaultUrl,
+    [String] $CertificateName,
     [Switch] $Force
 )
 
@@ -52,24 +54,24 @@ if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
     throw "Module is too small, are you publishing non-inlined module?"
 }
 
-& "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
-
+& "$PSScriptRoot/signModule.ps1" -VaultUrl $VaultUrl -TenantId $TenantId -CertificateName $CertificateName -Path $bin
 
 $files = @(
-    "nunit_schema_2.5.xsd"
-    "junit_schema_4.xsd"
-    "Pester.psd1"
-    "Pester.psm1"
-    "report.dtd"
-    "bin\net452\Pester.dll"
-    "bin\net452\Pester.pdb"
-    "bin\netstandard2.0\Pester.dll"
-    "bin\netstandard2.0\Pester.pdb"
-    "en-US\about_BeforeEach_AfterEach.help.txt"
-    "en-US\about_Mocking.help.txt"
-    "en-US\about_Pester.help.txt"
-    "en-US\about_Should.help.txt"
-    "en-US\about_TestDrive.help.txt"
+    'Pester.ps1'
+    'Pester.psd1'
+    'Pester.psm1'
+    'Pester.Format.ps1xml'
+    'PesterConfiguration.Format.ps1xml'
+    'bin/net462/Pester.dll'
+    'bin/net6.0/Pester.dll'
+    'en-US/about_Pester.help.txt'
+    'en-US/about_PesterConfiguration.help.txt'
+    'schemas/JaCoCo/report.dtd'
+    'schemas/JUnit4/junit_schema_4.xsd'
+    'schemas/NUnit25/nunit_schema_2.5.xsd'
+    'schemas/NUnit3/TestDefinitions.xsd'
+    'schemas/NUnit3/TestFilterDefinitions.xsd'
+    'schemas/NUnit3/TestResult.xsd'
 )
 
 $notFound = @()
@@ -83,7 +85,7 @@ if (0 -lt $notFound.Count) {
     throw "Did not find files:`n$($notFound -join "`n")"
 }
 else {
-    "Found all files!"
+    'Found all files!'
 }
 
 # build psgallery module
@@ -104,7 +106,7 @@ $null = New-Item -ItemType Directory -Path $nugetDir
 Copy-Item "$PSScriptRoot/../bin/*" $nugetDir -Recurse
 Copy-Item "$PSScriptRoot/../LICENSE" $nugetDir -Recurse
 
-Out-File $nugetDir\VERIFICATION.txt -InputObject @"
+Out-File "$nugetDir/VERIFICATION.txt" -InputObject @'
 VERIFICATION
 Verification is intended to assist the Chocolatey moderators and community
 in verifying that this package's contents are trustworthy.
@@ -114,13 +116,13 @@ You can use one of the following methods to obtain the checksum
   - Use chocolatey utility 'checksum.exe'
 
 CHECKSUMS
-"@
+'@
 
-Get-ChildItem -Path $bin -Filter *.dll -Recurse | Foreach-Object {
+Get-ChildItem -Path $bin -Filter *.dll -Recurse | ForEach-Object {
     $path = $_.FullName
     $relativePath = ($path -replace [regex]::Escape($nugetDir.TrimEnd('/').TrimEnd('\'))).TrimStart('/').TrimStart('\')
-    $hash = Get-FileHash  -Path $path -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-    Out-File $nugetDir\VERIFICATION.txt -Append -InputObject @"
+    $hash = Get-FileHash -Path $path -Algorithm SHA256 | Select-Object -ExpandProperty Hash
+    Out-File "$nugetDir/VERIFICATION.txt" -Append -InputObject @"
     file: $relativePath
     hash: $hash
     algorithm: sha256
@@ -128,8 +130,23 @@ Get-ChildItem -Path $bin -Filter *.dll -Recurse | Foreach-Object {
 }
 
 & nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetDir -NoPackageAnalysis -version $version
-$nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
-& nuget sign $nupkg -CertificateFingerprint $CertificateThumbprint -Timestamper "http://timestamp.digicert.com"
+[string] $nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
+
+dotnet tool install --global NuGetKeyVaultSignTool
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to install NuGetKeyVaultSignTool"
+}
+
+Write-Host "Nuget path: $nupkg"
+NuGetKeyVaultSignTool sign -kvu $VaultUrl -kvm -kvc $CertificateName -kvt $TenantId -own "nohwnd,fflaten" -tr "http://timestamp.digicert.com" $nupkg
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to sign nupkg"
+}
+
+NuGetKeyVaultSignTool verify $nupkg
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to verify nupkg"
+}
 
 Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 

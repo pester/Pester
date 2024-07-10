@@ -8,7 +8,7 @@ for more information.
 
 ## Building Pester
 
-Pester is written in Powershell and C#. The C# solution requires .Net
+Pester is written in Powershell and C#. The C# solution requires .NET
 Framework SDKs and Developer Packs in order to compile, see links below
 how to install those prior to building.
 
@@ -53,14 +53,9 @@ Get-Help ./build.ps1 -Detailed
 
 Pester has a C# Solution which requires .NET Framework SDKs and Developer Packs in order to compile. The targeted frameworks can be found in `src\csharp\Pester\Pester.csproj`.
 
-### Install .NET Core 6.0 SDK
+### Install .NET 8.0 SDK
 
-[Download Link](https://dotnet.microsoft.com/download/dotnet-core/6.0)
-
-### .Net Framework 4.5 Developer Pack
-
-[Download Link](https://dotnet.microsoft.com/download/dotnet-framework/net452)
-<https://aka.ms/msbuild/developerpacks>
+[Download Link](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 
 ## Running Tests
 
@@ -99,7 +94,7 @@ Get-Help ./test.ps1 -Detailed
 
 The Azure Devops Pipeline azure-pipelines.yml file contains the code definition used for builds, unit and integration tests in the CI pipeline.
 
-Within the pipeline, tests are executed against PS7 Core on a strategy matrix of machines, including Ubuntu 16.04, 18.04, macOS Mojave 10.14, Catalina 10.15, Windows Server 2016, 2019. Tests are also executed against PS6.2, PS4, PS3.
+Within the pipeline, tests are executed against PS7 and PS5.1, on Windows, Linux (Ubuntu) and MacOS.
 
 ## Documentation
 

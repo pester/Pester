@@ -9,16 +9,6 @@
     return (& $failureMessageFunction $value $expected)
 }
 
-function New-ShouldErrorRecord ([string] $Message, [string] $File, [string] $Line, [string] $LineText, $Terminating) {
-    $exception = [Exception] $Message
-    $errorID = 'PesterAssertionFailed'
-    $errorCategory = [Management.Automation.ErrorCategory]::InvalidResult
-    # we use ErrorRecord.TargetObject to pass structured information about the error to a reporting system.
-    $targetObject = @{ Message = $Message; File = $File; Line = $Line; LineText = $LineText; Terminating = $Terminating }
-    $errorRecord = & $SafeCommands['New-Object'] Management.Automation.ErrorRecord $exception, $errorID, $errorCategory, $targetObject
-    return $errorRecord
-}
-
 function Should {
     <#
     .SYNOPSIS
@@ -31,7 +21,7 @@ function Should {
 
     Should can be used more than once in the It block if more than one assertion
     need to be verified. Each Should keyword needs to be on a separate line.
-    Test will be passed only when all assertion will be met (logical conjuction).
+    Test will be passed only when all assertion will be met (logical conjunction).
 
     .PARAMETER ActualValue
     The actual value that was obtained in the test which should be verified against
@@ -99,20 +89,7 @@ function Should {
     )
 
     dynamicparam {
-        # Figuring out if we are using the old syntax is 'easy'
-        # we can use $myInvocation.Line to get the surrounding context
-        $myLine = if ($null -ne $MyInvocation -and 0 -le ($MyInvocation.OffsetInLine - 1)) {
-            $MyInvocation.Line.Substring($MyInvocation.OffsetInLine - 1)
-        }
-
-        # A bit of Regex lets us know if the line used the old form
-        if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)') {
-            $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
-            throw $shouldErrorMsg
-        }
-        else {
-            Get-AssertionDynamicParams
-        }
+        Get-AssertionDynamicParams
     }
 
     begin {
@@ -145,18 +122,22 @@ function Should {
             $shouldThrow = 'Stop' -eq $PSBoundParameters["ErrorAction"]
         }
 
+        # first check if we are in the context of Pester, if not we will always throw, and won't disable Should:
+        # This check is slightly hacky, here we are reaching out the caller session state and
+        # look for $______parameters which we know we are using inside of the Pester runtime to
+        # keep the current invocation context, when we find it, we are able to add non-terminating
+        # errors without throwing and terminating the test.
+        $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
+        $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
+
+        if ($isInsidePesterRuntime -and $pesterRuntimeInvocationContext.Configuration.Should.DisableV5.Value) {
+            throw "Pester Should -Be syntax is disabled. Use Should-Be (without space), or enable it by setting: `$PesterPreference.Should.DisableV5 = `$false"
+        }
+
         if ($null -eq $shouldThrow -or -not $shouldThrow) {
             # we are sure that we either:
             #    - should not throw because of explicit ErrorAction, and need to figure out a place where to collect the error
             #    - or we don't know what to do yet and need to figure out what to do based on the context and settings
-
-            # first check if we are in the context of Pester, if not we will always throw:
-            # this is slightly hacky, here we are reaching out the the caller session state and
-            # look for $______parameters which we know we are using inside of the Pester runtime to
-            # keep the current invocation context, when we find it, we are able to add non-terminating
-            # errors without throwing and terminating the test
-            $pesterRuntimeInvocationContext = $PSCmdlet.SessionState.PSVariable.GetValue('______parameters')
-            $isInsidePesterRuntime = $null -ne $pesterRuntimeInvocationContext
             if (-not $isInsidePesterRuntime) {
                 $shouldThrow = $true
             }
@@ -166,7 +147,7 @@ function Should {
                         $shouldThrow = $true
                     }
                     else {
-                        # ErrorAction was not specified explictily, figure out what to do from the configuration
+                        # ErrorAction was not specified explicitly, figure out what to do from the configuration
                         $shouldThrow = 'Stop' -eq $pesterRuntimeInvocationContext.Configuration.Should.ErrorAction.Value
                     }
                 }
@@ -258,8 +239,7 @@ function Invoke-Assertion {
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
     if (-not $testResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow)
-
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately

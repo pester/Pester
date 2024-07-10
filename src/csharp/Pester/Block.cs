@@ -40,7 +40,9 @@ namespace Pester
         public List<object> ErrorRecord { get; set; }
         public TimeSpan Duration { get => DiscoveryDuration + FrameworkDuration + UserDuration; }
 
-        public string Id { get; set; }
+        [Obsolete("Id is obsolete and should no longer be used. Use GroupId instead.")]
+        public string Id { get => GroupId; }
+        public string GroupId { get; set; }
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }
         public bool Skip { get; set; }
@@ -81,7 +83,6 @@ namespace Pester
         public Hashtable FrameworkData { get; set; } = new Hashtable();
         public Hashtable PluginData { get; set; } = new Hashtable();
 
-        public int PendingCount { get; set; }
         public int InconclusiveCount { get; set; }
 
         public bool OwnPassed { get; set; }
@@ -89,7 +90,6 @@ namespace Pester
         public int OwnPassedCount { get; set; }
         public int OwnFailedCount { get; set; }
         public int OwnSkippedCount { get; set; }
-        public int OwnPendingCount { get; set; }
         public int OwnNotRunCount { get; set; }
         public int OwnInconclusiveCount { get; set; }
 

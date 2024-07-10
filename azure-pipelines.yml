@@ -21,6 +21,7 @@ pr:
     include:
       - main
       - rel/*
+      - dev/*
   paths:
     exclude:
       - .devcontainer
@@ -51,7 +52,7 @@ stages:
           clean: all
         pool:
           vmImage: windows-2022
-        timeoutInMinutes: 3
+        timeoutInMinutes: 5
         steps:
           - checkout: self
             fetchDepth: 1
@@ -81,11 +82,11 @@ stages:
             PS7_Ubuntu_22_04:
               vmImage: ubuntu-22.04
               pwsh: true
-            PS7_macOS_11:
-              vmImage: macOS-11
-              pwsh: true
             PS7_macOS_12:
               vmImage: macOS-12
+              pwsh: true
+            PS7_macOS_13:
+              vmImage: macOS-13
               pwsh: true
             PS7_Windows_Server2019:
               vmImage: windows-2019
@@ -111,60 +112,13 @@ stages:
               targetType: inline
               pwsh: $(pwsh)
               script: |
-                & ./test.ps1 -CI -PassThru -NoBuild
+                & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
           - task: PublishCodeCoverageResults@1
             inputs:
               codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
-              pathToSources: 'src/'
-              failIfCoverageEmpty: false
-            condition: succeededOrFailed()
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFormat: 'NUnit'
-              testResultsFiles: 'testResults.xml'
-              failTaskOnFailedTests: true
-            condition: succeededOrFailed()
-        timeoutInMinutes: 20
-      - job:
-        workspace:
-          clean: all
-        strategy:
-          matrix:
-            PS3:
-              agent: 'ps3'
-              pwsh: false
-            PS4:
-              agent: 'ps4'
-              pwsh: false
-            PS6_2:
-              agent: 'ps6'
-              pwsh: true
-        pool:
-          name: Default
-          demands:
-            - agent.name -equals $(agent)
-        steps:
-          - checkout: none
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              buildType: 'current'
-              artifactName: 'all'
-              targetPath: '$(Build.SourcesDirectory)'
-          - task: PowerShell@2
-            displayName: 'Test Pester'
-            inputs:
-              targetType: 'inline'
-              pwsh: $(pwsh)
-              script: |
-                & ./test.ps1 -CI -PassThru -NoBuild
-              workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@1
-            inputs:
-              codeCoverageTool: 'JaCoCo'
-              summaryFileLocation: 'coverage.xml'
-              pathToSources: 'src/'
+              pathToSources: '$(Build.SourcesDirectory)/bin/'
               failIfCoverageEmpty: false
             condition: succeededOrFailed()
           - task: PublishTestResults@2

@@ -194,30 +194,20 @@ function Add-DataToContext ($Destination, $Data) {
     # which will become $_, and checks if the Data is
     # expandable, otherwise it just defines $_
 
-    if ($Data.Count -eq 0) {
-        $a = 10
-    }
     if (-not $Destination.ContainsKey("_")) {
         $Destination.Add("_", $Data)
     }
 
     if ($Data -is [Collections.IDictionary]) {
-        # only add non existing keys so in case of conflict
-        # the framework name wins, as if we had explicit parameters
-        # on a scriptblock, then the parameter would also win
-        foreach ($p in $Data.GetEnumerator()) {
-            if (-not $Destination.ContainsKey($p.Key)) {
-                $Destination.Add($p.Key, $p.Value)
-            }
-        }
+        Merge-Hashtable -Destination $Destination -Source $Data
     }
 }
 
 function Merge-Hashtable ($Source, $Destination) {
+    # only add non-existing keys so in case of conflict
+    # the framework name wins, as if we had explicit parameters
+    # on a scriptblock, then the parameter would also win
     foreach ($p in $Source.GetEnumerator()) {
-        # only add non existing keys so in case of conflict
-        # the framework name wins, as if we had explicit parameters
-        # on a scriptblock, then the parameter would also win
         if (-not $Destination.ContainsKey($p.Key)) {
             $Destination.Add($p.Key, $p.Value)
         }
@@ -344,7 +334,7 @@ function Fold-Block {
         foreach ($b in $Block) {
             $Accumulator = & $OnBlock $Block $Accumulator
             foreach ($test in $Block.Tests) {
-                $Accumulator = &$OnTest $test $Accumulator
+                $Accumulator = & $OnTest $test $Accumulator
             }
 
             foreach ($b in $Block.Blocks) {
@@ -392,5 +382,77 @@ function Fold-Run {
                 Fold-Container -Container $container -OnContainer $OnContainer -OnBlock $OnBlock -OnTest $OnTest -Accumulator $Accumulator
             }
         }
+    }
+}
+
+function Get-StringOptionErrorMessage {
+    param (
+        [Parameter(Mandatory)]
+        [string] $OptionPath,
+        [string[]] $SupportedValues = @(),
+        [string] $Value
+    )
+    $supportedValuesString = Join-Or ($SupportedValues -replace '^|$', "'")
+    return "$OptionPath must be $supportedValuesString, but it was '$Value'. Please review your configuration."
+}
+
+function Get-DictionaryValueFromFirstKeyFound {
+    param ([System.Collections.IDictionary] $Dictionary, [object[]] $Key)
+
+    foreach ($keyToTry in $Key) {
+        if ($Dictionary.Contains($keyToTry)) {
+            return $Dictionary[$keyToTry]
+        }
+    }
+}
+
+function Contain-AnyStringLike ($Filter, $Collection) {
+    foreach ($item in $Collection) {
+        foreach ($value in $Filter) {
+            if ($item -like $value) {
+                return $true
+            }
+        }
+    }
+    return $false
+}
+
+# TODO: Remove?
+function Recurse-Up {
+    param(
+        [Parameter(Mandatory)]
+        $InputObject,
+        [ScriptBlock] $Action
+    )
+
+    $i = $InputObject
+    $level = 0
+    while ($null -ne $i) {
+        &$Action $i
+
+        $level--
+        $i = $i.Parent
+    }
+}
+
+function View-Flat {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        $Block
+    )
+
+    begin {
+        $tests = [System.Collections.Generic.List[Object]]@()
+    }
+    process {
+        # TODO: normally I would output to pipeline but in fold there is accumulator and so it does not output
+        foreach ($b in $Block) {
+            Fold-Container $b -OnTest { param($t) $tests.Add($t) }
+        }
+    }
+
+    end {
+        $tests
     }
 }

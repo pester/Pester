@@ -23,8 +23,8 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
         }
 
-        # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs
-        It 'Description is defined' -Skip:($_.Name -match '^Assert-') {
+        # TODO: Missing on new Should-* assertions
+        It 'Description is defined' -Skip:($_.Name -match '^Should-') {
             # Property is missing if undefined
             $help.description | Should -Not -BeNullOrEmpty
         }
@@ -32,18 +32,20 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
         It 'Has link sections' {
             $help.psobject.properties.name -match 'relatedLinks' | Should -Not -BeNullOrEmpty -Because 'all exported functions should at least have link to online version as first Uri'
 
+            $functionName = $_.Name
+            $alias = Get-Alias -Name Should* | Where-Object { $_.Definition -eq $functionName }
+            $helpName = if ($alias) { $alias.Name } else { $help.Name }
+
             $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
-            $firstUri | Should -Be "https://pester.dev/docs/commands/$($help.Name)" -Because 'first uri-link should be to online version of this help topic'
+            $firstUri | Should -Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
         }
 
-        # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs
-        It 'Has at least one example' -Skip:($_.Name -match '^Assert-') {
+        It 'Has at least one example' {
             $help.Examples | Should -Not -BeNullOrEmpty
             $help.Examples.example | Where-Object { -not $_.Code.Trim() } | Foreach-Object { $_.title.Trim("- ") } | Should -Be @() -Because 'no examples should be empty'
         }
 
-        # Skipping Assert-MockCalled which are deprecated and missing docs
-        It 'All static parameters have description' -Skip:($_.Name -match '^Assert-MockCalled') {
+        It 'All static parameters have description' {
             $RiskMitigationParameters = 'Whatif', 'Confirm'
 
             if ($help.parameters) {
@@ -57,6 +59,23 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             else {
                 Set-ItResult -Skipped -Because 'no static parameters to test'
             }
+        }
+    }
+
+    Context 'Should operators' {
+        # Parameter help for Should -OperatorName .. . This is set using Set-ShouldOperatorHelpMessage
+        It 'All built-in operators have parameter help' {
+            $operatorParams = InPesterModuleScope {
+                $operators = $script:AssertionOperators.Keys
+                (Get-AssertionDynamicParams).Values | Where-Object name -in $operators
+            }
+
+            $parametersMissingHelp = @($operatorParams | Where-Object {
+                    $attr = $_.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
+                    $null -eq $attr -or $attr.HelpMessage -eq $null
+                } | ForEach-Object Name)
+
+            $parametersMissingHelp | Should -Be @() -Because "it it's required for Should's online docs"
         }
     }
 }

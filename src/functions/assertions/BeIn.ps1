@@ -1,4 +1,4 @@
-﻿function Should-BeIn($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+﻿function Should-BeInAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a collection of values contain a specific value.
@@ -16,28 +16,40 @@
 
     if (-not $succeeded) {
         if ($Negate) {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to not contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
+                ExpectResult           = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
         else {
-            return [PSCustomObject] @{
+            return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected collection $(Format-Nicely $ExpectedValue) to contain $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was not found."
+                ExpectResult           = @{
+                    Actual   = Format-Nicely $ActualValue
+                    Expected = Format-Nicely $ExpectedValue
+                    Because  = $Because
+                }
             }
         }
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded = $true
     }
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         BeIn `
-    -InternalName Should-BeIn `
-    -Test         ${function:Should-BeIn}
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeIn `
+    -InternalName Should-BeInAssertion `
+    -Test         ${function:Should-BeInAssertion}
 
+Set-ShouldOperatorHelpMessage -OperatorName BeIn `
+    -HelpMessage "Asserts that a collection of values contain a specific value. Uses PowerShell's -contains operator to confirm."
 
 function ShouldBeInFailureMessage() {
 }

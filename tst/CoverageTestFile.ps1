@@ -1,4 +1,4 @@
-# assingment needs to be shifted to the correct line and column
+# assignment needs to be shifted to the correct line and column
 # of parent, unless there is an if
 $a = 10
 $a = ((10))

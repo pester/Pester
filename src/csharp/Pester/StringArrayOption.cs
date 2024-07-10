@@ -25,32 +25,26 @@ namespace Pester
     {
         public StringArrayOption(StringArrayOption option, string[] value) : base(option, value)
         {
-
         }
 
         public StringArrayOption(string description, string[] defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public StringArrayOption(string description, string[] defaultValue, string[] value) : base(description, defaultValue, value)
         {
-
         }
 
         public StringArrayOption(string[] value) : base("", new string[0], value)
         {
-
         }
 
         public StringArrayOption(string value) : base("", new string[0], new string[] { value })
         {
-
         }
 
         public StringArrayOption(IList value) : base("", new string[0], GetStringArray(value))
         {
-
         }
 
         public static implicit operator StringArrayOption(string[] value)
@@ -79,7 +73,7 @@ namespace Pester
                 string path = values[i]?.ToString();
                 strings.Add(path);
             }
-            
+
             return strings.ToArray();
         }
     }

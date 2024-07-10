@@ -4,7 +4,7 @@
     RootModule        = 'Pester.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '5.4.0'
+    ModuleVersion     = '6.0.0'
 
     # ID used to uniquely identify this module
     GUID              = 'a699dea5-2c73-4616-a270-1f7abb777e71'
@@ -16,13 +16,13 @@
     CompanyName       = 'Pester'
 
     # Copyright statement for this module
-    Copyright         = 'Copyright (c) 2021 by Pester Team, licensed under Apache 2.0 License.'
+    Copyright         = 'Copyright (c) 2024 by Pester Team, licensed under Apache 2.0 License.'
 
     # Description of the functionality provided by this module
     Description       = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '3.0'
+    PowerShellVersion = '5.1'
 
     # Type files (.ps1xml) to be loaded when importing this module
     TypesToProcess    = @()
@@ -66,13 +66,55 @@
         'New-PesterContainer'
         'New-PesterConfiguration'
 
-        # legacy
-        'Assert-VerifiableMock'
-        'Assert-MockCalled'
-        'Set-ItResult'
-        'New-MockObject'
+        # assert
+        # bool
+        'Should-BeFalse'
+        'Should-BeTrue'
+        'Should-BeFalsy'
+        'Should-BeTruthy'
 
+        # collection
+        'Should-All'
+        'Should-Any'
+        'Should-ContainCollection'
+        'Should-NotContainCollection'
+        'Should-BeCollection'
+        'Should-BeEquivalent'
+        'Should-Throw'
+        'Should-Be'
+        'Should-BeGreaterThan'
+        'Should-BeGreaterThanOrEqual'
+        'Should-BeLessThan'
+        'Should-BeLessThanOrEqual'
+        'Should-NotBe'
+        'Should-NotBeNull'
+        'Should-NotBeSame'
+        'Should-NotHaveType'
+        'Should-BeNull'
+        'Should-BeSame'
+        'Should-HaveType'
+
+        # string
+        'Should-BeString'
+        'Should-NotBeString'
+
+        'Should-BeEmptyString'
+
+        'Should-NotBeWhiteSpaceString'
+        'Should-NotBeEmptyString'
+
+        'Should-BeLikeString'
+        'Should-NotBeLikeString'
+
+        'Should-BeFasterThan'
+        'Should-BeSlowerThan'
+        'Should-BeBefore'
+        'Should-BeAfter'
+
+        # helpers
+        'New-MockObject'
         'New-Fixture'
+        'Set-ItResult'
     )
 
     # # Cmdlets to export from this module
@@ -116,14 +158,14 @@
             LicenseUri   = "https://www.apache.org/licenses/LICENSE-2.0.html"
 
             # Release notes for this particular version of the module
-            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/5.4.0'
+            ReleaseNotes = 'https://github.com/pester/Pester/releases/tag/6.0.0-alpha4'
 
             # Prerelease string of this module
-            Prerelease   = ''
+            Prerelease   = 'alpha4'
         }
 
         # Minimum assembly version required
-        RequiredAssemblyVersion = '5.4.0'
+        RequiredAssemblyVersion = '6.0.0'
     }
 
     # HelpInfo URI of this module

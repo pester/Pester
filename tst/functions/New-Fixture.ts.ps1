@@ -1,6 +1,6 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
@@ -29,7 +29,7 @@ i -PassThru:$PassThru {
             try {
                 New-Fixture -Path $tempFolder -Name $name
 
-                $r = Invoke-Pester -Path $testsPath -PassThru
+                $r = Invoke-Pester -Path $testsPath -PassThru -Output None
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Failed"
                 $r.Containers[0].Blocks[0].Tests[0].ErrorRecord.Exception | Verify-Type ([System.NotImplementedException])
             }

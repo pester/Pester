@@ -1,10 +1,12 @@
 # Pester
 
-> 💵 I am spending most of my weekends making this happen. These release notes for example took multiple days to write and update. Consider sponsoring [me](https://github.com/sponsors/nohwnd) or sponsoring [Pester](https://opencollective.com/pester), please.
+> 💵 Please consider sponsoring [nohwnd](https://github.com/sponsors/nohwnd), [fflaten](https://github.com/sponsors/fflaten) or sponsoring [Pester](https://opencollective.com/pester) itself.
 
 > 🌵 Documentation is available at [https://pester.dev/docs/quick-start](https://pester.dev/docs/quick-start).
 
 > 📦🔐 Pester is now signed. `-SkipPublisherCheck` should no longer be used to install from PowerShell Gallery on Windows 10.
+
+> 📦🔐 Upgrading to 5.6.0 will show a "certificate changed" error, this is because a change in Root Certificate, and you have to specify `-SkipPublisherCheck` to update. [More info below.](#signing-certificates)
 
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
 > There is also [contributor's guide](https://pester.dev/docs/contributing/introduction) that will hopefully help you.
@@ -67,7 +69,7 @@ The example above also has an [annotated and production ready version here](docs
 
 ## Installation
 
-Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 3, 4, 5, 6 and 7.
+Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 5.1 and PowerShell 7.2 and newer.
 
 Pester 3 comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
@@ -76,6 +78,25 @@ Install-Module -Name Pester -Force
 ```
 
 Not running Windows 10 or facing problems? See the [full installation and update guide](https://pester.dev/docs/introduction/installation).
+
+## Signing certificates
+
+The certificate used for signing the code has changed in 5.6.0. Error is shown when updating the module.
+Below is the list of the certificates you can expect to be used when importing the module (going back to 2016)
+
+Version|Authority|Thumbprint
+---|---|---
+6.0.0-alpha4+|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`147C2FD397677DC76DD198E83E7D9D234AA59D1A`
+5.6.0+|`CN=DigiCert Trusted G4 Code Signing RSA4096 SHA384 2021 CA1, O="DigiCert, Inc.", C=US`|`2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738`
+5.2.0 - 5.5.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`C7B0582906E5205B8399D92991694A614D0C0B22`
+4.10.0 - 5.1.1|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`7B9157664392D633EDA2C0248605C1C868EBDE43`
+4.4.3 - 4.9.0|`CN=DigiCert SHA2 Assured ID Code Signing CA, OU=www.digicert.com, O=DigiCert Inc, C=US`|`CC1168BAFCDA3B1A5E532DA87E80A4DD69BCAEB1`
+3.0.3 - 4.4.2|No Certificate Found|No Certificate Found
+3.4.0|`CN=Microsoft Windows Production PCA 2011, O=Microsoft Corporation, L=Redmond, S=Washington, C=US`|`71F53A26BB1625E466727183409A30D03D7923DF`
+
+In all cases, except for version 3.4.0 that was signed directly by Microsoft, the Authenticode issuer for certificate is `CN=Jakub Jareš, O=Jakub Jareš, L=Praha, C=CZ`.
+
+To successfully update the module when certificate changed, you need to provide `-SkipPublisherCheck` to the `Install-Module` command.
 
 ## Features
 
@@ -173,7 +194,6 @@ Pester is sponsored by [Octopus Deploy](https://octopus.com).
 <a href="https://octopus.com"><img src="https://octopus.com/images/company/OctopusDeploy-logo-RGB.svg" alt="Octopus deploy"  height="150"></a>
 
 As well as all the great folks on [OpenCollective](https://opencollective.com/pester) and [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors).
-
 
 ## Contributors
 

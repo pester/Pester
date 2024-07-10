@@ -24,42 +24,34 @@ namespace Pester
     {
         public ContainerInfoArrayOption(ContainerInfoArrayOption option, ContainerInfo[] value) : base(option, value)
         {
-
         }
 
         public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue) : base(description, defaultValue, defaultValue)
         {
-
         }
 
         public ContainerInfoArrayOption(string description, ContainerInfo[] defaultValue, ContainerInfo[] value) : base(description, defaultValue, value)
         {
-
         }
 
         public ContainerInfoArrayOption(object[] value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
         {
-
         }
 
         public ContainerInfoArrayOption(ContainerInfo[] value) : base("", new ContainerInfo[0], value)
         {
-
         }
 
         public ContainerInfoArrayOption(List<object> value) : base("", new ContainerInfo[0], value.Cast<ContainerInfo>().ToArray())
         {
-
         }
 
         public ContainerInfoArrayOption(List<ContainerInfo> value) : base("", new ContainerInfo[0], value.ToArray())
         {
-
         }
 
         public ContainerInfoArrayOption(ContainerInfo value) : this(new ContainerInfo[] { value })
         {
-
         }
 
         public static implicit operator ContainerInfoArrayOption(ContainerInfo[] value)

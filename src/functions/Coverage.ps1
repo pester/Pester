@@ -4,7 +4,7 @@
         [object[]] $CodeCoverage,
         [ScriptBlock] $Logger,
         [bool] $UseSingleHitBreakpoints = $true,
-        [bool] $UseBreakpoints = $true
+        [bool] $UseBreakpoints = $false
     )
 
     if ($null -ne $logger) {
@@ -151,6 +151,7 @@ function New-CoverageInfo {
     }
 }
 
+# TODO: Remove this and other code related to hashtable syntax?
 function Get-CoverageInfoFromDictionary {
     param ([System.Collections.IDictionary] $Dictionary)
 
@@ -166,6 +167,10 @@ function Get-CoverageInfoFromDictionary {
     $includeTests = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'IncludeTests'
     $recursePaths = Get-DictionaryValueFromFirstKeyFound -Dictionary $Dictionary -Key 'RecursePaths'
 
+    # TODO: Implement or remove the IDictionary config logic from CodeCoverage
+    # Quick fix for https://github.com/pester/Pester/issues/2514 until CodeCoverage config logic is updated
+    if ($null -eq $includeTests) { $includeTests = $PesterPreference.CodeCoverage.ExcludeTests.Value -ne $true }
+
     $startLine = Convert-UnknownValueToInt -Value $startLine -DefaultValue 0
     $endLine = Convert-UnknownValueToInt -Value $endLine -DefaultValue 0
     [bool] $includeTests = Convert-UnknownValueToInt -Value $includeTests -DefaultValue 0
@@ -174,6 +179,7 @@ function Get-CoverageInfoFromDictionary {
     return New-CoverageInfo -Path $path -StartLine $startLine -EndLine $endLine -Class $class -Function $function -IncludeTests $includeTests -RecursePaths $recursePaths
 }
 
+# TODO: Remove or move til Utility?
 function Convert-UnknownValueToInt {
     param ([object] $Value, [int] $DefaultValue = 0)
 
@@ -246,7 +252,7 @@ function Get-CodeCoverageFilePaths {
             Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
         }
         elseif (-not $item.PsIsContainer) {
-            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documenatation and so on when using "folder/*" wildcard
+            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documentation and so on when using "folder/*" wildcard
             # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
         }
     }
@@ -674,7 +680,7 @@ function Get-CoverageReport {
     if ($null -ne $Measure) {
 
         # re-key the measures to use columns that are corrected for BP placement
-        # also 1 column in tracer can map to multiple columns for BP, when there are assignements, so expand them
+        # also 1 column in tracer can map to multiple columns for BP, when there are assignments, so expand them
         $bpm = @{}
         foreach ($path in $Measure.Keys) {
             $lines = @{}
@@ -815,7 +821,7 @@ function Get-JaCoCoReportXml {
 
     $isGutters = "CoverageGutters" -eq $Format
 
-    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    if ($null -eq $CoverageReport -or ('None' -eq $pester.Show) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return [string]::Empty
     }
 
@@ -1350,9 +1356,18 @@ function Start-TraceScript ($Breakpoints) {
     }
 
     if (-not $registered) {
-        $patched = $true
-        [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
-        Set-PSDebug -Trace 1
+
+        # detect if code coverage is enabled throuh Pester tracer, and in that case just add us as a second tracer
+        if (1 -eq $env:PESTER_CC_IN_CC -and [Pester.Tracing.Tracer]::ShouldRegisterTracer($tracer, <# overwrite: #> $false)) {
+            $patched = $false
+            $registered = $true
+            [Pester.Tracing.Tracer]::Register($tracer)
+        }
+        else {
+            $patched = $true
+            [Pester.Tracing.Tracer]::Patch($PSVersionTable.PSVersion.Major, $ExecutionContext, $host.UI, $tracer)
+            Set-PSDebug -Trace 1
+        }
     }
 
     # true if we patched powershell and have to unpatch it later,
@@ -1363,15 +1378,28 @@ function Start-TraceScript ($Breakpoints) {
 function Stop-TraceScript {
     param ([bool] $Patched)
 
-    # if profiler is imported and running and in that case just remove us as a second tracer
-    # to not disturb the profiling session
+    # if we patched powershell we need to unpatch it, if we did not patch it, then we need to unregister ourselves because we are the second tracer.
     if ($Patched) {
-        Set-PSDebug -Trace 0
+        $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
         [Pester.Tracing.Tracer]::Unpatch()
     }
     else {
+        # Stop tracing so we don't record Unregister
+        $corruptionAutodetectionVariable = Set-PSDebug -Trace 0
+        # This variable name is used to detect if the tracer was broken, we cannot use comments because they are not part of the ast Extent.Text
+        # Assigning it here to null, because otherwise it gives warning about not being used.
+        $null = $corruptionAutodetectionVariable
+        # detect if profiler is imported, if yes, unregister us from Profiler (because we are profiling Pester)
         $profilerType = "Profiler.Tracer" -as [Type]
-        $profilerType::Unregister()
+        if ($null -ne $profilerType) {
+            $profilerType::Unregister()
+        }
+        elseif (1 -eq $env:PESTER_CC_IN_CC) {
+            # we are not profiling we are running code coverage in code coverage
+            [Pester.Tracing.Tracer]::Unregister()
+        }
+        # start tracing again so the other tracer can continue
+        Set-PSDebug -Trace 1
     }
 }
 

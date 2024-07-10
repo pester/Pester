@@ -7,10 +7,11 @@ InPesterModuleScope {
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             function Invoke-DummyFunction {
                 param(
-                    [Parameter(Mandatory = $true)]
+                    [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
                     $MandatoryParam,
 
+                    [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
                     [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
@@ -62,10 +63,11 @@ InPesterModuleScope {
         else {
             function Invoke-DummyFunction {
                 param(
-                    [Parameter(Mandatory = $true)]
+                    [Parameter(Mandatory = $true, ParameterSetName = 'PrimarySet')]
                     [Alias('First', 'Another')]
                     $MandatoryParam,
 
+                    [Parameter(ParameterSetName = 'PrimarySet')]
                     [ValidateNotNullOrEmpty()]
                     [DateTime]$ParamWithNotNullOrEmptyValidation = (Get-Date),
 
@@ -154,6 +156,27 @@ InPesterModuleScope {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -DefaultValue $ExpectedValue
         }
 
+        It 'supports validating parameters and default values in functions without param block' {
+            function simple ($param1, $param2 = '123') { }
+            Get-Command simple | Should -HaveParameter 'param2' -DefaultValue '123'
+        }
+
+        It 'supports validating parameters and default values in scripts' {
+            Set-Content -Path 'TestDrive:\ShouldHaveParameterTestFile.ps1' -Value 'param([int]$RetryCount = 3)'
+            Get-Command 'TestDrive:\ShouldHaveParameterTestFile.ps1' | Should -HaveParameter RetryCount -DefaultValue 3 -Type [int]
+        }
+
+        It "passes if the paramblock has opening parenthesis on new line and parameter has a default value" {
+            function Test-Paramblock {
+                param
+                (
+                    $Name = 'test'
+                )
+            }
+
+            Get-Command -Name 'Test-Paramblock' | Should -HaveParameter -ParameterName 'Name' -DefaultValue 'test'
+        }
+
         It "passes if the parameter <ParameterName> exists, is of type <ExpectedType> and has a default value '<ExpectedValue>'" -TestCases @(
             @{ParameterName = "ParamWithNotNullOrEmptyValidation"; ExpectedType = [DateTime]; ExpectedValue = "(Get-Date)" }
             @{ParameterName = "ParamWithScriptValidation"; ExpectedType = [String]; ExpectedValue = "." }
@@ -163,6 +186,11 @@ InPesterModuleScope {
             }
         ) {
             Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue
+        }
+
+        It 'parameter DefaultValue works when command is provided using resolvable alias' {
+            Set-Alias -Name dummyalias -Value Invoke-DummyFunction
+            Get-Command dummyalias | Should -HaveParameter ParamWithScriptValidation -DefaultValue "."
         }
 
         It "passes if the parameter MandatoryParam has an alias 'First'" {
@@ -257,6 +285,11 @@ InPesterModuleScope {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter $ParameterName -Type $ExpectedType -DefaultValue $ExpectedValue } | Verify-AssertionFailed
         }
 
+        It 'fails if the parameter DefaultValue is used with a binary cmdlet' {
+            $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValue $False } | Verify-Throw
+            $err.Exception.Message | Verify-Equal 'Using -DefaultValue is only supported for functions and scripts.'
+        }
+
         It "fails if the parameter MandatoryParam has no alias 'Second'" {
             { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second } | Verify-AssertionFailed
         }
@@ -269,6 +302,19 @@ InPesterModuleScope {
         It "fails and returns the correct message if the parameter MandatoryParam has no alias 'Second' and no alias 'Third'" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter MandatoryParam -Alias Second, Third } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter MandatoryParam, with aliases 'Second' and 'Third', but it didn't have the aliases 'Second' and 'Third'."
+        }
+
+        It "throws ArgumentException when expected type isn't a loaded type" {
+            $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter MandatoryParam -Type UnknownType } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
+            # Verify expected type is included in error message
+            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
+        }
+
+        It "throws ArgumentException when provided ApplicationInfo-object as input value" {
+            $err = { Get-Command 'hostname' | Should -HaveParameter MandatoryParam } | Verify-Throw
+            $err.Exception | Verify-Type ([ArgumentException])
+            $err.Exception.Message | Verify-Equal 'Input value can not be an ApplicationInfo object.'
         }
 
         if ($PSVersionTable.PSVersion.Major -ge 5) {
@@ -299,11 +345,75 @@ InPesterModuleScope {
             $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan] and the default value to be 'wrong value', because of reasons, but it wasn't mandatory, it was of type [System.DateTime] and the default value was '(Get-Date)'."
         }
 
+        It 'passes when object parameter has default parameter value $null' {
+            function Test-Parameter {
+                param ( [Parameter()] [object] $objParam = $null )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'objParam' -Type 'object' -DefaultValue $null
+        }
+
+        It 'passes when integer parameter has default parameter value 0' {
+            function Test-Parameter {
+                param ( [Parameter()] [int] $intParam = 0 )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'intParam' -Type 'int' -DefaultValue 0
+        }
+
+        It 'passes when bool parameter has default parameter value $true' {
+            function Test-Parameter {
+                param ( [Parameter()] [bool] $boolParam = $true )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'boolParam' -Type 'bool' -DefaultValue $true
+        }
+
+        It 'passes when bool parameter has default parameter value $false' {
+            function Test-Parameter {
+                param ( [Parameter()] [bool] $boolParam = $false )
+            }
+
+            Get-Command Test-Parameter | Should -HaveParameter 'boolParam' -Type 'bool' -DefaultValue $false
+        }
+
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
             }
+        }
+
+        Context 'Using InParameterSet' {
+            It "passes if parameter <ParameterName> exist in parameter set <ParameterSetName>" -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName
+            }
+
+            It 'passes if parameter <ParameterName> exist in parameter set <ParameterSetName> and is mandatory' -TestCases @(
+                @{ParameterName = 'MandatoryParam'; ParameterSetName = 'PrimarySet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName -Mandatory
+            }
+
+            It 'fails if parameter <ParameterName> does not exist at all or not in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'NonExistingParam'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'NonExistingSet' }
+                @{ParameterName = 'ParamWithScriptValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter $ParameterName in parameter set $ParameterSetName, but the parameter is missing."
+            }
+
+            It 'fails if parameter <ParameterName> exists in parameter set <ParameterSetName> but is not mandatory' -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -HaveParameter $ParameterName -InParameterSet $ParameterSetName -Mandatory } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter $ParameterName in parameter set $ParameterSetName, which is mandatory, but it wasn't mandatory."
+            }
+
+            # -InParameterSet only affects if parameter exist and -Mandatory atm. Only appends a filter in the error for the remaining options
         }
     }
 
@@ -474,5 +584,47 @@ InPesterModuleScope {
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName, not of type [$ExpectedType], the default value not to be '$ExpectedValue' and has ArgumentCompletion, because of reasons, but it was of type [$ExpectedType], the default value was '$ExpectedValue' and has ArgumentCompletion."
             }
         }
+
+        Context 'Using InParameterSet' {
+            It 'passes if parameter <ParameterName> does not exist at all or not in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'NonExistingParam'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithScriptValidation'; ParameterSetName = 'PrimarySet' }
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'NonExistingSet' }
+            ) {
+                Get-Command 'Invoke-DummyFunction' | Should -Not -HaveParameter $ParameterName -InParameterSet $ParameterSetName
+            }
+
+            It 'fails if parameter <ParameterName> exist in parameter set <ParameterSetName>' -TestCases @(
+                @{ParameterName = 'ParamWithNotNullOrEmptyValidation'; ParameterSetName = 'PrimarySet' }
+            ) {
+                $err = { Get-Command 'Invoke-DummyFunction' | Should -Not -HaveParameter $ParameterName -InParameterSet $ParameterSetName } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter $ParameterName in parameter set $ParameterSetName, but the parameter exists."
+            }
+
+            # -Not -HaveParameter only supports parameter existing atm. Extend when not mandatory etc is possible.
+        }
+    }
+}
+
+Describe 'Using Should -HaveParameter with alias for local function or mock' {
+    # https://github.com/pester/Pester/issues/1431
+    It 'throws when testing mock without workaround' {
+        function TestFunction($Parameter1) { }
+        Mock TestFunction {}
+
+        { Get-Command TestFunction | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for mock TestFunction. This is a known issue with Get-Command in PowerShell. Try 'Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction | Where-Object Parameters | Should -HaveParameter 'Parameter1'
+    }
+
+    It 'throws when testing alias for function defined in local script scope' {
+        function TestFunction2($Parameter1) { }
+        Set-Alias -Name LocalAlias -Value TestFunction2
+
+        { Get-Command LocalAlias | Should -HaveParameter 'Parameter1' } | Should -Throw -ExpectedMessage "Could not retrieve parameters for alias LocalAlias. This is a known issue with Get-Command in PowerShell. Try using the actual command name. For example: 'Get-Command TestFunction2 | Should -HaveParameter ...'"
+
+        # Verify it works with suggested workaround
+        Get-Command TestFunction2 | Should -HaveParameter 'Parameter1'
     }
 }

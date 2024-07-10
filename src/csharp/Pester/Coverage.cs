@@ -20,9 +20,9 @@ namespace Pester
         public long CommandsMissedCount { get; set; }
         public long FilesAnalyzedCount { get; set; }
 
-        public List<object> CommandsMissed = new List<object>();
-        public List<object> CommandsExecuted = new List<object>();
-        public List<object> FilesAnalyzed = new List<object>();
+        public List<object> CommandsMissed = new();
+        public List<object> CommandsExecuted = new();
+        public List<object> FilesAnalyzed = new();
 
         public override string ToString()
         {

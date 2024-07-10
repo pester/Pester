@@ -1,10 +1,5 @@
 ﻿Set-StrictMode -Version Latest
 
-#TODO: skipped pending and inconclusive test results are not implemented yet
-return
-
-
-
 Describe "Testing Set-ItResult" {
     It "This test should be inconclusive" {
         try {
@@ -12,15 +7,6 @@ Describe "Testing Set-ItResult" {
         }
         catch {
             $_.FullyQualifiedErrorID | Should -Be "PesterTestInconclusive"
-        }
-    }
-
-    It "This test should be pending" {
-        try {
-            Set-ItResult -Pending -Because "we are forcing it to pending"
-        }
-        catch {
-            $_.FullyQualifiedErrorID | Should -Be "PesterTestPending"
         }
     }
 

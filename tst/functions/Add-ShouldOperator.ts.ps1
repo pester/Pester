@@ -1,6 +1,6 @@
 ﻿param ([switch] $PassThru, [switch] $NoBuild)
 
-Get-Module Pester.Runtime, Pester.Utility, P, Pester, Axiom, Stack | Remove-Module
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\..\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\..\axiom\Axiom.psm1 -DisableNameChecking
@@ -70,34 +70,24 @@ i -PassThru:$PassThru {
         }
     }
 
-    b 'HelpMessage for Should operators' {
+    b 'HelpMessage for built-in Should operators' {
         Get-Module Pester | Remove-Module
         Import-Module "$PSScriptRoot\..\..\bin\Pester.psd1"
         ${function:Add-ShouldOperator} = & (Get-Module Pester) { Get-Command Add-ShouldOperator }
+        ${function:Set-ShouldOperatorHelpMessage} = & (Get-Module Pester) { Get-Command Set-ShouldOperatorHelpMessage }
 
-        t 'Adds empty HelpMessage for Should operator without synopsis' {
-            function WithoutSynopsis {
-                param($ActualValue, $Param1)
+        t 'Adds HelpMessage for Should operator' {
+            function HelpMessageAssertion {
                 $true
             }
 
-            Add-ShouldOperator -Name WithoutSynopsis -Test $function:WithoutSynopsis
-            (Get-Command -Name Should).Parameters['WithoutSynopsis'].ParameterSets['WithoutSynopsis'].HelpMessage | Verify-Null
+            Add-ShouldOperator -Name HelpMessageAssertion -Test $function:HelpMessageAssertion
+            Set-ShouldOperatorHelpMessage -OperatorName HelpMessageAssertion -HelpMessage 'Here I am'
+            (Get-Command -Name Should).Parameters['HelpMessageAssertion'].ParameterSets['HelpMessageAssertion'].HelpMessage | Verify-Equal 'Here I am'
         }
 
-        t 'Adds HelpMessage for Should operator with synopsis' {
-            function WithSynopsis {
-                <#
-                .SYNOPSIS
-                    Here I am
-                .DESCRIPTION
-                    Longer description
-                #>
-                $true
-            }
-
-            Add-ShouldOperator -Name WithSynopsis -Test $function:WithSynopsis
-            (Get-Command -Name Should).Parameters['WithSynopsis'].ParameterSets['WithSynopsis'].HelpMessage | Verify-Equal 'Here I am'
+        t 'Throws when invalid operatorname is provided' {
+            { Set-ShouldOperatorHelpMessage -OperatorName MissingAssertion -HelpMessage 'I am not here' } | Verify-Throw
         }
     }
 }

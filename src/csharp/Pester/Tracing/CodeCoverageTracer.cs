@@ -8,8 +8,8 @@ namespace Pester.Tracing
 {
     public class CodeCoverageTracer : ITracer
     {
-        bool _debug;
-        string _debugFile;
+        private readonly bool _debug;
+        private readonly string _debugFile;
 
         public static CodeCoverageTracer Create(List<CodeCoveragePoint> points)
         {
@@ -41,7 +41,6 @@ namespace Pester.Tracing
                     var pointsOnLineAndColumn = hits[key];
                     pointsOnLineAndColumn.Add(point);
                 }
-
             }
         }
 
@@ -49,7 +48,7 @@ namespace Pester.Tracing
         // keyed as path -> line:column -> CodeCoveragePoint
         public Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>> Hits { get; } = new Dictionary<string, Dictionary<string, List<CodeCoveragePoint>>>(StringComparer.OrdinalIgnoreCase);
 
-        public void Trace(string message, IScriptExtent extent, ScriptBlock _, int __)
+        public void Trace(string message, IScriptExtent extent, ScriptBlock _, int __, string ___, string ____)
         {
             if (_debug && extent?.File != null && CultureInfo.InvariantCulture.CompareInfo.IndexOf(extent.File, _debugFile, CompareOptions.OrdinalIgnoreCase) >= 0)
             {
@@ -67,7 +66,6 @@ namespace Pester.Tracing
                     }
                     Console.WriteLine($"DBG: {message?.Trim()}");
                     Console.WriteLine($"EXP: {extent.File}:{extent.StartLineNumber}:{extent.StartColumnNumber}:{extent.Text}");
-
                 }
                 finally
                 {
@@ -85,7 +83,6 @@ namespace Pester.Tracing
             if (!lineColumn.ContainsKey(key2))
                 return;
 
-
             var points = lineColumn[key2];
             if (points.TrueForAll(a => a.Hit))
             {
@@ -102,5 +99,13 @@ namespace Pester.Tracing
 
             lineColumn[key2] = points;
         }
+
+#pragma warning disable IDE0060
+        // Profiler v3.1 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock scriptBlock, int level) => Trace(null, extent, scriptBlock, level, null, null);
+
+        // Profiler v4 compatible overload
+        public void Trace(IScriptExtent extent, ScriptBlock scriptBlock, int level, string functionName, string moduleName) => Trace(null, extent, scriptBlock, level, functionName, moduleName);
+#pragma warning restore IDE0060
     }
 }

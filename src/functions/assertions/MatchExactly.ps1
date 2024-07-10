@@ -1,4 +1,4 @@
-﻿function Should-MatchExactly($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
+﻿function Should-MatchExactlyAssertion($ActualValue, $RegularExpression, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Uses a regular expression to compare two objects.
@@ -24,18 +24,25 @@
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
-        }
-        else {
-            $failureMessage = ShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
+    }
+    else {
+        $failureMessage = ShouldMatchExactlyFailureMessage -ActualValue $ActualValue -RegularExpression $RegularExpression -Because $Because
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = $RegularExpression
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -47,7 +54,10 @@ function NotShouldMatchExactlyFailureMessage($ActualValue, $RegularExpression) {
     return "Expected regular expression $(Format-Nicely $RegularExpression) to not case sensitively match $(Format-Nicely $ActualValue),$(Format-Because $Because) but it did match."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         MatchExactly `
-    -InternalName Should-MatchExactly `
-    -Test         ${function:Should-MatchExactly} `
+& $script:SafeCommands['Add-ShouldOperator'] -Name MatchExactly `
+    -InternalName Should-MatchExactlyAssertion `
+    -Test         ${function:Should-MatchExactlyAssertion} `
     -Alias        'CMATCH'
+
+Set-ShouldOperatorHelpMessage -OperatorName MatchExactly `
+    -HelpMessage 'Uses a regular expression to compare two objects. This comparison is case sensitive.'

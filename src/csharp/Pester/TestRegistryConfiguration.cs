@@ -12,17 +12,14 @@ namespace Pester
         {
             return Cloner.ShallowClone(configuration);
         }
-        public TestRegistryConfiguration() : base("TestRegistry configuration.")
+        public TestRegistryConfiguration() : base("Options to configure the TestRegistry feature. TestRegistry is only available on Windows-systems.")
         {
             Enabled = new BoolOption("Enable TestRegistry.", true);
         }
 
         public TestRegistryConfiguration(IDictionary configuration) : this()
         {
-            if (configuration != null)
-            {
-                configuration.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
-            }
+            configuration?.AssignValueIfNotNull<bool>(nameof(Enabled), v => Enabled = v);
         }
 
         public BoolOption Enabled

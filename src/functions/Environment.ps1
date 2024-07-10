@@ -8,13 +8,13 @@ function GetPesterOs {
     if ((GetPesterPsVersion) -lt 6) {
         'Windows'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'Ignore' -ValueOnly ) {
         'Windows'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsMacOS' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsMacOS' -ErrorAction 'Ignore' -ValueOnly ) {
         'macOS'
     }
-    elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'SilentlyContinue' -ValueOnly ) {
+    elseif (& $SafeCommands['Get-Variable'] -Name 'IsLinux' -ErrorAction 'Ignore' -ValueOnly ) {
         'Linux'
     }
     else {
@@ -33,10 +33,16 @@ function Get-TempDirectory {
 }
 
 function Get-TempRegistry {
+    # The Pester root key is created once and then stays in place.
+    # In TestDrive we use system Temp folder, but such key exists for registry so we create our own.
+    # Removing it would cleanup remaining keys from cancelled runs, but could break parallell or nested runs, so leaving it
+
     $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
     try {
         # Test-Path returns true and doesn't throw access denied when path exists but user missing permission unless -PathType Container is used
         if (-not (& $script:SafeCommands['Test-Path'] $pesterTempRegistryRoot -PathType Container -ErrorAction Stop)) {
+            # Don't use -Force parameter here because that deletes the folder and creates a race condition see
+            # https://github.com/pester/Pester/issues/1181
             $null = & $SafeCommands['New-Item'] -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
     }

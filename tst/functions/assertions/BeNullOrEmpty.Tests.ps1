@@ -33,6 +33,11 @@ InPesterModuleScope {
             $err = { 1 | Should -BeNullOrEmpty -Because 'reason' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal 'Expected $null or empty, because reason, but got 1.'
         }
+
+        It 'returns the correct assertion message for single string' {
+            $err = { 'empty' | Should -BeNullOrEmpty -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal 'Expected $null or empty, because reason, but got ''empty''.'
+        }
     }
 
     Describe "Should -Not -BeNullOrEmpty" {

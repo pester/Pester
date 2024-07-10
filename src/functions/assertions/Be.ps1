@@ -1,5 +1,5 @@
 #Be
-function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Compares one object with another for equality
@@ -26,18 +26,23 @@ function Should-Be ($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Be
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
-        }
-        else {
-            $failureMessage = ShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
+    }
+    else {
+        $failureMessage = ShouldBeFailureMessage -ActualValue $ActualValue -Expected $ExpectedValue -Because $Because
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -63,14 +68,17 @@ function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               Be `
-    -InternalName       Should-Be `
-    -Test               ${function:Should-Be} `
+& $script:SafeCommands['Add-ShouldOperator'] -Name Be `
+    -InternalName       Should-BeAssertion `
+    -Test               ${function:Should-BeAssertion} `
     -Alias              'EQ' `
     -SupportsArrayInput
 
+Set-ShouldOperatorHelpMessage -OperatorName Be `
+    -HelpMessage 'Compares one object with another for equality and throws if the two objects are not the same.'
+
 #BeExactly
-function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
+function Should-BeAssertionExactly($ActualValue, $ExpectedValue, $Because) {
     <#
     .SYNOPSIS
     Compares one object with another for equality and throws if the
@@ -96,18 +104,23 @@ function Should-BeExactly($ActualValue, $ExpectedValue, $Because) {
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
-        }
-        else {
-            $failureMessage = ShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
+    }
+    else {
+        $failureMessage = ShouldBeExactlyFailureMessage -ActualValue $ActualValue -ExpectedValue $ExpectedValue -Because $Because
     }
 
-    return [PSCustomObject] @{
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -133,12 +146,14 @@ function NotShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got exactly the same value."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               BeExactly `
-    -InternalName       Should-BeExactly `
-    -Test               ${function:Should-BeExactly} `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeExactly `
+    -InternalName       Should-BeAssertionExactly `
+    -Test               ${function:Should-BeAssertionExactly} `
     -Alias              'CEQ' `
     -SupportsArrayInput
 
+Set-ShouldOperatorHelpMessage -OperatorName BeExactly `
+    -HelpMessage 'Compares one object with another for equality and throws if the two objects are not the same. This comparison is case sensitive.'
 
 #common functions
 function Get-CompareStringMessage {
@@ -193,7 +208,7 @@ function Get-CompareStringMessage {
         }
 
         # find the difference in the string with expanded characters, this is the fastest and most foolproof way of
-        # getting the updated difference index. we could also inspect the new string and try to find every occurence
+        # getting the updated difference index. we could also inspect the new string and try to find every occurrence
         # of special character before the difference index, but '\n' is valid piece of string
         # or inspect the original string, but then we need to make sure that we look for all the special characters.
         # instead we just compare it again.

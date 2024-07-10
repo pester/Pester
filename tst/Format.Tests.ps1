@@ -34,6 +34,13 @@ Describe "Format-Collection" {
     ) {
         Format-Collection -Value $Value | Verify-Equal $Expected
     }
+
+    It 'Formats an ICollection' -TestCases @(
+        @{ Value = ([ordered]@{ 'a' = $true; 'b' = $true }).Keys; Expected = "@('a', 'b')" }
+    ) {
+        # https://github.com/pester/Pester/discussions/2263
+        Format-Collection -Value $Value | Verify-Equal $Expected
+    }
 }
 
 Describe "Format-Number" {

@@ -1,4 +1,4 @@
-﻿function Should-FileContentMatchMultilineExactly($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
+﻿function Should-FileContentMatchMultilineExactlyAssertion($ActualValue, $ExpectedContent, [switch] $Negate, [String] $Because) {
     <#
     .SYNOPSIS
     As opposed to FileContentMatch and FileContentMatchExactly operators,
@@ -60,9 +60,16 @@
         }
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = $ExpectedContent
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -74,6 +81,9 @@ function NotShouldFileContentMatchMultilineExactlyFailureMessage($ActualValue, $
     return "Expected $(Format-Nicely $ExpectedContent) to not be case sensitively found in file $(Format-Nicely $ActualValue),$(Format-Because $Because) but it was found."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name         FileContentMatchMultilineExactly `
-    -InternalName Should-FileContentMatchMultilineExactly `
-    -Test         ${function:Should-FileContentMatchMultilineExactly}
+& $script:SafeCommands['Add-ShouldOperator'] -Name FileContentMatchMultilineExactly `
+    -InternalName Should-FileContentMatchMultilineExactlyAssertion `
+    -Test         ${function:Should-FileContentMatchMultilineExactlyAssertion}
+
+Set-ShouldOperatorHelpMessage -OperatorName FileContentMatchMultilineExactly `
+    -HelpMessage "As opposed to FileContentMatch and FileContentMatchExactly operators, FileContentMatchMultilineExactly presents content of the file being tested as one string object, so that the case sensitive expression you are comparing it to can consist of several lines.`n`nWhen using FileContentMatchMultilineExactly operator, '^' and '$' represent the beginning and end of the whole file, instead of the beginning and end of a line."

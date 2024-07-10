@@ -1,5 +1,5 @@
 ﻿
-function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string] $Because) {
+function Should-BeNullOrEmptyAssertion($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Checks values for null or empty (strings).
@@ -30,6 +30,7 @@ function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string
     }
     elseif ($ActualValue.Count -eq 1) {
         $expandedValue = $ActualValue[0]
+        $singleValue = $true
         if ($expandedValue -is [hashtable]) {
             $succeeded = $expandedValue.Count -eq 0
         }
@@ -47,18 +48,26 @@ function Should-BeNullOrEmpty([object[]] $ActualValue, [switch] $Negate, [string
 
     $failureMessage = ''
 
-    if (-not $succeeded) {
-        if ($Negate) {
-            $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
-        }
-        else {
-            $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $ActualValue -Because $Because
-        }
+    if ($true -eq $succeeded) { return [Pester.ShouldResult]@{ Succeeded = $succeeded } }
+
+    if ($Negate) {
+        $failureMessage = NotShouldBeNullOrEmptyFailureMessage -Because $Because
+    }
+    else {
+        $valueToFormat = if ($singleValue) { $expandedValue } else { $ActualValue }
+        $failureMessage = ShouldBeNullOrEmptyFailureMessage -ActualValue $valueToFormat -Because $Because
     }
 
-    return [PSCustomObject] @{
+    $ExpectedValue = if ($Negate) { '$null or empty' } else { 'a value' }
+
+    return [Pester.ShouldResult] @{
         Succeeded      = $succeeded
         FailureMessage = $failureMessage
+        ExpectResult   = @{
+            Actual   = Format-Nicely $ActualValue
+            Expected = Format-Nicely $ExpectedValue
+            Because  = $Because
+        }
     }
 }
 
@@ -70,7 +79,10 @@ function NotShouldBeNullOrEmptyFailureMessage ($Because) {
     return "Expected a value,$(Format-Because $Because) but got `$null or empty."
 }
 
-& $script:SafeCommands['Add-ShouldOperator'] -Name               BeNullOrEmpty `
-    -InternalName       Should-BeNullOrEmpty `
-    -Test               ${function:Should-BeNullOrEmpty} `
+& $script:SafeCommands['Add-ShouldOperator'] -Name BeNullOrEmpty `
+    -InternalName       Should-BeNullOrEmptyAssertion `
+    -Test               ${function:Should-BeNullOrEmptyAssertion} `
     -SupportsArrayInput
+
+Set-ShouldOperatorHelpMessage -OperatorName BeNullOrEmpty `
+    -HelpMessage "Checks values for null or empty (strings). The static [String]::IsNullOrEmpty() method is used to do the comparison."
