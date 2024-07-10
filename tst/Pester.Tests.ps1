@@ -244,6 +244,11 @@ InPesterModuleScope {
             ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
         }
 
+        It 'Deduplicates filepaths when the provided paths overlaps' {
+            $result = @(Find-File 'TestDrive:\*.ps1','TestDrive:\*.ps1' -Extension '.Tests.ps1')
+            $result.Count | Should -Be 2
+        }
+
         # It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
         #     $result = @(Find-File 'TestDrive:\SomeFile.ps1' -Extension ".Tests.ps1")
 
