@@ -65,7 +65,7 @@
     }
 
     # Deduplicate files if overlapping -Path values
-    $uniquePaths = [System.Collections.Generic.HashSet[string]]::new(@($files).Count)
+    $uniquePaths = & $SafeCommands['New-Object'] -TypeName 'System.Collections.Generic.HashSet[string]' -ArgumentList (,@($files).Count)
     $uniqueFiles = foreach ($f in $files) { if ($uniquePaths.Add($f.FullName)) { $f } }
     Filter-Excluded -Files $uniqueFiles -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
 }
