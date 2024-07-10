@@ -17,8 +17,7 @@ InPesterModuleScope {
 
 
     Describe "Format-Collection2" {
-        It "Formats empty collection to @()" -TestCases @(
-        ) {
+        It "Formats empty collection to @()" {
             Format-Collection2 -Value @() | Verify-Equal "@()"
         }
 
