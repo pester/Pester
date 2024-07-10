@@ -4,7 +4,9 @@ param (
     [String] $PsGalleryApiKey,
     [String] $NugetApiKey,
     [String] $ChocolateyApiKey,
-    [String] $CertificateThumbprint = '2FCC9148EC2C9AB951C6F9654C0D2ED16AF27738',
+    [String] $TenantId,
+    [String] $VaultUrl,
+    [String] $CertificateName,
     [Switch] $Force
 )
 
@@ -52,7 +54,7 @@ if ((Get-Item $bin/Pester.psm1).Length -lt 50KB) {
     throw "Module is too small, are you publishing non-inlined module?"
 }
 
-& "$PSScriptRoot/signModule.ps1" -Thumbprint $CertificateThumbprint -Path $bin
+& "$PSScriptRoot/signModule.ps1" -VaultUrl $VaultUrl -TenantId $TenantId -CertificateName $CertificateName -Path $bin
 
 $files = . "$PSScriptRoot/filesToPublish.ps1"
 
@@ -112,8 +114,23 @@ Get-ChildItem -Path $bin -Filter *.dll -Recurse | ForEach-Object {
 }
 
 & nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetDir -NoPackageAnalysis -version $version
-$nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
-& nuget sign $nupkg -CertificateFingerprint $CertificateThumbprint -Timestamper "http://timestamp.digicert.com"
+[string] $nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
+
+dotnet tool install --global NuGetKeyVaultSignTool
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to install NuGetKeyVaultSignTool"
+}
+
+Write-Host "Nuget path: $nupkg"
+NuGetKeyVaultSignTool sign -kvu $VaultUrl -kvm -kvc $CertificateName -kvt $TenantId -own "nohwnd,fflaten" -tr "http://timestamp.digicert.com" $nupkg
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to sign nupkg"
+}
+
+NuGetKeyVaultSignTool verify $nupkg
+if (0 -ne $LASTEXITCODE) {
+    throw "Failed to verify nupkg"
+}
 
 Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 
