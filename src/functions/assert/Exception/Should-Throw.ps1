@@ -52,11 +52,15 @@ function Should-Throw {
     param (
         [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
-        [Type]$ExceptionType,
+        [Parameter(Position = 0)]
         [String]$ExceptionMessage,
+        [Parameter(Position = 1)]
         [String]$FullyQualifiedErrorId,
-        [Switch]$AllowNonTerminatingError,
-        [String]$Because
+        [Parameter(Position = 2)]
+        [Type]$ExceptionType,
+        [Parameter(Position = 3)]
+        [String]$Because,
+        [Switch]$AllowNonTerminatingError
     )
 
     $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
