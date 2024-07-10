@@ -821,7 +821,7 @@ function Get-JaCoCoReportXml {
 
     $isGutters = "CoverageGutters" -eq $Format
 
-    if ($null -eq $CoverageReport -or ('None' -eq $pester.Show) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return [string]::Empty
     }
 
@@ -1057,7 +1057,7 @@ function Get-CoberturaReportXml {
         [long] $TotalMilliseconds
     )
 
-    if ($null -eq $CoverageReport -or ($pester.Show -eq [Pester.OutputTypes]::None) -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
+    if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return [string]::Empty
     }
 
