@@ -236,7 +236,7 @@ function Get-CodeCoverageFilePaths {
         }
     })
 
-    $uniqueFiles = [System.Collections.Generic.HashSet[string]]::new($filteredFiles)
+    $uniqueFiles = & $SafeCommands['New-Object'] -TypeName 'System.Collections.Generic.HashSet[string]' -ArgumentList (,$filteredFiles)
     return $uniqueFiles
 }
 
