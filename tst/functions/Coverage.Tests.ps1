@@ -473,7 +473,7 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
-                <!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">
+                <!DOCTYPE coverage SYSTEM "coverage-loose.dtd">
                 <coverage lines-valid="16" lines-covered="14" line-rate="0.875" branches-valid="0"
                     branches-covered="0" branch-rate="1" timestamp="" version="0.1">
                     <sources>
