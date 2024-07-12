@@ -45,8 +45,7 @@ Describe "Should-BeBefore" {
         { [DateTime]::Now.Add([timespan]::FromMinutes(20)) | Should-BeBefore } | Verify-AssertionFailed
     }
 
-    It "Throws when both -Ago and -FromNow are used" -ForEach @(
-    ) {
+    It "Throws when both -Ago and -FromNow are used" {
         { $Actual | Should-BeBefore 10minutes -Ago -FromNow } | Verify-Throw
     }
 

@@ -26,6 +26,10 @@
     Use this parameter to explicitly mark the block to be skipped. This is preferable to temporarily
     commenting out a block, because it remains listed in the output.
 
+    .PARAMETER AllowNullOrEmptyForEach
+    Allows empty or null values for -ForEach when Run.FailOnNullOrEmptyForEach is enabled.
+    This might be excepted in certain scenarios like using external data.
+
     .PARAMETER ForEach
     Allows data driven tests to be written.
     Takes an array of data and generates one block for each item in the array, and makes the item
@@ -85,6 +89,7 @@
 
         # [Switch] $Focus,
         [Switch] $Skip,
+        [Switch] $AllowNullOrEmptyForEach,
 
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
         $ForEach
@@ -107,13 +112,15 @@
         }
 
         if ($PSBoundParameters.ContainsKey('ForEach')) {
-            if ($null -ne $ForEach -and 0 -lt @($ForEach).Count) {
-                New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
+                if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
+                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+                }
+                # @() or $null is provided and allowed, do nothing
+                return
             }
-            else {
-                # @() or $null is provided do nothing
 
-            }
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
         }
         else {
             New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip

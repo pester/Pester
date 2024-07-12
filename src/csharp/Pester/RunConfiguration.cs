@@ -32,6 +32,7 @@ namespace Pester
         private BoolOption _passThru;
         private BoolOption _skipRun;
         private StringOption _skipRemainingOnFailure;
+        private BoolOption _failOnNullOrEmptyForEach;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -53,6 +54,7 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach ), v => FailOnNullOrEmptyForEach  = v);
             }
         }
 
@@ -68,6 +70,7 @@ namespace Pester
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
+            FailOnNullOrEmptyForEach  = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overriden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
         }
 
         public StringArrayOption Path
@@ -226,6 +229,22 @@ namespace Pester
                 else
                 {
                     _skipRemainingOnFailure = new StringOption(_skipRemainingOnFailure, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption FailOnNullOrEmptyForEach
+        {
+            get { return _failOnNullOrEmptyForEach; }
+            set
+            {
+                if (_failOnNullOrEmptyForEach == null)
+                {
+                    _failOnNullOrEmptyForEach = value;
+                }
+                else
+                {
+                    _failOnNullOrEmptyForEach = new BoolOption(_failOnNullOrEmptyForEach, value.Value);
                 }
             }
         }
