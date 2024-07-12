@@ -806,9 +806,8 @@ function Get-JaCoCoReportXml {
         return [string]::Empty
     }
 
-    $now = [DateTime]::Now
-    $nineteenSeventy = [DateTime]"01/01/1970"
-    [long] $endTime = [math]::Floor(($now - $nineteenSeventy).TotalMilliseconds)
+    # Report uses unix epoch time format (milliseconds since midnight 1/1/1970 UTC)
+    [long] $endTime = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
     $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
@@ -1042,9 +1041,8 @@ function Get-CoberturaReportXml {
         return [string]::Empty
     }
 
-    $now = [DateTime]::Now
-    $nineteenSeventy = [DateTime]"01/01/1970"
-    [long] $endTime = [math]::Floor(($now - $nineteenSeventy).TotalMilliseconds)
+    # Report uses unix epoch time format (milliseconds since midnight 1/1/1970 UTC)
+    [long] $endTime = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
     $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
