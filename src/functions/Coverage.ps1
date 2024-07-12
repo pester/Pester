@@ -1186,7 +1186,7 @@ function Get-CoberturaReportXml {
     }
 
     $xmlDeclaration = '<?xml version="1.0" ?>'
-    $docType = '<!DOCTYPE coverage SYSTEM "https://raw.githubusercontent.com/cobertura/cobertura/master/cobertura/src/site/htdocs/xml/coverage-loose.dtd">'
+    $docType = '<!DOCTYPE coverage SYSTEM "coverage-loose.dtd">'
     $coverageXml = ConvertTo-XmlElement -Node $coverage
     $document = "$xmlDeclaration`n$docType`n$(([System.Xml.XmlElement]$coverageXml).OuterXml)"
 
