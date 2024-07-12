@@ -1042,16 +1042,16 @@ function Get-CoberturaReportXml {
         return [string]::Empty
     }
 
-    $now = & $SafeCommands['Get-Date']
-    $nineteenSeventy = & $SafeCommands['Get-Date'] -Date "01/01/1970"
-    [long] $endTime = [math]::Floor((New-TimeSpan -start $nineteenSeventy -end $now).TotalMilliseconds)
+    $now = [DateTime]::Now
+    $nineteenSeventy = [DateTime]"01/01/1970"
+    [long] $endTime = [math]::Floor($nineteenSeventy - $now).TotalMilliseconds
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
     $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
 
     $allLines = [System.Collections.Generic.List[object]]@()
-    $null = $allLines.AddRange($CoverageReport.MissedCommands)
-    $null = $allLines.AddRange($CoverageReport.HitCommands)
+    $allLines.AddRange($CoverageReport.MissedCommands)
+    $allLines.AddRange($CoverageReport.HitCommands)
     $packages = @{}
     foreach ($command in $allLines) {
         $package = & $SafeCommands["Split-Path"] $command.File -Parent
@@ -1095,7 +1095,7 @@ function Get-CoberturaReportXml {
             $methodGroups = $classGroup.Value.Methods
             $methods = foreach ($methodGroup in $methodGroups.GetEnumerator()) {
                 $lines = ([object[]]$methodGroup.Value.Values) | New-LineNode
-                $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
+                $coveredLines = foreach ($line in $lines) { if (0 -lt $line.attributes.hits) { $line } }
 
                 $method = [ordered]@{
                     name         = 'method'
@@ -1114,7 +1114,7 @@ function Get-CoberturaReportXml {
             }
 
             $lines = ([object[]]$classGroup.Value.Lines.Values) | New-LineNode
-            $coveredLines = $lines | & $SafeCommands["Where-Object"] { $_.attributes.hits -gt 0 }
+            $coveredLines = foreach ($line in $lines) { if (0 -lt $line.attributes.hits) { $line } }
 
             $lineRate = Get-LineRate -CoveredLines $coveredLines.Length -TotalLines $lines.Length
             $filename = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
@@ -1188,7 +1188,7 @@ function Get-CoberturaReportXml {
     $xmlDeclaration = '<?xml version="1.0" ?>'
     $docType = '<!DOCTYPE coverage SYSTEM "coverage-loose.dtd">'
     $coverageXml = ConvertTo-XmlElement -Node $coverage
-    $document = "$xmlDeclaration`n$docType`n$(([System.Xml.XmlElement]$coverageXml).OuterXml)"
+    $document = "$xmlDeclaration`n$docType`n$($coverageXml.OuterXml)"
 
     $document
 }
