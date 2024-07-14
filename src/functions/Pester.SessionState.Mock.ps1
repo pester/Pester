@@ -1056,7 +1056,7 @@ function Invoke-Mock {
             param ($b)
             "     Target module: $(if ($b.ModuleName) { $b.ModuleName } else { '$null' })`n"
             "    Body: { $($b.ScriptBlock.ToString().Trim()) }`n"
-            "    Filter$(if ($b.AllowFallback) { ' (with fallback)' }): $(if (-not $b.IsDefault) { "{ $($b.Filter.ToString().Trim()) }" }) else { '$null' })`n"
+            "    Filter$(if ($b.AllowFallback) { ' (with fallback)' }): $(if (-not $b.IsDefault) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })`n"
             "    Default: $(if ($b.IsDefault) { '$true' } else { '$false' })`n"
             "    Verifiable: $(if ($b.Verifiable) { '$true' } else { '$false' })"
         }
