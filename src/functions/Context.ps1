@@ -61,16 +61,16 @@
     Example of how to use Context for grouping different tests
 
     .LINK
-    https://pester.dev/docs/commands/Context
+    https://pester.dev/docs/v5/commands/Context
 
     .LINK
-    https://pester.dev/docs/usage/test-file-structure
+    https://pester.dev/docs/v5/usage/test-file-structure
 
     .LINK
-    https://pester.dev/docs/usage/mocking
+    https://pester.dev/docs/v5/usage/mocking
 
     .LINK
-    https://pester.dev/docs/usage/testdrive
+    https://pester.dev/docs/v5/usage/testdrive
     #>
     param(
         [Parameter(Mandatory = $true, Position = 0)]

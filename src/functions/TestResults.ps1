@@ -78,10 +78,10 @@ function Export-NUnitReport {
     exports it as an NUnit 2.5-compatible XML-report.
 
     .LINK
-    https://pester.dev/docs/commands/Export-NUnitReport
+    https://pester.dev/docs/v5/commands/Export-NUnitReport
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -128,10 +128,10 @@ function Export-JUnitReport {
     exports it as an JUnit 4-compatible XML-report.
 
     .LINK
-    https://pester.dev/docs/commands/Export-JUnitReport
+    https://pester.dev/docs/v5/commands/Export-JUnitReport
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -265,10 +265,10 @@ function ConvertTo-NUnitReport {
     converts it to an NUnit 2.5-compatible XML-report. The returned object is a string.
 
     .LINK
-    https://pester.dev/docs/commands/ConvertTo-NUnitReport
+    https://pester.dev/docs/v5/commands/ConvertTo-NUnitReport
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -355,10 +355,10 @@ function ConvertTo-JUnitReport {
     converts it to an JUnit 4-compatible XML-report. The returned object is a string.
 
     .LINK
-    https://pester.dev/docs/commands/ConvertTo-JUnitReport
+    https://pester.dev/docs/v5/commands/ConvertTo-JUnitReport
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
     #>
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]

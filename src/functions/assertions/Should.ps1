@@ -87,10 +87,10 @@ function Should {
     Asserting that `Get-Application -Name Blarg` will throw an exception with a specific message.
 
     .LINK
-    https://pester.dev/docs/commands/Should
+    https://pester.dev/docs/v5/commands/Should
 
     .LINK
-    https://pester.dev/docs/assertions
+    https://pester.dev/docs/v5/assertions
     #>
     [CmdletBinding()]
     param (
@@ -107,7 +107,7 @@ function Should {
 
         # A bit of Regex lets us know if the line used the old form
         if ($myLine -match '^\s{0,}should\s{1,}(?<Operator>[^\-\@\s]+)') {
-            $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/migrations/v3-to-v4"
+            $shouldErrorMsg = "Legacy Should syntax (without dashes) is not supported in Pester 5. Please refer to migration guide at: https://pester.dev/docs/v5/migrations/v3-to-v4"
             throw $shouldErrorMsg
         }
         else {

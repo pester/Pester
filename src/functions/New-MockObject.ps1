@@ -65,10 +65,10 @@
     of any call and the associated arguments in a property named `_Kill`
 
     .LINK
-    https://pester.dev/docs/commands/New-MockObject
+    https://pester.dev/docs/v5/commands/New-MockObject
 
     .LINK
-    https://pester.dev/docs/usage/mocking
+    https://pester.dev/docs/v5/usage/mocking
     #>
     [CmdletBinding(DefaultParameterSetName = "Type")]
     param (

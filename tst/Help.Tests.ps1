@@ -33,7 +33,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $help.psobject.properties.name -match 'relatedLinks' | Should -Not -BeNullOrEmpty -Because 'all exported functions should at least have link to online version as first Uri'
 
             $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
-            $firstUri | Should -Be "https://pester.dev/docs/commands/$($help.Name)" -Because 'first uri-link should be to online version of this help topic'
+            $firstUri | Should -Be "https://pester.dev/docs/v5/commands/$($help.Name)" -Because 'first uri-link should be to online version of this help topic'
         }
 
         # Skipping Assert-MockCalled and Assert-VerifiableMock which are deprecated and missing docs

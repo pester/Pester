@@ -214,10 +214,10 @@ function Mock {
     mocked by using the -ModuleName parameter.
 
     .LINK
-    https://pester.dev/docs/commands/Mock
+    https://pester.dev/docs/v5/commands/Mock
 
     .LINK
-    https://pester.dev/docs/usage/mocking
+    https://pester.dev/docs/v5/usage/mocking
     #>
     [CmdletBinding()]
     param(
@@ -615,7 +615,7 @@ function Assert-VerifiableMock {
     USE Should -InvokeVerifiable INSTEAD.
 
     .LINK
-    https://pester.dev/docs/commands/Assert-VerifiableMock
+    https://pester.dev/docs/v5/commands/Assert-VerifiableMock
     #>
 
     # Should does not accept a session state, so invoking it directly would
@@ -682,7 +682,7 @@ function Assert-MockCalled {
     USE Should -Invoke INSTEAD.
 
     .LINK
-    https://pester.dev/docs/commands/Assert-MockCalled
+    https://pester.dev/docs/v5/commands/Assert-MockCalled
     #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(

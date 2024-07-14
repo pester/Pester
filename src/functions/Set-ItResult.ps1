@@ -49,7 +49,7 @@
     ```
 
     .LINK
-    https://pester.dev/docs/commands/Set-ItResult
+    https://pester.dev/docs/v5/commands/Set-ItResult
 #>
     [CmdletBinding()]
     param(
