@@ -2798,6 +2798,66 @@ Describe 'Mocking using ParameterFilter' {
     }
 }
 
+Describe 'Calls not matching ParameterFilter' {
+    BeforeAll {
+        function demo ($name) {
+            "hello $name"
+        }
+    }
+
+    Context 'When default mock does not exist in parent scope' {
+        It 'Throws by default' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            { demo -name 'you' } | Should -Throw
+        }
+
+        It 'Calls locally defined default mock' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            Mock demo { 'default mock' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+
+        It 'Calls real function when -AllowFallback is used' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+            demo -name 'you' | Should -Be 'hello you'
+        }
+    }
+
+    Context 'When default mock exists in parent scope' {
+        BeforeAll {
+            Mock demo -MockWith { 'default mock' }
+        }
+        It 'Calls default mock without -AllowFallback' {
+            # TODO: Is this expected? Should -AllowFallback only have effect when there's no default mock at any level?
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+    }
+
+    Context 'When mock with ParameterFilter exists in parent scope' {
+        BeforeAll {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+        }
+        It 'Throws by default' {
+            { demo -name 'you' } | Should -Throw
+        }
+
+        It 'Calls locally defined default mock' {
+            Mock demo { 'default mock' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+    }
+
+    Context 'When mock with ParameterFilter and -AllowFallback exists in parent scope' {
+        BeforeAll {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+        }
+        It 'Calls real function' {
+            demo -name 'you' | Should -Be 'hello you'
+        }
+    }
+}
+
 
 if ($PSVersionTable.PSVersion.Major -ge 3) {
     Describe "-RemoveParameterType" {
