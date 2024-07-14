@@ -42,10 +42,10 @@
         The example uses BeforeEach to ensure a clean sample-file is used for each test.
 
     .LINK
-        https://pester.dev/docs/commands/BeforeEach
+        https://pester.dev/docs/v5/commands/BeforeEach
 
     .LINK
-        https://pester.dev/docs/usage/setup-and-teardown
+        https://pester.dev/docs/v5/usage/setup-and-teardown
     #>
     [CmdletBinding()]
     param
@@ -108,10 +108,10 @@ function AfterEach {
         The example uses AfterEach to remove a temporary file after each test.
 
     .LINK
-        https://pester.dev/docs/commands/AfterEach
+        https://pester.dev/docs/v5/commands/AfterEach
 
     .LINK
-        https://pester.dev/docs/usage/setup-and-teardown
+        https://pester.dev/docs/v5/usage/setup-and-teardown
     #>
     [CmdletBinding()]
     param
@@ -184,10 +184,10 @@ function BeforeAll {
         the results in separate tests.
 
     .LINK
-        https://pester.dev/docs/commands/BeforeAll
+        https://pester.dev/docs/v5/commands/BeforeAll
 
     .LINK
-        https://pester.dev/docs/usage/setup-and-teardown
+        https://pester.dev/docs/v5/usage/setup-and-teardown
     #>
     [CmdletBinding()]
     param
@@ -250,10 +250,10 @@ function AfterAll {
         the tests in the Describe-block.
 
     .LINK
-        https://pester.dev/docs/commands/AfterAll
+        https://pester.dev/docs/v5/commands/AfterAll
 
     .LINK
-        https://pester.dev/docs/usage/setup-and-teardown
+        https://pester.dev/docs/v5/usage/setup-and-teardown
 #>
     [CmdletBinding()]
     param

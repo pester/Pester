@@ -28,10 +28,10 @@
     -Name is a dynamic parameter that tab completes all available options.
 
     .LINK
-    https://pester.dev/docs/commands/Get-ShouldOperator
+    https://pester.dev/docs/v5/commands/Get-ShouldOperator
 
     .LINK
-    https://pester.dev/docs/commands/Should
+    https://pester.dev/docs/v5/commands/Should
     #>
     [CmdletBinding()]
     param ()
