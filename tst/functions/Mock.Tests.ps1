@@ -2821,6 +2821,12 @@ Describe 'Calls not matching ParameterFilter' {
             Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
             demo -name 'you' | Should -Be 'hello you'
         }
+
+        It 'Calls real function when at least one parameterized mock has -AllowFallback' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+            Mock demo -ParameterFilter { $name -eq 'Wisconsin' } -MockWith { 'mocked2' }
+            demo -name 'you' | Should -Be 'hello you'
+        }
     }
 
     Context 'When default mock exists in parent scope' {
@@ -2854,6 +2860,11 @@ Describe 'Calls not matching ParameterFilter' {
         }
         It 'Calls real function' {
             demo -name 'you' | Should -Be 'hello you'
+        }
+
+        It 'Throws when a more local parameterized mock does not allow fallback' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            { demo -name 'you' } | Should -Throw
         }
     }
 }
