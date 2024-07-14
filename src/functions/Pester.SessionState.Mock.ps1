@@ -124,6 +124,10 @@ function Mock {
     validation requirements, and allows functions that are strict about their
     parameter validation to be mocked more easily.
 
+    .PARAMETER AllowFallback
+    Allows original command to execute when only mocks with -ParameterFilter exists and the call does not match any of them.
+    Creating a default mock (no -ParameterFilter specified) will take precedence over this.
+
     .EXAMPLE
     Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
@@ -219,15 +223,22 @@ function Mock {
     .LINK
     https://pester.dev/docs/usage/mocking
     #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Default')]
+    # TODO: Breaking change due to parameter sets. Previously had positions:
+    # CommandName, MockWith, ParameterFilter, ModuleName, RemoveParameterType, RemoveParameterValidation
     param(
+        [Parameter(Position = 0)]
         [string]$CommandName,
+        [Parameter(Position = 1)]
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
+        [Parameter(ParameterSetName = 'WithParameterFilter')]
         [ScriptBlock]$ParameterFilter,
         [string]$ModuleName,
         [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation
+        [string[]]$RemoveParameterValidation,
+        [Parameter(ParameterSetName = 'WithParameterFilter')]
+        [switch]$AllowFallback
     )
     if (Is-Discovery) {
         # this is to allow mocks in between Describe and It which is discouraged but common
@@ -280,7 +291,7 @@ function Mock {
         $mockData.Behaviors[$contextInfo.Command.Name] = $behaviors
     }
 
-    $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
+    $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook -AllowFallback:$AllowFallback
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { "$($behavior.ModuleName) - "})$($behavior.CommandName)."
     }
@@ -1045,7 +1056,7 @@ function Invoke-Mock {
             param ($b)
             "     Target module: $(if ($b.ModuleName) { $b.ModuleName } else { '$null' })`n"
             "    Body: { $($b.ScriptBlock.ToString().Trim()) }`n"
-            "    Filter: $(if (-not $b.IsDefault) { "{ $($b.Filter.ToString().Trim()) }" } else { '$null' })`n"
+            "    Filter$(if ($b.AllowFallback) { ' (with fallback)' }): $(if (-not $b.IsDefault) { "{ $($b.Filter.ToString().Trim()) }" }) else { '$null' })`n"
             "    Default: $(if ($b.IsDefault) { '$true' } else { '$false' })`n"
             "    Verifiable: $(if ($b.Verifiable) { '$true' } else { '$false' })"
         }
