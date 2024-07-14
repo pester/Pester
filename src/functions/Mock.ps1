@@ -984,10 +984,8 @@ function FindMatchingBehavior {
 
     $foundDefaultBehavior = $false
     $defaultBehavior = $null
-    # A mock exists so we do not allow original command to be called. Either:
-    # - A parameterized mock explicitly allows it below
-    # - Or a default mock exists which takes precedence either way
-    $fallbackAllowed = $false
+    # Allow fallback unless parameterized behaviors exist. Required to support nested runs where mock exists but no behaviors.
+    $blockOriginalCommand = @($Behaviors).IsDefault -contains $false
     foreach ($b in $Behaviors) {
 
         if ($b.IsDefault -and -not $foundDefaultBehavior) {
@@ -1012,7 +1010,7 @@ function FindMatchingBehavior {
                 return $b
             }
 
-            if ($b.AllowFallback) { $fallbackAllowed = $true }
+            if ($b.AllowFallback) { $blockOriginalCommand = $false }
         }
     }
 
@@ -1027,7 +1025,7 @@ function FindMatchingBehavior {
         Write-PesterDebugMessage -Scope Mock "No parametrized or default behaviors were found filter."
     }
 
-    if (-not $fallbackAllowed) {
+    if ($blockOriginalCommand) {
         throw 'Not implemented. None of the parameterized mocks match the call or accept fallback to original command.'
     }
 
