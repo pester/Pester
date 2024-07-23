@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [timespan] or [scriptblock] is faster than the expected [timespan].
 
+    .DESCRIPTION
+    This assertion checks if the actual value is faster than the expected value. It is useful when you need to ensure that the actual value is faster than the expected value in tests.
+
     .PARAMETER Actual
     The actual [timespan] or [scriptblock] value.
 

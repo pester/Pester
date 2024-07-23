@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [datetime] is after the expected [datetime].
 
+    .DESCRIPTION
+    This assertion checks if the actual value is after the expected value. It is useful when you need to ensure that the actual value is later than the expected value in tests.
+
     .PARAMETER Actual
     The actual [datetime] value.
 
@@ -28,7 +31,6 @@
     ```powershell
     (Get-Date).AddDays(1) | Should-BeAfter (Get-Date)
     ```
-
 
     This assertion will pass, because the actual value is after the expected value.
 

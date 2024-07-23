@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion checks if the expected collection is not present in the provided collection. It is useful when you need to ensure that none of the items in the expected collection are present in the actual collection.
+
     .PARAMETER Expected
     A collection of items.
 

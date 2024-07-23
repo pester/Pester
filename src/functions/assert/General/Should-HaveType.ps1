@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is of the expected type.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is of the expected type. It is useful when you need to ensure that the value is of a specific type in tests.
+
     .PARAMETER Expected
     The expected type.
 

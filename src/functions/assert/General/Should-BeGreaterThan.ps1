@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is greater than the expected value.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is greater than the expected value. It is useful when you need to ensure that the actual value exceeds the expected value in tests.
+
     .PARAMETER Expected
     The expected value.
 

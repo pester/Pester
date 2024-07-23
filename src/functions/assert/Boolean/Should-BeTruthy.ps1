@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the actual value to a boolean $true. It converts input values to boolean, and will fail for any value is not $true, or truthy.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is $true or a truthy value (1, non-empty string, non-empty array, etc.). It is useful when you need to ensure that the value is truthy and not just not $false.
+
     .PARAMETER Actual
     The actual value to compare to $true.
 

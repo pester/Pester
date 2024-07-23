@@ -619,6 +619,9 @@ function Should-BeEquivalent {
     .SYNOPSIS
     Compares two objects for equivalency, by recursively comparing their properties for equivalency.
 
+    .DESCRIPTION
+    This assertion checks if two objects are equivalent by recursively comparing their properties. It is useful when you need to ensure that the objects have the same structure and values, even if they are not the same instance.
+
     .PARAMETER Actual
     The actual object to compare.
 
@@ -644,7 +647,7 @@ function Should-BeEquivalent {
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
-    ```powereshell
+    ```powershell
         Should-BeEquivalent ... -ExcludePathsNotOnExpected
     ```
     This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.

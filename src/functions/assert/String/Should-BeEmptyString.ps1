@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that input is an empty string.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is an empty string. It is useful when you need to ensure that the value is an empty string in tests.
+
     .PARAMETER Actual
     The actual value that will be compared to an empty string.
 
