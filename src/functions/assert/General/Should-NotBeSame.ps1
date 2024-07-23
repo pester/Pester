@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is not the same instance as the expected value.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is not the same instance as the expected value. It is useful when you need to ensure that two variables do not reference the same object in memory.
+
     .PARAMETER Expected
     The expected value.
 

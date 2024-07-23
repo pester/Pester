@@ -3,6 +3,9 @@ function Should-Throw {
     .SYNOPSIS
     Asserts that a script block throws an exception.
 
+    .DESCRIPTION
+    This assertion checks if a script block throws an exception. It is useful when you need to ensure that a specific exception is thrown during the execution of a script block.
+
     .PARAMETER ScriptBlock
     The script block that should throw an exception.
 

@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [datetime] is before the expected [datetime].
 
+    .DESCRIPTION
+    This assertion checks if the actual value is before the expected value. It is useful when you need to ensure that the actual value is earlier than the expected value in tests.
+
     .PARAMETER Actual
     The actual [datetime] value.
 

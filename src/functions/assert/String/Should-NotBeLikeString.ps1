@@ -27,7 +27,7 @@ function Should-NotBeLikeString {
     Asserts that the actual value is not like the expected value.
 
     .DESCRIPTION
-    The `Should-NotBeLikeString` assertion compares the actual value to the expected value using the `-notlike` operator. The `-notlike` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+    This assertion checks if the actual value does not match the expected value using the `-notlike` operator. It is useful when you need to ensure that the actual value does not match a specific pattern, with optional case sensitivity.
 
     .PARAMETER Expected
     The expected value.
@@ -50,6 +50,7 @@ function Should-NotBeLikeString {
 
     .EXAMPLE
     ```powershell
+
     "hello" | Should-NotBeLikeString "h*" -CaseSensitive
     ```
 

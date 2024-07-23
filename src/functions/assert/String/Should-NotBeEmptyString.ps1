@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null or empty string.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is not $null or an empty string. It is useful when you need to ensure that the value is a non-empty string in tests.
+
     .PARAMETER Actual
     The actual value that will be compared.
 

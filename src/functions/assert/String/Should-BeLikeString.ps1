@@ -19,7 +19,7 @@ function Should-BeLikeString {
     Asserts that the actual value is like the expected value.
 
     .DESCRIPTION
-    The `Should-BeLikeString` assertion compares the actual value to the expected value using the `-like` operator. The `-like` operator is case-insensitive by default, but you can make it case-sensitive by using the `-CaseSensitive` switch.
+    This assertion checks if the actual value matches the expected value using the `-like` operator. It is useful when you need to ensure that the actual value matches a specific pattern, with optional case sensitivity.
 
     .PARAMETER Expected
     The expected value.
