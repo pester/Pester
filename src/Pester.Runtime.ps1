@@ -2474,6 +2474,10 @@ function New-BlockContainerObject {
         default { throw [System.ArgumentOutOfRangeException]'' }
     }
 
+    if ($item -is [scriptblock]) {
+        Assert-BoundScriptBlockInput -ScriptBlock $item
+    }
+
     $c = [Pester.ContainerInfo]::Create()
     $c.Type = $type
     $c.Item = $item
@@ -2603,4 +2607,21 @@ function Add-MissingContainerParameters ($RootBlock, $Container, $CallingFunctio
     }
 
     $RootBlock.FrameworkData.MissingParametersProcessed = $true
+}
+
+function Assert-BoundScriptBlockInput {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+    $internalSessionState = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
+    if ($null -eq $internalSessionState) {
+        $maxLength = 250
+        $prettySb = (Format-Nicely2 $ScriptBlock) -replace '\s{2,}', ' '
+        if ($prettySb.Length -gt $maxLength) {
+            $prettySb = $prettySb.Remove($maxLength) + "..."
+        }
+
+        throw [System.ArgumentException]::new("Unbound scriptblock '$prettySb' is not allowed. See https://github.com/pester/Pester/issues/2411.")
+    }
 }

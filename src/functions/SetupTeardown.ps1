@@ -57,6 +57,7 @@
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName BeforeEach
+    Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
     New-EachTestSetup -ScriptBlock $Scriptblock
 }
@@ -123,6 +124,7 @@ function AfterEach {
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName AfterEach
+    Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
     New-EachTestTeardown -ScriptBlock $Scriptblock
 }
@@ -198,6 +200,7 @@ function BeforeAll {
         [Scriptblock]
         $Scriptblock
     )
+    Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
     New-OneTimeTestSetup -ScriptBlock $Scriptblock
 }
@@ -265,6 +268,7 @@ function AfterAll {
         $Scriptblock
     )
     Assert-DescribeInProgress -CommandName AfterAll
+    Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
     New-OneTimeTestTeardown -ScriptBlock $Scriptblock
 }

@@ -152,6 +152,8 @@
         }
     }
 
+    Assert-BoundScriptBlockInput -ScriptBlock $Test
+
     if ($PSBoundParameters.ContainsKey('ForEach')) {
         if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
             if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
