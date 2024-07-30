@@ -2366,14 +2366,24 @@ Describe 'Naming conflicts in mocked functions' {
 }
 
 Describe 'Passing unbound script blocks as mocks' {
-    It 'Does not produce an error' {
+    BeforeAll {
         function TestMe {
             'Original'
         }
+    }
+    It 'Does not produce an error' {
         $scriptBlock = [scriptblock]::Create('"Mocked"')
 
         { Mock TestMe $scriptBlock } | Should -Not -Throw
         TestMe | Should -Be Mocked
+    }
+
+    It 'Should not execute in Pester internal state' {
+        $filter = [scriptblock]::Create('if ("pester" -eq $ExecutionContext.SessionState.Module) { throw "executed parameter filter in internal state" } else { $true }')
+        $scriptBlock = [scriptblock]::Create('if ("pester" -eq $ExecutionContext.SessionState.Module) { throw "executed mock in internal state" } else { "Mocked" }')
+
+        { Mock -CommandName TestMe -ParameterFilter $filter -MockWith $scriptBlock } | Should -Not -Throw
+        TestMe -SomeParam | Should -Be Mocked
     }
 }
 

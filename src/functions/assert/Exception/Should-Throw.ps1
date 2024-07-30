@@ -67,6 +67,8 @@ function Should-Throw {
     $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $ScriptBlock = $collectedInput.Actual
 
+    Assert-BoundScriptBlockInput -ScriptBlock $ScriptBlock
+
     $errorThrown = $false
     $err = $null
     try {

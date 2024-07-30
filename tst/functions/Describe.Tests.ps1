@@ -36,6 +36,11 @@ Describe 'Testing Describe' {
             }
         } | Should -Throw 'Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)'
     }
+
+    It 'Throws when provided unbound scriptblock' {
+        # Unbound scriptblocks would execute in Pester's internal module state
+        { Describe 'd' -Fixture ([scriptblock]::Create('')) } | Should -Throw -ExpectedMessage 'Unbound scriptblock*'
+    }
 }
 
 

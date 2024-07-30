@@ -57,4 +57,10 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
     It 'It fails when the only item not matching the filter is 0' {
         { 0 | Should-All -FilterScript { $_ -gt 0 } } | Verify-AssertionFailed
     }
+
+    It 'Throws when provided unbound scriptblock' {
+        # Unbound scriptblocks would execute in Pester's internal module state
+        $ex = { 1 | Should-All ([scriptblock]::Create('')) } | Verify-Throw
+        $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
+    }
 }
