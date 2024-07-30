@@ -190,6 +190,25 @@ Describe 'Finishing TestGroup Setup and Teardown tests' {
     }
 }
 
+Describe 'Unbound scriptsblocks as input' {
+    # Unbound scriptblocks would execute in Pester's internal module state
+    BeforeAll {
+        $sb = [scriptblock]::Create('')
+        $expectedMessage = 'Unbound scriptblock*'
+    }
+    It 'Throws when provided to BeforeAll' {
+        { BeforeAll -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+    }
+    It 'Throws when provided to AfterAll' {
+        { AfterAll -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+    }
+    It 'Throws when provided to BeforeEach' {
+        { BeforeEach -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+    }
+    It 'Throws when provided to AfterEach' {
+        { AfterEach -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+    }
+}
 
 # if ($PSVersionTable.PSVersion.Major -ge 3) {
 #     # TODO: this depends on the old pester internals it would be easier to test in P

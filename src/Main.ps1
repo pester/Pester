@@ -80,6 +80,8 @@ function Add-ShouldOperator {
         [switch] $SupportsArrayInput
     )
 
+    Assert-BoundScriptBlockInput -ScriptBlock $Test
+
     $entry = [PSCustomObject]@{
         Test               = $Test
         SupportsArrayInput = [bool]$SupportsArrayInput
@@ -1259,6 +1261,8 @@ function BeforeDiscovery {
         [Parameter(Mandatory)]
         [ScriptBlock]$ScriptBlock
     )
+
+    Assert-BoundScriptBlockInput -ScriptBlock $ScriptBlock
 
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
         if ($state.CurrentBlock.IsRoot -and -not $state.CurrentBlock.FrameworkData.MissingParametersProcessed) {

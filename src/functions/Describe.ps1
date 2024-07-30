@@ -113,6 +113,8 @@
         }
     }
 
+    Assert-BoundScriptBlockInput -ScriptBlock $Fixture
+
     if ($ExecutionContext.SessionState.PSVariable.Get('invokedViaInvokePester')) {
         if ($state.CurrentBlock.IsRoot -and -not $state.CurrentBlock.FrameworkData.MissingParametersProcessed) {
             # For undefined parameters in container, add parameter's default value to Data
