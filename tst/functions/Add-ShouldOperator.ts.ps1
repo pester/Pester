@@ -80,13 +80,10 @@ i -PassThru:$PassThru {
                 $succeeded = 'A' -eq $ActualValue
                 if ($Negate) { $succeeded = -not $succeeded }
 
-                if (-not $succeeded) {
-                    if ($Negate) {
-                        $failureMessage = "Expected anything but 'A', but got '$ActualValue'."
-                    }
-                    else {
-                        $failureMessage = "Expected 'A', but got '$ActualValue'."
-                    }
+                # Default failure message. Not used by Should unless succeeded is $false
+                $failureMessage = "Expected 'A', but got '$ActualValue'."
+                if (-not $succeeded -and $Negate) {
+                    $failureMessage = "Expected anything but 'A', but got '$ActualValue'."
                 }
 
                 return [pscustomobject]@{
@@ -114,13 +111,10 @@ i -PassThru:$PassThru {
                 $succeeded = 'A' -eq $ActualValue
                 if ($Negate) { $succeeded = -not $succeeded }
 
-                if (-not $succeeded) {
-                    if ($Negate) {
-                        $failureMessage = "Expected anything but 'A', but got '$ActualValue'."
-                    }
-                    else {
-                        $failureMessage = "Expected 'A', but got '$ActualValue'."
-                    }
+                # Default failure message. Not used by Should unless succeeded is $false
+                $failureMessage = "Expected 'A', but got '$ActualValue'."
+                if (-not $succeeded -and $Negate) {
+                    $failureMessage = "Expected anything but 'A', but got '$ActualValue'."
                 }
 
                 return [pscustomobject]@{
