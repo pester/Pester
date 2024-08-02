@@ -454,6 +454,12 @@ function IsIgnoredCommand {
         return $true
     }
 
+    if ($Command -is [System.Management.Automation.Language.CommandExpressionAst] -and
+        $Command.Expression[0] -is [System.Management.Automation.Language.BaseCtorInvokeMemberExpressionAst]) {
+        # Calls to inherited "base(...)" constructor does not trigger breakpoint or tracer hit, ignore.
+        return $true
+    }
+
     return $false
 }
 
