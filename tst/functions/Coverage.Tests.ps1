@@ -52,9 +52,16 @@ InPesterModuleScope {
             if ($PSVersionTable.PSVersion.Major -ge 5) {
                 Add-Content -Path $testScriptPath -Value @'
 
-                class MyClass
+                class MyBaseClass {
+                    MyBaseClass()
+                    {
+                        'I am the constructor of base class.'
+                    }
+                }
+
+                class MyClass : MyBaseClass
                 {
-                    MyClass()
+                    MyClass() : base()
                     {
                         'I am the constructor.'
                     }
@@ -79,11 +86,18 @@ InPesterModuleScope {
                 # Before that, let's just create equivalent commands to above class with exact same line numbers
                 Add-Content -Path $testScriptPath -Value @'
 
+                #class MyBaseClass {
+                    function MyBaseClass
+                    {
+                        'I am the constructor of base class.'
+                    }
+                #}
+
                 #class MyClass
                 #{
                     function MyClass
                     {
-                        'I am the constructor.'
+                        MyBaseClass; 'I am the constructor.'
                     }
 
                     function MethodOne
@@ -131,7 +145,7 @@ InPesterModuleScope {
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 18 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 19 -Because 'it has the proper number of breakpoints defined'
 
                 $sb = {
                     $null = & $testScriptPath
@@ -153,11 +167,11 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 15
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 16
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 18
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 19
             }
 
             It 'Reports the proper number of analyzed files' {
@@ -175,7 +189,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 15
+                $coverageReport.HitCommands.Count | Should -Be 16
             }
 
             It 'Reports the correct hit command' {
@@ -186,7 +200,8 @@ InPesterModuleScope {
                 $coverageReport.HitCommands[0].Class | Should -BeNullOrEmpty
                 # Classes have been introduced in PowerShell 5.0
                 if ($PSVersionTable.PSVersion.Major -ge 5) {
-                    $coverageReport.HitCommands[9].Class | Should -Be 'MyClass'
+                    $coverageReport.HitCommands[9].Class | Should -Be 'MyBaseClass'
+                    $coverageReport.HitCommands[10].Class | Should -Be 'MyClass'
                     $coverageReport.MissedCommands[2].Class | Should -Be 'MyClass'
                 }
                 else {
@@ -198,7 +213,8 @@ InPesterModuleScope {
             It 'Reports the correct function names' {
                 $coverageReport.HitCommands[0].Function | Should -Be 'NestedFunction'
                 $coverageReport.HitCommands[2].Function | Should -Be 'FunctionOne'
-                $coverageReport.HitCommands[9].Function | Should -Be 'MyClass'
+                $coverageReport.HitCommands[9].Function | Should -Be 'MyBaseClass'
+                $coverageReport.HitCommands[10].Function | Should -Be 'MyClass'
                 $coverageReport.MissedCommands[2].Function | Should -Be 'MethodTwo'
             }
 
@@ -237,24 +253,29 @@ InPesterModuleScope {
                                 <counter type="LINE" missed="0" covered="3" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyClass" desc="()" line="32">
+                            <method name="MyBaseClass" desc="()" line="31">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodOne" desc="()" line="37">
+                            <method name="MyClass" desc="()" line="39">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodTwo" desc="()" line="42">
+                            <method name="MethodOne" desc="()" line="44">
+                                <counter type="INSTRUCTION" missed="0" covered="1" />
+                                <counter type="LINE" missed="0" covered="1" />
+                                <counter type="METHOD" missed="0" covered="1" />
+                            </method>
+                            <method name="MethodTwo" desc="()" line="49">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
                             </method>
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
+                            <counter type="INSTRUCTION" missed="3" covered="14" />
+                            <counter type="LINE" missed="2" covered="13" />
+                            <counter type="METHOD" missed="2" covered="6" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <class name="CommonRoot/TestScript2" sourcefilename="TestScript2.ps1">
@@ -278,14 +299,15 @@ InPesterModuleScope {
                             <line nr="17" mi="0" ci="2" mb="0" cb="0" />
                             <line nr="22" mi="1" ci="0" mb="0" cb="0" />
                             <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="37" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="42" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="46" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="47" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
+                            <line nr="31" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="39" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="44" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="49" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="53" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="54" mi="0" ci="1" mb="0" cb="0" />
+                            <counter type="INSTRUCTION" missed="3" covered="14" />
+                            <counter type="LINE" missed="2" covered="13" />
+                            <counter type="METHOD" missed="2" covered="6" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
                         <sourcefile name="TestScript2.ps1">
@@ -295,13 +317,14 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
-                        <counter type="INSTRUCTION" missed="3" covered="14" />
-                        <counter type="LINE" missed="2" covered="13" />
-                        <counter type="METHOD" missed="2" covered="6" />
+                        <counter type="INSTRUCTION" missed="3" covered="15" />
+                        <counter type="LINE" missed="2" covered="14" />
+                        <counter type="METHOD" missed="2" covered="7" />
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
                     <package name="CommonRoot/TestSubFolder">
-                        <class name="CommonRoot/TestSubFolder/TestScript3" sourcefilename="TestSubFolder/TestScript3.ps1">
+                        <class name="CommonRoot/TestSubFolder/TestScript3"
+                            sourcefilename="TestSubFolder/TestScript3.ps1">
                             <method name="&lt;script&gt;" desc="()" line="1">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
@@ -324,9 +347,9 @@ InPesterModuleScope {
                         <counter type="METHOD" missed="0" covered="1" />
                         <counter type="CLASS" missed="0" covered="1" />
                     </package>
-                    <counter type="INSTRUCTION" missed="3" covered="15" />
-                    <counter type="LINE" missed="2" covered="14" />
-                    <counter type="METHOD" missed="2" covered="7" />
+                    <counter type="INSTRUCTION" missed="3" covered="16" />
+                    <counter type="LINE" missed="2" covered="15" />
+                    <counter type="METHOD" missed="2" covered="8" />
                     <counter type="CLASS" missed="0" covered="3" />
                 </report>
                 ')
@@ -370,24 +393,29 @@ InPesterModuleScope {
                                 <counter type="LINE" missed="0" covered="3" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyClass" desc="()" line="32">
+                            <method name="MyBaseClass" desc="()" line="31">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodOne" desc="()" line="37">
+                            <method name="MyClass" desc="()" line="39">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodTwo" desc="()" line="42">
+                            <method name="MethodOne" desc="()" line="44">
+                                <counter type="INSTRUCTION" missed="0" covered="1" />
+                                <counter type="LINE" missed="0" covered="1" />
+                                <counter type="METHOD" missed="0" covered="1" />
+                            </method>
+                            <method name="MethodTwo" desc="()" line="49">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
                             </method>
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
+                            <counter type="INSTRUCTION" missed="3" covered="14" />
+                            <counter type="LINE" missed="2" covered="13" />
+                            <counter type="METHOD" missed="2" covered="6" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <class name="TestScript2" sourcefilename="TestScript2.ps1">
@@ -411,14 +439,15 @@ InPesterModuleScope {
                             <line nr="17" mi="0" ci="2" mb="0" cb="0" />
                             <line nr="22" mi="1" ci="0" mb="0" cb="0" />
                             <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="37" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="42" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="46" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="47" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="3" covered="13" />
-                            <counter type="LINE" missed="2" covered="12" />
-                            <counter type="METHOD" missed="2" covered="5" />
+                            <line nr="31" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="39" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="44" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="49" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="53" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="54" mi="0" ci="1" mb="0" cb="0" />
+                            <counter type="INSTRUCTION" missed="3" covered="14" />
+                            <counter type="LINE" missed="2" covered="13" />
+                            <counter type="METHOD" missed="2" covered="6" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
                         <sourcefile name="TestScript2.ps1">
@@ -428,9 +457,9 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
-                        <counter type="INSTRUCTION" missed="3" covered="14" />
-                        <counter type="LINE" missed="2" covered="13" />
-                        <counter type="METHOD" missed="2" covered="6" />
+                        <counter type="INSTRUCTION" missed="3" covered="15" />
+                        <counter type="LINE" missed="2" covered="14" />
+                        <counter type="METHOD" missed="2" covered="7" />
                         <counter type="CLASS" missed="0" covered="2" />
                     </package>
                     <package name="TestSubFolder">
@@ -457,9 +486,9 @@ InPesterModuleScope {
                         <counter type="METHOD" missed="0" covered="1" />
                         <counter type="CLASS" missed="0" covered="1" />
                     </package>
-                    <counter type="INSTRUCTION" missed="3" covered="15" />
-                    <counter type="LINE" missed="2" covered="14" />
-                    <counter type="METHOD" missed="2" covered="7" />
+                    <counter type="INSTRUCTION" missed="3" covered="16" />
+                    <counter type="LINE" missed="2" covered="15" />
+                    <counter type="METHOD" missed="2" covered="8" />
                     <counter type="CLASS" missed="0" covered="3" />
                 </report>
                 ')
@@ -642,7 +671,7 @@ InPesterModuleScope {
             BeforeAll {
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 13 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 14 -Because 'it has the proper number of breakpoints defined'
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -657,11 +686,11 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 10
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 11
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 13
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 14
             }
 
             It 'Reports the proper number of analyzed files' {
@@ -678,7 +707,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 10
+                $coverageReport.HitCommands.Count | Should -Be 11
             }
 
             It 'Reports the correct hit command' {
@@ -747,7 +776,7 @@ InPesterModuleScope {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*' } -UseBreakpoints $UseBreakpoints
 
-                    @($breakpoints).Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should -Be 4 -Because 'it has the proper number of breakpoints defined'
 
                     if ($UseBreakpoints) {
                         & $testScriptPath
@@ -762,11 +791,11 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of executed commands' {
-                    $coverageReport.NumberOfCommandsExecuted | Should -Be 2
+                    $coverageReport.NumberOfCommandsExecuted | Should -Be 3
                 }
 
                 It 'Reports the proper number of analyzed commands' {
-                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
+                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 4
                 }
 
                 It 'Reports the proper number of missed commands' {
@@ -774,7 +803,7 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of hit commands' {
-                    $coverageReport.HitCommands.Count | Should -Be 2
+                    $coverageReport.HitCommands.Count | Should -Be 3
                 }
 
                 AfterAll {
