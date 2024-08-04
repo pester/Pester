@@ -249,7 +249,8 @@ function Get-CoverageBreakpoints {
         [ScriptBlock]$Logger
     )
 
-    $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path)
+    # PowerShell 6.1+ sorts during Group-Object. Sorting to get equal report order for Windows PowerShell and PowerShell
+    $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path | & $SafeCommands['Sort-Object'] -Property Name)
     foreach ($fileGroup in $fileGroups) {
         if ($null -ne $Logger) {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
