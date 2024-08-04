@@ -135,6 +135,7 @@ function Write-NUnit3TestSuiteElement {
 
     $blockGroups = @(
         # Blocks only have GroupId if parameterized (using -ForEach). All other blocks are put in group with '' value
+        # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
         $Node.Blocks | & $SafeCommands['Group-Object'] -Property GroupId
     )
 

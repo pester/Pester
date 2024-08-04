@@ -249,7 +249,7 @@ function Get-CoverageBreakpoints {
         [ScriptBlock]$Logger
     )
 
-    # PowerShell 6.1+ sorts during Group-Object. Sorting to get equal report order for Windows PowerShell and PowerShell
+    # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
     $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path | & $SafeCommands['Sort-Object'] -Property Name)
     foreach ($fileGroup in $fileGroups) {
         if ($null -ne $Logger) {
@@ -827,9 +827,10 @@ function Get-JaCoCoReportXml {
     [long] $endTime = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
+    # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
     $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
         & $SafeCommands["Split-Path"] $_.File -Parent
-    }
+    } | & $SafeCommands["Sort-Object"] -Property Name
 
     $packageList = [System.Collections.Generic.List[psobject]]@()
 
