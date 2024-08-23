@@ -164,6 +164,11 @@ InPesterModuleScope {
                 $err.Exception.Message | Verify-Equal "Expected an exception with FullyQualifiedErrorId 'id' to be thrown, but no exception was thrown."
             }
 
+            It "returns the correct assertion message when message filter is used and contain escaped wildcard character" {
+                $err = { { throw [ArgumentException]"[!]" } | Should -Throw -ExpectedMessage '`[`]' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected an exception with message like '[]' to be thrown, but the message was '[!]'."
+            }
+
             It 'returns the correct assertion message when exceptions messages differ' {
                 $testDrive = (Get-PSDrive TestDrive).Root
                 $testScriptPath = Join-Path $testDrive test.ps1
