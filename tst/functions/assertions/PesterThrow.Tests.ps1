@@ -165,8 +165,15 @@ InPesterModuleScope {
             }
 
             It "returns the correct assertion message when message filter is used and contain escaped wildcard character" {
-                $err = { { throw [ArgumentException]"[!]" } | Should -Throw -ExpectedMessage '`[`]' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal ("Expected an exception with message like '[]' to be thrown, but the message was '[!]'. from ##path##:1 char:" -replace "##path##", $testScriptPath)
+                $testDrive = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path $testDrive test.ps1
+                Set-Content -Path $testScriptPath -Value "throw [ArgumentException]'[!]'"
+
+                # use the real path of the script, because we don't know it beforehand
+                $assertionMessage = "Expected an exception with message like '[]' to be thrown, but the message was '[!]'. from ##path##:1 char:" -replace "##path##", $testScriptPath
+
+                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage '`[`]' } | Verify-AssertionFailed
+                $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
             It 'returns the correct assertion message when exceptions messages differ' {
