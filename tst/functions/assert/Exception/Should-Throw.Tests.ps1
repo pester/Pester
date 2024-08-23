@@ -53,6 +53,10 @@ Describe "Should-Throw" {
         It "Fails when exception does not match the message with wildcard" {
             { { throw [ArgumentException]"A is null!" } | Should-Throw -ExceptionMessage '*flabbergasted*' } | Verify-AssertionFailed
         }
+
+        It "Passes when exception match the message with escaped wildcard" {
+            { throw [ArgumentException]"[]" } | Should-Throw -ExceptionMessage '`[`]'
+        }
     }
 
     Context "Filtering with FullyQualifiedErrorId" {
@@ -112,6 +116,11 @@ Describe "Should-Throw" {
         It "Given exception that does not match on type, message and FullyQualifiedErrorId it returns the correct message" {
             $err = { { throw [ArgumentException]"halt!" } | Should-Throw -ExceptionType ([System.InvalidOperationException]) -ExceptionMessage 'fail!'  -FullyQualifiedErrorId 'fail!' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message 'fail!' and with FullyQualifiedErrorId 'fail!' to be thrown, but the exception type was [ArgumentException], the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
+        }
+
+        It "Given exception that does not match on a message with escaped wildcard it returns the correct message" {
+            $err = { { throw [ArgumentException]"[!]" } | Should-Throw -ExceptionMessage '`[`]' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like '[]' to be thrown, but the message was '[!]'."
         }
     }
 
