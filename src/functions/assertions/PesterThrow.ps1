@@ -98,7 +98,8 @@
 
     $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
     if ($filterOnMessage) {
-        $filters += "message like $(Format-Nicely ([System.Management.Automation.WildcardPattern]::Unescape($ExpectedMessage)))"
+        $unescapedExpectedMessage = [System.Management.Automation.WildcardPattern]::Unescape($ExpectedMessage)
+        $filters += "message like $(Format-Nicely $unescapedExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
             $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
         }
