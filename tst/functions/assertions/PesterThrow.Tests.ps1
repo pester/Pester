@@ -166,7 +166,7 @@ InPesterModuleScope {
 
             It "returns the correct assertion message when message filter is used and contain escaped wildcard character" {
                 $err = { { throw [ArgumentException]"[!]" } | Should -Throw -ExpectedMessage '`[`]' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected an exception with message like '[]' to be thrown, but the message was '[!]'. from ##path##:1 char:" -replace "##path##", $testScriptPath
+                $err.Exception.Message | Verify-Equal ("Expected an exception with message like '[]' to be thrown, but the message was '[!]'. from ##path##:1 char:" -replace "##path##", $testScriptPath)
             }
 
             It 'returns the correct assertion message when exceptions messages differ' {
