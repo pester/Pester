@@ -494,11 +494,116 @@ InPesterModuleScope {
                 ')
             }
 
+            It 'Cobertura report must be correct' {
+                [String]$coberturaReportXml = Get-CoberturaReportXml -TotalMilliseconds 10000 -CoverageReport $coverageReport
+                $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
+                $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
+                $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
+                $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
+                (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
+                <?xml version="1.0" ?>
+                <!DOCTYPE coverage SYSTEM "coverage-loose.dtd">
+                <coverage lines-valid="16" lines-covered="14" line-rate="0.875" branches-valid="0"
+                    branches-covered="0" branch-rate="1" timestamp="" version="0.1">
+                    <sources>
+                        <source>CommonRoot</source>
+                    </sources>
+                    <packages>
+                        <package name="" line-rate="0.866666666666667" branch-rate="0">
+                            <classes>
+                                <class name="TestScript.ps1" filename="TestScript.ps1" line-rate="0.857142857142857"
+                                    branch-rate="1">
+                                    <methods>
+                                        <method name="FunctionOne" signature="()">
+                                            <lines>
+                                                <line number="9" hits="1" />
+                                                <line number="11" hits="1" />
+                                                <line number="12" hits="1" />
+                                                <line number="15" hits="1" />
+                                                <line number="17" hits="2" />
+                                            </lines>
+                                        </method>
+                                        <method name="FunctionTwo" signature="()">
+                                            <lines>
+                                                <line number="22" hits="0" />
+                                            </lines>
+                                        </method>
+                                        <method name="MethodOne" signature="()">
+                                            <lines>
+                                                <line number="37" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="MethodTwo" signature="()">
+                                            <lines>
+                                                <line number="42" hits="0" />
+                                            </lines>
+                                        </method>
+                                        <method name="MyClass" signature="()">
+                                            <lines>
+                                                <line number="32" hits="1" />
+                                            </lines>
+                                        </method>
+                                        <method name="NestedFunction" signature="()">
+                                            <lines>
+                                                <line number="5" hits="1" />
+                                                <line number="6" hits="1" />
+                                            </lines>
+                                        </method>
+                                    </methods>
+                                    <lines>
+                                        <line number="5" hits="1" />
+                                        <line number="6" hits="1" />
+                                        <line number="9" hits="1" />
+                                        <line number="11" hits="1" />
+                                        <line number="12" hits="1" />
+                                        <line number="15" hits="1" />
+                                        <line number="17" hits="2" />
+                                        <line number="22" hits="0" />
+                                        <line number="25" hits="1" />
+                                        <line number="32" hits="1" />
+                                        <line number="37" hits="1" />
+                                        <line number="42" hits="0" />
+                                        <line number="46" hits="1" />
+                                        <line number="47" hits="1" />
+                                    </lines>
+                                </class>
+                                <class name="TestScript2.ps1" filename="TestScript2.ps1" line-rate="1"
+                                    branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="1" hits="1" />
+                                    </lines>
+                                </class>
+                            </classes>
+                        </package>
+                        <package name="TestSubFolder" line-rate="1" branch-rate="0">
+                            <classes>
+                                <class name="TestScript3.ps1" filename="TestSubFolder/TestScript3.ps1" line-rate="1"
+                                    branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="1" hits="1" />
+                                    </lines>
+                                </class>
+                            </classes>
+                        </package>
+                    </packages>
+                </coverage>
+                ')
+            }
+
             It 'JaCoCo returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
                 [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
                 $jaCoCoReportXml | Should -Not -Be $null
                 $jaCoCoReportXml | Should -Be ([String]::Empty)
+            }
+
+            It 'Cobertura returns empty string when there are 0 analyzed commands' {
+                $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
+                [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000
+                $coberturaReportXml | Should -Not -Be $null
+                $coberturaReportXml | Should -Be ([String]::Empty)
             }
 
             It 'Reports the right line numbers' {
