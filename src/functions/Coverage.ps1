@@ -209,7 +209,7 @@ function Resolve-CoverageInfo {
 
     $filePaths = Get-CodeCoverageFilePaths -Paths $resolvedPaths -IncludeTests $includeTests -RecursePaths $recursePaths
 
-    $params = @{
+    $commonParams = @{
         StartLine = $UnresolvedCoverageInfo.StartLine
         EndLine   = $UnresolvedCoverageInfo.EndLine
         Class     = $UnresolvedCoverageInfo.Class
@@ -217,46 +217,27 @@ function Resolve-CoverageInfo {
     }
 
     foreach ($filePath in $filePaths) {
-        $params['Path'] = $filePath
-        New-CoverageInfo @params
+        New-CoverageInfo @commonParams -Path $filePath
     }
 }
 
 function Get-CodeCoverageFilePaths {
     param (
-        [object]$Paths,
+        [string[]]$Paths,
         [bool]$IncludeTests,
         [bool]$RecursePaths
     )
 
     $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
 
-    $filePaths = foreach ($path in $Paths) {
-        $item = & $SafeCommands['Get-Item'] -LiteralPath $path
-        if ($item -is [System.IO.FileInfo] -and ('.ps1', '.psm1') -contains $item.Extension -and ($IncludeTests -or $item.Name -notlike $testsPattern)) {
-            $item.FullName
+    [string[]] $filteredFiles = @(foreach ($file in (& $SafeCommands['Get-ChildItem'] -LiteralPath $Paths -File -Recurse:$RecursePaths)) {
+        if (('.ps1', '.psm1') -contains $file.Extension -and ($IncludeTests -or $file.Name -notlike $testsPattern)) {
+            $file.FullName
         }
-        elseif ($item -is [System.IO.DirectoryInfo]) {
-            $children = foreach ($i in & $SafeCommands['Get-ChildItem'] -LiteralPath $item) {
-                # if we recurse paths return both directories and files so they can be resolved in the
-                # recursive call to Get-CodeCoverageFilePaths, otherwise return just files
-                if ($RecursePaths) {
-                    $i.PSPath
-                }
-                elseif (-not $i.PSIsContainer) {
-                    $i.PSPath
-                }
-            }
-            Get-CodeCoverageFilePaths -Paths $children -IncludeTests $IncludeTests -RecursePaths $RecursePaths
-        }
-        elseif (-not $item.PsIsContainer) {
-            # todo: enable this warning for non wildcarded paths? otherwise it prints a ton of warnings for documentation and so on when using "folder/*" wildcard
-            # & $SafeCommands['Write-Warning'] "CodeCoverage path '$path' resolved to a non-PowerShell file '$($item.FullName)'; this path will not be part of the coverage report."
-        }
-    }
+    })
 
-    return $filePaths
-
+    $uniqueFiles = & $SafeCommands['New-Object'] -TypeName 'System.Collections.Generic.HashSet[string]' -ArgumentList (,$filteredFiles)
+    return $uniqueFiles
 }
 
 function Get-CoverageBreakpoints {
