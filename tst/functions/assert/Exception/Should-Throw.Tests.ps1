@@ -53,6 +53,10 @@ Describe "Should-Throw" {
         It "Fails when exception does not match the message with wildcard" {
             { { throw [ArgumentException]"A is null!" } | Should-Throw -ExceptionMessage '*flabbergasted*' } | Verify-AssertionFailed
         }
+
+        It "Passes when exception match the message with escaped wildcard" {
+            { throw [ArgumentException]"[]" } | Should-Throw -ExceptionMessage '`[`]'
+        }
     }
 
     Context "Filtering with FullyQualifiedErrorId" {
@@ -86,7 +90,7 @@ Describe "Should-Throw" {
 
         It "Given exception that does not match on message it returns the correct message" {
             $err = { { throw [ArgumentException]"fail!" } | Should-Throw -ExceptionMessage 'halt!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, with message 'halt!' to be thrown, but the message was 'fail!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like 'halt!' to be thrown, but the message was 'fail!'."
         }
 
         It "Given exception that does not match on FullyQualifiedErrorId it returns the correct message" {
@@ -96,7 +100,7 @@ Describe "Should-Throw" {
 
         It "Given exception that does not match on type and message it returns the correct message" {
             $err = { { throw [ArgumentException]"fail!" } | Should-Throw -ExceptionType ([System.InvalidOperationException]) -ExceptionMessage 'halt!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message 'halt!' to be thrown, but the exception type was [ArgumentException] and the message was 'fail!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message like 'halt!' to be thrown, but the exception type was [ArgumentException] and the message was 'fail!'."
         }
 
         It "Given exception that does not match on type and FullyQualifiedErrorId it returns the correct message" {
@@ -106,12 +110,17 @@ Describe "Should-Throw" {
 
         It "Given exception that does not match on message and FullyQualifiedErrorId it returns the correct message" {
             $err = { { throw [ArgumentException]"halt!" } | Should-Throw -ExceptionMessage 'fail!'  -FullyQualifiedErrorId 'fail!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, with message 'fail!', with FullyQualifiedErrorId 'fail!' to be thrown, but the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like 'fail!', with FullyQualifiedErrorId 'fail!' to be thrown, but the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
         }
 
         It "Given exception that does not match on type, message and FullyQualifiedErrorId it returns the correct message" {
             $err = { { throw [ArgumentException]"halt!" } | Should-Throw -ExceptionType ([System.InvalidOperationException]) -ExceptionMessage 'fail!'  -FullyQualifiedErrorId 'fail!' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message 'fail!' and with FullyQualifiedErrorId 'fail!' to be thrown, but the exception type was [ArgumentException], the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
+            $err.Exception.Message | Verify-Equal "Expected an exception, of type [InvalidOperationException], with message like 'fail!' and with FullyQualifiedErrorId 'fail!' to be thrown, but the exception type was [ArgumentException], the message was 'halt!' and the FullyQualifiedErrorId was 'halt!'."
+        }
+
+        It "Given exception that does not match on a message with escaped wildcard it returns the correct message" {
+            $err = { { throw [ArgumentException]"[!]" } | Should-Throw -ExceptionMessage '`[`]' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like '[]' to be thrown, but the message was '[!]'."
         }
     }
 

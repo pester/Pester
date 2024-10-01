@@ -25,6 +25,7 @@ function Should-Throw {
     ```powershell
     { throw 'error' } | Should-Throw
     { throw 'error' } | Should-Throw -ExceptionMessage 'error'
+    { throw 'wildcard character []' } | Should-Throw -ExceptionMessage '*character `[`]'
     { throw 'error' } | Should-Throw -ExceptionType 'System.Management.Automation.RuntimeException'
     { throw 'error' } | Should-Throw -FullyQualifiedErrorId 'RuntimeException'
     { throw 'error' } | Should-Throw -FullyQualifiedErrorId '*Exception'
@@ -100,7 +101,7 @@ function Should-Throw {
 
     $filterOnMessage = -not ([string]::IsNullOrWhiteSpace($ExceptionMessage))
     if ($filterOnMessage) {
-        $filters += "with message '$ExceptionMessage'"
+        $filters += "with message like '$([System.Management.Automation.WildcardPattern]::Unescape($ExceptionMessage))'"
         if ($err.ExceptionMessage -notlike $ExceptionMessage) {
             $buts += "the message was '$($err.ExceptionMessage)'"
         }

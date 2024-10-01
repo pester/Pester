@@ -70,7 +70,9 @@
         # this is for Should -Not -Throw. Once *any* exception was thrown we should fail the assertion
         # there is no point in filtering the exception, because there should be none
         $succeeded = -not $actualExceptionWasThrown
-        if ($true -eq $succeeded) { return [Pester.ShouldResult]@{Succeeded = $succeeded } }
+        if ($true -eq $succeeded) {
+            return [Pester.ShouldResult]@{Succeeded = $succeeded }
+        }
 
         $failureMessage = "Expected no exception to be thrown,$(Format-Because $Because) but an exception `"$actualExceptionMessage`" was thrown $actualExceptionLine."
         return [Pester.ShouldResult] @{
@@ -96,7 +98,8 @@
 
     $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
     if ($filterOnMessage) {
-        $filters += "message like $(Format-Nicely $ExpectedMessage)"
+        $unescapedExpectedMessage = [System.Management.Automation.WildcardPattern]::Unescape($ExpectedMessage)
+        $filters += "message like $(Format-Nicely $unescapedExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
             $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
         }
@@ -120,7 +123,12 @@
         $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
 
         $ActualValue = $actualExceptionMessage
-        $ExpectedValue = if ($filterOnExceptionType) { "type $(Format-Nicely $ExceptionType)" } else { 'any exception' }
+        $ExpectedValue = if ($filterOnExceptionType) {
+            "type $(Format-Nicely $ExceptionType)"
+        }
+        else {
+            'any exception'
+        }
 
         return [Pester.ShouldResult] @{
             Succeeded      = $false
