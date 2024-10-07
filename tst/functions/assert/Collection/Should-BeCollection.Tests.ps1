@@ -40,5 +40,10 @@ Describe "Should-BeCollection" {
         ) {
             $_ | Should-BeCollection -Count 1
         }
+
+        It "Fails when collection does not have the expected number of items" {
+            $err = { @(1, 2) | Should-BeCollection -Count 3 } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected 3 items in [Object[]] @(1, 2), but it has 2 items."
+        }
     }
 }

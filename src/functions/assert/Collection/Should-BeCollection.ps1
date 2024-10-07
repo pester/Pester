@@ -61,7 +61,7 @@
 
     if ($PSCmdlet.ParameterSetName -eq 'Count') {
         if ($Count -ne $Actual.Count) {
-            $Message = Get-AssertionMessage -Expected $Count -Actual $Actual.Count -Because $Because -DefaultMessage "Expected <expected> items in <actualType> <actual>, but it has <actualCount> items."
+            $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items."
             throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
         }
         return
@@ -73,7 +73,7 @@
     }
 
     if (-not (Is-CollectionSize -Expected $Expected -Actual $Actual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>, but they don't have the same number of items."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items."
         throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
 
