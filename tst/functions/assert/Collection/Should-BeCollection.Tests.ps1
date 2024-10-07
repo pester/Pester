@@ -24,4 +24,21 @@ Describe "Should-BeCollection" {
         $err = { $actual | Should-BeCollection $expected } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal "Expected [Object[]] @(5, 6, 7, 8, 9) to be present in [Object[]] @(1, 2, 3, 4, 5) in any order, but some values were not.`nMissing in actual: '6 (index 1), 7 (index 2), 8 (index 3), 9 (index 4)'`nExtra in actual: '1 (index 0), 2 (index 1), 3 (index 2), 4 (index 3)'"
     }
+
+    Describe "-Count" {
+        It "Counts empty collection @() correctly" {
+            @() | Should-BeCollection -Count 0
+        }
+
+        It "Counts collection with one item correctly" -ForEach @(
+            @(1),
+            (, @()), # array in array
+            @($null),
+            @(""),
+            # we also cannot distinguish between a single item and a single item array
+            1
+        ) {
+            $_ | Should-BeCollection -Count 1
+        }
+    }
 }
