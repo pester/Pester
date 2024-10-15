@@ -2619,9 +2619,9 @@ function Assert-BoundScriptBlockInput {
         $maxLength = 250
         $prettySb = (Format-Nicely2 $ScriptBlock) -replace '\s{2,}', ' '
         if ($prettySb.Length -gt $maxLength) {
-            $prettySb = $prettySb.Remove($maxLength) + "..."
+            $prettySb = "$($prettySb.Remove($maxLength))..."
         }
 
-        throw [System.ArgumentException]::new("Unbound scriptblock '$prettySb' is not allowed. See https://github.com/pester/Pester/issues/2411.")
+        throw [System.ArgumentException]::new("Unbound scriptblock is not allowed, because it would run inside of Pester session state and produce unexpected results. See https://github.com/pester/Pester/issues/2411 for more details and workarounds. ScriptBlock: '$prettySb'")
     }
 }
