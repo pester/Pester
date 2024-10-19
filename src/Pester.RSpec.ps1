@@ -285,7 +285,7 @@ function New-PesterConfiguration {
 
     Calling New-PesterConfiguration is equivalent to calling [PesterConfiguration]::Default which was used in early versions of Pester 5.
 
-    For a complete list of options, see `Get-Help about_PesterConfiguration` or https://pester.dev/docs/usage/configuration
+    For a complete list of options, see `Get-Help about_PesterConfiguration` or https://pester.dev/docs/v5/usage/configuration
 
     .PARAMETER Hashtable
     Override the default values for the options defined in the provided dictionary/hashtable.
@@ -326,13 +326,13 @@ function New-PesterConfiguration {
     the new configuration.
 
     .LINK
-    https://pester.dev/docs/commands/New-PesterConfiguration
+    https://pester.dev/docs/v5/commands/New-PesterConfiguration
 
     .LINK
-    https://pester.dev/docs/usage/Configuration
+    https://pester.dev/docs/v5/usage/Configuration
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
 
     .LINK
     about_PesterConfiguration
@@ -531,13 +531,13 @@ function New-PesterContainer {
     the required ContainerInfo-object that enables us to do this directly.
 
     .LINK
-    https://pester.dev/docs/commands/New-PesterContainer
+    https://pester.dev/docs/v5/commands/New-PesterContainer
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
 
     .LINK
-    https://pester.dev/docs/usage/data-driven-tests
+    https://pester.dev/docs/v5/usage/data-driven-tests
     #>
     [CmdletBinding(DefaultParameterSetName = "Path")]
     param(

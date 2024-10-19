@@ -68,16 +68,16 @@
     Using Describe to group tests logically at the root of the script/container
 
     .LINK
-    https://pester.dev/docs/commands/Describe
+    https://pester.dev/docs/v5/commands/Describe
 
     .LINK
-    https://pester.dev/docs/usage/test-file-structure
+    https://pester.dev/docs/v5/usage/test-file-structure
 
     .LINK
-    https://pester.dev/docs/usage/mocking
+    https://pester.dev/docs/v5/usage/mocking
 
     .LINK
-    https://pester.dev/docs/usage/testdrive
+    https://pester.dev/docs/v5/usage/testdrive
     #>
 
     param(

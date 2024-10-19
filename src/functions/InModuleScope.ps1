@@ -99,7 +99,7 @@
     them in using `-Parameters` or `-ArgumentList`.
 
     .LINK
-    https://pester.dev/docs/commands/InModuleScope
+    https://pester.dev/docs/v5/commands/InModuleScope
     #>
     [CmdletBinding()]
     param (

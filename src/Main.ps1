@@ -60,7 +60,7 @@ function Add-ShouldOperator {
 
     Example of how to create a simple custom assertion that checks if the input string is 'Awesome'
     .LINK
-    https://pester.dev/docs/commands/Add-ShouldOperator
+    https://pester.dev/docs/v5/commands/Add-ShouldOperator
     #>
     [CmdletBinding()]
     param (
@@ -273,7 +273,7 @@ function Add-AssertionDynamicParameterSet {
         $attribute.Mandatory = $false
         $attribute.Position = ($i++)
         # Only visible in command reference on https://pester.dev. Remove if/when migrated to external help (markdown as source).
-        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` or https://pester.dev/docs/assertions/ for help.'
+        $attribute.HelpMessage = 'Depends on operator being used. See `Get-ShouldOperator -Name <Operator>` or https://pester.dev/docs/v5/assertions/ for help.'
 
         $null = $dynamic.Attributes.Add($attribute)
     }
@@ -572,10 +572,10 @@ function Invoke-Pester {
     to see other testresult options like  output path and format and their default values.
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
 
     .LINK
-    https://pester.dev/docs/quick-start
+    https://pester.dev/docs/v5/quick-start
     #>
 
     # Currently doesn't work. $IgnoreUnsafeCommands filter used in rule as workaround
@@ -1365,10 +1365,10 @@ function ConvertTo-Pester4Result {
     in the Pester 5 format and converts it to a new Pester 4-compatible result-object.
 
     .LINK
-    https://pester.dev/docs/commands/ConvertTo-Pester4Result
+    https://pester.dev/docs/v5/commands/ConvertTo-Pester4Result
 
     .LINK
-    https://pester.dev/docs/commands/Invoke-Pester
+    https://pester.dev/docs/v5/commands/Invoke-Pester
     #>
     [CmdletBinding()]
     param(
@@ -1499,10 +1499,10 @@ function BeforeDiscovery {
     dynamically create a Describe-block and tests for each file found.
 
     .LINK
-    https://pester.dev/docs/commands/BeforeDiscovery
+    https://pester.dev/docs/v5/commands/BeforeDiscovery
 
     .LINK
-    https://pester.dev/docs/usage/data-driven-tests
+    https://pester.dev/docs/v5/usage/data-driven-tests
     #>
     [CmdletBinding()]
     param (
