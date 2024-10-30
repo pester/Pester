@@ -10,6 +10,7 @@
     'bin/netstandard2.0/Pester.pdb'
     'en-US/about_Pester.help.txt'
     'en-US/about_PesterConfiguration.help.txt'
+    'schemas/Cobertura/coverage-loose.dtd'
     'schemas/JaCoCo/report.dtd'
     'schemas/JUnit4/junit_schema_4.xsd'
     'schemas/NUnit25/nunit_schema_2.5.xsd'

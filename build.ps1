@@ -202,6 +202,7 @@ if ($Clean) {
         , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
         , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
         , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
+        , ("$PSScriptRoot/src/schemas/Cobertura/*.dtd", "$PSScriptRoot/bin/schemas/Cobertura/")
         , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net452/Pester.dll", "$PSScriptRoot/bin/bin/net452/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net452/Pester.pdb", "$PSScriptRoot/bin/bin/net452/")

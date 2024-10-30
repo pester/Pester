@@ -95,7 +95,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters
+        OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters, Cobertura
         Type: string
         Default value: 'JaCoCo'
 
