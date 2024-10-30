@@ -1,0 +1,61 @@
+<!-- Portions (C) International Organization for Standardization 1986:
+     Permission to copy in any form is granted for use with
+     conforming SGML systems and applications as defined in
+     ISO 8879, provided this notice is included in all copies.
+-->
+
+  <!ELEMENT coverage (sources?,packages)>
+  <!ATTLIST coverage line-rate        CDATA #IMPLIED>
+  <!ATTLIST coverage branch-rate      CDATA #IMPLIED>
+  <!ATTLIST coverage lines-covered    CDATA #IMPLIED>
+  <!ATTLIST coverage lines-valid      CDATA #IMPLIED>
+  <!ATTLIST coverage branches-covered CDATA #IMPLIED>
+  <!ATTLIST coverage branches-valid   CDATA #IMPLIED>
+  <!ATTLIST coverage complexity       CDATA #IMPLIED>
+  <!ATTLIST coverage version          CDATA #REQUIRED>
+  <!ATTLIST coverage timestamp        CDATA #REQUIRED>
+
+  <!ELEMENT sources (source*)>
+
+  <!ELEMENT source (#PCDATA)>
+
+  <!ELEMENT packages (package*)>
+
+  <!ELEMENT package (classes)>
+  <!ATTLIST package name        CDATA #REQUIRED>
+  <!ATTLIST package line-rate   CDATA #IMPLIED>
+  <!ATTLIST package branch-rate CDATA #IMPLIED>
+  <!ATTLIST package complexity  CDATA #IMPLIED>
+
+  <!ELEMENT classes (class*)>
+
+  <!ELEMENT class (methods,lines)>
+  <!ATTLIST class name        CDATA #REQUIRED>
+  <!ATTLIST class filename    CDATA #REQUIRED>
+  <!ATTLIST class line-rate   CDATA #IMPLIED>
+  <!ATTLIST class branch-rate CDATA #IMPLIED>
+  <!ATTLIST class complexity  CDATA #IMPLIED>
+
+  <!ELEMENT methods (method*)>
+
+  <!ELEMENT method (lines)>
+  <!ATTLIST method name        CDATA #REQUIRED>
+  <!ATTLIST method signature   CDATA #REQUIRED>
+  <!ATTLIST method line-rate   CDATA #IMPLIED>
+  <!ATTLIST method branch-rate CDATA #IMPLIED>
+  <!ATTLIST method complexity  CDATA #IMPLIED>
+
+  <!ELEMENT lines (line*)>
+
+  <!ELEMENT line (conditions*)>
+  <!ATTLIST line number CDATA #REQUIRED>
+  <!ATTLIST line hits   CDATA #IMPLIED>
+  <!ATTLIST line branch CDATA "false">
+  <!ATTLIST line condition-coverage CDATA #IMPLIED>
+
+  <!ELEMENT conditions (condition*)>
+
+  <!ELEMENT condition EMPTY>
+  <!ATTLIST condition number CDATA #REQUIRED>
+  <!ATTLIST condition type CDATA #REQUIRED>
+  <!ATTLIST condition coverage CDATA #REQUIRED>
