@@ -145,11 +145,11 @@
 
         $configuration = $run.PluginConfiguration.Coverage
 
-        if ($configuration.OutputFormat -in 'JaCoCo', 'CoverageGutters') {
-            [xml] $jaCoCoReport = [xml] (Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format $configuration.OutputFormat)
-        }
-        else {
-            throw "CodeCoverage.CoverageFormat '$($configuration.OutputFormat)' is not valid, please review your configuration."
+        $coverageXmlReport = switch ($configuration.OutputFormat) {
+            'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format 'JaCoCo') }
+            'CoverageGutters' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format 'CoverageGutters') }
+            'Cobertura' { [xml](Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds) }
+            default { throw "CodeCoverage.CoverageFormat '$($configuration.OutputFormat)' is not valid, please review your configuration." }
         }
 
         $settings = [Xml.XmlWriterSettings] @{
@@ -163,7 +163,7 @@
             $stringWriter = [Pester.Factory]::CreateStringWriter()
             $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
 
-            $jaCocoReport.WriteContentTo($xmlWriter)
+            $coverageXmlReport.WriteContentTo($xmlWriter)
 
             $xmlWriter.Flush()
             $stringWriter.Flush()
@@ -216,7 +216,7 @@
 }
 
 function Resolve-CodeCoverageConfiguration {
-    $supportedFormats = 'JaCoCo', 'CoverageGutters'
+    $supportedFormats = 'JaCoCo', 'CoverageGutters', 'Cobertura'
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }
