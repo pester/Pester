@@ -70,6 +70,17 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'Add-ShouldOperator input validation' {
+        Get-Module Pester | Remove-Module
+        Import-Module "$PSScriptRoot\..\..\bin\Pester.psd1"
+
+        t 'Does not allow unbound scriptblocks' {
+            # Would execute in Pester's internal module state
+            $ex = { Add-ShouldOperator -Name DenyUnbound -Test ([ScriptBlock]::Create('$true')) } | Verify-Throw
+            $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
+        }
+    }
+
     b 'Executing custom Should assertions' {
         # Testing paramter and output syntax described in docs (https://pester.dev/docs/assertions/custom-assertions)
         Get-Module Pester | Remove-Module
