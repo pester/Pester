@@ -424,9 +424,9 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
-                        <counter type="INSTRUCTION" missed="6" covered="32" />
-                        <counter type="LINE" missed="5" covered="28" />
-                        <counter type="METHOD" missed="2" covered="8" />
+                        <counter type="INSTRUCTION" missed="6" covered="33" />
+                        <counter type="LINE" missed="5" covered="29" />
+                        <counter type="METHOD" missed="2" covered="9" />
                         <counter type="CLASS" missed="0" covered="4" />
                     </package>
                     <package name="CommonRoot/TestSubFolder">
@@ -454,9 +454,9 @@ InPesterModuleScope {
                         <counter type="METHOD" missed="0" covered="1" />
                         <counter type="CLASS" missed="0" covered="1" />
                     </package>
-                    <counter type="INSTRUCTION" missed="6" covered="33" />
-                    <counter type="LINE" missed="5" covered="29" />
-                    <counter type="METHOD" missed="2" covered="9" />
+                    <counter type="INSTRUCTION" missed="6" covered="34" />
+                    <counter type="LINE" missed="5" covered="30" />
+                    <counter type="METHOD" missed="2" covered="10" />
                     <counter type="CLASS" missed="0" covered="5" />
                 </report>
                 ')
@@ -616,9 +616,9 @@ InPesterModuleScope {
                             <counter type="METHOD" missed="0" covered="1" />
                             <counter type="CLASS" missed="0" covered="1" />
                         </sourcefile>
-                        <counter type="INSTRUCTION" missed="6" covered="32" />
-                        <counter type="LINE" missed="5" covered="28" />
-                        <counter type="METHOD" missed="2" covered="8" />
+                        <counter type="INSTRUCTION" missed="6" covered="33" />
+                        <counter type="LINE" missed="5" covered="29" />
+                        <counter type="METHOD" missed="2" covered="9" />
                         <counter type="CLASS" missed="0" covered="4" />
                     </package>
                     <package name="TestSubFolder">
@@ -645,9 +645,9 @@ InPesterModuleScope {
                         <counter type="METHOD" missed="0" covered="1" />
                         <counter type="CLASS" missed="0" covered="1" />
                     </package>
-                    <counter type="INSTRUCTION" missed="6" covered="33" />
-                    <counter type="LINE" missed="5" covered="29" />
-                    <counter type="METHOD" missed="2" covered="9" />
+                    <counter type="INSTRUCTION" missed="6" covered="34" />
+                    <counter type="LINE" missed="5" covered="30" />
+                    <counter type="METHOD" missed="2" covered="10" />
                     <counter type="CLASS" missed="0" covered="5" />
                 </report>
                 ')
@@ -662,13 +662,13 @@ InPesterModuleScope {
                 (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "coverage-loose.dtd">
-                <coverage lines-valid="17" lines-covered="15" line-rate="0.882352941176471" branches-valid="0"
+                <coverage lines-valid="35" lines-covered="30" line-rate="0.857142857142857" branches-valid="0"
                     branches-covered="0" branch-rate="1" timestamp="" version="0.1">
                     <sources>
                         <source>CommonRoot</source>
                     </sources>
                     <packages>
-                        <package name="" line-rate="0.875" branch-rate="0">
+                        <package name="" line-rate="0.852941176470588" branch-rate="0">
                             <classes>
                                 <class name="TestScript.ps1" filename="TestScript.ps1" line-rate="0.866666666666667"
                                     branch-rate="1">
@@ -737,6 +737,36 @@ InPesterModuleScope {
                                     <methods />
                                     <lines>
                                         <line number="1" hits="1" />
+                                    </lines>
+                                </class>
+                                <class name="TestScriptExit.ps1" filename="TestScriptExit.ps1" line-rate="1"
+                                    branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="2" hits="2" />
+                                    </lines>
+                                </class>
+                                <class name="TestScriptStatements.ps1" filename="TestScriptStatements.ps1"
+                                    line-rate="0.823529411764706" branch-rate="1">
+                                    <methods />
+                                    <lines>
+                                        <line number="3" hits="2" />
+                                        <line number="6" hits="1" />
+                                        <line number="11" hits="1" />
+                                        <line number="12" hits="1" />
+                                        <line number="13" hits="1" />
+                                        <line number="14" hits="0" />
+                                        <line number="17" hits="1" />
+                                        <line number="18" hits="1" />
+                                        <line number="19" hits="1" />
+                                        <line number="21" hits="0" />
+                                        <line number="24" hits="1" />
+                                        <line number="25" hits="1" />
+                                        <line number="26" hits="1" />
+                                        <line number="28" hits="0" />
+                                        <line number="32" hits="1" />
+                                        <line number="33" hits="2" />
+                                        <line number="36" hits="1" />
                                     </lines>
                                 </class>
                             </classes>
