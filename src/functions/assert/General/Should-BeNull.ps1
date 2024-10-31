@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is `$null`.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is `$null`. It is useful when you need to ensure that the value is `$null` in tests.
+
     .PARAMETER Actual
     The actual value.
 

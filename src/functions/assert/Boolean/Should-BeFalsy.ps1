@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the actual value to a boolean $false or a falsy value: 0, "", $null or @(). It converts the input value to a boolean.
 
+    .DESCRIPTION
+    This assertion checks if the actual value is $false or a falsy value (0, "", $null, or @()). It is useful when you need to ensure that the value is falsy and not just not $true.
+
     .PARAMETER Actual
     The actual value to compare to $false.
 

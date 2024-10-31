@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for all the items in the collection, the assertion passes.
 
+    .DESCRIPTION
+    This assertion checks if all items in a collection pass a filter script. It is useful when you need to ensure that every item in the collection meets a specific condition.
+
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
 

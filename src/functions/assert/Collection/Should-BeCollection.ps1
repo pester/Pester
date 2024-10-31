@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion checks if two collections are equal by comparing their sizes and each item in them. It is useful when you need to ensure that the collections have the same size and the items are equal, regardless of their types.
+
     .PARAMETER Expected
     A collection of items.
 
