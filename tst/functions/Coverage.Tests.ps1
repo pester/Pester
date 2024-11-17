@@ -145,7 +145,7 @@ InPesterModuleScope {
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 19 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should -Be 19 -Because 'it has the proper number of breakpoints defined (using profiler based code coverage: $UseBreakpoints)'
 
                 $sb = {
                     $null = & $testScriptPath
