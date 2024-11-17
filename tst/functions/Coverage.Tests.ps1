@@ -97,7 +97,7 @@ InPesterModuleScope {
                 #{
                     function MyClass
                     {
-                        MyBaseClass; 'I am the constructor.'
+                        MyBaseClass # calls the base constructor
                     }
 
                     function MethodOne
