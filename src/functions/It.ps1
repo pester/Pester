@@ -108,16 +108,16 @@
     current hashtable are made available as variables inside It.
 
     .LINK
-    https://pester.dev/docs/commands/It
+    https://pester.dev/docs/v5/commands/It
 
     .LINK
-    https://pester.dev/docs/commands/Describe
+    https://pester.dev/docs/v5/commands/Describe
 
     .LINK
-    https://pester.dev/docs/commands/Context
+    https://pester.dev/docs/v5/commands/Context
 
     .LINK
-    https://pester.dev/docs/commands/Set-ItResult
+    https://pester.dev/docs/v5/commands/Set-ItResult
     #>
     [CmdletBinding(DefaultParameterSetName = 'Normal')]
     param(

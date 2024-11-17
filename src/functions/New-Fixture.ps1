@@ -55,19 +55,19 @@
     Creates a new folder named Cleaner in the current directory and creates the scripts in it.
 
     .LINK
-    https://pester.dev/docs/commands/New-Fixture
+    https://pester.dev/docs/v5/commands/New-Fixture
 
     .LINK
-    https://pester.dev/docs/commands/Describe
+    https://pester.dev/docs/v5/commands/Describe
 
     .LINK
-    https://pester.dev/docs/commands/Context
+    https://pester.dev/docs/v5/commands/Context
 
     .LINK
-    https://pester.dev/docs/commands/It
+    https://pester.dev/docs/v5/commands/It
 
     .LINK
-    https://pester.dev/docs/commands/Should
+    https://pester.dev/docs/v5/commands/Should
     #>
     param (
         [Parameter(Mandatory = $true)]
