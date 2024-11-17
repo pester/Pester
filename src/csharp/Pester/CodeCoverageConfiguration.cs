@@ -41,7 +41,7 @@ namespace Pester
         public CodeCoverageConfiguration() : base("CodeCoverage configuration.")
         {
             Enabled = new BoolOption("Enable CodeCoverage.", false);
-            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters", "JaCoCo");
+            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters, Cobertura", "JaCoCo");
             OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for code coverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
