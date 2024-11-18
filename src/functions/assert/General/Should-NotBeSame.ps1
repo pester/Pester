@@ -17,6 +17,7 @@
     $object = New-Object -TypeName PSObject
     $object | Should-NotBeSame $object
     ```
+
     This assertion will pass, because the actual value is not the same instance as the expected value.
 
     .EXAMPLE

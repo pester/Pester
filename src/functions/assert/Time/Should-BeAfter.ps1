@@ -29,7 +29,6 @@
     (Get-Date).AddDays(1) | Should-BeAfter (Get-Date)
     ```
 
-
     This assertion will pass, because the actual value is after the expected value.
 
     .EXAMPLE
