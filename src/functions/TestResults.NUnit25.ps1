@@ -111,7 +111,7 @@ function Write-NUnitTestSuiteElements {
     $suites = @(
         # Tests only have GroupId if parameterized. All other tests are put in group with '' value
         # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
 
     foreach ($suite in $suites) {

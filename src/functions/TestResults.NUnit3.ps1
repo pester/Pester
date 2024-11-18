@@ -136,7 +136,7 @@ function Write-NUnit3TestSuiteElement {
     $blockGroups = @(
         # Blocks only have GroupId if parameterized (using -ForEach). All other blocks are put in group with '' value
         # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
-        $Node.Blocks | & $SafeCommands['Group-Object'] -Property GroupId
+        $Node.Blocks | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
 
     foreach ($group in $blockGroups) {
@@ -171,7 +171,8 @@ function Write-NUnit3TestSuiteElement {
 
     $testGroups = @(
         # Tests only have GroupId if parameterized. All other tests are put in group with '' value
-        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId
+        # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
+        $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
 
     foreach ($group in $testGroups) {
