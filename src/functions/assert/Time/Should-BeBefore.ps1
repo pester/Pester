@@ -35,6 +35,7 @@
     ```powershell
     (Get-Date).AddDays(1) | Should-BeBefore (Get-Date)
     ```
+
     This assertion will fail, because the actual value is not before the expected value.
 
     .EXAMPLE
@@ -46,7 +47,6 @@
 
     .EXAMPLE
     ```powershell
-
     (Get-Date).AddDays(-2) | Should-BeBefore -Time 3days -Ago
     ```
 

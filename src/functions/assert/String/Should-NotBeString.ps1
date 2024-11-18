@@ -29,12 +29,14 @@ function Should-NotBeString {
     ```powershell
     "hello" | Should-NotBeString "HELLO"
     ```
+
     This assertion will pass, because the actual value is not equal to the expected value.
 
     .EXAMPLE
     ```powershell
     "hello" | Should-NotBeString "hello" -CaseSensitive
     ```
+
     This assertion will fail, because the actual value is equal to the expected value.
 
     .NOTES

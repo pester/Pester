@@ -42,7 +42,6 @@ function Should-BeLikeString {
 
     .EXAMPLE
     ```powershell
-
     "hello" | Should-BeLikeString "H*" -CaseSensitive
     ```
 

@@ -21,7 +21,7 @@
 
     .EXAMPLE
     ```powershell
-   { Start-Sleep -Milliseconds 100 } | Should-BeFasterThan 50ms
+    { Start-Sleep -Milliseconds 100 } | Should-BeFasterThan 50ms
     ```
 
     This assertion will fail, because the actual value is not faster than the expected value.

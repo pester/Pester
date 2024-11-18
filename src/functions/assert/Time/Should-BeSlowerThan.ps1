@@ -28,7 +28,6 @@
 
     .EXAMPLE
     ```powershell
-
     { Start-Sleep -Seconds 1 } | Should-BeSlowerThan 10seconds
     ```
 

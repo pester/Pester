@@ -639,43 +639,45 @@ function Should-BeEquivalent {
 
     .EXAMPLE
     ```powershell
-        Should-BeEquivalent ...  -ExcludePath 'Id', 'Timestamp' -Comparator 'Equality'
+    Should-BeEquivalent ...  -ExcludePath 'Id', 'Timestamp' -Comparator 'Equality'
     ```
+
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
     ```powereshell
-        Should-BeEquivalent ... -ExcludePathsNotOnExpected
+    Should-BeEquivalent ... -ExcludePathsNotOnExpected
     ```
+
     This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.
 
     .EXAMPLE
     ```powershell
-        $expected = [PSCustomObject] @{
-            Name = "Thomas"
-        }
+    $expected = [PSCustomObject] @{
+        Name = "Thomas"
+    }
 
-        $actual = [PSCustomObject] @{
-            Name = "Jakub"
-            Age = 30
-        }
+    $actual = [PSCustomObject] @{
+        Name = "Jakub"
+        Age = 30
+    }
 
-        $actual | Should-BeEquivalent $expected
+    $actual | Should-BeEquivalent $expected
     ```
 
     This will throw an error because the actual object has an additional property Age and the Name values are not equivalent.
 
     .EXAMPLE
     ```powershell
-        $expected = [PSCustomObject] @{
-            Name = "Thomas"
-        }
+    $expected = [PSCustomObject] @{
+        Name = "Thomas"
+    }
 
-        $actual = [PSCustomObject] @{
-            Name = "Thomas"
-        }
+    $actual = [PSCustomObject] @{
+        Name = "Thomas"
+    }
 
-        $actual | Should-BeEquivalent $expected
+    $actual | Should-BeEquivalent $expected
     ```
 
     This will pass because the actual object has the same properties as the expected object and the Name values are equivalent.
@@ -737,10 +739,12 @@ function Get-EquivalencyOption {
 
     .EXAMPLE
     $option = Get-EquivalencyOption -ExcludePath 'Id', 'Timestamp' -Comparator 'Equality'
+
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
     $option = Get-EquivalencyOption -ExcludePathsNotOnExpected
+
     This example generates an equivalency option object that excludes any paths not present on the expected object from the comparison, using the default deep comparison strategy.
 
     .LINK
