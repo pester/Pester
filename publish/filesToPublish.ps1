@@ -5,7 +5,7 @@
     'Pester.Format.ps1xml'
     'PesterConfiguration.Format.ps1xml'
     'bin/net462/Pester.dll'
-    'bin/net6.0/Pester.dll'
+    'bin/net8.0/Pester.dll'
     'en-US/about_Pester.help.txt'
     'en-US/about_PesterConfiguration.help.txt'
     'schemas/Cobertura/coverage-loose.dtd'
