@@ -249,7 +249,8 @@ function Get-CoverageBreakpoints {
         [ScriptBlock]$Logger
     )
 
-    $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path)
+    # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
+    $fileGroups = @($CoverageInfo | & $SafeCommands['Group-Object'] -Property Path | & $SafeCommands['Sort-Object'] -Property Name)
     foreach ($fileGroup in $fileGroups) {
         if ($null -ne $Logger) {
             $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -287,9 +288,16 @@ function Get-CommandsInFile {
         # In PowerShell 5.0, dynamic keywords for DSC configurations are represented by the DynamicKeywordStatementAst
         # class.  They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
 
+        # ReturnStatementAst is excluded as it's not behaving consistent.
+        # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
+        # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
         $predicate = {
             $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.CommandBaseAst]
+            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
+            $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ThrowStatementAst]
         }
     }
     else {
@@ -551,6 +559,7 @@ function Get-CoverageCommandText {
 
     $reportParentExtentTypes = @(
         [System.Management.Automation.Language.ReturnStatementAst]
+        [System.Management.Automation.Language.ExitStatementAst]
         [System.Management.Automation.Language.ThrowStatementAst]
         [System.Management.Automation.Language.AssignmentStatementAst]
         [System.Management.Automation.Language.IfStatementAst]
@@ -818,9 +827,10 @@ function Get-JaCoCoReportXml {
     [long] $endTime = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
 
+    # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
     $folderGroups = $CommandCoverage | & $SafeCommands["Group-Object"] -Property {
         & $SafeCommands["Split-Path"] $_.File -Parent
-    }
+    } | & $SafeCommands["Sort-Object"] -Property Name
 
     $packageList = [System.Collections.Generic.List[psobject]]@()
 
