@@ -26,7 +26,7 @@
     This test will fail, the input is an empty string.
 
     .EXAMPLE
-    ```
+    ```powershell
     $null | Should-NotBeEmptyString
     $() | Should-NotBeEmptyString
     $false | Should-NotBeEmptyString
