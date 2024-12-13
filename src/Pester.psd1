@@ -16,7 +16,7 @@
     CompanyName       = 'Pester'
 
     # Copyright statement for this module
-    Copyright         = 'Copyright (c) 2024 by Pester Team, licensed under Apache 2.0 License.'
+    Copyright         = 'Copyright (c) 2025 by Pester Team, licensed under Apache 2.0 License.'
 
     # Description of the functionality provided by this module
     Description       = 'Pester provides a framework for running BDD style Tests to execute and validate PowerShell commands inside of PowerShell and offers a powerful set of Mocking Functions that allow tests to mimic and mock the functionality of any command inside of a piece of PowerShell code being tested. Pester tests can execute any command or script that is accessible to a pester test file. This can include functions, Cmdlets, Modules and scripts. Pester can be run in ad hoc style in a console or it can be integrated into the Build scripts of a Continuous Integration system.'
@@ -105,6 +105,9 @@
 
         'Should-BeLikeString'
         'Should-NotBeLikeString'
+
+        'Should-Invoke'
+        'Should-NotInvoke'
 
         'Should-BeFasterThan'
         'Should-BeSlowerThan'
