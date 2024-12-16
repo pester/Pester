@@ -9,6 +9,13 @@ Describe "Should-Invoke" {
 
         Should-Invoke f -Times 1 -Exactly
     }
+
+    It "Failes when mock was invoked 0 times" {
+        function f () { }
+        Mock f
+
+        { Should-Invoke f -Times 1 -Exactly } | Verify-Throw
+    }
 }
 
 Describe "Should-Invoke -Verifiable" {
@@ -19,5 +26,12 @@ Describe "Should-Invoke -Verifiable" {
         f
 
         Should-Invoke -Verifiable
+    }
+
+    It "Fails when not all verifiable mocks were invoked" {
+        function f () { }
+        Mock f -Verifiable
+
+        { Should-Invoke -Verifiable } | Verify-Throw
     }
 }

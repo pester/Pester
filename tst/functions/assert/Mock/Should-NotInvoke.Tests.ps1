@@ -7,13 +7,31 @@ Describe "Should-Invoke" {
 
         Should-Invoke f -Times 1 -Exactly
     }
+
+    It "Fails when Mock was invoked" {
+        function f () { }
+        Mock f
+
+        f
+
+        { Should-Invoke f -Times 1 -Exactly } | Verify-Throw
+    }
 }
 
-Describe "Should-Invoke -Verifiable" {
+Describe "Should-NotInvoke -Verifiable" {
     It "Passes when no verifiable mocks were invoked" {
         function f () { }
         Mock f -Verifiable
 
-        Should-Invoke -Verifiable
+        Should-NotInvoke -Verifiable
+    }
+
+    It "Fails when verifiable mocks were invoked" {
+        function f () { }
+        Mock f -Verifiable
+
+        f
+
+        { Should-NotInvoke -Verifiable } | Verify-Throw
     }
 }

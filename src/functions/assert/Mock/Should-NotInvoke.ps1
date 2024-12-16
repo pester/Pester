@@ -4,9 +4,9 @@
     Checks that mocked command was not called and throws exception if it was.
 
     .DESCRIPTION
-    This command verifies that a mocked command has been called a certain number
+    This command verifies that a mocked command has not been called a certain number
     of times.  If the call history of the mocked command does not match the parameters
-    passed to Should -Invoke, Should -Invoke will throw an exception.
+    passed to Should-NotInvoke, Should-NotInvoke will throw an exception.
 
     .PARAMETER CommandName
     The mocked command whose call history should be checked.
@@ -34,14 +34,14 @@
     Like ParameterFilter, except when you use ExclusiveFilter, and there
     were any calls to the mocked command which do not match the filter,
     an exception will be thrown.  This is a convenient way to avoid needing
-    to have two calls to Should -Invoke like this:
+    to have two calls to Should-NotInvoke like this:
 
-    Should -Invoke SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
-    Should -Invoke SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
+    Should-NotInvoke SomeCommand -Times 1 -ParameterFilter { $something -eq $true }
+    Should-NotInvoke SomeCommand -Times 0 -ParameterFilter { $something -ne $true }
 
     .PARAMETER Scope
     An optional parameter specifying the Pester scope in which to check for
-    calls to the mocked command. For RSpec style tests, Should -Invoke will find
+    calls to the mocked command. For RSpec style tests, Should-NotInvoke will find
     all calls to the mocked command in the current Context block (if present),
     or the current Describe block (if there is no active Context), by default. Valid
     values are Describe, Context and It. If you use a scope of Describe or
@@ -59,7 +59,7 @@
 
     {... Some Code ...}
 
-    Should -Invoke Set-Content
+    Should-NotInvoke Set-Content
 
     This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
 
@@ -68,7 +68,7 @@
 
     {... Some Code ...}
 
-    Should -Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
+    Should-NotInvoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
 
     This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
 
@@ -77,7 +77,7 @@
 
     {... Some Code ...}
 
-    Should -Invoke Set-Content 0
+    Should-NotInvoke Set-Content 0
 
     This will throw an exception if some code calls Set-Content at all
 
@@ -86,18 +86,18 @@
 
     {... Some Code ...}
 
-    Should -Invoke Set-Content -Exactly 2
+    Should-NotInvoke Set-Content -Exactly 2
 
     This will throw an exception if some code does not call Set-Content Exactly two times.
 
     .EXAMPLE
-    Describe 'Should -Invoke Scope behavior' {
+    Describe 'Should-NotInvoke Scope behavior' {
         Mock Set-Content { }
 
         It 'Calls Set-Content at least once in the It block' {
             {... Some Code ...}
 
-            Should -Invoke Set-Content -Exactly 0 -Scope It
+            Should-NotInvoke Set-Content -Exactly 0 -Scope It
         }
     }
 
@@ -110,27 +110,27 @@
         {... Some Code ...}
 
         It 'Calls Set-Content at least once in the Describe block' {
-            Should -Invoke -ModuleName SomeModule Set-Content
+            Should-NotInvoke -ModuleName SomeModule Set-Content
         }
     }
 
     Checks for calls to the mock within the SomeModule module.  Note that both the Mock
-    and Should -Invoke commands use the same module name.
+    and Should-NotInvoke commands use the same module name.
 
     .EXAMPLE
-    Should -Invoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+    Should-NotInvoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
 
     Checks to make sure that Get-ChildItem was called at least one time with
     the -Path parameter set to 'C:\', and that it was not called at all with
     the -Path parameter set to any other value.
 
     .NOTES
-    The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
-    (if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
+    The parameter filter passed to Should-NotInvoke does not necessarily have to match the parameter filter
+    (if any) which was used to create the Mock.  Should-NotInvoke will find any entry in the command history
     which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
     mocked command are made which did not match any mock's parameter filter (resulting in the original command
     being executed instead of a mock), these calls to the original command are not tracked in the call history.
-    In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
+    In other words, Should-NotInvoke can only be used to check for calls to the mocked implementation, not
     to the original.
 
     .LINK
