@@ -19,6 +19,15 @@ Describe "Testing Set-ItResult" {
         }
     }
 
+    It "Set-ItResult appends the -Because reason to the message" {
+        try {
+            Set-ItResult -Skipped -Because "we are forcing it to skip"
+        }
+        catch {
+            $_.Exception.Message | Should -Be "is skipped, because we are forcing it to skip"
+        }
+    }
+
     It "Set-ItResult can be called without -Because" {
         try {
             Set-ItResult -Skipped
