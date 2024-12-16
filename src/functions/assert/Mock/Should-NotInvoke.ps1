@@ -132,6 +132,12 @@
     being executed instead of a mock), these calls to the original command are not tracked in the call history.
     In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
     to the original.
+
+    .LINK
+    https://pester.dev/docs/commands/Should-NotInvoke
+
+    .LINK
+    https://pester.dev/docs/assertions
     #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     param(
