@@ -84,6 +84,9 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Should-BeLikeString'
     'Should-NotBeLikeString'
 
+    'Should-Invoke'
+    'Should-NotInvoke'
+
     'Should-BeFasterThan'
     'Should-BeSlowerThan'
     'Should-BeBefore'

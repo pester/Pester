@@ -648,7 +648,7 @@ function Should-InvokeVerifiable ([switch] $Negate, [string] $Because) {
 Set-ShouldOperatorHelpMessage -OperatorName InvokeVerifiable `
     -HelpMessage 'Checks if any Verifiable Mock has not been invoked. If so, this will throw an exception.'
 
-function Should-Invoke {
+function Should-InvokeAssertion {
     <#
     .SYNOPSIS
     Checks if a Mocked command has been called a certain number of times
@@ -966,7 +966,7 @@ function Should-Invoke {
 
 & $script:SafeCommands['Add-ShouldOperator'] -Name Invoke `
     -InternalName Should-Invoke `
-    -Test         ${function:Should-Invoke}
+    -Test         ${function:Should-InvokeAssertion}
 
 Set-ShouldOperatorHelpMessage -OperatorName Invoke `
     -HelpMessage 'Checks if a Mocked command has been called a certain number of times and throws an exception if it has not.'
@@ -1135,28 +1135,28 @@ function Invoke-Mock {
 
     # using @() to always get array. This avoids null error in Invoke-MockInternal when no behaviors where found (if-else unwraps the lists)
     $behaviors = @(if ($targettingAModule) {
-        # we have default module behavior add it to the filtered behaviors if there are any
-        if ($null -ne $moduleDefaultBehavior) {
-            $moduleBehaviors.Add($moduleDefaultBehavior)
+            # we have default module behavior add it to the filtered behaviors if there are any
+            if ($null -ne $moduleDefaultBehavior) {
+                $moduleBehaviors.Add($moduleDefaultBehavior)
+            }
+            else {
+                # we don't have default module behavior add the default non-module behavior if we have any
+                if ($null -ne $nonModuleDefaultBehavior) {
+                    $moduleBehaviors.Add($nonModuleDefaultBehavior)
+                }
+            }
+
+            $moduleBehaviors
         }
         else {
-            # we don't have default module behavior add the default non-module behavior if we have any
+            # we are not targeting a mock in a module use the non module behaviors
             if ($null -ne $nonModuleDefaultBehavior) {
-                $moduleBehaviors.Add($nonModuleDefaultBehavior)
+                # add the default non-module behavior if we have any
+                $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
             }
-        }
 
-        $moduleBehaviors
-    }
-    else {
-        # we are not targeting a mock in a module use the non module behaviors
-        if ($null -ne $nonModuleDefaultBehavior) {
-            # add the default non-module behavior if we have any
-            $nonModuleBehaviors.Add($nonModuleDefaultBehavior)
-        }
-
-        $nonModuleBehaviors
-    })
+            $nonModuleBehaviors
+        })
 
     $callHistory = (Get-MockDataForCurrentScope).CallHistory
 
