@@ -1,11 +1,11 @@
 ﻿Set-StrictMode -Version Latest
 
-Describe "Should-Invoke" {
+Describe "Should-NotInvoke" {
     It "Passes when Mock was not invoked" {
         function f () { }
         Mock f
 
-        Should-Invoke f -Times 1 -Exactly
+        Should-NotInvoke f -Times 1 -Exactly
     }
 
     It "Fails when Mock was invoked" {
@@ -14,7 +14,7 @@ Describe "Should-Invoke" {
 
         f
 
-        { Should-Invoke f -Times 1 -Exactly } | Verify-Throw
+        { Should-NotInvoke f -Times 1 -Exactly } | Verify-Throw
     }
 }
 

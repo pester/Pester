@@ -172,7 +172,8 @@
 
     if ($PSBoundParameters.ContainsKey('Verifiable')) {
         $PSBoundParameters.Remove('Verifiable')
-        Should-InvokeVerifiable @PSBoundParameters
+        $testResult = Should-InvokeVerifiable @PSBoundParameters
+        Test-AssertionResult $testResult
         return
     }
 
@@ -180,5 +181,7 @@
     # possible to register as Should operator.
     $PSBoundParameters["ActualValue"] = $null
     $PSBoundParameters["CallerSessionState"] = $PSCmdlet.SessionState
-    Should-InvokeAssertion @PSBoundParameters
+    $testResult = Should-InvokeAssertion @PSBoundParameters
+
+    Test-AssertionResult $testResult
 }
