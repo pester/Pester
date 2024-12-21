@@ -23,6 +23,8 @@ InPesterModuleScope {
             $null = New-Item -Path $testScriptPath -ItemType File -ErrorAction SilentlyContinue
 
             Set-Content -Path $testScriptPath -Value @'
+                using namespace System.Diagnostics.CodeAnalysis
+
                 function FunctionOne
                 {
                     function NestedFunction
@@ -45,6 +47,14 @@ InPesterModuleScope {
                 function FunctionTwo
                 {
                     'I am function two. I never get called.'
+                }
+
+                function FunctionThree
+                {
+                    [ExcludeFromCodeCoverageAttribute(Justification = 'I am not covered')]
+                    param ()
+
+                    'I am function three. I never get called.'
                 }
 
                 FunctionOne
@@ -288,42 +298,42 @@ InPesterModuleScope {
                     <sessioninfo id="this" start="" dump="" />
                     <package name="CommonRoot">
                         <class name="CommonRoot/TestScript" sourcefilename="TestScript.ps1">
-                            <method name="NestedFunction" desc="()" line="5">
+                            <method name="NestedFunction" desc="()" line="7">
                                 <counter type="INSTRUCTION" missed="0" covered="2" />
                                 <counter type="LINE" missed="0" covered="2" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="FunctionOne" desc="()" line="9">
+                            <method name="FunctionOne" desc="()" line="11">
                                 <counter type="INSTRUCTION" missed="1" covered="6" />
                                 <counter type="LINE" missed="0" covered="5" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="FunctionTwo" desc="()" line="22">
+                            <method name="FunctionTwo" desc="()" line="24">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
                             </method>
-                            <method name="&lt;script&gt;" desc="()" line="25">
+                            <method name="&lt;script&gt;" desc="()" line="35">
                                 <counter type="INSTRUCTION" missed="0" covered="3" />
                                 <counter type="LINE" missed="0" covered="3" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyBaseClass" desc="()" line="31">
+                            <method name="MyBaseClass" desc="()" line="41">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyClass" desc="()" line="39">
+                            <method name="MyClass" desc="()" line="49">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodOne" desc="()" line="44">
+                            <method name="MethodOne" desc="()" line="54">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodTwo" desc="()" line="49">
+                            <method name="MethodTwo" desc="()" line="59">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
@@ -367,21 +377,21 @@ InPesterModuleScope {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="7" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="8" mi="0" ci="1" mb="0" cb="0" />
                             <line nr="11" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
-                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="31" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="39" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="44" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="49" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="53" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="13" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="14" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="17" mi="1" ci="1" mb="0" cb="0" />
+                            <line nr="19" mi="0" ci="2" mb="0" cb="0" />
+                            <line nr="24" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="35" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="41" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="49" mi="0" ci="1" mb="0" cb="0" />
                             <line nr="54" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="59" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="63" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="64" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="3" covered="14" />
                             <counter type="LINE" missed="2" covered="13" />
                             <counter type="METHOD" missed="2" covered="6" />
@@ -480,42 +490,42 @@ InPesterModuleScope {
                     <sessioninfo id="this" start="" dump="" />
                     <package name=".">
                         <class name="TestScript" sourcefilename="TestScript.ps1">
-                            <method name="NestedFunction" desc="()" line="5">
+                            <method name="NestedFunction" desc="()" line="7">
                                 <counter type="INSTRUCTION" missed="0" covered="2" />
                                 <counter type="LINE" missed="0" covered="2" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="FunctionOne" desc="()" line="9">
+                            <method name="FunctionOne" desc="()" line="11">
                                 <counter type="INSTRUCTION" missed="1" covered="6" />
                                 <counter type="LINE" missed="0" covered="5" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="FunctionTwo" desc="()" line="22">
+                            <method name="FunctionTwo" desc="()" line="24">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
                             </method>
-                            <method name="&lt;script&gt;" desc="()" line="25">
+                            <method name="&lt;script&gt;" desc="()" line="35">
                                 <counter type="INSTRUCTION" missed="0" covered="3" />
                                 <counter type="LINE" missed="0" covered="3" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyBaseClass" desc="()" line="31">
+                            <method name="MyBaseClass" desc="()" line="41">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MyClass" desc="()" line="39">
+                            <method name="MyClass" desc="()" line="49">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodOne" desc="()" line="44">
+                            <method name="MethodOne" desc="()" line="54">
                                 <counter type="INSTRUCTION" missed="0" covered="1" />
                                 <counter type="LINE" missed="0" covered="1" />
                                 <counter type="METHOD" missed="0" covered="1" />
                             </method>
-                            <method name="MethodTwo" desc="()" line="49">
+                            <method name="MethodTwo" desc="()" line="59">
                                 <counter type="INSTRUCTION" missed="1" covered="0" />
                                 <counter type="LINE" missed="1" covered="0" />
                                 <counter type="METHOD" missed="1" covered="0" />
@@ -559,21 +569,21 @@ InPesterModuleScope {
                             <counter type="CLASS" missed="0" covered="1" />
                         </class>
                         <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="7" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="8" mi="0" ci="1" mb="0" cb="0" />
                             <line nr="11" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
-                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="31" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="39" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="44" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="49" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="53" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="13" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="14" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="17" mi="1" ci="1" mb="0" cb="0" />
+                            <line nr="19" mi="0" ci="2" mb="0" cb="0" />
+                            <line nr="24" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="35" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="41" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="49" mi="0" ci="1" mb="0" cb="0" />
                             <line nr="54" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="59" mi="1" ci="0" mb="0" cb="0" />
+                            <line nr="63" mi="0" ci="1" mb="0" cb="0" />
+                            <line nr="64" mi="0" ci="1" mb="0" cb="0" />
                             <counter type="INSTRUCTION" missed="3" covered="14" />
                             <counter type="LINE" missed="2" covered="13" />
                             <counter type="METHOD" missed="2" covered="6" />
@@ -675,61 +685,61 @@ InPesterModuleScope {
                                     <methods>
                                         <method name="FunctionOne" signature="()">
                                             <lines>
-                                                <line number="9" hits="1" />
                                                 <line number="11" hits="1" />
-                                                <line number="12" hits="1" />
-                                                <line number="15" hits="1" />
-                                                <line number="17" hits="2" />
+                                                <line number="13" hits="1" />
+                                                <line number="14" hits="1" />
+                                                <line number="17" hits="1" />
+                                                <line number="19" hits="2" />
                                             </lines>
                                         </method>
                                         <method name="FunctionTwo" signature="()">
                                             <lines>
-                                                <line number="22" hits="0" />
+                                                <line number="24" hits="0" />
                                             </lines>
                                         </method>
                                         <method name="MethodOne" signature="()">
                                             <lines>
-                                                <line number="44" hits="1" />
+                                                <line number="54" hits="1" />
                                             </lines>
                                         </method>
                                         <method name="MethodTwo" signature="()">
                                             <lines>
-                                                <line number="49" hits="0" />
+                                                <line number="59" hits="0" />
                                             </lines>
                                         </method>
                                         <method name="MyBaseClass" signature="()">
                                             <lines>
-                                                <line number="31" hits="1" />
+                                                <line number="41" hits="1" />
                                             </lines>
                                         </method>
                                         <method name="MyClass" signature="()">
                                             <lines>
-                                                <line number="39" hits="1" />
+                                                <line number="49" hits="1" />
                                             </lines>
                                         </method>
                                         <method name="NestedFunction" signature="()">
                                             <lines>
-                                                <line number="5" hits="1" />
-                                                <line number="6" hits="1" />
+                                                <line number="7" hits="1" />
+                                                <line number="8" hits="1" />
                                             </lines>
                                         </method>
                                     </methods>
                                     <lines>
-                                        <line number="5" hits="1" />
-                                        <line number="6" hits="1" />
-                                        <line number="9" hits="1" />
+                                        <line number="7" hits="1" />
+                                        <line number="8" hits="1" />
                                         <line number="11" hits="1" />
-                                        <line number="12" hits="1" />
-                                        <line number="15" hits="1" />
-                                        <line number="17" hits="2" />
-                                        <line number="22" hits="0" />
-                                        <line number="25" hits="1" />
-                                        <line number="31" hits="1" />
-                                        <line number="39" hits="1" />
-                                        <line number="44" hits="1" />
-                                        <line number="49" hits="0" />
-                                        <line number="53" hits="1" />
+                                        <line number="13" hits="1" />
+                                        <line number="14" hits="1" />
+                                        <line number="17" hits="1" />
+                                        <line number="19" hits="2" />
+                                        <line number="24" hits="0" />
+                                        <line number="35" hits="1" />
+                                        <line number="41" hits="1" />
+                                        <line number="49" hits="1" />
                                         <line number="54" hits="1" />
+                                        <line number="59" hits="0" />
+                                        <line number="63" hits="1" />
+                                        <line number="64" hits="1" />
                                     </lines>
                                 </class>
                                 <class name="TestScript2.ps1" filename="TestScript2.ps1" line-rate="1"
@@ -921,7 +931,7 @@ InPesterModuleScope {
         ) {
             BeforeAll {
 
-                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 11; EndLine = 12 } -UseBreakpoints $UseBreakpoints
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 13; EndLine = 14 } -UseBreakpoints $UseBreakpoints
 
                 @($breakpoints).Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
 

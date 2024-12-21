@@ -286,26 +286,98 @@ function Get-CommandsInFile {
 
     if ($PSVersionTable.PSVersion.Major -ge 5) {
         # In PowerShell 5.0, dynamic keywords for DSC configurations are represented by the DynamicKeywordStatementAst
-        # class.  They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
+        # class. They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
 
         # ReturnStatementAst is excluded as it's not behaving consistent.
         # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
         # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
         $predicate = {
-            $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
-            $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ThrowStatementAst]
+            if ($args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
+                $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
+                $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
+                $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
+                $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
+                $args[0] -is [System.Management.Automation.Language.ThrowStatementAst]) {
+                if (-not (IsExcludedByAttribute -Ast $args[0])) {
+                    return $true
+                }
+            }
         }
     }
     else {
-        $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
+        $predicate = {
+            if ($args[0] -is [System.Management.Automation.Language.CommandBaseAst]) {
+                if (-not (IsExcludedByAttribute -Ast $args[0])) {
+                    return $true
+                }
+            }
+        }
     }
 
     $searchNestedScriptBlocks = $true
     $ast.FindAll($predicate, $searchNestedScriptBlocks)
+}
+
+function IsExcludedByAttribute {
+    param (
+        [System.Management.Automation.Language.Ast] $Ast
+    )
+
+    $functionParents = @()
+    for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
+        if ($parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+            $functionParents += $parent
+        }
+    }
+
+    $parentsAttributeNames = @()
+    foreach ($functionParent in $functionParents) {
+        $paramBlock = $functionParent.Body.ParamBlock
+        if ($null -ne $paramBlock -and $paramBlock.Attributes) {
+            $parentsAttributeNames += $paramBlock.Attributes.TypeName.FullName
+        }
+    }
+
+    foreach ($parentAttributeName in $parentsAttributeNames) {
+        if ($parentAttributeName -match 'ExcludeFromCodeCoverageAttribute$') {
+            if ($parentAttributeName -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute') {
+                return $true
+            }
+
+            $namespaces = Get-NamespacesFromAstTopParent -Ast $Ast
+            if ($namespaces) {
+                foreach ($namespace in $namespaces) {
+                    $fullyQualifiedName = "$namespace.$parentAttributeName"
+                    if ($fullyQualifiedName -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute') {
+                        return $true
+                    }
+                }
+            }
+        }
+    }
+
+    return $false
+}
+
+function Get-NamespacesFromAstTopParent {
+    param (
+        [System.Management.Automation.Language.Ast] $Ast
+    )
+
+    $namespaces = @()
+    $topParent = Get-AstTopParent -Ast $Ast
+
+    if ($null -ne $topParent) {
+        $usingStatements = $topParent.FindAll({
+                param ($node) $node -is [System.Management.Automation.Language.UsingStatementAst] -and $node.UsingStatementKind -eq 'Namespace'
+            }, $true)
+
+        foreach ($usingStatement in $usingStatements) {
+            $namespaces += $usingStatement.Name.Value
+        }
+    }
+
+    return $namespaces
 }
 
 function Test-CoverageOverlapsCommand {
