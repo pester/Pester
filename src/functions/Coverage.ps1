@@ -292,6 +292,12 @@ function Get-CommandsInFile {
         # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
         # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
         $predicate = {
+            # Check if this node is within a function with the exclude attribute
+            if (IsExcludedByAttribute -Ast $args[0]) {
+                return $false
+            }
+
+            # Include relevant AST types for code coverage
             $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
             $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
             $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
@@ -301,11 +307,71 @@ function Get-CommandsInFile {
         }
     }
     else {
-        $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
+        $predicate = {
+            # Check if this node is within a function with the exclude attribute
+            if (IsExcludedByAttribute -Ast $args[0]) {
+                return $false
+            }
+
+            $args[0] -is [System.Management.Automation.Language.CommandBaseAst]
+        }
     }
 
     $searchNestedScriptBlocks = $true
     $ast.FindAll($predicate, $searchNestedScriptBlocks)
+}
+
+function IsExcludedByAttribute {
+    param (
+        [System.Management.Automation.Language.Ast] $Ast
+    )
+
+    for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
+        if ($parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+            $paramBlock = $parent.Body.ParamBlock
+            if ($paramBlock -and $paramBlock.Attributes) {
+                foreach ($attribute in $paramBlock.Attributes) {
+                    $attributeName = $attribute.TypeName.FullName
+
+                    if ($attributeName.EndsWith('ExcludeFromCodeCoverageAttribute')) {
+                        if ($attributeName -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute') {
+                            return $true
+                        }
+                        else {
+                            $namespaces = Get-NamespacesFromScript -Ast $Ast
+                            if ($namespaces -and ($namespaces | Where-Object { "$_.$attributeName" -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute' })) {
+                                return $true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return $false
+}
+
+function Get-NamespacesFromScript {
+    param (
+        [System.Management.Automation.Language.Ast] $Ast
+    )
+
+    while ($Ast.Parent -ne $null) {
+        $Ast = $Ast.Parent
+    }
+
+    $usingNamespaces = @()
+
+    $Ast.FindAll({
+            param ($node)
+            $node -is [System.Management.Automation.Language.UsingStatementAst] -and
+            $node.UsingStatementKind -eq 'Namespace'
+        }, $true) | ForEach-Object {
+        $usingNamespaces += $_.Name.Value
+    }
+
+    return $usingNamespaces
 }
 
 function Test-CoverageOverlapsCommand {
