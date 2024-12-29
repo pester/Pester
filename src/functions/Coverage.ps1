@@ -292,25 +292,19 @@ function Get-CommandsInFile {
         # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
         # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
         $predicate = {
-            if ($args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
-                $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
-                $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
-                $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
-                $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
-                $args[0] -is [System.Management.Automation.Language.ThrowStatementAst]) {
-                if (-not (IsExcludedByAttribute -Ast $args[0])) {
-                    return $true
-                }
-            }
+            $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
+            $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
+            $args[0] -is [System.Management.Automation.Language.ThrowStatementAst] -and
+            -not (IsExcludedByAttribute -Ast $args[0] -TargetAttribute 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute')
         }
     }
     else {
         $predicate = {
-            if ($args[0] -is [System.Management.Automation.Language.CommandBaseAst]) {
-                if (-not (IsExcludedByAttribute -Ast $args[0])) {
-                    return $true
-                }
-            }
+            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -and
+            -not (IsExcludedByAttribute -Ast $args[0] -TargetAttribute 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute')
         }
     }
 
@@ -320,43 +314,59 @@ function Get-CommandsInFile {
 
 function IsExcludedByAttribute {
     param (
-        [System.Management.Automation.Language.Ast] $Ast
+        [System.Management.Automation.Language.Ast] $Ast,
+        [string] $TargetAttribute
     )
 
-    $functionParents = @()
     for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
         if ($parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-            $functionParents += $parent
-        }
-    }
-
-    $parentsAttributeNames = @()
-    foreach ($functionParent in $functionParents) {
-        $paramBlock = $functionParent.Body.ParamBlock
-        if ($null -ne $paramBlock -and $paramBlock.Attributes) {
-            $parentsAttributeNames += $paramBlock.Attributes.TypeName.FullName
-        }
-    }
-
-    foreach ($parentAttributeName in $parentsAttributeNames) {
-        if ($parentAttributeName -match 'ExcludeFromCodeCoverageAttribute$') {
-            if ($parentAttributeName -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute') {
+            if (Test-ContainsAttribute -FunctionAst $parent -TargetAttribute $TargetAttribute) {
                 return $true
             }
+        }
+    }
 
-            $namespaces = Get-NamespacesFromAstTopParent -Ast $Ast
-            if ($namespaces) {
-                foreach ($namespace in $namespaces) {
-                    $fullyQualifiedName = "$namespace.$parentAttributeName"
-                    if ($fullyQualifiedName -eq 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute') {
-                        return $true
-                    }
+    return $false
+}
+
+function Test-ContainsAttribute {
+    param (
+        [System.Management.Automation.Language.FunctionDefinitionAst] $FunctionAst,
+        [string] $TargetAttribute
+    )
+
+    $AttributeNames = Get-AttributeNames -FunctionAst $FunctionAst
+
+    foreach ($attributeName in $AttributeNames) {
+        if ($attributeName -eq $TargetAttribute) {
+            return $true
+        }
+
+        if ($attributeName.Split('.')[-1] -eq $TargetAttribute.Split('.')[-1]) {
+            $Namespaces = Get-NamespacesFromAstTopParent -Ast $FunctionAst
+            foreach ($namespace in $Namespaces) {
+                $fullyQualifiedName = "$namespace.$attributeName"
+                if ($fullyQualifiedName -eq $TargetAttribute) {
+                    return $true
                 }
             }
         }
     }
 
     return $false
+}
+
+function Get-AttributeNames {
+    param (
+        [System.Management.Automation.Language.FunctionDefinitionAst] $FunctionAst
+    )
+
+    $paramBlock = $FunctionAst.Body.ParamBlock
+    if ($null -ne $paramBlock -and $paramBlock.Attributes) {
+        return $paramBlock.Attributes.TypeName.FullName
+    }
+
+    return @()
 }
 
 function Get-NamespacesFromAstTopParent {
@@ -367,14 +377,16 @@ function Get-NamespacesFromAstTopParent {
     $namespaces = @()
     $topParent = Get-AstTopParent -Ast $Ast
 
-    if ($null -ne $topParent) {
-        $usingStatements = $topParent.FindAll({
-                param ($node) $node -is [System.Management.Automation.Language.UsingStatementAst] -and $node.UsingStatementKind -eq 'Namespace'
-            }, $true)
+    if ($null -eq $topParent) {
+        return @()
+    }
 
-        foreach ($usingStatement in $usingStatements) {
-            $namespaces += $usingStatement.Name.Value
-        }
+    $usingStatements = $topParent.FindAll({
+            param ($node) $node -is [System.Management.Automation.Language.UsingStatementAst] -and $node.UsingStatementKind -eq 'Namespace'
+        }, $true)
+
+    foreach ($usingStatement in $usingStatements) {
+        $namespaces += $usingStatement.Name.Value
     }
 
     return $namespaces
