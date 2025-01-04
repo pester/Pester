@@ -25,8 +25,11 @@ $script:ReportStrings = DATA {
 
 $script:ReportTheme = DATA {
     @{
+        Container        = 'Magenta'
         Describe         = 'Green'
         Context          = 'Cyan'
+
+        BlockFail        = 'Red'
         Pass             = 'DarkGreen'
         PassTime         = 'DarkGray'
         Fail             = 'Red'
@@ -35,17 +38,15 @@ $script:ReportTheme = DATA {
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         NotRun           = 'Gray'
-        Total            = 'Gray'
         Inconclusive     = 'Gray'
         InconclusiveTime = 'DarkGray'
         Incomplete       = 'Yellow'
         IncompleteTime   = 'DarkGray'
         Foreground       = 'White'
         Information      = 'DarkGray'
+
         Coverage         = 'White'
         Discovery        = 'Magenta'
-        Container        = 'Magenta'
-        BlockFail        = 'Red'
     }
 }
 
@@ -282,13 +283,6 @@ function Write-PesterReport {
         $ReportTheme.Information
     }
 
-    $Total = if ($RunResult.TotalCount -gt 0) {
-        $ReportTheme.Total
-    }
-    else {
-        $ReportTheme.Information
-    }
-
     $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
         $ReportTheme.Inconclusive
     }
@@ -300,7 +294,6 @@ function Write-PesterReport {
     Write-PesterHostMessage ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive -NoNewLine
-    Write-PesterHostMessage ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
