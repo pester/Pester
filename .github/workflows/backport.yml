@@ -17,3 +17,4 @@ jobs:
     uses: dotnet/arcade/.github/workflows/backport-base.yml@main
     with:
       repository_owners: 'pester'
+      pr_title_template: '%source_pr_title% by %cc_users% in %source_pr_number% (backport to %target_branch%)'
