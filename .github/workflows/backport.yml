@@ -14,7 +14,7 @@ permissions:
 
 jobs: 
   backport:
-    uses: dotnet/arcade/.github/workflows/backport-base.yml@main
+    uses: dotnet/arcade/.github/workflows/backport-base.yml@backport-just-author
     with:
       repository_owners: 'pester'
-      pr_title_template: '%source_pr_title% by %cc_users% in #%source_pr_number% (backport to %target_branch%)'
+      pr_title_template: '%source_pr_title% by @%source_PR_user% in #%source_pr_number% (backport to %target_branch%)'
