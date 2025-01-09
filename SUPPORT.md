@@ -11,7 +11,8 @@ Feature Requests & Issues are reported using Github issues.
 
 ## Supported Versions
 
-Any issues with Pester are fixed in the latest releases, we do not backport fixes to minor releases. We do backport important fixes to 5.x.x. There has been no specific security patches to this date.
+Any issues with Pester are fixed in the latest releases, we do not backport fixes to mi
+nor releases. We do backport important fixes to 5.x.x. There has been no specific security patches to this date.
 
 | Version | Supported          | Notes                   |
 | ------- | ------------------ | ----------------------  |
