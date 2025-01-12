@@ -319,8 +319,8 @@ function IsExcludedByAttribute {
     )
 
     for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
-        if ($parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
-            if (Test-ContainsAttribute -FunctionAst $parent -TargetAttribute $TargetAttribute) {
+        if ($parent -is [System.Management.Automation.Language.ScriptBlockAst]) {
+            if (Test-ContainsAttribute -ScriptBlockAst $parent -TargetAttribute $TargetAttribute) {
                 return $true
             }
         }
@@ -331,65 +331,30 @@ function IsExcludedByAttribute {
 
 function Test-ContainsAttribute {
     param (
-        [System.Management.Automation.Language.FunctionDefinitionAst] $FunctionAst,
+        [System.Management.Automation.Language.ScriptBlockAst] $ScriptBlockAst,
         [string] $TargetAttribute
     )
 
-    $AttributeNames = Get-AttributeNames -FunctionAst $FunctionAst
-
-    foreach ($attributeName in $AttributeNames) {
-        if ($attributeName -eq $TargetAttribute) {
+    $attributes = Get-Attributes -ScriptBlockAst $ScriptBlockAst
+    foreach ($attribute in $attributes) {
+        $type = $attribute.TypeName.GetReflectionType()
+        if ($null -ne $type -and $type.FullName -eq $TargetAttribute) {
             return $true
-        }
-
-        if ($attributeName.Split('.')[-1] -eq $TargetAttribute.Split('.')[-1]) {
-            $Namespaces = Get-NamespacesFromAstTopParent -Ast $FunctionAst
-            foreach ($namespace in $Namespaces) {
-                $fullyQualifiedName = "$namespace.$attributeName"
-                if ($fullyQualifiedName -eq $TargetAttribute) {
-                    return $true
-                }
-            }
         }
     }
 
     return $false
 }
 
-function Get-AttributeNames {
+function Get-Attributes {
     param (
-        [System.Management.Automation.Language.FunctionDefinitionAst] $FunctionAst
+        [System.Management.Automation.Language.ScriptBlockAst] $ScriptBlockAst
     )
 
-    $paramBlock = $FunctionAst.Body.ParamBlock
+    $paramBlock = $ScriptBlockAst.ParamBlock
     if ($null -ne $paramBlock -and $paramBlock.Attributes) {
-        return $paramBlock.Attributes.TypeName.FullName
+        return $paramBlock.Attributes
     }
-
-    return @()
-}
-
-function Get-NamespacesFromAstTopParent {
-    param (
-        [System.Management.Automation.Language.Ast] $Ast
-    )
-
-    $namespaces = @()
-    $topParent = Get-AstTopParent -Ast $Ast
-
-    if ($null -eq $topParent) {
-        return @()
-    }
-
-    $usingStatements = $topParent.FindAll({
-            param ($node) $node -is [System.Management.Automation.Language.UsingStatementAst] -and $node.UsingStatementKind -eq 'Namespace'
-        }, $true)
-
-    foreach ($usingStatement in $usingStatements) {
-        $namespaces += $usingStatement.Name.Value
-    }
-
-    return $namespaces
 }
 
 function Test-CoverageOverlapsCommand {
