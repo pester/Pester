@@ -284,77 +284,9 @@ function Get-CommandsInFile {
     $tokens = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $errors)
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        # In PowerShell 5.0, dynamic keywords for DSC configurations are represented by the DynamicKeywordStatementAst
-        # class. They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
-
-        # ReturnStatementAst is excluded as it's not behaving consistent.
-        # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
-        # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
-        $predicate = {
-            $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
-            $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ThrowStatementAst] -and
-            -not (IsExcludedByAttribute -Ast $args[0] -TargetAttribute 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute')
-        }
-    }
-    else {
-        $predicate = {
-            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -and
-            -not (IsExcludedByAttribute -Ast $args[0] -TargetAttribute 'System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute')
-        }
-    }
-
-    $searchNestedScriptBlocks = $true
-    $ast.FindAll($predicate, $searchNestedScriptBlocks)
-}
-
-function IsExcludedByAttribute {
-    param (
-        [System.Management.Automation.Language.Ast] $Ast,
-        [string] $TargetAttribute
-    )
-
-    for ($parent = $Ast.Parent; $null -ne $parent; $parent = $parent.Parent) {
-        if ($parent -is [System.Management.Automation.Language.ScriptBlockAst]) {
-            if (Test-ContainsAttribute -ScriptBlockAst $parent -TargetAttribute $TargetAttribute) {
-                return $true
-            }
-        }
-    }
-
-    return $false
-}
-
-function Test-ContainsAttribute {
-    param (
-        [System.Management.Automation.Language.ScriptBlockAst] $ScriptBlockAst,
-        [string] $TargetAttribute
-    )
-
-    $attributes = Get-Attributes -ScriptBlockAst $ScriptBlockAst
-    foreach ($attribute in $attributes) {
-        $type = $attribute.TypeName.GetReflectionType()
-        if ($null -ne $type -and $type.FullName -eq $TargetAttribute) {
-            return $true
-        }
-    }
-
-    return $false
-}
-
-function Get-Attributes {
-    param (
-        [System.Management.Automation.Language.ScriptBlockAst] $ScriptBlockAst
-    )
-
-    $paramBlock = $ScriptBlockAst.ParamBlock
-    if ($null -ne $paramBlock -and $paramBlock.Attributes) {
-        return $paramBlock.Attributes
-    }
+    $visitor = [Pester.CoverageLocationVisitor]::new()
+    $ast.Visit($visitor)
+    return $visitor.CoverageLocations
 }
 
 function Test-CoverageOverlapsCommand {
