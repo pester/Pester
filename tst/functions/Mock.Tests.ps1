@@ -3166,23 +3166,18 @@ Describe 'Usage of Alias in DynamicParams' {
 
     BeforeAll {
         function New-DynamicAttr($ParamDictionary, $Name, $Alias = $null) {
-            $attr = New-Object -Type `
-                System.Management.Automation.ParameterAttribute
+            $attr = New-Object -Type System.Management.Automation.ParameterAttribute
             $attr.Mandatory = $false
             $attr.ParameterSetName = '__AllParameterSets'
-            $attributeCollection = New-Object `
-                -Type System.Collections.ObjectModel.Collection[System.Attribute]
+            $attributeCollection = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
             $attributeCollection.Add($attr)
 
             if ($null -ne $Alias) {
-                $attr = New-Object -Type `
-                    System.Management.Automation.AliasAttribute -ArgumentList @($Alias)
+                $attr = New-Object -Type System.Management.Automation.AliasAttribute -ArgumentList @($Alias)
                 $attributeCollection.Add($attr)
             }
 
-            $dynParam1 = New-Object -Type `
-                System.Management.Automation.RuntimeDefinedParameter($Name, [string],
-                $attributeCollection)
+            $dynParam1 = New-Object -Type System.Management.Automation.RuntimeDefinedParameter($Name, [string], $attributeCollection)
 
             $ParamDictionary.Add($Name, $dynParam1)
         }
@@ -3195,8 +3190,7 @@ Describe 'Usage of Alias in DynamicParams' {
 
             dynamicparam {
                 if ($Name.StartsWith("Hello")) {
-                    $paramDictionary = New-Object `
-                        -Type System.Management.Automation.RuntimeDefinedParameterDictionary
+                    $paramDictionary = New-Object -Type System.Management.Automation.RuntimeDefinedParameterDictionary
                     New-DynamicAttr -ParamDictionary $paramDictionary -Name "PSEdition"
 
                     return $paramDictionary

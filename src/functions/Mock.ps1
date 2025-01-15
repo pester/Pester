@@ -1479,7 +1479,7 @@ function Repair-ConflictingDynamicParameters {
         $DynamicParams
     )
 
-    $repairedDynamicParams = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+    $repairedDynamicParams = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
     $conflictingParams = Get-ConflictingParameterNames
 
     foreach ($paramName in $DynamicParams.Keys) {
@@ -1489,7 +1489,7 @@ function Repair-ConflictingDynamicParameters {
             $newName = "_$paramName"
             $dynamicParam.Name = $newName
 
-            $aliasAttribute = New-Object System.Management.Automation.AliasAttribute -ArgumentList $paramName
+            $aliasAttribute = [System.Management.Automation.AliasAttribute]::new($paramName)
             $dynamicParam.Attributes.Add($aliasAttribute)
 
             $repairedDynamicParams[$newName] = $dynamicParam
