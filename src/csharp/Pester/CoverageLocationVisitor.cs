@@ -4,6 +4,14 @@ using System.Management.Automation.Language;
 
 namespace Pester
 {
+    /// <summary>
+    /// A visitor class for traversing the PowerShell AST to collect coverage-relevant locations.
+    /// This replaces predicate-based filtering with a centralized, extensible approach.
+    ///
+    /// Advantages:
+    /// - Efficiently skips nodes with attributes like [ExcludeFromCodeCoverage].
+    /// - Simplifies logic by handling each AST type in dedicated methods.
+    /// </summary>
     public class CoverageLocationVisitor : AstVisitor2
     {
         public readonly List<Ast> CoverageLocations = new();
