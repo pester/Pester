@@ -15,7 +15,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
             $formatData | Should -Not -BeNullOrEmpty
             $formatData.FormatViewDefinition.Count | Should -Be 1
             $formatData.FormatViewDefinition[0].Name | Should -BeExactly $section.FullName
-            $formatData.FormatViewDefinition[0].Control | Should -BeOfType [System.Management.Automation.ListControl]
+            $formatData.FormatViewDefinition[0].Control | Should -BeOfType ([System.Management.Automation.ListControl])
         }
 
         It 'View includes all options' {
@@ -35,7 +35,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
             $formatData | Should -Not -BeNullOrEmpty
             $formatData.FormatViewDefinition.Count | Should -Be 1
             $formatData.FormatViewDefinition[0].Name | Should -BeExactly 'Pester.Option'
-            $formatData.FormatViewDefinition[0].Control | Should -BeOfType [System.Management.Automation.TableControl]
+            $formatData.FormatViewDefinition[0].Control | Should -BeOfType ([System.Management.Automation.TableControl])
         }
 
         It 'View includes all options' {

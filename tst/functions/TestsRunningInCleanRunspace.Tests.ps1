@@ -281,7 +281,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(, $results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType ([PSCustomObject])
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
@@ -332,7 +332,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(, $results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType ([PSCustomObject])
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
@@ -384,7 +384,7 @@ Describe "Swallowing output" {
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
                     #        when passed to Should
-                    @(, $results) | Should -BeOfType [PSCustomObject]
+                    @(, $results) | Should -BeOfType ([PSCustomObject])
                     $results.TotalCount | Should -Be 1
 
                     # or, we could do this instead:
