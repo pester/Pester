@@ -3160,3 +3160,66 @@ Describe 'Mocking with nested Pester runs' {
         Get-Command Get-ChildItem | Should -Not -Be 2
     }
 }
+
+Describe 'Usage of Alias in DynamicParams' {
+    # https://github.com/pester/Pester/issues/1274
+
+    BeforeAll {
+        function New-DynamicAttr($ParamDictionary, $Name, $Alias = $null) {
+            $attr = New-Object -Type System.Management.Automation.ParameterAttribute
+            $attr.Mandatory = $false
+            $attr.ParameterSetName = '__AllParameterSets'
+            $attributeCollection = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
+            $attributeCollection.Add($attr)
+
+            if ($null -ne $Alias) {
+                $attr = New-Object -Type System.Management.Automation.AliasAttribute -ArgumentList @($Alias)
+                $attributeCollection.Add($attr)
+            }
+
+            $dynParam1 = New-Object -Type System.Management.Automation.RuntimeDefinedParameter($Name, [string], $attributeCollection)
+
+            $ParamDictionary.Add($Name, $dynParam1)
+        }
+
+        function Test-DynamicParam {
+            [CmdletBinding()]
+            param(
+                [String]$Name
+            )
+
+            dynamicparam {
+                if ($Name.StartsWith("Hello")) {
+                    $paramDictionary = New-Object -Type System.Management.Automation.RuntimeDefinedParameterDictionary
+                    New-DynamicAttr -ParamDictionary $paramDictionary -Name "PSEdition"
+
+                    return $paramDictionary
+                }
+            }
+
+            process {
+                if ($PSBoundParameters.PSEdition) {
+                    Write-Host "PSEdition value: $($PSBoundParameters.PSEdition)"
+                }
+            }
+        }
+    }
+
+    Context 'Mocking with ParameterFilter' {
+        It 'Mocks Test-DynamicParam with PSEdition set to Desktop' {
+            Mock Test-DynamicParam { "World" } -ParameterFilter { $_PSEdition -eq 'Desktop' }
+
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should -Be 'World'
+        }
+    }
+
+    Context 'Validating Mock Invocation' {
+        It 'Invokes Test-DynamicParam with correct parameters' {
+            Mock Test-DynamicParam { "World" }
+
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should -Be 'World'
+
+            Should -Invoke Test-DynamicParam -Exactly 1 -Scope It
+        }
+    }
+}
