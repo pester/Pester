@@ -4,6 +4,7 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
     .SYNOPSIS
     Asserts that the actual value should be an object of a specified type
     (or a subclass of the specified type) using PowerShell's -is operator.
+    Expected type can be provided using full type name strings or a type wrapped in parantheses.
 
     .EXAMPLE
     $actual = Get-Item $env:SystemRoot
@@ -25,6 +26,11 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
     $actual | Should -BeOfType System.IO.FileInfo
 
     This test will fail, as FileInfo is not a base class of DirectoryInfo.
+
+    .EXAMPLE
+    $actual | Should -BeOfType ([System.IO.DirectoryInfo])
+
+    Test using a type-object. Remember to use parantheses for consistent behavior with PowerShell classes.
     #>
     if ($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
