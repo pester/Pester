@@ -1284,6 +1284,131 @@ InPesterModuleScope {
         }
     }
 
+    Describe 'Coverage Location Visitor' {
+        BeforeAll {
+            $testScript = @'
+            using namespace System.Diagnostics.CodeAnalysis
+
+            function FunctionIncluded {
+                "I am included"
+            }
+
+            function FunctionExcluded {
+                [ExcludeFromCodeCoverageAttribute()]
+                param()
+
+                "I am not included"
+            }
+
+            FunctionIncluded
+            FunctionExcluded
+
+'@
+            $tokens = $null
+            $errors = $null
+            $ast = [System.Management.Automation.Language.Parser]::ParseInput($testScript, [ref]$tokens, [ref]$errors)
+        }
+
+        Context 'Collect coverage locations' {
+            BeforeAll {
+                $visitor = [Pester.CoverageLocationVisitor]::new()
+                $ast.Visit($visitor)
+            }
+
+            It 'Skips excluded script blocks' {
+                $excludedCommand = $visitor.CoverageLocations | Where-Object {
+                    $_ -is [System.Management.Automation.Language.CommandExpressionAst] -and
+                    $_.Expression.Value -eq "I am not included"
+                }
+
+                $excludedCommand.Count | Should -Be 0 -Because "Command in excluded script blocks should not be collected."
+            }
+
+            It 'Processes included script blocks' {
+                $includedCommand = $visitor.CoverageLocations | Where-Object {
+                    $_ -is [System.Management.Automation.Language.CommandExpressionAst] -and
+                    $_.Expression.Value -eq "I am included"
+                }
+
+                $includedCommand.Count | Should -Be 1 -Because "Command in included script blocks should be collected."
+            }
+        }
+
+        Context 'Collect coverage locations for other AST types' {
+            It 'Collects all relevant AST types' {
+                $script = @'
+                foreach ($i in 1..10) { # 1 location
+                    break               # 1 location
+                    continue            # 1 location
+                    if ($i -eq 5) {     # 1 location
+                        throw           # 1 location
+                    }
+                    if ($i -eq 7) {     # 1 location
+                        exit            # 1 location
+                    }
+                    return              # not collected
+                }
+'@
+                $tokens = $null
+                $errors = $null
+                $ast = [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$tokens, [ref]$errors)
+
+                $visitor = [Pester.CoverageLocationVisitor]::new()
+                $ast.Visit($visitor)
+
+                $visitor.CoverageLocations.Count | Should -Be 7 -Because "Break, Continue, Throw, and Exit statements should be collected."
+            }
+        }
+
+        Context 'Coverage analysis with exclusion using <description>' -Foreach @(
+            @{ UseBreakpoints = $true; Description = "With breakpoints" }
+            @{ UseBreakpoints = $false; Description = "Profiler-based coverage collection" }
+        ) {
+            BeforeAll {
+                $root = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path -Path $root -ChildPath TestScript.ps1
+                Set-Content -Path $testScriptPath -Value $testScript
+
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{ Path = $testScriptPath } -UseBreakpoints $UseBreakpoints
+
+                @($breakpoints).Count | Should -Be 3 -Because 'The correct number of breakpoints should be defined.'
+
+                if ($UseBreakpoints) {
+                    & $testScriptPath
+                }
+                else {
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $testScriptPath } finally { Stop-TraceScript -Patched $patched }
+                    $measure = $tracer.Hits
+                }
+
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
+            }
+
+            It 'Correctly reports executed commands' {
+                $coverageReport.NumberOfCommandsExecuted | Should -Be 3 -Because 'The executed commands count should match.'
+            }
+
+            It 'Correctly reports analyzed commands' {
+                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3 -Because 'All commands should be analyzed.'
+            }
+
+            It 'Correctly reports missed commands' {
+                $coverageReport.MissedCommands.Count | Should -Be 0 -Because 'No command should be missed.'
+            }
+
+            It 'Correctly reports hit commands' {
+                $coverageReport.HitCommands.Count | Should -Be 3 -Because 'Three commands should be hit.'
+            }
+
+            AfterAll {
+                if ($UseBreakpoints) {
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
+                }
+            }
+        }
+    }
+
     #     Describe 'Stripping common parent paths' {
 
     #         If ( (& $SafeCommands['Get-Variable'] -Name IsLinux -Scope Global -ErrorAction SilentlyContinue) -or

@@ -284,28 +284,9 @@ function Get-CommandsInFile {
     $tokens = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $errors)
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        # In PowerShell 5.0, dynamic keywords for DSC configurations are represented by the DynamicKeywordStatementAst
-        # class.  They still trigger breakpoints, but are not a child class of CommandBaseAst anymore.
-
-        # ReturnStatementAst is excluded as it's not behaving consistent.
-        # "return" is not hit in 5.1 but fixed in a later version. Using "return 123" we get hit on 123 but not return.
-        # See https://github.com/pester/Pester/issues/1465#issuecomment-604323645
-        $predicate = {
-            $args[0] -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.CommandBaseAst] -or
-            $args[0] -is [System.Management.Automation.Language.BreakStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ContinueStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ExitStatementAst] -or
-            $args[0] -is [System.Management.Automation.Language.ThrowStatementAst]
-        }
-    }
-    else {
-        $predicate = { $args[0] -is [System.Management.Automation.Language.CommandBaseAst] }
-    }
-
-    $searchNestedScriptBlocks = $true
-    $ast.FindAll($predicate, $searchNestedScriptBlocks)
+    $visitor = [Pester.CoverageLocationVisitor]::new()
+    $ast.Visit($visitor)
+    return $visitor.CoverageLocations
 }
 
 function Test-CoverageOverlapsCommand {
