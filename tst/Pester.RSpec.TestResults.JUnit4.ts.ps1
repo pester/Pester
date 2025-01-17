@@ -70,7 +70,6 @@ i -PassThru:$PassThru {
             $failureLine = $sb.StartPosition.StartLine + 3
             $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
             $stackTraceText[0] | Verify-Equal "at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
-            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$failureLine"
         }
 
         t "should write skipped and filtered test results counts" {
@@ -138,9 +137,7 @@ i -PassThru:$PassThru {
             $failureLine = $sb.StartPosition.StartLine + 3
             $stackTraceText = @($xmlTestCase.failure.'#text' -split "`n" -replace "`r")
             $stackTraceText[0] | Verify-Equal "[0] at ""Testing"" | Should -Be ""Test"", ${PSCommandPath}:$failureLine"
-            $stackTraceText[1] | Verify-Equal "at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+3)"
-            $stackTraceText[2] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
-
+            $stackTraceText[1] | Verify-Equal "[1] at <ScriptBlock>, ${PSCommandPath}:$($sbStartLine+7)"
         }
 
         t "should use expanded path and name when there are any" {
