@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net462</TargetFrameworks>
+    <TargetFrameworks>net8.0;net462</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <DebugType>embedded</DebugType>
@@ -11,14 +11,10 @@
     <DefineConstants>$(DefineConstants);PESTER</DefineConstants>
   </PropertyGroup>
 
-  <!-- PowerShell 7.2.x is the oldest supported PowerShell version. That version is built using net6.0.
-  But there is a bug in 7.2.0 reference assemblies, up to 7.2.10, where the IExtens.File is missing from the reference assembly:
-  https://github.com/PowerShell/PowerShell/issues/16408
-
-  So we use the version released before 7.2.0 which was 7.1.7. We could probably use 7.2.10 safely as well,
-  -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="System.Management.Automation" Version="7.1.7" />
+  <!-- PowerShell 7.4.x is the oldest supported PowerShell version. That version is built using net8.0.  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- Versions older than 7.4.6 have security vulnerabilities. -->
+    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
   </ItemGroup>
 
   <!-- Windows PowerShell 5.1 is the only Windows PowerShell that is still in support, and it is built using .NET Framework 4.5.2.

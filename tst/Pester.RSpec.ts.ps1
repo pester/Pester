@@ -1668,6 +1668,12 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        t "Does not accept unbound scriptblocks" {
+            # Would execute in Pester's internal module state
+            $ex = { New-PesterContainer -ScriptBlock ([ScriptBlock]::Create('$true')) } | Verify-Throw
+            $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
+        }
     }
 
     b "BeforeDiscovery" {
@@ -1690,6 +1696,15 @@ i -PassThru:$PassThru {
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Does not accept unbound scriptblocks" {
+            # Would execute in Pester's internal module state
+            $sb = { BeforeDiscovery ([ScriptBlock]::Create('$true')) }
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+            $r.Containers[0].ErrorRecord.Exception.Message | Verify-Like 'Unbound scriptblock*'
         }
     }
 
@@ -2920,6 +2935,35 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             Invoke-Pester -Container $container -Output None
             $pwd.Path | Verify-Equal $beforePWD
+        }
+    }
+
+    b 'Unbound scriptblocks' {
+        # Would execute in Pester's internal module state
+        t 'Throws when provided to Run.ScriptBlock' {
+            $sb = [scriptblock]::Create('')
+            $conf = New-PesterConfiguration
+            $conf.Run.ScriptBlock = $sb
+            $conf.Run.Throw = $true
+            $conf.Output.CIFormat = 'None'
+
+            $ex = { Invoke-Pester -Configuration $conf } | Verify-Throw
+            $ex.Exception.Message | Verify-Like '*Unbound scriptblock*'
+        }
+
+        t 'Throws when provided to Run.Container' {
+            $c = [Pester.ContainerInfo]::Create()
+            $c.Type = 'ScriptBlock'
+            $c.Item = [scriptblock]::Create('')
+            $c.Data = @{}
+
+            $conf = New-PesterConfiguration
+            $conf.Run.Container = $c
+            $conf.Run.Throw = $true
+            $conf.Output.CIFormat = 'None'
+
+            $ex = { Invoke-Pester -Configuration $conf } | Verify-Throw
+            $ex.Exception.Message | Verify-Like '*Unbound scriptblock*'
         }
     }
 }

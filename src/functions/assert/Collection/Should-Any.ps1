@@ -44,6 +44,8 @@
         [String]$Because
     )
 
+    Assert-BoundScriptBlockInput -ScriptBlock $FilterScript
+
     $Expected = $FilterScript
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual

@@ -1339,21 +1339,20 @@ function Get-ContextToDefine {
         }
         else {
             # the parameter is not defined in the parameter set,
-            # it is probably dynamic, let's see if I can get away with just adding
-            # it to the list of stuff to define
+            # it is probably dynamic, try remove "_" since the conflicting names
+            # are already handled to properly print the debug message
 
-            $name = if ($param.Key -in $script:ConflictingParameterNames) {
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($param.Key) is a built-in variable, rewriting it to `$_$($param.Key). Use the version with _ in your -ParameterFilter."
+            if ($param.Key.StartsWith('_')) {
+                $originalName = $param.Key.TrimStart('_')
+                if ($originalName -in $script:ConflictingParameterNames) {
+                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                        Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($originalName) is a built-in variable, rewriting it to `$_$($originalName). Use the version with _ in your -ParameterFilter."
+                    }
                 }
-                "_$($param.Key)"
-            }
-            else {
-                $param.Key
             }
 
-            if (-not $r.ContainsKey($name)) {
-                $r.Add($name, $param.Value)
+            if (-not $r.ContainsKey($param.Key)) {
+                $r.Add($param.Key, $param.Value)
             }
         }
     }
@@ -1457,13 +1456,50 @@ function Get-MockDynamicParameter {
 
     switch ($PSCmdlet.ParameterSetName) {
         'Cmdlet' {
-            Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
+            $dynamicParams = Get-DynamicParametersForCmdlet -CmdletName $CmdletName -Parameters $Parameters
         }
 
         'Function' {
-            Get-DynamicParametersForMockedFunction -DynamicParamScriptBlock $DynamicParamScriptBlock -Parameters $Parameters -Cmdlet $Cmdlet
+            $dynamicParams = Get-DynamicParametersForMockedFunction -DynamicParamScriptBlock $DynamicParamScriptBlock -Parameters $Parameters -Cmdlet $Cmdlet
         }
     }
+
+    if ($null -eq $dynamicParams) {
+        return
+    }
+
+    Repair-ConflictingDynamicParameters -DynamicParams $dynamicParams
+}
+
+function Repair-ConflictingDynamicParameters {
+    [OutputType([System.Management.Automation.RuntimeDefinedParameterDictionary])]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.RuntimeDefinedParameterDictionary]
+        $DynamicParams
+    )
+
+    $repairedDynamicParams = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+    $conflictingParams = Get-ConflictingParameterNames
+
+    foreach ($paramName in $DynamicParams.Keys) {
+        $dynamicParam = $DynamicParams[$paramName]
+
+        if ($conflictingParams -contains $paramName) {
+            $newName = "_$paramName"
+            $dynamicParam.Name = $newName
+
+            $aliasAttribute = [System.Management.Automation.AliasAttribute]::new($paramName)
+            $dynamicParam.Attributes.Add($aliasAttribute)
+
+            $repairedDynamicParams[$newName] = $dynamicParam
+        }
+        else {
+            $repairedDynamicParams[$paramName] = $dynamicParam
+        }
+    }
+
+    return $repairedDynamicParams
 }
 
 function Get-DynamicParametersForCmdlet {

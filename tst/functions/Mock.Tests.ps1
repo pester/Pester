@@ -2366,14 +2366,24 @@ Describe 'Naming conflicts in mocked functions' {
 }
 
 Describe 'Passing unbound script blocks as mocks' {
-    It 'Does not produce an error' {
+    BeforeAll {
         function TestMe {
             'Original'
         }
+    }
+    It 'Does not produce an error' {
         $scriptBlock = [scriptblock]::Create('"Mocked"')
 
         { Mock TestMe $scriptBlock } | Should -Not -Throw
         TestMe | Should -Be Mocked
+    }
+
+    It 'Should not execute in Pester internal state' {
+        $filter = [scriptblock]::Create('if ("pester" -eq $ExecutionContext.SessionState.Module) { throw "executed parameter filter in internal state" } else { $true }')
+        $scriptBlock = [scriptblock]::Create('if ("pester" -eq $ExecutionContext.SessionState.Module) { throw "executed mock in internal state" } else { "Mocked" }')
+
+        { Mock -CommandName TestMe -ParameterFilter $filter -MockWith $scriptBlock } | Should -Not -Throw
+        TestMe -SomeParam | Should -Be Mocked
     }
 }
 
@@ -3148,5 +3158,68 @@ Describe 'Mocking with nested Pester runs' {
 
     It 'Mocks in nested run do not leak to outside' {
         Get-Command Get-ChildItem | Should -Not -Be 2
+    }
+}
+
+Describe 'Usage of Alias in DynamicParams' {
+    # https://github.com/pester/Pester/issues/1274
+
+    BeforeAll {
+        function New-DynamicAttr($ParamDictionary, $Name, $Alias = $null) {
+            $attr = New-Object -Type System.Management.Automation.ParameterAttribute
+            $attr.Mandatory = $false
+            $attr.ParameterSetName = '__AllParameterSets'
+            $attributeCollection = New-Object -Type System.Collections.ObjectModel.Collection[System.Attribute]
+            $attributeCollection.Add($attr)
+
+            if ($null -ne $Alias) {
+                $attr = New-Object -Type System.Management.Automation.AliasAttribute -ArgumentList @($Alias)
+                $attributeCollection.Add($attr)
+            }
+
+            $dynParam1 = New-Object -Type System.Management.Automation.RuntimeDefinedParameter($Name, [string], $attributeCollection)
+
+            $ParamDictionary.Add($Name, $dynParam1)
+        }
+
+        function Test-DynamicParam {
+            [CmdletBinding()]
+            param(
+                [String]$Name
+            )
+
+            dynamicparam {
+                if ($Name.StartsWith("Hello")) {
+                    $paramDictionary = New-Object -Type System.Management.Automation.RuntimeDefinedParameterDictionary
+                    New-DynamicAttr -ParamDictionary $paramDictionary -Name "PSEdition"
+
+                    return $paramDictionary
+                }
+            }
+
+            process {
+                if ($PSBoundParameters.PSEdition) {
+                    Write-Host "PSEdition value: $($PSBoundParameters.PSEdition)"
+                }
+            }
+        }
+    }
+
+    Context 'Mocking with ParameterFilter' {
+        It 'Mocks Test-DynamicParam with PSEdition set to Desktop' {
+            Mock Test-DynamicParam { "World" } -ParameterFilter { $_PSEdition -eq 'Desktop' }
+
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should -Be 'World'
+        }
+    }
+
+    Context 'Validating Mock Invocation' {
+        It 'Invokes Test-DynamicParam with correct parameters' {
+            Mock Test-DynamicParam { "World" }
+
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should -Be 'World'
+
+            Should -Invoke Test-DynamicParam -Exactly 1 -Scope It
+        }
     }
 }

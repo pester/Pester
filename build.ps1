@@ -94,7 +94,7 @@ if ($Clean) {
 if ($Clean) {
     # Update PesterConfiguration help in about_PesterConfiguration
     if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll")
+        $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net8.0/Pester.dll")
     }
     else {
         $null = [Reflection.Assembly]::LoadFrom("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll")
@@ -202,9 +202,10 @@ if ($Clean) {
         , ("$PSScriptRoot/src/schemas/JUnit4/*.xsd", "$PSScriptRoot/bin/schemas/JUnit4/")
         , ("$PSScriptRoot/src/schemas/NUnit25/*.xsd", "$PSScriptRoot/bin/schemas/NUnit25/")
         , ("$PSScriptRoot/src/schemas/NUnit3/*.xsd", "$PSScriptRoot/bin/schemas/NUnit3/")
+        , ("$PSScriptRoot/src/schemas/Cobertura/*.dtd", "$PSScriptRoot/bin/schemas/Cobertura/")
         , ("$PSScriptRoot/src/schemas/JaCoCo/*.dtd", "$PSScriptRoot/bin/schemas/JaCoCo/")
         , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net462/Pester.dll", "$PSScriptRoot/bin/bin/net462/")
-        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net6.0/Pester.dll", "$PSScriptRoot/bin/bin/net6.0/")
+        , ("$PSScriptRoot/src/csharp/Pester/bin/$Configuration/net8.0/Pester.dll", "$PSScriptRoot/bin/bin/net8.0/")
     )
 }
 

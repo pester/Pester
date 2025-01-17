@@ -82,11 +82,11 @@ stages:
             PS7_Ubuntu_22_04:
               vmImage: ubuntu-22.04
               pwsh: true
-            PS7_macOS_12:
-              vmImage: macOS-12
-              pwsh: true
             PS7_macOS_13:
               vmImage: macOS-13
+              pwsh: true
+            PS7_macOS_14:
+              vmImage: macOS-14
               pwsh: true
             PS7_Windows_Server2019:
               vmImage: windows-2019
@@ -114,9 +114,8 @@ stages:
               script: |
                 & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
-          - task: PublishCodeCoverageResults@1
+          - task: PublishCodeCoverageResults@2
             inputs:
-              codeCoverageTool: 'JaCoCo'
               summaryFileLocation: 'coverage.xml'
               pathToSources: '$(Build.SourcesDirectory)/bin/'
               failIfCoverageEmpty: false

@@ -1,11 +1,7 @@
 $script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
-        FilterMessage     = ' matching test name {0}'
-        TagMessage        = ' with Tags {0}'
-        MessageOfs        = "', '"
 
-        CoverageTitle     = 'Code Coverage report:'
         CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
         MissedPlural      = 'Missed commands:'
@@ -15,14 +11,9 @@ $script:ReportStrings = DATA {
         FilePlural        = 'Files'
 
         Describe          = 'Describing {0}'
-        Script            = 'Executing script {0}'
         Context           = 'Context {0}'
         Margin            = ' '
         Timing            = 'Tests completed in {0}'
-
-        # If this is set to an empty string, the count won't be printed
-        ContextsPassed    = ''
-        ContextsFailed    = ''
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -34,10 +25,11 @@ $script:ReportStrings = DATA {
 
 $script:ReportTheme = DATA {
     @{
+        Container        = 'Magenta'
         Describe         = 'Green'
-        DescribeDetail   = 'DarkYellow'
         Context          = 'Cyan'
-        ContextDetail    = 'DarkCyan'
+
+        BlockFail        = 'Red'
         Pass             = 'DarkGreen'
         PassTime         = 'DarkGray'
         Fail             = 'Red'
@@ -46,19 +38,15 @@ $script:ReportTheme = DATA {
         Skipped          = 'Yellow'
         SkippedTime      = 'DarkGray'
         NotRun           = 'Gray'
-        NotRunTime       = 'DarkGray'
-        Total            = 'Gray'
         Inconclusive     = 'Gray'
         InconclusiveTime = 'DarkGray'
         Incomplete       = 'Yellow'
         IncompleteTime   = 'DarkGray'
         Foreground       = 'White'
         Information      = 'DarkGray'
+
         Coverage         = 'White'
         Discovery        = 'Magenta'
-        Container        = 'Magenta'
-        BlockFail        = 'Red'
-        Warning          = 'Yellow'
     }
 }
 
@@ -295,13 +283,6 @@ function Write-PesterReport {
         $ReportTheme.Information
     }
 
-    $Total = if ($RunResult.TotalCount -gt 0) {
-        $ReportTheme.Total
-    }
-    else {
-        $ReportTheme.Information
-    }
-
     $Inconclusive = if ($RunResult.InconclusiveCount -gt 0) {
         $ReportTheme.Inconclusive
     }
@@ -309,30 +290,10 @@ function Write-PesterReport {
         $ReportTheme.Information
     }
 
-    # Try {
-    #     $PesterStatePassedScenariosCount = $PesterState.PassedScenarios.Count
-    # }
-    # Catch {
-    #     $PesterStatePassedScenariosCount = 0
-    # }
-
-    # Try {
-    #     $PesterStateFailedScenariosCount = $PesterState.FailedScenarios.Count
-    # }
-    # Catch {
-    #     $PesterStateFailedScenariosCount = 0
-    # }
-
-    # if ($ReportStrings.ContextsPassed) {
-    #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsPassed -f $PesterStatePassedScenariosCount) -Foreground $Success -NoNewLine
-    #     & $SafeCommands['Write-Host'] ($ReportStrings.ContextsFailed -f $PesterStateFailedScenariosCount) -Foreground $Failure
-    # }
-    # if ($ReportStrings.TestsPassed) {
     Write-PesterHostMessage ($ReportStrings.TestsPassed -f $RunResult.PassedCount) -Foreground $Success -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsFailed -f $RunResult.FailedCount) -Foreground $Failure -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsSkipped -f $RunResult.SkippedCount) -Foreground $Skipped -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsInconclusive -f $RunResult.InconclusiveCount) -Foreground $Inconclusive -NoNewLine
-    Write-PesterHostMessage ($ReportStrings.TestsTotal -f $RunResult.TotalCount) -Foreground $Total -NoNewLine
     Write-PesterHostMessage ($ReportStrings.TestsNotRun -f $RunResult.NotRunCount) -Foreground $NotRun
 
     if (0 -lt $RunResult.FailedBlocksCount) {
@@ -565,13 +526,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryEnd = {
         param ($Context)
 
-        # if ($Context.AnyFocusedTests) {
-        #     $focusedTests = $Context.FocusedTests
-        #     & $SafeCommands["Write-Host"] -ForegroundColor Magenta "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them."
-        # }
-
-        # . Found $count$(if(1 -eq $count) { " test" } else { " tests" })
-
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
         Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
 
@@ -647,12 +601,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "[!] $($Context.Result.Item)" -NoNewLine
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
             }
-        }
-    }
-
-    if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-        $p.EachBlockSetupStart = {
-            $Context.Configuration.BlockWritePostponed = $true
         }
     }
 

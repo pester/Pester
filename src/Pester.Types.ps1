@@ -13,13 +13,13 @@ if ($null -ne $configurationType) {
 }
 
 if ($PSVersionTable.PSVersion.Major -ge 6) {
-    $path = "$PSScriptRoot/bin/net6.0/Pester.dll"
+    $path = "$PSScriptRoot/bin/net8.0/Pester.dll"
     # PESTER_BUILD
     if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
-        $path = "$PSScriptRoot/../bin/bin/net6.0/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net8.0/Pester.dll"
     }
     else {
-        $path = "$PSScriptRoot/../bin/bin/net6.0/Pester.dll"
+        $path = "$PSScriptRoot/../bin/bin/net8.0/Pester.dll"
     }
     # end PESTER_BUILD
     & $SafeCommands['Add-Type'] -Path $path

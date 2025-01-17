@@ -61,4 +61,10 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
     It "Accepts FilterScript and Actual by position" {
         Should-Any { $true } 1, 2
     }
+
+    It 'Throws when provided unbound scriptblock' {
+        # Unbound scriptblocks would execute in Pester's internal module state
+        $ex = { 1 | Should-Any ([scriptblock]::Create('')) } | Verify-Throw
+        $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
+    }
 }

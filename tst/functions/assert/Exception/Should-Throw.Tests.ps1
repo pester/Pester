@@ -10,7 +10,6 @@ Describe "Should-Throw" {
     }
 
     It "Passes when non-terminating exception is thrown" {
-
         { Write-Error "fail!" } | Should-Throw
     }
 
@@ -21,6 +20,12 @@ Describe "Should-Throw" {
     It 'Supports same positional parameters as Should -Throw' {
         { Write-Error -Message 'MockErrorMessage' -ErrorId 'MockErrorId' -Category 'InvalidOperation' -TargetObject 'MockTargetObject' -ErrorAction 'Stop' } |
             Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString'
+    }
+
+    It 'Throws when provided unbound scriptblock' {
+        # Unbound scriptblocks would execute in Pester's internal module state
+        $ex = { ([scriptblock]::Create('')) | Should-Throw } | Verify-Throw
+        $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
     }
 
     Context "Filtering with exception type" {
