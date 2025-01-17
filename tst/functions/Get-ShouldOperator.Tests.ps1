@@ -42,7 +42,7 @@ InPesterModuleScope {
                 $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionOperatorHelp'
                 $BGT.Help.PSTypeNames[0] | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
                 $BGT.Help.syntax.syntaxItem[0].name | Should -Be 'Should -BeGreaterThan'
-                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeOfType [string]
+                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeOfType ([string])
                 $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeLike '*-ActualValue*'
             }
 
