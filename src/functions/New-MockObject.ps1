@@ -34,6 +34,10 @@
     $obj = New-MockObject -Type 'System.Diagnostics.Process'
     $obj.GetType().FullName
         System.Diagnostics.Process
+
+    $obj = New-MockObject -Type ([System.Diagnostics.Process])
+    $obj.GetType().FullName
+        System.Diagnostics.Process
     ```
 
     Creates a mock of a process-object with default property-values.
@@ -63,6 +67,16 @@
 
     Create a mock of a process-object and mocks the object's `Kill()`-method. The mocked method will keep a history
     of any call and the associated arguments in a property named `_Kill`
+
+    .EXAMPLE
+    ```powershell
+    $someObj = Get-ObjectFromModule
+    $mock = New-MockObject -Type $someObj.GetType()
+    $mock.GetType().FullName
+        <c2510c5c>.MyInternalClass
+    ```
+
+    Create a mock by providing a TypeInfo, e.g. to mock output using an internal module class.
 
     .LINK
     https://pester.dev/docs/commands/New-MockObject

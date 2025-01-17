@@ -35,6 +35,28 @@ Describe 'New-MockObject' {
         { New-MockObject $type } | Should -Not -Throw
     }
 
+    It 'Mock using type input' {
+        New-MockObject -Type ([System.Diagnostics.Process]) | Should -BeOfType ([System.Diagnostics.Process])
+    }
+
+    It 'Mock internal classes using type' {
+        # Simulate a internal module class like https://github.com/pester/Pester/issues/2564
+        $someObj = & {
+            class MyInternalClass {
+                [string] $Name
+                [string] GetName() { return $this.Name }
+            }
+            $obj = [MyInternalClass]::new();
+            $obj.Name = 'Real'
+            $obj
+        }
+
+        { [MyInternalClass] } | Should -Throw -ErrorId 'TypeNotFound'
+        $mock = New-MockObject -Type $someObj.GetType() -Properties @{ Name = 'Mocked' }
+        $mock.GetType().Name | Should -Be 'MyInternalClass'
+        $mock.GetName() | Should -Be 'Mocked'
+    }
+
     Context 'Methods' {
         It "Adds a method to the object" {
             $o = New-Object -TypeName 'System.Diagnostics.Process'
