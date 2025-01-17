@@ -44,7 +44,7 @@ Describe 'New-MockObject' {
             # Simulate a internal module class like https://github.com/pester/Pester/issues/2564
             $someObj = & {
                 class MyInternalClass {
-                    [string] $Name
+                    [string] $Name = 'Default'
                     [string] GetName() { return $this.Name }
                 }
                 $obj = [MyInternalClass]::new()
