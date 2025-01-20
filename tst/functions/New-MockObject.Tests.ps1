@@ -111,7 +111,7 @@ Describe 'New-MockObject' {
 
         it 'Should preserve types' {
             $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{Id = 123 }
-            $mockedProcess.Id | Should -BeOfType [int]
+            $mockedProcess.Id | Should -BeOfType ([int])
         }
     }
 }
