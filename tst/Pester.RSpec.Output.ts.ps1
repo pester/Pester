@@ -141,6 +141,49 @@ i -PassThru:$PassThru {
             @($describeFailing).Count | Verify-Equal 1
             @($contextFailing).Count | Verify-Equal 1
         }
+
+        t 'All start markers are output when ShowStartMarkers is enabled' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Debug.ShowStartMarkers = $true
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'ConsoleColor'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        Context 'c1' {
+                            It 'i1' {
+                                1 | Should -Be 1
+                            }
+
+                            It 'i2' {
+                                1 | Should -Be 1
+                            }
+                        }
+
+                        Context 'c2' {
+                            It 'i3' {
+                                1 | Should -Be 1
+                            }
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $i1Start = $output | Select-String -Pattern '\[\|\] i1\.\.\.$'
+            @($i1Start).Count | Verify-Equal 1
+            $i2Start = $output | Select-String -Pattern '\[\|\] i2\.\.\.$'
+            @($i2Start).Count | Verify-Equal 1
+            $i3Start = $output | Select-String -Pattern '\[\|\] i3\.\.\.$'
+            @($i3Start).Count | Verify-Equal 1
+        }
     }
 
     b 'Output for data-driven blocks' {
