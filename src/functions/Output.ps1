@@ -714,13 +714,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             }
 
             default {
-                if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-                    # TODO:  Add actual Incomplete status as default rather than checking for null time.
-                    if ($null -eq $_test.Duration) {
-                        Write-PesterHostMessage -ForegroundColor $ReportTheme.Incomplete "$margin[?] $out" -NoNewLine
-                        Write-PesterHostMessage -ForegroundColor $ReportTheme.IncompleteTime " $humanTime"
-                    }
-                }
+                throw "Invalid test result '$result'"
             }
         }
     }
