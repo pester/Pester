@@ -122,7 +122,7 @@ Describe "Should-BeString" {
     }
 
     It "Handles escape character in the error message" {
-        $err = { Should-BeString -Expected "a`eb" -Actual "mmmmm" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal "Expected [string] 'a␛b', but got [string] 'mmmmm'."
+        $err = { Should-BeString -Expected "ee `e ee" -Actual "mmmmm" } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "Expected [string] 'ee ␛ ee', but got [string] 'mmmmm'."
     }
 }

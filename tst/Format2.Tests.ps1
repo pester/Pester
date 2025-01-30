@@ -215,14 +215,32 @@ InPesterModuleScope {
 
 
         It "Replaces ansi escapes with their showable equivalent" -ForEach @(
-            @{ Value = "`0"; Expected = '␀' }
-            @{ Value = "`a"; Expected = '␇' }
-            @{ Value = "`b"; Expected = '␈' }
-            @{ Value = "`t"; Expected = '␉' }
-            @{ Value = "`f"; Expected = '␌' }
-            @{ Value = "`r"; Expected = '␍' }
-            @{ Value = "`n"; Expected = '␊' }
-            @{ Value = "`e"; Expected = '␛' }
+            @{ Value = "`0"; Expected = '␀'; PowerShellVersion = 5 }
+            @{ Value = "`a"; Expected = '␇'; PowerShellVersion = 5 }
+            @{ Value = "`b"; Expected = '␈'; PowerShellVersion = 5 }
+            @{ Value = "`t"; Expected = '␉'; PowerShellVersion = 5 }
+            @{ Value = "`f"; Expected = '␌'; PowerShellVersion = 5 }
+            @{ Value = "`r"; Expected = '␍'; PowerShellVersion = 5 }
+            @{ Value = "`n"; Expected = '␊'; PowerShellVersion = 5 }
+            # Escape for escape was introduced in PowerShell 7
+            @{ Value = "`e"; Expected = '␛'; PowerShellVersion = 7 }
+        ) {
+            if ($PSVersionTable.PSVersion.Major -lt $PowerShellVersion) {
+                continue
+            }
+
+            Format-String2 -Value "-$value-" | Verify-Equal "'-$expected-'"
+        }
+
+        It "Does not replace non escaped values with escapes" -ForEach @(
+            @{ Value = "0"; Expected = '0' }
+            @{ Value = "a"; Expected = 'a' }
+            @{ Value = "b"; Expected = 'b' }
+            @{ Value = "t"; Expected = 't' }
+            @{ Value = "f"; Expected = 'f' }
+            @{ Value = "r"; Expected = 'r' }
+            @{ Value = "n"; Expected = 'n' }
+            @{ Value = "e"; Expected = 'e' }
         ) {
             Format-String2 -Value "-$value-" | Verify-Equal "'-$expected-'"
         }
