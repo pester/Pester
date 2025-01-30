@@ -209,8 +209,23 @@ InPesterModuleScope {
             Format-String2 -Value "" | Verify-Equal '<empty>'
         }
 
-        It "Formats string to be sorrounded by quotes" {
+        It "Formats string to be surrounded by quotes" {
             Format-String2 -Value "abc" | Verify-Equal "'abc'"
         }
+
+
+        It "Replaces ansi escapes with their showable equivalent" -ForEach @(
+            @{ Value = "`0"; Expected = '␀' }
+            @{ Value = "`a"; Expected = '␇' }
+            @{ Value = "`b"; Expected = '␈' }
+            @{ Value = "`t"; Expected = '␉' }
+            @{ Value = "`f"; Expected = '␌' }
+            @{ Value = "`r"; Expected = '␍' }
+            @{ Value = "`n"; Expected = '␊' }
+            @{ Value = "`e"; Expected = '␛' }
+        ) {
+            Format-String2 -Value "-$value-" | Verify-Equal "'-$expected-'"
+        }
+
     }
 }

@@ -50,7 +50,7 @@ function Format-String2 ($Value) {
         return '<empty>'
     }
 
-    "'$Value'"
+    "'$Value'".Replace("`0", '␀').Replace("`a", '␇').Replace("`b", '␈').Replace("`t", '␉').Replace("`f", '␌').Replace("`r", '␍').Replace("`n", '␊').Replace("`e", '␛')
 }
 
 function Format-Null2 {
