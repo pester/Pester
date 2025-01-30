@@ -1970,7 +1970,7 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
         }
 
-        t "`$_ holds the whole hashtable when hastable is used, and it is not overwritten in It" {
+        t "`$_ holds the whole hashtable when hashtable is used, and it is not overwritten in It" {
             $sb = {
                 Describe "d" {
                     BeforeAll {
@@ -1989,7 +1989,7 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
         }
 
-        t "`$_ holds the whole hashtable when hastable is used, and it is overwritten in It if it specifies its own data" {
+        t "`$_ holds the whole hashtable when hashtable is used, and it is overwritten in It if it specifies its own data" {
             $sb = {
                 Describe "d" {
                     BeforeAll {
