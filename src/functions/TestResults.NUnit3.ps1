@@ -540,7 +540,8 @@ function Write-NUnit3TestCaseAttributes {
     $XmlWriter.WriteAttributeString('asserts', '1') # required attr, so hardcoding 1:1 per testcase
 }
 
-function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
+function Format-CDataString ($Output) {
+
     # The characters in the range 0x01 to 0x20 are invalid for CData
     # (with the exception of the characters 0x09, 0x0A and 0x0D)
     # We convert each of these using the unicode printable version,
@@ -574,8 +575,13 @@ function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) 
     }
 
     $outputString = $o -join [Environment]::NewLine
+    return $outputString
+}
+
+
+function Write-NUnit3OutputElement ($Output, [System.Xml.XmlWriter] $XmlWriter) {
     $XmlWriter.WriteStartElement('output')
-    $XmlWriter.WriteCData($outputString)
+    $XmlWriter.WriteCData((Format-CDataString $output))
     $XmlWriter.WriteEndElement()
 }
 
@@ -587,12 +593,12 @@ function Write-NUnit3FailureElement ($TestResult, [System.Xml.XmlWriter] $XmlWri
     $XmlWriter.WriteStartElement('failure')
 
     $XmlWriter.WriteStartElement('message')
-    $XmlWriter.WriteCData($result.FailureMessage)
+    $XmlWriter.WriteCData((Format-CDataString $result.FailureMessage))
     $XmlWriter.WriteEndElement() # Close message
 
     if ($result.StackTrace) {
         $XmlWriter.WriteStartElement('stack-trace')
-        $XmlWriter.WriteCData($result.StackTrace)
+        $XmlWriter.WriteCData((Format-CDataString $result.StackTrace))
         $XmlWriter.WriteEndElement() # Close stack-trace
     }
 
@@ -606,7 +612,7 @@ function Write-NUnitReasonElement ($TestResult, [System.Xml.XmlWriter] $XmlWrite
     if ($result.FailureMessage) {
         $XmlWriter.WriteStartElement('reason')
         $XmlWriter.WriteStartElement('message')
-        $XmlWriter.WriteCData($result.FailureMessage)
+        $XmlWriter.WriteCData((Format-CDataString $result.FailureMessage))
         $XmlWriter.WriteEndElement() # Close message
         $XmlWriter.WriteEndElement() # Close reason
     }
