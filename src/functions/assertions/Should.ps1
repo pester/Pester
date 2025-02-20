@@ -238,8 +238,16 @@ function Invoke-Assertion {
 
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
-    if (-not $testResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($testResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $testResult)
+    Test-AssertionResult $testResult
+}
+
+function Test-AssertionResult {
+    param (
+        $TestResult
+    )
+
+    if (-not $TestResult.Succeeded) {
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($TestResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $TestResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately
@@ -261,11 +269,12 @@ function Invoke-Assertion {
     }
     else {
         #extract data to return if there are any on the object
-        $data = $testResult.psObject.Properties.Item('Data')
+        $data = $TestResult.psObject.Properties.Item('Data')
         if ($data) {
             $data.Value
         }
     }
+
 }
 
 function Format-Because ([string] $Because) {
