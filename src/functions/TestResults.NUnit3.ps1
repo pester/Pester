@@ -516,8 +516,9 @@ function Write-NUnit3TestCaseAttributes {
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     # Workaround - name-attribute should be $name, but CI-reports don't show the tree-view nor use fullname
     # See https://github.com/pester/Pester/issues/1530#issuecomment-1186187298
-    $XmlWriter.WriteAttributeString('name', $fullname)
-    $XmlWriter.WriteAttributeString('fullname', $fullname)
+    $escapedFullName = (Format-CDataString $fullname)
+    $XmlWriter.WriteAttributeString('name', $escapedFullName)
+    $XmlWriter.WriteAttributeString('fullname', $escapedFullName)
     $XmlWriter.WriteAttributeString('methodname', $TestResult.Name)
     $XmlWriter.WriteAttributeString('classname', $TestResult.Block.Path -join '.')
     $XmlWriter.WriteAttributeString('runstate', $runstate)
@@ -646,7 +647,7 @@ function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [Syst
 
         $XmlWriter.WriteStartElement('property')
         $XmlWriter.WriteAttributeString('name', $name)
-        $XmlWriter.WriteAttributeString('value', $formattedValue)
+        $XmlWriter.WriteAttributeString('value', (Format-CDataString $formattedValue))
         $XmlWriter.WriteEndElement() # Close property
     }
 }
