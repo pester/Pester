@@ -10,7 +10,7 @@ Describe "Should-Invoke" {
         Should-Invoke f -Times 1 -Exactly
     }
 
-    It "Failes when mock was invoked 0 times" {
+    It "Fails when mock was invoked 0 times" {
         function f () { }
         Mock f
 
