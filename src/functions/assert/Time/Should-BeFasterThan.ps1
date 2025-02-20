@@ -40,7 +40,8 @@
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Position = 0)]
-        $Expected
+        $Expected,
+        [string] $Because
     )
 
     if ($Expected -isnot [timespan]) {
