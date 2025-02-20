@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<testsuites xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="junit_schema_4.xsd" name="Pester" tests="14" errors="0" failures="2" disabled="8" time="0.303">
+  <testsuite name="C:\code\Pester\testing\mine.tests.ps1" tests="14" errors="0" failures="2" hostname="RALPH" id="0" skipped="8" disabled="0" package="C:\code\Pester\testing\mine.tests.ps1" time="0.303">
+    <properties>
+      <property name="junit-version" value="4" />
+      <property name="os-version" value="10.0.26100" />
+      <property name="platform" value="Microsoft Windows 11 Pro|C:\WINDOWS|\Device\Harddisk0\Partition3" />
+      <property name="user-domain" value="Ralph" />
+      <property name="machine-name" value="RALPH" />
+      <property name="clr-version" value="8.0.10" />
+      <property name="cwd" value="C:\code\Pester" />
+      <property name="framework-version" value="6.0.0" />
+      <property name="user" value="corbob" />
+    </properties>
+    <testcase name="All The Tests.Reasons.Skips..." status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.018">
+      <skipped message="Exception: I am skipped"></skipped>
+    </testcase>
+    <testcase name="All The Tests.Reasons.Does not skip" status="Passed" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.005" />
+    <testcase name="All The Tests.Reasons.is Inconclusive" status="Inconclusive" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.010">
+      <skipped message="Exception: I am inconclusive!"></skipped>
+    </testcase>
+    <testcase name="All The Tests.Reasons.is Failed!" status="Failed" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.011">
+      <failure message="Expected $false, because I am failed test, but got $true.">at $true | Should -BeFalse -Because 'I am failed test', C:\code\Pester\testing\mine.tests.ps1:14
+at &lt;ScriptBlock&gt;, C:\code\Pester\testing\mine.tests.ps1:14</failure>
+    </testcase>
+    <testcase name="All The Tests.No Reasons.Skips..." status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.007">
+      <skipped message="Exception: is skipped"></skipped>
+    </testcase>
+    <testcase name="All The Tests.No Reasons.Does not skip" status="Passed" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.011" />
+    <testcase name="All The Tests.No Reasons.is Inconclusive" status="Inconclusive" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.007">
+      <skipped message="Exception: is inconclusive"></skipped>
+    </testcase>
+    <testcase name="All The Tests.No Reasons.is Failed!" status="Failed" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.012">
+      <failure message="Expected $false, but got $true.">at $true | Should -BeFalse, C:\code\Pester\testing\mine.tests.ps1:29
+at &lt;ScriptBlock&gt;, C:\code\Pester\testing\mine.tests.ps1:29</failure>
+    </testcase>
+    <testcase name="All The Tests.It Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.003">
+      <skipped message=""></skipped>
+    </testcase>
+    <testcase name="All The Tests.It No Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.013">
+      <skipped message=""></skipped>
+    </testcase>
+    <testcase name="All The Tests.Context Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.006">
+      <skipped message=""></skipped>
+    </testcase>
+    <testcase name="All The Tests.Context No Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.010">
+      <skipped message=""></skipped>
+    </testcase>
+    <testcase name="All The Tests.Describe Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.006">
+      <skipped message=""></skipped>
+    </testcase>
+    <testcase name="All The Tests.Describe No Reasons.Skips" status="Skipped" classname="C:\code\Pester\testing\mine.tests.ps1" assertions="0" time="0.005">
+      <skipped message=""></skipped>
+    </testcase>
+  </testsuite>
+</testsuites>
