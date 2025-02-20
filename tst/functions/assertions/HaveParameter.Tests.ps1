@@ -628,3 +628,44 @@ Describe 'Using Should -HaveParameter with alias for local function or mock' {
         Get-Command TestFunction2 | Should -HaveParameter 'Parameter1'
     }
 }
+
+Describe 'Checking type of default value' {
+    # https://github.com/pester/Pester/issues/1888
+    It 'passes when default value type is a string' {
+        function f {
+            param ( [string] $Path = "test" )
+
+            $Path
+        }
+
+        Get-Command f | Should -HaveParameter 'Path' -Type 'string' -DefaultValue 'test' -DefaultValueType [string]
+    }
+
+    It 'passes when default value type is a script block' {
+        function Get-DefaultPath {
+            $pwd
+        }
+
+        function f {
+            param ( [string] $Path = (Get-DefaultPath) )
+
+            $Path
+        }
+
+        Get-Command f | Should -HaveParameter 'Path' -Type 'string' -DefaultValue 'test' -DefaultValueType [scriptblock]
+    }
+
+    It 'passes when default value type is provided as type' {
+        function Get-DefaultPath {
+            $pwd
+        }
+
+        function f {
+            param ( [string] $Path = (Get-DefaultPath) )
+
+            $Path
+        }
+
+        Get-Command f | Should -HaveParameter 'Path' -Type 'string' -DefaultValue 'test' -DefaultValueType ([scriptblock])
+    }
+}

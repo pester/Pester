@@ -8,6 +8,7 @@
     [Switch] $HasArgumentCompleter,
     [String[]] $Alias,
     [Switch] $Negate,
+    $DefaultValueType,
     [String] $Because ) {
     <#
     .SYNOPSIS
@@ -19,7 +20,7 @@
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
     .NOTES
-        The attribute [ArgumentCompleter] was added with PSv5. Previouse this
+        The attribute [ArgumentCompleter] was added with PSv5. Previously this
         assertion will not be able to use the -HasArgumentCompleter parameter
         if the attribute does not exist.
     #>
@@ -199,9 +200,8 @@
             }
         }
     }
-    #endregion HelperFunctions
 
-    if ($Type -is [string]) {
+    function Parse-Type ($Type) {
         # parses type that is provided as a string in brackets (such as [int])
         $trimmedType = $Type -replace '^\[(.*)\]$', '$1'
         $parsedType = $trimmedType -as [Type]
@@ -209,7 +209,16 @@
             throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded."
         }
 
-        $Type = $parsedType
+        $parsedType
+    }
+    #endregion HelperFunctions
+
+    if ($Type -is [string]) {
+        $Type = Parse-Type $Type
+    }
+
+    if ($DefaultValueType -is [string]) {
+        $DefaultValueType = Parse-Type $DefaultValueType
     }
 
     $buts = @()
@@ -240,7 +249,7 @@
     elseif ($Negate -and -not $hasKey) {
         return [Pester.ShouldResult] @{ Succeeded = $true }
     }
-    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
+    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $DefaultValueType -or $HasArgumentCompleter)) {
         $buts += 'the parameter exists'
     }
     else {
@@ -315,6 +324,27 @@
             }
             elseif ($Negate -and $testDefault) {
                 $buts += "the default value was $(Format-Nicely $actualDefault)"
+            }
+        }
+
+        if ($PSBoundParameters.Keys -contains "DefaultValueType") {
+            $parameterMetadata = Get-ParameterInfo -Name $ParameterName -Command $ActualValue
+            if ($null -eq $parameterMetadata) {
+                # For safety, but this probably won't happen because if the parameter is not on the command we will fail much sooner.
+                throw "Metadata for parameter '$ParameterName' were not found."
+            }
+
+            $filters += "the default value$(if ($Negate) {" not"}) to have type $(Format-Nicely $DefaultValueType)"
+
+            $defaultIsUnspecified = -not $parameterMetadata.HasDefaultValue
+            [type] $actualDefault = if ($defaultIsUnspecified) { $null } else { $parameterMetadata.DefaultValue.GetType() }
+            $testDefault = ($actualDefault -eq $DefaultValueType)
+
+            if (-not $Negate -and -not $testDefault) {
+                $buts += "the default value type was $(Format-Nicely $actualDefault)"
+            }
+            elseif ($Negate -and $testDefault) {
+                $buts += "the default value type was $(Format-Nicely $actualDefault)"
             }
         }
 
