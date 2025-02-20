@@ -160,6 +160,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Debug.ShowNavigationMarkers.Value | Verify-False
         }
 
+        t "Debug.ShowStartMarkers is `$false" {
+            [PesterConfiguration]::Default.Debug.ShowStartMarkers.Value | Verify-False
+        }
+
         t "TestDrive.Enabled is `$true" {
             [PesterConfiguration]::Default.TestDrive.Enabled.Value | Verify-True
         }
