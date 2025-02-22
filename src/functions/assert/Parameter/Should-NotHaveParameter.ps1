@@ -1,24 +1,28 @@
 function Should-NotHaveParameter {
     <#
     .SYNOPSIS
-        Asserts that a command has does not have the parameter.
+    Asserts that a command has does not have the parameter.
 
     .PARAMETER ParameterName
-        The name of the parameter to check. E.g. Uri
+    The name of the parameter to check. E.g. Uri
+
     .PARAMETER Actual
-        The actual command to check. E.g. Get-Command "Invoke-WebRequest"
+    The actual command to check. E.g. Get-Command "Invoke-WebRequest"
+
     .PARAMETER Because
-        The reason why the input should be the expected value.
+    The reason why the input should be the expected value.
 
     .EXAMPLE
-        Get-Command "Invoke-WebRequest" | Should -NotHaveParameter Uri
+    ```powershell
+    Get-Command "Invoke-WebRequest" | Should -NotHaveParameter Uri
+    ```
 
-        This test fails, because it expected the parameter URI to not exist.
+    This test fails, because it expected the parameter URI to not exist.
 
     .NOTES
-        The attribute [ArgumentCompleter] was added with PSv5. Previously this
-        assertion will not be able to use the -HasArgumentCompleter parameter
-        if the attribute does not exist.
+    The attribute [ArgumentCompleter] was added with PSv5. Previously this
+    assertion will not be able to use the -HasArgumentCompleter parameter
+    if the attribute does not exist.
 
     .LINK
     https://pester.dev/docs/commands/Should-NotHaveParameter
@@ -31,6 +35,7 @@ function Should-NotHaveParameter {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     param(
         [String] $ParameterName,
+        [Parameter(ValueFromPipeline = $true)]
         $Actual,
         [String] $Because
     )
