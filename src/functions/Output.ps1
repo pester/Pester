@@ -623,7 +623,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
                 $out = "$($_test.ExpandedName)..."
 
                 if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-                    $out += ", $($_test.ScriptBlock.File):$($_Test.StartLine)"
+                    $out += ", $($_test.ScriptBlock.File):$($_test.StartLine)"
                 }
 
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Information "$margin[|] $out"
