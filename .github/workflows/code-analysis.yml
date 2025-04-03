@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@v6.2
+        uses: potatoqualitee/psmodulecache@v6.2.1
         with:
           modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
 
