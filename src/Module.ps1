@@ -92,6 +92,9 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'Should-BeBefore'
     'Should-BeAfter'
 
+    'Should-HaveParameter'
+    'Should-NotHaveParameter'
+
     # export
     'Export-NUnitReport'
     'ConvertTo-NUnitReport'

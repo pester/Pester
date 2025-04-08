@@ -114,6 +114,9 @@
         'Should-BeBefore'
         'Should-BeAfter'
 
+        'Should-HaveParameter'
+        'Should-NotHaveParameter'
+
         # helpers
         'New-MockObject'
         'New-Fixture'
