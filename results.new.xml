@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-results xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="nunit_schema_2.5.xsd" name="Pester" total="14" errors="0" failures="2" not-run="0" inconclusive="2" ignored="0" skipped="8" invalid="0" date="2025-01-09" time="12:21:36">
+  <environment os-version="10.0.26100" clr-version="8.0.10" nunit-version="2.5.8.0" cwd="C:\code\Pester" machine-name="RALPH" user="corbob" user-domain="Ralph" platform="Microsoft Windows 11 Pro|C:\WINDOWS|\Device\Harddisk0\Partition3" />
+  <culture-info current-culture="en-US" current-uiculture="en-US" />
+  <test-suite type="TestFixture" name="Pester" executed="True" result="Failure" success="False" time="0.5217" asserts="0" description="Pester">
+    <results>
+      <test-suite type="TestFixture" name="C:\code\Pester\testing\mine.tests.ps1" executed="True" result="Failure" success="False" time="0.5217" asserts="0" description="C:\code\Pester\testing\mine.tests.ps1">
+        <results>
+          <test-suite type="TestFixture" name="All The Tests" executed="True" result="Failure" success="False" time="0.3426" asserts="0" description="All The Tests">
+            <results>
+              <test-suite type="TestFixture" name="All The Tests.Reasons" executed="True" result="Failure" success="False" time="0.1123" asserts="0" description="All The Tests.Reasons">
+                <results>
+                  <test-case description="Skips..." name="All The Tests.Reasons.Skips..." time="0.0284" asserts="0" success="False" result="Ignored" executed="False">
+                    <reason>
+                      <message>I am skipped</message>
+                    </reason>
+                  </test-case>
+                  <test-case description="Does not skip" name="All The Tests.Reasons.Does not skip" time="0.0107" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="is Inconclusive" name="All The Tests.Reasons.is Inconclusive" time="0.0144" asserts="0" success="False" result="Inconclusive" executed="True" />
+                  <test-case description="is Failed!" name="All The Tests.Reasons.is Failed!" time="0.0361" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected $false, because I am failed test, but got $true.</message>
+                      <stack-trace>at $true | Should -BeFalse -Because 'I am failed test', C:\code\Pester\testing\mine.tests.ps1:14
+at &lt;ScriptBlock&gt;, C:\code\Pester\testing\mine.tests.ps1:14</stack-trace>
+                    </failure>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.No Reasons" executed="True" result="Failure" success="False" time="0.1784" asserts="0" description="All The Tests.No Reasons">
+                <results>
+                  <test-case description="Skips..." name="All The Tests.No Reasons.Skips..." time="0.0101" asserts="0" success="False" result="Ignored" executed="False">
+                    <reason>
+                      <message>is skipped</message>
+                    </reason>
+                  </test-case>
+                  <test-case description="Does not skip" name="All The Tests.No Reasons.Does not skip" time="0.0197" asserts="0" success="True" result="Success" executed="True" />
+                  <test-case description="is Inconclusive" name="All The Tests.No Reasons.is Inconclusive" time="0.0104" asserts="0" success="False" result="Inconclusive" executed="True" />
+                  <test-case description="is Failed!" name="All The Tests.No Reasons.is Failed!" time="0.0159" asserts="0" success="False" result="Failure" executed="True">
+                    <failure>
+                      <message>Expected $false, but got $true.</message>
+                      <stack-trace>at $true | Should -BeFalse, C:\code\Pester\testing\mine.tests.ps1:29
+at &lt;ScriptBlock&gt;, C:\code\Pester\testing\mine.tests.ps1:29</stack-trace>
+                    </failure>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.It Reasons" executed="True" result="Ignored" success="True" time="0.2076" asserts="0" description="All The Tests.It Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.It Reasons.Skips" time="0.0151" asserts="0" success="False" result="Ignored" executed="False">
+                    <reason>
+                      <message>I am Skipped</message>
+                    </reason>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.It No Reasons" executed="True" result="Ignored" success="True" time="0.2323" asserts="0" description="All The Tests.It No Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.It No Reasons.Skips" time="0.0047" asserts="0" success="False" result="Ignored" executed="False" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.Context Reasons" executed="True" result="Ignored" success="True" time="0.2567" asserts="0" description="All The Tests.Context Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.Context Reasons.Skips" time="0.0141" asserts="0" success="False" result="Ignored" executed="False">
+                    <reason>
+                      <message>I am Skipped</message>
+                    </reason>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.Context No Reasons" executed="True" result="Ignored" success="True" time="0.2787" asserts="0" description="All The Tests.Context No Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.Context No Reasons.Skips" time="0.0045" asserts="0" success="False" result="Ignored" executed="False" />
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.Describe Reasons" executed="True" result="Ignored" success="True" time="0.3016" asserts="0" description="All The Tests.Describe Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.Describe Reasons.Skips" time="0.0043" asserts="0" success="False" result="Ignored" executed="False">
+                    <reason>
+                      <message>I am Skipped</message>
+                    </reason>
+                  </test-case>
+                </results>
+              </test-suite>
+              <test-suite type="TestFixture" name="All The Tests.Describe No Reasons" executed="True" result="Ignored" success="True" time="0.328" asserts="0" description="All The Tests.Describe No Reasons">
+                <results>
+                  <test-case description="Skips" name="All The Tests.Describe No Reasons.Skips" time="0.0089" asserts="0" success="False" result="Ignored" executed="False" />
+                </results>
+              </test-suite>
+            </results>
+          </test-suite>
+        </results>
+      </test-suite>
+    </results>
+  </test-suite>
+</test-results>
