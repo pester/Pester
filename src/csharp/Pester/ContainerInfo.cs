@@ -11,6 +11,7 @@ namespace Pester
             return new ContainerInfo();
         }
 
+        public string Name { get => ToStringConverter.ContainerItemToString(Type, Item); }
         private string _type = Constants.File;
         public string Type
         {
