@@ -76,11 +76,11 @@ stages:
           clean: all
         strategy:
           matrix:
-            PS7_Ubuntu_20_04:
-              vmImage: ubuntu-20.04
-              pwsh: true
             PS7_Ubuntu_22_04:
               vmImage: ubuntu-22.04
+              pwsh: true
+            PS7_Ubuntu_24_04:
+              vmImage: ubuntu-24.04
               pwsh: true
             PS7_macOS_13:
               vmImage: macOS-13
