@@ -37,12 +37,13 @@
     Export-ModuleMember -Function PublicFunction
 
     # The test script:
+    BeforeAll {
+        Import-Module MyModule
+    }
 
-    Import-Module MyModule
-
-    InModuleScope MyModule {
-        Describe 'Testing MyModule' {
-            It 'Tests the Private function' {
+    Describe 'Testing MyModule' {
+        It 'Tests the Private function' {
+            InModuleScope MyModule {
                 PrivateFunction | Should -Be $true
             }
         }
@@ -51,7 +52,7 @@
 
     Normally you would not be able to access "PrivateFunction" from
     the PowerShell session, because the module only exported
-    "PublicFunction".  Using InModuleScope allowed this call to
+    "PublicFunction". Using InModuleScope allowed this call to
     "PrivateFunction" to work successfully.
 
     .EXAMPLE
