@@ -641,10 +641,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
         $p.ContainerRunStart = {
             param ($Context)
 
-            if ("file" -eq $Context.Block.BlockContainer.Type) {
-                # write two spaces to separate each file
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Item)'"
-            }
+            # write two spaces to separate each container
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from '$($Context.Block.BlockContainer.Name)'"
         }
     }
 
