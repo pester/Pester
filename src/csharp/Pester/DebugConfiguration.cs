@@ -34,6 +34,7 @@ namespace Pester
             WriteDebugMessages = new BoolOption("Write Debug messages to screen.", false);
             WriteDebugMessagesFrom = new StringArrayOption("Write Debug messages from a given source, WriteDebugMessages must be set to true for this to work. You can use like wildcards to get messages from multiple sources, as well as * to get everything.", new string[] { "Discovery", "Skip", "Mock", "CodeCoverage" });
             ShowNavigationMarkers = new BoolOption("Write paths after every block and test, for easy navigation in VSCode.", false);
+            ShowStartMarkers = new BoolOption("Write an indication when each test starts.", false);
             ReturnRawResultObject = new BoolOption("Returns unfiltered result object, this is for development only. Do not rely on this object for additional properties, non-public properties will be renamed without previous notice.", false);
         }
 
@@ -45,6 +46,7 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(WriteDebugMessages), v => WriteDebugMessages = v);
                 configuration.AssignArrayIfNotNull<string>(nameof(WriteDebugMessagesFrom), v => WriteDebugMessagesFrom = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(ShowNavigationMarkers), v => ShowNavigationMarkers = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ShowStartMarkers), v => ShowStartMarkers = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(ReturnRawResultObject), v => ReturnRawResultObject = v);
             }
         }
@@ -53,6 +55,7 @@ namespace Pester
         private BoolOption _writeDebugMessages;
         private StringArrayOption _writeDebugMessagesFrom;
         private BoolOption _showNavigationMarkers;
+        private BoolOption _showStartMarkers;
         private BoolOption _returnRawResultObject;
 
         public BoolOption ShowFullErrors
@@ -115,6 +118,22 @@ namespace Pester
                 else
                 {
                     _showNavigationMarkers = new BoolOption(_showNavigationMarkers, value.Value);
+                }
+            }
+        }
+
+        public BoolOption ShowStartMarkers
+        {
+            get { return _showStartMarkers; }
+            set
+            {
+                if (_showStartMarkers == null)
+                {
+                    _showStartMarkers = value;
+                }
+                else
+                {
+                    _showStartMarkers = new BoolOption(_showStartMarkers, value.Value);
                 }
             }
         }
