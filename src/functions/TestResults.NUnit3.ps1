@@ -1,6 +1,6 @@
 ﻿# NUnit3 schema docs: https://docs.nunit.org/articles/nunit/technical-notes/usage/Test-Result-XML-Format.html
 
-[char[]] $script:invalidCDataChars = foreach ($ch in (0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0B, 0x0C, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F)) { [char]$ch }
+[char[]] $script:invalidCDataChars = foreach ($ch in (0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0B, 0x0C, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F)) { [char]$ch }
 
 function Write-NUnit3Report([Pester.Run] $Result, [System.Xml.XmlWriter] $XmlWriter) {
     # Write the XML Declaration
@@ -516,8 +516,9 @@ function Write-NUnit3TestCaseAttributes {
     $XmlWriter.WriteAttributeString('id', (Get-NUnit3NodeId))
     # Workaround - name-attribute should be $name, but CI-reports don't show the tree-view nor use fullname
     # See https://github.com/pester/Pester/issues/1530#issuecomment-1186187298
-    $XmlWriter.WriteAttributeString('name', $fullname)
-    $XmlWriter.WriteAttributeString('fullname', $fullname)
+    $escapedFullName = (Format-CDataString $fullname)
+    $XmlWriter.WriteAttributeString('name', $escapedFullName)
+    $XmlWriter.WriteAttributeString('fullname', $escapedFullName)
     $XmlWriter.WriteAttributeString('methodname', $TestResult.Name)
     $XmlWriter.WriteAttributeString('classname', $TestResult.Block.Path -join '.')
     $XmlWriter.WriteAttributeString('runstate', $runstate)
@@ -646,7 +647,7 @@ function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [Syst
 
         $XmlWriter.WriteStartElement('property')
         $XmlWriter.WriteAttributeString('name', $name)
-        $XmlWriter.WriteAttributeString('value', $formattedValue)
+        $XmlWriter.WriteAttributeString('value', (Format-CDataString $formattedValue))
         $XmlWriter.WriteEndElement() # Close property
     }
 }
