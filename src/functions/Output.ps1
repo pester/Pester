@@ -587,11 +587,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            $humanTime = "$(Get-HumanTime ($Context.Result.Duration)) ($(Get-HumanTime $Context.Result.UserDuration)|$(Get-HumanTime $Context.Result.FrameworkDuration))"
+            $humanTime = Get-HumanTime $Context.Result.Duration
 
             if ($Context.Result.Passed) {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Item)" -NoNewLine
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $(if (1 -eq $Context.Result.PassedCount) { "1 test" } else { "$($Context.Result.PassedCount) tests" }) in $humanTime "
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
@@ -655,7 +655,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
-        $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
+        $humanTime = Get-HumanTime $_test.Duration
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.StartLine)"
