@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<test-run id="0" name="Pester" fullname="Pester" testcasecount="14" result="Failed" total="14" passed="2" failed="2" inconclusive="2" skipped="8" warnings="0" start-time="2025-01-09T21:16:13.7663486Z" end-time="2025-01-09T21:16:14.0427585Z" duration="0.2764" asserts="14" random-seed="337319458">
+  <filter />
+  <test-suite type="Assembly" id="1-1000" name="mine.tests.ps1" fullname="C:\code\Pester\testing\mine.tests.ps1" runstate="Runnable" result="Failed" site="Child" start-time="2025-01-09T21:16:13.8635016Z" end-time="2025-01-09T21:16:14.1399115Z" duration="0.2764" testcasecount="14" total="14" passed="2" failed="2" inconclusive="2" warnings="0" skipped="8" asserts="14">
+    <environment os-version="10.0.26100" platform="Microsoft Windows 11 Pro|C:\WINDOWS|\Device\Harddisk0\Partition3" user-domain="Ralph" machine-name="RALPH" clr-version="8.0.10" cwd="C:\code\Pester" framework-version="6.0.0" user="corbob" culture="en-US" uiculture="en-US" os-architecture="x64" />
+    <test-suite type="TestSuite" id="1-1001" name="All The Tests" fullname="All The Tests" runstate="Runnable" result="Failed" site="Child" start-time="2025-01-09T21:16:13.8717042Z" end-time="2025-01-09T21:16:14.0540488Z" duration="0.1823" testcasecount="14" total="14" passed="2" failed="2" inconclusive="2" warnings="0" skipped="8" asserts="14">
+      <properties>
+        <property name="_TYPE" value="Describe" />
+      </properties>
+      <test-suite type="TestFixture" id="1-1002" name="Reasons" fullname="All The Tests.Reasons" classname="All The Tests.Reasons" runstate="Runnable" result="Failed" site="Child" start-time="2025-01-09T21:16:13.8747994Z" end-time="2025-01-09T21:16:13.9159966Z" duration="0.0412" testcasecount="4" total="4" passed="1" failed="1" inconclusive="1" warnings="0" skipped="1" asserts="4">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1003" name="All The Tests.Reasons.Skips..." fullname="All The Tests.Reasons.Skips..." methodname="Skips..." classname="All The Tests.Reasons" runstate="Runnable" result="Skipped" start-time="2025-01-09T21:16:13.8781093Z" end-time="2025-01-09T21:16:13.8853436Z" duration="0.0072" seed="0" asserts="1">
+          <reason>
+            <message><![CDATA[Exception: I am skipped]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1-1004" name="All The Tests.Reasons.Does not skip" fullname="All The Tests.Reasons.Does not skip" methodname="Does not skip" classname="All The Tests.Reasons" runstate="Runnable" result="Passed" start-time="2025-01-09T21:16:13.8854820Z" end-time="2025-01-09T21:16:13.8935733Z" duration="0.0081" seed="0" asserts="1" />
+        <test-case id="1-1005" name="All The Tests.Reasons.is Inconclusive" fullname="All The Tests.Reasons.is Inconclusive" methodname="is Inconclusive" classname="All The Tests.Reasons" runstate="Runnable" result="Inconclusive" start-time="2025-01-09T21:16:13.8936870Z" end-time="2025-01-09T21:16:13.9006689Z" duration="0.007" seed="0" asserts="1">
+          <reason>
+            <message><![CDATA[Exception: I am inconclusive!]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1-1006" name="All The Tests.Reasons.is Failed!" fullname="All The Tests.Reasons.is Failed!" methodname="is Failed!" classname="All The Tests.Reasons" runstate="Runnable" result="Failed" start-time="2025-01-09T21:16:13.9008303Z" end-time="2025-01-09T21:16:13.9115115Z" duration="0.0107" seed="0" asserts="1">
+          <failure>
+            <message><![CDATA[Expected $false, because I am failed test, but got $true.]]></message>
+            <stack-trace><![CDATA[at $true | Should -BeFalse -Because 'I am failed test', C:\code\Pester\testing\mine.tests.ps1:14
+at <ScriptBlock>, C:\code\Pester\testing\mine.tests.ps1:14]]></stack-trace>
+          </failure>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1007" name="No Reasons" fullname="All The Tests.No Reasons" classname="All The Tests.No Reasons" runstate="Runnable" result="Failed" site="Child" start-time="2025-01-09T21:16:13.9160108Z" end-time="2025-01-09T21:16:14.0068833Z" duration="0.0909" testcasecount="4" total="4" passed="1" failed="1" inconclusive="1" warnings="0" skipped="1" asserts="4">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1008" name="All The Tests.No Reasons.Skips..." fullname="All The Tests.No Reasons.Skips..." methodname="Skips..." classname="All The Tests.No Reasons" runstate="Runnable" result="Skipped" start-time="2025-01-09T21:16:13.9189670Z" end-time="2025-01-09T21:16:13.9310874Z" duration="0.0121" seed="0" asserts="1">
+          <reason>
+            <message><![CDATA[Exception: is skipped]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1-1009" name="All The Tests.No Reasons.Does not skip" fullname="All The Tests.No Reasons.Does not skip" methodname="Does not skip" classname="All The Tests.No Reasons" runstate="Runnable" result="Passed" start-time="2025-01-09T21:16:13.9312220Z" end-time="2025-01-09T21:16:13.9358634Z" duration="0.0046" seed="0" asserts="1" />
+        <test-case id="1-1010" name="All The Tests.No Reasons.is Inconclusive" fullname="All The Tests.No Reasons.is Inconclusive" methodname="is Inconclusive" classname="All The Tests.No Reasons" runstate="Runnable" result="Inconclusive" start-time="2025-01-09T21:16:13.9359381Z" end-time="2025-01-09T21:16:13.9449042Z" duration="0.009" seed="0" asserts="1">
+          <reason>
+            <message><![CDATA[Exception: is inconclusive]]></message>
+          </reason>
+        </test-case>
+        <test-case id="1-1011" name="All The Tests.No Reasons.is Failed!" fullname="All The Tests.No Reasons.is Failed!" methodname="is Failed!" classname="All The Tests.No Reasons" runstate="Runnable" result="Failed" start-time="2025-01-09T21:16:13.9450314Z" end-time="2025-01-09T21:16:13.9606643Z" duration="0.0156" seed="0" asserts="1">
+          <failure>
+            <message><![CDATA[Expected $false, but got $true.]]></message>
+            <stack-trace><![CDATA[at $true | Should -BeFalse, C:\code\Pester\testing\mine.tests.ps1:29
+at <ScriptBlock>, C:\code\Pester\testing\mine.tests.ps1:29]]></stack-trace>
+          </failure>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1012" name="It Reasons" fullname="All The Tests.It Reasons" classname="All The Tests.It Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9656881Z" end-time="2025-01-09T21:16:14.0695747Z" duration="0.1039" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1013" name="All The Tests.It Reasons.Skips" fullname="All The Tests.It Reasons.Skips" methodname="Skips" classname="All The Tests.It Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9686446Z" end-time="2025-01-09T21:16:13.9741681Z" duration="0.0055" seed="0" asserts="1" />
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1014" name="It No Reasons" fullname="All The Tests.It No Reasons" classname="All The Tests.It No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9788560Z" end-time="2025-01-09T21:16:14.0953600Z" duration="0.1165" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1015" name="All The Tests.It No Reasons.Skips" fullname="All The Tests.It No Reasons.Skips" methodname="Skips" classname="All The Tests.It No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9820300Z" end-time="2025-01-09T21:16:13.9855603Z" duration="0.0035" seed="0" asserts="1" />
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1016" name="Context Reasons" fullname="All The Tests.Context Reasons" classname="All The Tests.Context Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9913532Z" end-time="2025-01-09T21:16:14.1228469Z" duration="0.1315" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1017" name="All The Tests.Context Reasons.Skips" fullname="All The Tests.Context Reasons.Skips" methodname="Skips" classname="All The Tests.Context Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:13.9966522Z" end-time="2025-01-09T21:16:14.0004230Z" duration="0.0038" seed="0" asserts="1" />
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1018" name="Context No Reasons" fullname="All The Tests.Context No Reasons" classname="All The Tests.Context No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0063065Z" end-time="2025-01-09T21:16:14.1496639Z" duration="0.1434" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Context" />
+        </properties>
+        <test-case id="1-1019" name="All The Tests.Context No Reasons.Skips" fullname="All The Tests.Context No Reasons.Skips" methodname="Skips" classname="All The Tests.Context No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0090978Z" end-time="2025-01-09T21:16:14.0127599Z" duration="0.0037" seed="0" asserts="1" />
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1020" name="Describe Reasons" fullname="All The Tests.Describe Reasons" classname="All The Tests.Describe Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0182086Z" end-time="2025-01-09T21:16:14.1788321Z" duration="0.1606" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Describe" />
+        </properties>
+        <test-case id="1-1021" name="All The Tests.Describe Reasons.Skips" fullname="All The Tests.Describe Reasons.Skips" methodname="Skips" classname="All The Tests.Describe Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0214660Z" end-time="2025-01-09T21:16:14.0257053Z" duration="0.0042" seed="0" asserts="1" />
+      </test-suite>
+      <test-suite type="TestFixture" id="1-1022" name="Describe No Reasons" fullname="All The Tests.Describe No Reasons" classname="All The Tests.Describe No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0354429Z" end-time="2025-01-09T21:16:14.2079201Z" duration="0.1725" testcasecount="1" total="1" passed="0" failed="0" inconclusive="0" warnings="0" skipped="1" asserts="1">
+        <properties>
+          <property name="_TYPE" value="Describe" />
+        </properties>
+        <test-case id="1-1023" name="All The Tests.Describe No Reasons.Skips" fullname="All The Tests.Describe No Reasons.Skips" methodname="Skips" classname="All The Tests.Describe No Reasons" runstate="Ignored" result="Skipped" start-time="2025-01-09T21:16:14.0386036Z" end-time="2025-01-09T21:16:14.0423986Z" duration="0.0038" seed="0" asserts="1" />
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

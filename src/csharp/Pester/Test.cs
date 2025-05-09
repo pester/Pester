@@ -48,6 +48,7 @@ namespace Pester
         public List<string> Tag { get; set; }
         public bool Focus { get; set; }
         public bool Skip { get; set; }
+        public string Reason { get; set; }
         // IDictionary to allow users use [ordered]
 
         public object Block { get; set; }
