@@ -652,7 +652,7 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         if ($Context.Result.ErrorRecord.Count -gt 0) {
-            $errorHeader = "[-] $($Context.Result.Item) failed with:"
+            $errorHeader = "[-] $($Context.Result.Name) failed with:"
 
             $formatErrorParams = @{
                 Err                 = $Context.Result.ErrorRecord
@@ -673,13 +673,13 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $humanTime = "$(Get-HumanTime ($Context.Result.Duration)) ($(Get-HumanTime $Context.Result.UserDuration)|$(Get-HumanTime $Context.Result.FrameworkDuration))"
 
             if ($Context.Result.Passed) {
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Item)" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
             if ($Context.Result.Skip) {
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "[!] $($Context.Result.Item)" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.Skipped "[!] $($Context.Result.Name)" -NoNewLine
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.SkippedTime " $humanTime"
             }
         }

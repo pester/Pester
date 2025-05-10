@@ -384,7 +384,7 @@ i -PassThru:$PassThru {
                 $ps.HadErrors | Verify-False
                 $res.PassedCount | Verify-Equal 1
                 # Information-stream introduced in PSv5 for Write-Host output
-                if ($PSVersionTable.PSVersion.Major -ge 5) { $ps.Streams.Information -match 'Describe' | Verify-NotNull }
+                if ($PSVersionTable.PSVersion.Major -ge 5) { $ps.Streams.Information -match '<ScriptBlock>' | Verify-NotNull }
             }
             finally {
                 $ps.Dispose()
