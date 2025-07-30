@@ -2784,4 +2784,26 @@ i -PassThru:$PassThru {
             $pwd.Path | Verify-Equal $beforePWD
         }
     }
+
+    b 'Standard output in setup and teardown blocks does not crash tests' {
+        dt 'output in BeforeAll' {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll {
+                        winrm quickconfig -quiet -force
+                        # Start powershell and output help to standard output
+                        $pwsh = Get-Process -Id $pid | Select-Object -ExpandProperty Path
+                        & $pwsh -help
+                    }
+
+                    It 'i' {
+                        1 | Should -Be 1
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            Invoke-Pester -Container $container -Output None
+        }
+    }
 }
