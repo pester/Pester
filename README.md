@@ -189,9 +189,12 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 
 ## Sponsored by
 
-Pester is sponsored by [Octopus Deploy](https://octopus.com).
+Pester is sponsored by: 
 
-<a href="https://octopus.com"><img src="https://octopus.com/images/company/OctopusDeploy-logo-RGB.svg" alt="Octopus deploy"  height="150"></a>
+<a href="https://chocolatey.org/"><img src="https://chocolatey.org/assets/images/global-shared/logo-square.svg" height="64" /></a>
+<a href="https://www.lambdatest.com/" target="_blank"><img src="https://www.lambdatest.com/blue-logo.png" height="64" /></a>
+
+
 
 As well as all the great folks on [OpenCollective](https://opencollective.com/pester) and [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors).
 
