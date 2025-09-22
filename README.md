@@ -191,10 +191,25 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 
 Pester is sponsored by:
 
-<a href="https://chocolatey.org/"><img src="https://chocolatey.org/assets/images/global-shared/logo-square.svg" height="64" /></a>
-<a href="https://www.lambdatest.com/" target="_blank"><img src="https://www.lambdatest.com/blue-logo.png" height="64" /></a>
-<a href="https://www.dotcom-monitor.com/" target="_blank"><img src="images/readme/dotcom-monitor-logo.png" height="64" /></a>
-<a href="https://www.loadview-testing.com/" target="_blank"><img src="images/readme/loadview-logo.png" height="64" /></a>
+<style>
+	.sponsor-logo {
+		max-height: 64px;
+		max-width: 255px;
+		padding: 15px;
+    vertical-align: middle;
+	}
+
+	@media (max-width: 767px) {
+		.markdown-body {
+			padding: 15px;
+		}
+	}
+</style>
+
+<a href="https://chocolatey.org/"><img src="https://chocolatey.org/assets/images/global-shared/logo-square.svg" class="sponsor-logo" /></a>
+<a href="https://www.lambdatest.com/" target="_blank"><img src="https://www.lambdatest.com/blue-logo.png" class="sponsor-logo" /></a>
+<a href="https://www.dotcom-monitor.com/" target="_blank"><img src="images/readme/dotcom-monitor-logo.png" class="sponsor-logo" /></a>
+<a href="https://www.loadview-testing.com/" target="_blank"><img src="images/readme/loadview-logo.png" class="sponsor-logo" /></a>
 
 As well as all the great folks on [OpenCollective](https://opencollective.com/pester) and [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors).
 
