@@ -81,8 +81,7 @@
     }
 
     if ($Because) {
-        [String]$formatted = Format-Because $Because
-        [String]$message += ",$($formatted.SubString(0, $formatted.Length - 1))"
+        [String]$message = $Because
     }
 
     throw [Pester.Factory]::CreateErrorRecord(
