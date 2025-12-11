@@ -89,6 +89,7 @@
 
         # [Switch] $Focus,
         [Switch] $Skip,
+        [String] $Reason,
         [Switch] $AllowNullOrEmptyForEach,
 
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
@@ -122,10 +123,10 @@
                 return
             }
 
-            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Reason:$Reason -Data $ForEach
         }
         else {
-            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Reason:$Reason
         }
     }
     else {
