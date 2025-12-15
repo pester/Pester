@@ -75,6 +75,10 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
 }
 
+elseif (-not (Test-Path "$PSScriptRoot/bin")) {
+    $Clean = $true
+}
+
 if ($Clean) {
     # Using Import-LocalizedData over Test-ModuleManifest because the latter requires psm1 and
     # PesterConfiguration.Format.xml to exists which are both generated later in build script
