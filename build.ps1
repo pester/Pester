@@ -75,7 +75,7 @@ if ($Clean -and (Test-Path "$PSScriptRoot/bin")) {
     Remove-Item "$PSScriptRoot/bin" -Recurse -Force
 }
 
-if (-not (Test-Path "$PSScriptRoot/bin")) {
+elseif (-not (Test-Path "$PSScriptRoot/bin")) {
     $Clean = $true
 }
 
