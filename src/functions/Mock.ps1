@@ -28,20 +28,22 @@ function New-MockBehavior {
         [Parameter(Mandatory)]
         $Hook,
         [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation
+        [string[]]$RemoveParameterValidation,
+        [switch]$AllowFallback
     )
 
     [PSCustomObject] @{
-        CommandName = $ContextInfo.Command.Name
-        ModuleName  = $ContextInfo.TargetModule
-        Filter      = $ParameterFilter
-        IsDefault   = $null -eq $ParameterFilter
-        IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
-        Verifiable  = $Verifiable
-        Executed    = $false
-        ScriptBlock = $MockWith
-        Hook        = $Hook
-        PSTypeName  = 'MockBehavior'
+        CommandName   = $ContextInfo.Command.Name
+        ModuleName    = $ContextInfo.TargetModule
+        Filter        = $ParameterFilter
+        AllowFallback = $AllowFallback
+        IsDefault     = $null -eq $ParameterFilter
+        IsInModule    = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
+        Verifiable    = $Verifiable
+        Executed      = $false
+        ScriptBlock   = $MockWith
+        Hook          = $Hook
+        PSTypeName    = 'MockBehavior'
     }
 }
 
@@ -982,6 +984,8 @@ function FindMatchingBehavior {
 
     $foundDefaultBehavior = $false
     $defaultBehavior = $null
+    # Allow fallback unless parameterized behaviors exist. Required to support nested runs where mock exists but no behaviors.
+    $blockOriginalCommand = @($Behaviors).IsDefault -contains $false
     foreach ($b in $Behaviors) {
 
         if ($b.IsDefault -and -not $foundDefaultBehavior) {
@@ -1005,6 +1009,8 @@ function FindMatchingBehavior {
                 }
                 return $b
             }
+
+            if ($b.AllowFallback) { $blockOriginalCommand = $false }
         }
     }
 
@@ -1018,6 +1024,11 @@ function FindMatchingBehavior {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Mock "No parametrized or default behaviors were found filter."
     }
+
+    if ($blockOriginalCommand) {
+        throw 'Not implemented. None of the parameterized mocks match the call or accept fallback to original command.'
+    }
+
     return $null
 }
 
