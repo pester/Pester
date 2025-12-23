@@ -348,7 +348,7 @@ function Should-InvokeVerifiableInternal {
     }
 
     return [Pester.ShouldResult] @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
@@ -460,7 +460,8 @@ function Should-InvokeInternal {
         #     $params.ScriptBlock = New-BlockWithoutParameterAliases -Metadata $ContextInfo.Hook.Metadata -Block $params.ScriptBlock
         # }
 
-        if (Test-ParameterFilter @params) {
+        $passed, $filterInvocations = Test-ParameterFilter @params
+        if ($passed) {
             $null = $matchingCalls.Add($historyEntry)
         }
         else {
@@ -530,7 +531,7 @@ function Should-InvokeInternal {
     }
 
     return [Pester.ShouldResult] @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
@@ -798,7 +799,7 @@ function Invoke-MockInternal {
     switch ($FromBlock) {
         Begin {
             $MockCallState['InputObjects'] = [System.Collections.Generic.List[object]]@()
-            $MockCallState['ShouldExecuteOriginalCommand'] = $false
+            $MockCallState['MatchedNoBehavior'] = $false
             $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
             # argument list must not be null, if the bootstrap functions has no parameters
             # we get null and need to replace it with empty array to make the splatting work
@@ -816,7 +817,7 @@ function Invoke-MockInternal {
             $SessionState = if ($CallerSessionState) { $CallerSessionState } else { $Hook.SessionState }
 
             # the @() are needed for powerShell3 otherwise it throws CheckAutomationNullInCommandArgumentArray (unless there is any breakpoint defined anywhere, then it works just fine :DDD)
-            $behavior = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook
+            $behavior, $failedFilterInvocations = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook
 
             if ($null -ne $behavior) {
                 $call = @{
@@ -841,7 +842,8 @@ function Invoke-MockInternal {
                 return
             }
             else {
-                $MockCallState['ShouldExecuteOriginalCommand'] = $true
+                $MockCallState['MatchedNoBehavior'] = $true
+                $MockCallState['FailedFilterInvocations'] = $failedFilterInvocations
                 if ($null -ne $InputObject) {
                     $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
                 }
@@ -851,69 +853,14 @@ function Invoke-MockInternal {
         }
 
         End {
-            if ($MockCallState['ShouldExecuteOriginalCommand']) {
+            if ($MockCallState['MatchedNoBehavior']) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock "Invoking the original command."
+                    Write-PesterDebugMessage -Scope Mock "The mock did not match any filtered behavior, and there was no default behavior. Failing."
                 }
 
-                $MockCallState['BeginBoundParameters'] = Reset-ConflictingParameters -BoundParameters $MockCallState['BeginBoundParameters']
+                $failedFilterInvocations = $MockCallState['FailedFilterInvocations']
 
-                if ($MockCallState['InputObjects'].Count -gt 0) {
-                    $scriptBlock = {
-                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
-                        $InputObjects | & $Command @ArgumentList @BoundParameters
-                    }
-                }
-                else {
-                    $scriptBlock = {
-                        param ($Command, $ArgumentList, $BoundParameters, $InputObjects)
-                        & $Command @ArgumentList @BoundParameters
-                    }
-                }
-
-                $SessionState = if ($CallerSessionState) {
-                    $CallerSessionState
-                }
-                else {
-                    $Hook.SessionState
-                }
-
-                Set-ScriptBlockScope -ScriptBlock $scriptBlock -SessionState $SessionState
-
-                # In order to mock Set-Variable correctly we need to write the variable
-                # two scopes above
-                if ("Set-Variable" -eq $Hook.OriginalCommand.Name) {
-                    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                        Write-PesterDebugMessage -Scope Mock "Original command is Set-Variable, patching the call."
-                    }
-                    if ($MockCallState['BeginBoundParameters'].Keys -notcontains "Scope") {
-                        $MockCallState['BeginBoundParameters'].Add( "Scope", 2)
-                    }
-                    # local is the same as scope 0, in that case we also write to scope 2
-                    elseif ("Local", "0" -contains $MockCallState['BeginBoundParameters'].Scope) {
-                        $MockCallState['BeginBoundParameters'].Scope = 2
-                    }
-                    elseif ($MockCallState['BeginBoundParameters'].Scope -match "\d+") {
-                        $MockCallState['BeginBoundParameters'].Scope = 2 + $matches[0]
-                    }
-                    else {
-                        # not sure what the user did, but we won't change it
-                    }
-                }
-
-                if ($null -eq ($MockCallState['BeginArgumentList'])) {
-                    $arguments = @()
-                }
-                else {
-                    $arguments = $MockCallState['BeginArgumentList']
-                }
-                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-ScriptBlockInvocationHint -Hint "Mock - Original Command" -ScriptBlock $scriptBlock
-                }
-                & $scriptBlock -Command $Hook.OriginalCommand `
-                    -ArgumentList $arguments `
-                    -BoundParameters $MockCallState['BeginBoundParameters'] `
-                    -InputObjects $MockCallState['InputObjects']
+                throw "The mock for command '$($Hook.CommandName)' did not match any filtered behavior, and there was no default behavior.`nPerformed ParameterFilter evaluations:`n$($failedFilterInvocations -join '`n')`n"
             }
         }
     }
@@ -980,6 +927,7 @@ function FindMatchingBehavior {
         Write-PesterDebugMessage -Scope Mock "Finding behavior to use, one that passes filter or a default:"
     }
 
+    $failedFilterInvocations = [System.Collections.Generic.List[String]]@()
     $foundDefaultBehavior = $false
     $defaultBehavior = $null
     foreach ($b in $Behaviors) {
@@ -999,11 +947,15 @@ function FindMatchingBehavior {
                 SessionState    = $Hook.CallerSessionState
             }
 
-            if (Test-ParameterFilter @params) {
+            $passed, $filterInvocations = Test-ParameterFilter @params
+            if ($passed) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock "{ $($b.ScriptBlock) } passed parameter filter and will be used for the mock call."
                 }
-                return $b
+                return $b, $null
+            }
+            else {
+                $failedFilterInvocations.AddRange($filterInvocations)
             }
         }
     }
@@ -1012,13 +964,13 @@ function FindMatchingBehavior {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "{ $($defaultBehavior.ScriptBlock) } is a default behavior and will be used for the mock call."
         }
-        return $defaultBehavior
+        return $defaultBehavior, $null
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "No parametrized or default behaviors were found filter."
+        Write-PesterDebugMessage -Scope Mock "No parametrized or default behaviors were found."
     }
-    return $null
+    return $null, $failedFilterInvocations
 }
 
 function LastThat {
@@ -1241,6 +1193,8 @@ function Test-ParameterFilter {
         else { $null }
     }
 
+    $parameterFilterInvocations = [Collections.Generic.List[string]]@()
+
     $result = & $wrapper $parameters
     if ($result) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1251,8 +1205,15 @@ function Test-ParameterFilter {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Mock filter returned value '$result', which is falsy. Filter did not pass."
         }
+
+        # Filter did not pass, serialize the values and store them in them for future reference in case we don't find any behavior.
+        $hasContext = 0 -lt $Context.Count
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $filterCall = "mock filter: { $scriptBlock } $(if ($hasContext) { "with parameters: $c" } else { "without any parameters"})"
+        $parameterFilterInvocations.Add($filterCall)
     }
     $result
+    , $parameterFilterInvocations
 }
 
 function Get-ContextToDefine {
