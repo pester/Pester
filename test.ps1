@@ -185,6 +185,7 @@ if ($CI) {
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
+    $configuration.TestResult.OutputFormat = 'NUnit3'
 }
 
 $r = Invoke-Pester -Configuration $configuration
