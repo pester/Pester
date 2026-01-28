@@ -1335,7 +1335,7 @@ function Start-TraceScript ($Breakpoints) {
 
     if (-not $registered) {
 
-        # detect if code coverage is enabled throuh Pester tracer, and in that case just add us as a second tracer
+        # detect if code coverage is enabled through Pester tracer, and in that case just add us as a second tracer
         if (1 -eq $env:PESTER_CC_IN_CC -and [Pester.Tracing.Tracer]::ShouldRegisterTracer($tracer, <# overwrite: #> $false)) {
             $patched = $false
             $registered = $true

@@ -70,7 +70,7 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
 
     $eEnd = if ($Expected.Length -is [int]) { $Expected.Length } else { $Expected.Count }
     $aEnd = if ($Actual.Length -is [int]) { $Actual.Length } else { $Actual.Count }
-    Write-EquivalenceResult "Comparing items in collection, `$Expected has lenght $eEnd, `$Actual has length $aEnd."
+    Write-EquivalenceResult "Comparing items in collection, `$Expected has length $eEnd, `$Actual has length $aEnd."
     $taken = @()
     $notFound = @()
     $anyDifferent = $false
@@ -106,7 +106,7 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
                     $found = $true
                     Write-EquivalenceResult -Equivalence "`Found equivalent item for `$Expected[$e] at `$Actual[$a]."
                     # we already found the item we
-                    # can move on to the next item in Exected array
+                    # can move on to the next item in Expected array
                     break
                 }
             }
@@ -284,7 +284,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
 
         $expectedValue = $Expected[$k]
         $actualValue = $Actual[$k]
-        Write-EquivalenceResult "Both `$Actual and `$Expected have key '$k', comparing thier contents."
+        Write-EquivalenceResult "Both `$Actual and `$Expected have key '$k', comparing their contents."
         $result += Compare-Equivalent -Expected $expectedValue -Actual $actualValue -Path "$Property.$k" -Options $Options
     }
 
@@ -314,7 +314,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         return "Expected hashtable $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
     }
 
-    Write-EquivalenceResult -Equivalence "Hastables `$Actual and `$Expected are equivalent."
+    Write-EquivalenceResult -Equivalence "Hashtables `$Actual and `$Expected are equivalent."
 }
 
 function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) {
@@ -350,7 +350,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
 
         $expectedValue = $Expected[$k]
         $actualValue = $Actual[$k]
-        Write-EquivalenceResult "Both `$Actual and `$Expected have key '$k', comparing thier contents."
+        Write-EquivalenceResult "Both `$Actual and `$Expected have key '$k', comparing their contents."
         $result += Compare-Equivalent -Expected $expectedValue -Actual $actualValue -Path "$Property.$k" -Options $Options
     }
     if (!$Options.ExcludePathsNotOnExpected) {
@@ -490,7 +490,7 @@ function Write-EquivalenceResult {
         [Switch] $Skip
     )
 
-    # we are using implict variable $Path
+    # we are using implicit variable $Path
     # from the parent scope, this is ugly
     # and bad practice, but saves us ton of
     # coding and boilerplate code
@@ -712,7 +712,7 @@ function Should-BeEquivalent {
 
     if ($areDifferent) {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
-        # the paremeter is -Option not -Options
+        # the parameter is -Option not -Options
         $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
         throw [Pester.Factory]::CreateShouldErrorRecord($message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }

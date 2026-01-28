@@ -19,7 +19,7 @@
         This test passes, because it expected the parameter URI to exist and to
         be mandatory.
     .NOTES
-        The attribute [ArgumentCompleter] was added with PSv5. Previouse this
+        The attribute [ArgumentCompleter] was added with PSv5. Previous this
         assertion will not be able to use the -HasArgumentCompleter parameter
         if the attribute does not exist.
     #>
@@ -109,7 +109,7 @@
     function Get-DefaultValue {
         param($DefaultValue)
 
-        # This is a value like 1, or 0, return it direcly.
+        # This is a value like 1, or 0, return it directly.
         if ($DefaultValue.PSObject.Properties["Value"]) {
             return $DefaultValue.Value
         }

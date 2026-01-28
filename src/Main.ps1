@@ -126,7 +126,7 @@ function Set-ShouldOperatorHelpMessage {
     Help message for switch-parameter for the operator in Should.
     .NOTES
     Internal function as it's only useful for built-in Should operators/assertion atm. to improve online docs.
-    Can be merged into Add-ShouldOperator later if we'd like to make it pulic and include value in Get-ShouldOperator
+    Can be merged into Add-ShouldOperator later if we'd like to make it public and include value in Get-ShouldOperator
 
     https://github.com/pester/Pester/issues/2335
     #>
@@ -1080,7 +1080,7 @@ function Convert-PesterLegacyParameterSet ($BoundParameters) {
     }
 
     # Remove auto null-variables for undefined parameters in set
-    # TODO: Why are these special? Only removed when not defined, but they're never used. Other are only removed when expliclity set
+    # TODO: Why are these special? Only removed when not defined, but they're never used. Other are only removed when explicitly set
     if (-not $BoundParameters.ContainsKey('Strict')) {
         & $SafeCommands['Get-Variable'] 'Strict' -Scope Local | Remove-Variable
     }

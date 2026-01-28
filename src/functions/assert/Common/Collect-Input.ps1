@@ -13,9 +13,9 @@
         # and not wrapped in array. E.g. 1 | Should-Be  -> 1, and not 1 | Should-Be -> @(1).
         #
         # Single item assertions should always provide this parameter. Collection assertions should never
-        # provide this parameter, because they should handle collections consistenly.
+        # provide this parameter, because they should handle collections consistently.
         #
-        # This parameter does not apply to input provided by parameter sytax Should-Be -Actual 1
+        # This parameter does not apply to input provided by parameter syntax Should-Be -Actual 1
         [switch] $UnrollInput
     )
 
@@ -38,7 +38,7 @@
         }
     }
     else {
-        # This is exactly what was provided to the ActualParmeter.
+        # This is exactly what was provided to the ActualParameter.
         $collectedInput = $ParameterInput
     }
 
