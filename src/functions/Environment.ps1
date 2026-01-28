@@ -35,7 +35,7 @@ function Get-TempDirectory {
 function Get-TempRegistry {
     # The Pester root key is created once and then stays in place.
     # In TestDrive we use system Temp folder, but such key exists for registry so we create our own.
-    # Removing it would cleanup remaining keys from cancelled runs, but could break parallell or nested runs, so leaving it
+    # Removing it would cleanup remaining keys from cancelled runs, but could break parallel or nested runs, so leaving it
 
     $pesterTempRegistryRoot = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
     try {

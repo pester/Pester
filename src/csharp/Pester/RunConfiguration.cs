@@ -70,7 +70,7 @@ namespace Pester
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
-            FailOnNullOrEmptyForEach  = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overriden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
+            FailOnNullOrEmptyForEach  = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
         }
 
         public StringArrayOption Path

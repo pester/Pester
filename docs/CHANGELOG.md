@@ -74,7 +74,7 @@ Newer releases are tracked only in [GitHub releases](https://github.com/pester/P
 ## 4.7.0-beta1 (February 23, 2019)
 
 - Add alias for extension-less external commands on Windows [#1252](https://github.com/pester/Pester/pull/1252)
-- Add use alises in mock ParameterFilter [#1240](https://github.com/pester/Pester/pull/1240)
+- Add use aliases in mock ParameterFilter [#1240](https://github.com/pester/Pester/pull/1240)
 - Fix creating mocks of Get-Module [#1233](https://github.com/pester/Pester/pull/1233)
 - Fix Set-ItResult not failing in Pester strict mode [#1225](https://github.com/pester/Pester/pull/1225)
 - Remove Invoke-GherkinStep from exported functions [#1229](https://github.com/pester/Pester/pull/1229)
@@ -216,7 +216,7 @@ Newer releases are tracked only in [GitHub releases](https://github.com/pester/P
 - Syntax for the Should operator updated in Pester tests itself, an about\_\* documentation, examples [#910](https://github.com/pester/Pester/issues/910)
 - Remove progress to make execution faster and fix linux formatting [#938](https://github.com/pester/Pester/issues/938)
 - Invoke-Pester -Strict fails with internal pester error [#886](https://github.com/pester/Pester/issues/886)
-  due to the prefered syntax change introduced in Pester v4 [#903](https://github.com/pester/Pester/issues/903)
+  due to the preferred syntax change introduced in Pester v4 [#903](https://github.com/pester/Pester/issues/903)
 - Fix Gherkin for Linux [#937](https://github.com/pester/Pester/issues/937) and PS2 [#942](https://github.com/pester/Pester/issues/942)
 
 ## 4.0.8 (September 15, 2017)
@@ -263,7 +263,7 @@ Newer releases are tracked only in [GitHub releases](https://github.com/pester/P
 ## 4.0.3-rc (March 22, 2017)
 
 - Fix context and describe in test results [#755](https://github.com/pester/Pester/issues/755)
-- Fix mocking functions in two consequitive contexts [#744](https://github.com/pester/Pester/issues/744)
+- Fix mocking functions in two consecutive contexts [#744](https://github.com/pester/Pester/issues/744)
 - Fix import localized data on non en-US systems [#711](https://github.com/pester/Pester/issues/711)
 - Fix IncludeVSCodeMarker [#726](https://github.com/pester/Pester/issues/726)
 - Fix should be when working with distinct types [#704](https://github.com/pester/Pester/issues/704)
@@ -290,7 +290,7 @@ Newer releases are tracked only in [GitHub releases](https://github.com/pester/P
 - Add colors to summary
 - (experimental) Add nested Describe and Context
 
-- Deprecated: Quiet parameter is depracated, use -Show none
+- Deprecated: Quiet parameter is deprecated, use -Show none
 - Deprecated: New-TestDriveItem as most of the people do not even know it exists
 - Gone: OutputXml is gone, it was deprecated before, use -OutputFormat and -OutputFile
 

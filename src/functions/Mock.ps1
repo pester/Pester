@@ -450,7 +450,7 @@ function Should-InvokeInternal {
             BoundParameters = $historyEntry.BoundParams
             ArgumentList    = $historyEntry.Args
             Metadata        = $ContextInfo.Hook.Metadata
-            # do not use the callser session state from the hook, the parameter filter
+            # do not use the caller session state from the hook, the parameter filter
             # on Should -Invoke can come from a different session state if inModuleScope is used to
             # wrap it. Use the caller session state to which the scriptblock is bound
             SessionState    = $SessionState
