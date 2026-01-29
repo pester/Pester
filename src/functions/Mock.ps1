@@ -348,7 +348,7 @@ function Should-InvokeVerifiableInternal {
     }
 
     return [Pester.ShouldResult] @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
@@ -473,7 +473,7 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was"
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
                 ExpectResult   = [Pester.ShouldExpectResult]@{
                     Expected = "${commandName}${moduleMessage} not to be called exactly $Times times"
                     Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
@@ -484,7 +484,7 @@ function Should-InvokeInternal {
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
                 ExpectResult   = [Pester.ShouldExpectResult]@{
                     Expected = "${commandName}${moduleMessage} to be called less than $Times times"
                     Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
@@ -497,7 +497,7 @@ function Should-InvokeInternal {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
                 ExpectResult   = [Pester.ShouldExpectResult]@{
                     Expected = "${commandName}${moduleMessage} to be called $Times times exactly"
                     Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
@@ -508,7 +508,7 @@ function Should-InvokeInternal {
         elseif ($matchingCalls.Count -lt $Times) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
                 ExpectResult   = [Pester.ShouldExpectResult]@{
                     Expected = "${commandName}${moduleMessage} to be called at least $Times times"
                     Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
@@ -519,7 +519,7 @@ function Should-InvokeInternal {
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made"
+                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
                 ExpectResult   = [Pester.ShouldExpectResult]@{
                     Expected = "${commandName}${moduleMessage} to only be called with with parameters matching the specified filter"
                     Actual   = "${commandName}${moduleMessage} was called $($nonMatchingCalls.Count) times with non-matching parameters"
@@ -530,7 +530,7 @@ function Should-InvokeInternal {
     }
 
     return [Pester.ShouldResult] @{
-        Succeeded      = $true
+        Succeeded = $true
     }
 }
 
@@ -1944,4 +1944,24 @@ function Repair-EnumParameters {
     }
 
     $sb.ToString()
+}
+
+function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchingCalls) {
+    $result = "Performed invocations:"
+    foreach ($historyEntry in $callHistory) {
+        $Context = $historyEntry.BoundParams
+        $hasContext = 0 -lt $Context.Count
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "-$($p.Key) $($p.Value)" } }) -join " "
+        $m = "$(if ($hasContext) { "$c" } else { })."
+
+        if ($historyEntry -in $matchingCalls) {
+            $result += "`n  $($historyEntry.Behavior.CommandName) $m *"
+        }
+        else {
+            $result += "`n  $($historyEntry.Behavior.CommandName) $m"
+        }
+    }
+    $result += "`n(* matching calls)"
+
+    $result
 }
