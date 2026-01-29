@@ -130,3 +130,23 @@ stages:
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
         timeoutInMinutes: 20
+  # Run one step after the matrix so we don't have to list all the 
+  # separate items in GitHub, and still are able to await the completion of the run
+  # before auto-merge is allowed.
+  - stage: Done
+    jobs:
+      - job: Done
+        workspace:
+          clean: all
+        steps:
+          - checkout: none
+          - task: PowerShell@2
+            displayName: 'All done'
+            inputs:
+              targetType: inline
+              pwsh: true
+              script: |
+                "done"
+              workingDirectory: '$(Build.SourcesDirectory)'
+
+
