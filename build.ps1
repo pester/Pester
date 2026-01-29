@@ -80,6 +80,9 @@ elseif (-not (Test-Path "$PSScriptRoot/bin")) {
 }
 
 if ($Clean) {
+
+
+
     # Using Import-LocalizedData over Test-ModuleManifest because the latter requires psm1 and
     # PesterConfiguration.Format.xml to exists which are both generated later in build script
     $manifest = Import-LocalizedData -FileName 'Pester.psd1' -BaseDirectory "$PSScriptRoot/src"
