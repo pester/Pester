@@ -374,7 +374,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
 
 Describe "When calling Mock on existing function without matching bound params" {
     It "Should redirect to real function" {
-        Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
+        Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" } -AllowFallback
         $result = FunctionUnderTest "badTest"
         $result | Should -Be "I am a real world test"
     }
@@ -390,7 +390,7 @@ Describe "When calling Mock on existing function with matching bound params" {
 
 Describe  "When calling Mock on existing function without matching unbound arguments" {
     It "Should redirect to real function" {
-        Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "test" -and $args[0] -eq 'notArg0' }
+        Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "test" -and $args[0] -eq 'notArg0' } -AllowFallback
         $result = FunctionUnderTestWithoutParams -param1 "test" "arg0"
         $result | Should -Be "I am a real world test with no params"
     }
@@ -518,7 +518,7 @@ Describe 'When calling Mock on a module-internal function.' {
         BeforeAll {
             Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
             Mock -ModuleName TestModule Start-Sleep { }
-            Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
+            Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } -AllowFallback {
                 "I'm the mock who's been passed parameter Test"
             }
             # Mock -ModuleName TestModule2 InternalFunction2 {
@@ -526,7 +526,7 @@ Describe 'When calling Mock on a module-internal function.' {
             #     # so this module internal function is not accessible to the mock body
             #     InternalFunction 'Test'
             # }
-            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
+            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false } -AllowFallback
             Mock -ModuleName TestModule2 Get-Content { }
         }
 
@@ -632,7 +632,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 Describe "When Creating Verifiable Mock that is not called" {
     Context "In the test script's scope" {
         It "Should throw" {
-            Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
+            Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" } -AllowFallback
             FunctionUnderTest "three" | Out-Null
             $result = $null
             try {
@@ -1952,9 +1952,9 @@ Describe 'Mocking a function taking input from pipeline' {
         $noMockResultByProperty = $psobj | PipelineInputFunction -PipeStr 'val'
         $noMockArrayResultByProperty = $psArrayobj | PipelineInputFunction -PipeStr 'val'
 
-        Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' }
+        Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' } -AllowFallback
     }
-    context 'when calling original function with an array' {
+    Context 'when calling original function with an array' {
         BeforeAll {
             $result = @(1, 2) | PipelineInputFunction
         }
@@ -1967,7 +1967,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling original function with an int' {
+    Context 'when calling original function with an int' {
         BeforeAll {
             $result = 1 | PipelineInputFunction
         }
@@ -1978,7 +1978,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling original function with a string' {
+    Context 'when calling original function with a string' {
         BeforeAll {
             $result = '1' | PipelineInputFunction
         }
@@ -1989,7 +1989,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling original function and pipeline is bound by property name' {
+    Context 'when calling original function and pipeline is bound by property name' {
         BeforeAll {
             $result = $psobj | PipelineInputFunction -PipeStr 'val'
         }
@@ -2001,7 +2001,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling original function and forcing a parameter binding exception' {
+    Context 'when calling original function and forcing a parameter binding exception' {
         BeforeAll {
             Mock PipelineInputFunction {
                 if ($MyInvocation.ExpectingInput) {
@@ -2017,7 +2017,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling original function and pipeline is bound by property name with array values' {
+    Context 'when calling original function and pipeline is bound by property name with array values' {
         BeforeAll {
             $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
         }
@@ -2029,7 +2029,7 @@ Describe 'Mocking a function taking input from pipeline' {
         }
     }
 
-    context 'when calling the mocked function' {
+    Context 'when calling the mocked function' {
         BeforeAll {
             $result = 'blah' | PipelineInputFunction
         }
@@ -2289,7 +2289,7 @@ Describe 'Nested Mock calls' {
     BeforeAll {
         $testDate = New-Object DateTime(2012, 6, 13)
 
-        Mock Get-Date -ParameterFilter { $null -eq $Date } {
+        Mock Get-Date -ParameterFilter { $null -eq $Date } -AllowFallback {
             Get-Date -Date $testDate -Format o
         }
     }
@@ -2462,7 +2462,7 @@ Describe "Mocking Set-Variable" {
         # we mock the command but the mock will never be triggered because
         # the filter will never pass, so this mock will always call through
         # to the real Set-Variable
-        Mock Set-Variable -ParameterFilter { $false }
+        Mock Set-Variable -ParameterFilter { $false } -AllowFallback
 
         Set-Variable -Name v2 -Value 10
 
@@ -2477,7 +2477,7 @@ Describe "Mocking Set-Variable" {
         Set-Variable -Name v1 -Value 1
         $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
-        Mock Set-Variable -ParameterFilter { $false }
+        Mock Set-Variable -ParameterFilter { $false } -AllowFallback
 
         Set-Variable -Name v2 -Value 11 -Scope 0
         $v2 | Should -Be 11
@@ -2488,7 +2488,7 @@ Describe "Mocking Set-Variable" {
         Set-Variable -Name v1 -Value 1
         $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
 
-        Mock Set-Variable -ParameterFilter { $false }
+        Mock Set-Variable -ParameterFilter { $false } -AllowFallback
 
         Set-Variable -Name v2 -Value 12 -Scope Local
 
@@ -2519,7 +2519,7 @@ Describe "Mocking Set-Variable" {
                 & {
                     # scope 1
                     & {
-                        Mock Set-Variable -ParameterFilter { $false }
+                        Mock Set-Variable -ParameterFilter { $false } -AllowFallback
                         Set-Variable -Name v2 -Value 11 -Scope 3
                     }
                 }
@@ -2546,7 +2546,7 @@ Describe "Mocking functions with conflicting parameters" {
                     $ParamToAvoid
                 }
 
-                Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" }
+                Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" } -AllowFallback
             }
 
             It 'executes the mock' {
@@ -2804,6 +2804,79 @@ Describe 'Mocking using ParameterFilter' {
 
         It "returns mock that matches parameter filter block" {
             Test-Path -Path C:\Windows | Should -Be $false
+        }
+    }
+}
+
+Describe 'Calls not matching ParameterFilter' {
+    BeforeAll {
+        function demo ($name) {
+            "hello $name"
+        }
+    }
+
+    Context 'When default mock does not exist in parent scope' {
+        It 'Throws by default' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            { demo -name 'you' } | Should -Throw
+        }
+
+        It 'Calls locally defined default mock' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            Mock demo { 'default mock' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+
+        It 'Calls real function when -AllowFallback is used' {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+            demo -name 'you' | Should -Be 'hello you'
+        }
+
+        It 'Calls real function when at least one parameterized mock has -AllowFallback' {
+            # TODO: Is this expected? Or should all parameterized mocks allow fallback?
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+            Mock demo -ParameterFilter { $name -eq 'Wisconsin' } -MockWith { 'mocked2' }
+            demo -name 'you' | Should -Be 'hello you'
+        }
+    }
+
+    Context 'When default mock exists in parent scope' {
+        BeforeAll {
+            Mock demo -MockWith { 'default mock' }
+        }
+        It 'Calls default mock without -AllowFallback' {
+            # TODO: Is this expected? Should -AllowFallback only have effect when there's no default mock at any level?
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+    }
+
+    Context 'When mock with ParameterFilter exists in parent scope' {
+        BeforeAll {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+        }
+        It 'Throws by default' {
+            { demo -name 'you' } | Should -Throw
+        }
+
+        It 'Calls locally defined default mock' {
+            Mock demo { 'default mock' }
+            demo -name 'you' | Should -Be 'default mock'
+        }
+    }
+
+    Context 'When mock with ParameterFilter and -AllowFallback exists in parent scope' {
+        BeforeAll {
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' } -AllowFallback
+        }
+        It 'Calls real function' {
+            demo -name 'you' | Should -Be 'hello you'
+        }
+
+        It 'Throws when a more local parameterized mock does not allow fallback' -Skip {
+            # TODO:Do we expect this? If so, we need to expose mock scope depth from Get-AllMockBehaviors
+            Mock demo -ParameterFilter { $name -eq 'world' } -MockWith { 'mocked' }
+            { demo -name 'you' } | Should -Throw
         }
     }
 }
