@@ -373,10 +373,9 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
 }
 
 Describe "When calling Mock on existing function without matching bound params" {
-    It "Should redirect to real function" {
+    It "Should throw because not mock matched the invocation" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
-        $result = FunctionUnderTest "badTest"
-        $result | Should -Be "I am a real world test"
+        { FunctionUnderTest "badTest" } | Should -Throw "Mock felt though"
     }
 }
 
@@ -389,10 +388,9 @@ Describe "When calling Mock on existing function with matching bound params" {
 }
 
 Describe  "When calling Mock on existing function without matching unbound arguments" {
-    It "Should redirect to real function" {
+    It "Should throw because not mock matched the invocation" {
         Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "test" -and $args[0] -eq 'notArg0' }
-        $result = FunctionUnderTestWithoutParams -param1 "test" "arg0"
-        $result | Should -Be "I am a real world test with no params"
+        { FunctionUnderTestWithoutParams -param1 "test" "arg0" } | Should -Throw "Mock felt though"
     }
 }
 
