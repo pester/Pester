@@ -725,9 +725,8 @@ function Get-ReportRoot {
     if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
         return $PesterPreference.CodeCoverage.ReportRoot.Value
     }
-    else {
-        $PesterPreference.Run.RepoRoot.Value
-    }
+
+    $PesterPreference.Run.RepoRoot.Value
 }
 
 function Get-RelativePath {

@@ -394,4 +394,51 @@ i -PassThru:$PassThru {
             $normalOutput | Verify-Equal $writehostOutput
         }
     }
+
+    b "Code Coverage output" {
+        t "Paths are relative to report root option when set" {
+            $sb = [ScriptBlock]::Create(('
+                $c = New-PesterConfiguration
+                $c.Run.Path = "tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.Tests.ps1"
+                $c.Run.PassThru = $true
+                $c.CodeCoverage.Enabled = $true
+                $c.CodeCoverage.ExcludeTests = $true # default
+                $c.Output.Verbosity = "Detailed"
+                $c.Output.RenderMode = "Plaintext"
+
+                $c.CodeCoverage.ReportRoot = "#currentDir#/testProjectsForMissingCoverage"
+
+                $null = Invoke-Pester -Configuration $c
+            ' -replace '#currentDir#', $PSScriptRoot))
+
+            $output = Invoke-InNewProcess $sb
+            $output | Write-Host
+
+            $uncoveredLine = $output | where { $_ -like "*not covered*" }
+
+            $uncoveredLine | Verify-Like 'CoverageTestFile.Missing.ps1*"not covered"*'
+        }
+
+        t "Paths are relative to repo root option when report root is not set" {
+            $sb = {
+                $c = New-PesterConfiguration
+                $c.Run.Path = "tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.Tests.ps1"
+                $c.Run.PassThru = $true
+                $c.CodeCoverage.Enabled = $true
+                $c.CodeCoverage.ExcludeTests = $true # default
+                $c.CodeCoverage.Path = "tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1"
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                $null = Invoke-Pester -Configuration $c
+            }
+
+            $output = Invoke-InNewProcess $sb
+            $output | Write-Host
+
+            $uncoveredLine = $output | where { $_ -like "*not covered*" }
+
+            $uncoveredLine | Verify-Like 'tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1*"not covered"*'
+        }
+    }
 }

@@ -146,8 +146,8 @@
         $configuration = $run.PluginConfiguration.Coverage
 
         $coverageXmlReport = switch ($configuration.OutputFormat) {
-            'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -ReportRoot Get-ReportRoot) }
-            'Cobertura' { [xml](Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds -ReportRoot Get-ReportRoot) }
+            'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -ReportRoot (Get-ReportRoot)) }
+            'Cobertura' { [xml](Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds -ReportRoot (Get-ReportRoot)) }
             default { throw "CodeCoverage.CoverageFormat '$($configuration.OutputFormat)' is not valid, please review your configuration." }
         }
 
