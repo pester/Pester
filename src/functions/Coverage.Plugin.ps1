@@ -146,9 +146,8 @@
         $configuration = $run.PluginConfiguration.Coverage
 
         $coverageXmlReport = switch ($configuration.OutputFormat) {
-            'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format 'JaCoCo') }
-            'CoverageGutters' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -Format 'CoverageGutters') }
-            'Cobertura' { [xml](Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds) }
+            'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -ReportRoot Get-ReportRoot) }
+            'Cobertura' { [xml](Get-CoberturaReportXml -CoverageReport $coverageReport  -TotalMilliseconds $totalMilliseconds -ReportRoot Get-ReportRoot) }
             default { throw "CodeCoverage.CoverageFormat '$($configuration.OutputFormat)' is not valid, please review your configuration." }
         }
 
@@ -216,7 +215,7 @@
 }
 
 function Resolve-CodeCoverageConfiguration {
-    $supportedFormats = 'JaCoCo', 'CoverageGutters', 'Cobertura'
+    $supportedFormats = 'JaCoCo', 'Cobertura'
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }

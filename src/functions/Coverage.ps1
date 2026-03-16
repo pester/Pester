@@ -233,10 +233,10 @@ function Get-CodeCoverageFilePaths {
     $testsPattern = "*$($PesterPreference.Run.TestExtension.Value)"
 
     [string[]] $filteredFiles = @(foreach ($file in (& $SafeCommands['Get-ChildItem'] -LiteralPath $Paths -File -Recurse:$RecursePaths)) {
-        if (('.ps1', '.psm1') -contains $file.Extension -and ($IncludeTests -or $file.Name -notlike $testsPattern)) {
-            $file.FullName
-        }
-    })
+            if (('.ps1', '.psm1') -contains $file.Extension -and ($IncludeTests -or $file.Name -notlike $testsPattern)) {
+                $file.FullName
+            }
+        })
 
     $uniqueFiles = [System.Collections.Generic.HashSet[string]]::new($filteredFiles)
     return $uniqueFiles
@@ -721,37 +721,13 @@ function Get-CoverageReport {
     }
 }
 
-function Get-CommonParentPath {
-    param ([string[]] $Path)
-
-    if ("CoverageGutters" -eq $PesterPreference.CodeCoverage.OutputFormat.Value) {
-        # for coverage gutters the root path is relative to the coverage.xml
-        $fullPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
-        return (& $SafeCommands['Split-Path'] -Path $fullPath | Normalize-Path )
+function Get-ReportRoot {
+    if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
+        return $PesterPreference.CodeCoverage.ReportRoot.Value
     }
-
-    $pathsToTest = @(
-        $Path |
-            Normalize-Path |
-            & $SafeCommands['Select-Object'] -Unique
-    )
-
-    if ($pathsToTest.Count -gt 0) {
-        $parentPath = & $SafeCommands['Split-Path'] -Path $pathsToTest[0] -Parent
-
-        while ($parentPath.Length -gt 0) {
-            $nonMatches = $pathsToTest -notmatch "^$([regex]::Escape($parentPath))"
-
-            if ($nonMatches.Count -eq 0) {
-                return $parentPath
-            }
-            else {
-                $parentPath = & $SafeCommands['Split-Path'] -Path $parentPath -Parent
-            }
-        }
+    else {
+        $PesterPreference.Run.RepoRoot.Value
     }
-
-    return [string]::Empty
 }
 
 function Get-RelativePath {
@@ -795,10 +771,9 @@ function Get-JaCoCoReportXml {
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
         [long] $TotalMilliseconds,
-        [string] $Format
+        [parameter(Mandatory = $true)]
+        [string] $ReportRoot
     )
-
-    $isGutters = "CoverageGutters" -eq $Format
 
     if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
         return [string]::Empty
@@ -902,9 +877,6 @@ function Get-JaCoCoReportXml {
         $packageList.Add($package)
     }
 
-    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
-    $commonParentLeaf = & $SafeCommands["Split-Path"] $commonParent -Leaf
-
     # the JaCoCo xml format without the doctype, as the XML stuff does not like DTD's.
     $jaCoCoReport = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
     $jaCoCoReport += '<report name="">'
@@ -918,26 +890,15 @@ function Get-JaCoCoReportXml {
     $reportElement.sessioninfo.dump = $endTime.ToString()
 
     foreach ($package in $packageList) {
-        $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $commonParent
+        $packageRelativePath = Get-RelativePath -Path $package.Name -RelativeTo $ReportRoot
 
-        # e.g. "." for gutters, and "package" for non gutters in root
-        # and "sub-dir" for gutters, and "package/sub-dir" for non-gutters
+        # "." for root and "sub-dir" for non-root, e.g. "." or "src", "src/myCode"
         $packageName = if ($null -eq $packageRelativePath -or "" -eq $packageRelativePath) {
-            if ($isGutters) {
-                "."
-            }
-            else {
-                $commonParentLeaf
-            }
+            "."
         }
         else {
             $packageRelativePathFormatted = $packageRelativePath.Replace("\", "/")
-            if ($isGutters) {
-                $packageRelativePathFormatted
-            }
-            else {
-                "$commonParentLeaf/$packageRelativePathFormatted"
-            }
+            $packageRelativePathFormatted
         }
 
         $packageElement = Add-XmlElement -Parent $reportElement -Name 'package' -Attributes @{
@@ -946,22 +907,12 @@ function Get-JaCoCoReportXml {
 
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
-            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
-            $classElementName = if ($isGutters) {
-                $classElementRelativePath
-            }
-            else {
-                "$commonParentLeaf/$classElementRelativePath"
-            }
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $ReportRoot).Replace("\", "/")
+            $classElementName = $classElementRelativePath
             $classElementName = $classElementName.Substring(0, $($classElementName.LastIndexOf(".")))
             $classElement = Add-XmlElement -Parent $packageElement -Name 'class' -Attributes ([ordered] @{
                     name           = $classElementName
-                    sourcefilename = if ($isGutters) {
-                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
-                    }
-                    else {
-                        $classElementRelativePath
-                    }
+                    sourcefilename = & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
                 })
 
             foreach ($function in $class.Methods.Keys) {
@@ -984,14 +935,9 @@ function Get-JaCoCoReportXml {
 
         foreach ($file in $package.Classes.Keys) {
             $class = $package.Classes.$file
-            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $commonParent).Replace("\", "/")
+            $classElementRelativePath = (Get-RelativePath -Path $file -RelativeTo $ReportRoot).Replace("\", "/")
             $sourceFileElement = Add-XmlElement -Parent $packageElement -Name 'sourcefile' -Attributes ([ordered] @{
-                    name = if ($isGutters) {
-                        & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
-                    }
-                    else {
-                        $classElementRelativePath
-                    }
+                    name = & $SafeCommands["Split-Path"] $classElementRelativePath -Leaf
                 })
 
             foreach ($line in $class.Lines.Keys) {
@@ -1033,7 +979,9 @@ function Get-CoberturaReportXml {
         [parameter(Mandatory = $true)]
         [object] $CoverageReport,
         [parameter(Mandatory = $true)]
-        [long] $TotalMilliseconds
+        [long] $TotalMilliseconds,
+        [parameter(Mandatory = $true)]
+        [string] $ReportRoot
     )
 
     if ($null -eq $CoverageReport -or $CoverageReport.NumberOfCommandsAnalyzed -eq 0) {
@@ -1043,8 +991,6 @@ function Get-CoberturaReportXml {
     # Report uses unix epoch time format (milliseconds since midnight 1/1/1970 UTC)
     [long] $endTime = [System.DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
     [long] $startTime = [math]::Floor($endTime - $TotalMilliseconds)
-
-    $commonRoot = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
 
     $allLines = [System.Collections.Generic.List[object]]@()
     $allLines.AddRange($CoverageReport.MissedCommands)
@@ -1114,7 +1060,7 @@ function Get-CoberturaReportXml {
             $coveredLines = foreach ($line in $lines) { if (0 -lt $line.attributes.hits) { $line } }
 
             $lineRate = Get-LineRate -CoveredLines $coveredLines.Length -TotalLines $lines.Length
-            $filename = $classGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
+            $filename = $classGroup.Name.Substring($ReportRoot.Length).Replace('\', '/').TrimStart('/')
 
             $class = [ordered]@{
                 name         = 'class'
@@ -1138,7 +1084,7 @@ function Get-CoberturaReportXml {
         $totalLines = ($classes.totalLines | & $SafeCommands["Measure-Object"] -Sum).Sum
         $coveredLines = ($classes.coveredLines | & $SafeCommands["Measure-Object"] -Sum).Sum
         $lineRate = Get-LineRate -CoveredLines $coveredLines -TotalLines $totalLines
-        $packageName = $packageGroup.Name.Substring($commonRoot.Length).Replace('\', '/').TrimStart('/')
+        $packageName = $packageGroup.Name.Substring($ReportRoot.Length).Replace('\', '/').TrimStart('/')
 
         $package = [ordered]@{
             name         = 'package'
@@ -1176,7 +1122,7 @@ function Get-CoberturaReportXml {
         children   = [ordered]@{
             sources  = [ordered]@{
                 name  = 'source'
-                value = $commonRoot.Replace('\', '/')
+                value = $ReportRoot.Replace('\', '/')
             }
             packages = $packages | & $SafeCommands["Sort-Object"] { $_.attributes.name }
         }

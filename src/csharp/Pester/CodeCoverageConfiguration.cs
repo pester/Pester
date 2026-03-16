@@ -31,6 +31,7 @@ namespace Pester
         private BoolOption _useBps;
         private BoolOption _singleHitBreakpoints;
         private DecimalOption _coveragePercentTarget;
+        private StringOption _reportRoot;
 
         public static CodeCoverageConfiguration Default { get { return new CodeCoverageConfiguration(); } }
 
@@ -41,7 +42,7 @@ namespace Pester
         public CodeCoverageConfiguration() : base("Options to enable and configure Pester's code coverage feature.")
         {
             Enabled = new BoolOption("Enable CodeCoverage.", false);
-            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters, Cobertura", "JaCoCo");
+            OutputFormat = new StringOption("Format to use for code coverage report. Possible values: JaCoCo, Cobertura", "JaCoCo");
             OutputPath = new StringOption("Path relative to the current directory where code coverage report is saved.", "coverage.xml");
             OutputEncoding = new StringOption("Encoding of the output file.", "UTF8");
             Path = new StringArrayOption("Directories or files to be used for code coverage, by default the Path(s) from general settings are used, unless overridden here.", new string[0]);
@@ -50,6 +51,7 @@ namespace Pester
             UseBreakpoints = new BoolOption("When false, use Profiler based tracer to do CodeCoverage instead of using breakpoints.", false);
             CoveragePercentTarget = new DecimalOption("Target percent of code coverage that you want to achieve, default 75%.", 75m);
             SingleHitBreakpoints = new BoolOption("Remove breakpoint when it is hit. This increases performance of breakpoint based CodeCoverage.", true);
+            ReportRoot = new StringOption("Root path for the code coverage report. Uses Run.RepoRoot by default.", null);
         }
 
         public CodeCoverageConfiguration(IDictionary configuration) : this()
@@ -66,6 +68,7 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(UseBreakpoints), v => UseBreakpoints = v);
                 configuration.AssignValueIfNotNull<decimal>(nameof(CoveragePercentTarget), v => CoveragePercentTarget = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(SingleHitBreakpoints), v => SingleHitBreakpoints = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(ReportRoot), v => ReportRoot = v);
             }
         }
 
@@ -225,6 +228,22 @@ namespace Pester
                 else
                 {
                     _singleHitBreakpoints = new BoolOption(_singleHitBreakpoints, value.Value);
+                }
+            }
+        }
+
+        public StringOption ReportRoot
+        {
+            get { return _reportRoot; }
+            set
+            {
+                if (_reportRoot == null)
+                {
+                    _reportRoot = value;
+                }
+                else
+                {
+                    _reportRoot = new StringOption(_reportRoot, value?.Value);
                 }
             }
         }
