@@ -1952,16 +1952,16 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         $Context = $historyEntry.BoundParams
         $hasContext = 0 -lt $Context.Count
         $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "-$($p.Key) $($p.Value)" } }) -join " "
-        $m = "$(if ($hasContext) { "$c" } else { })."
+        $m = "$(if ($hasContext) { "$c" } else { })"
 
         if ($historyEntry -in $matchingCalls) {
-            $result += "`n  $($historyEntry.Behavior.CommandName) $m *"
+            $result += "`n[*] $($historyEntry.Behavior.CommandName) $m"
         }
         else {
-            $result += "`n  $($historyEntry.Behavior.CommandName) $m"
+            $result += "`n[ ] $($historyEntry.Behavior.CommandName) $m"
         }
     }
-    $result += "`n(* matching calls)"
+    $result += "`n([*] matching calls, [ ] non-matching calls)"
 
     $result
 }
