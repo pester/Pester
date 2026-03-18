@@ -438,7 +438,7 @@ i -PassThru:$PassThru {
 
             $uncoveredLine = $output | where { $_ -like "*not covered*" }
 
-            $uncoveredLine | Verify-Like 'tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1*not covered*'
+            $uncoveredLine | Verify-Like ('tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1*not covered*' -replace '/', [System.IO.Path]::DirectorySeparatorChar)
         }
     }
 }

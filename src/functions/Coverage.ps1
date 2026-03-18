@@ -741,34 +741,6 @@ function Get-RelativePath {
     return $Path -replace "^$([regex]::Escape("$RelativeTo$([System.IO.Path]::DirectorySeparatorChar)"))?"
 }
 
-function Normalize-Path {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
-        [Alias('PSPath', 'FullName')]
-        [string[]] $Path
-    )
-
-    # Split-Path and Join-Path will replace any AltDirectorySeparatorChar instances with the DirectorySeparatorChar
-    # (Even if it's not the one that the split / join happens on.)  So splitting / rejoining a path will give us
-    # consistent separators for later string comparison.
-
-    process {
-        if ($null -ne $Path) {
-            foreach ($p in $Path) {
-                $normalizedPath = & $SafeCommands['Split-Path'] $p -Leaf
-
-                if ($normalizedPath -ne $p) {
-                    $parent = & $SafeCommands['Split-Path'] $p -Parent
-                    $normalizedPath = & $SafeCommands['Join-Path'] $parent $normalizedPath
-                }
-
-                $normalizedPath
-            }
-        }
-    }
-}
-
 function Get-JaCoCoReportXml {
     param (
         [parameter(Mandatory = $true)]
