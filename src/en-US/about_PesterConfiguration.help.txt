@@ -75,7 +75,7 @@ SECTIONS AND OPTIONS
 
         RepoRoot: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.
         Type: string
-        Default value: 'aa<path of .git>'
+        Default value: '<path of .git>'
 
     Filter:
         Tag: Tags of Describe, Context or It to be run.
