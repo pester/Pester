@@ -732,11 +732,10 @@ function Get-ReportRoot {
 function Get-RelativePath {
     param ( [string] $Path, [string] $RelativeTo )
     if ([System.IO.Path]::DirectorySeparatorChar -eq '/') {
-        # On Unix, also trim the alternate directory separator char, since both are used as separators
         $RelativeTo = $RelativeTo.Replace('\', '/').TrimEnd('/')
     }
     else {
-        $RelativeTo = $RelativeTo.Replace('\').TrimEnd('\')
+        $RelativeTo = $RelativeTo.Replace('/', '\').TrimEnd('\')
     }
 
     return $Path -replace "^$([regex]::Escape("$RelativeTo$([System.IO.Path]::DirectorySeparatorChar)"))?"
