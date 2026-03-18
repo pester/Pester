@@ -416,7 +416,7 @@ i -PassThru:$PassThru {
 
             $uncoveredLine = $output | where { $_ -like "*not covered*" }
 
-            $uncoveredLine | Verify-Like 'CoverageTestFile.Missing.ps1*"not covered"*'
+            $uncoveredLine | Verify-Like 'CoverageTestFile.Missing.ps1*"not covered"'
         }
 
         t "Paths are relative to repo root option when report root is not set" {
@@ -438,7 +438,7 @@ i -PassThru:$PassThru {
 
             $uncoveredLine = $output | where { $_ -like "*not covered*" }
 
-            $uncoveredLine | Verify-Like 'tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1*"not covered"*'
+            $uncoveredLine | Verify-Like 'tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.ps1*"not covered"'
         }
     }
 }
