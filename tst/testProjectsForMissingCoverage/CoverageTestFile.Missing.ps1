@@ -1,4 +1,4 @@
 ﻿function a {
-    "hello"
     "not covered"
+    "hello"
 }
