@@ -220,4 +220,12 @@ function Resolve-CodeCoverageConfiguration {
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }
+
+    $encoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+    try {
+        $null = [System.Text.Encoding]::GetEncoding($encoding)
+    }
+    catch {
+        throw "CodeCoverage.OutputEncoding '$encoding' is not a supported encoding name. For a list of supported encodings see [System.Text.Encoding]::GetEncodings()."
+    }
 }

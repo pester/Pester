@@ -22,20 +22,21 @@ function Export-PesterResult {
     param (
         [Pester.Run] $Result,
         [string] $Path,
-        [string] $Format
+        [string] $Format,
+        [string] $Encoding = 'UTF8'
     )
 
     switch -Wildcard ($Format) {
         'NUnit2.5' {
-            Export-XmlReport -Result $Result -Path $Path -Format $Format
+            Export-XmlReport -Result $Result -Path $Path -Format $Format -Encoding $Encoding
         }
 
         'NUnit3' {
-            Export-XmlReport -Result $Result -Path $Path -Format $Format
+            Export-XmlReport -Result $Result -Path $Path -Format $Format -Encoding $Encoding
         }
 
         '*Xml' {
-            Export-XmlReport -Result $Result -Path $Path -Format $Format
+            Export-XmlReport -Result $Result -Path $Path -Format $Format -Encoding $Encoding
         }
 
         default {
@@ -154,7 +155,9 @@ function Export-XmlReport {
 
         [parameter(Mandatory = $true)]
         [ValidateSet('NUnitXml', 'NUnit2.5', 'NUnit3', 'JUnitXml')]
-        [string] $Format
+        [string] $Format,
+
+        [string] $Encoding = 'UTF8'
     )
 
     if ('NUnit2.5' -eq $Format) {
@@ -169,6 +172,7 @@ function Export-XmlReport {
     $settings = [Xml.XmlWriterSettings] @{
         Indent              = $true
         NewLineOnAttributes = $false
+        Encoding            = [System.Text.Encoding]::GetEncoding($Encoding)
     }
 
     $xmlFile = $null
@@ -526,7 +530,7 @@ function Get-TestResultPlugin {
 
         $run = $Context.TestRun
         $testResultConfig = $PesterPreference.TestResult
-        Export-PesterResult -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value
+        Export-PesterResult -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value -Encoding $testResultConfig.OutputEncoding.Value
     }
 
     New-PluginObject @p
@@ -536,5 +540,13 @@ function Resolve-TestResultConfiguration {
     $supportedFormats = 'NUnitXml', 'NUnit2.5', 'NUnit3', 'JUnitXml'
     if ($PesterPreference.TestResult.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'TestResult.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.TestResult.OutputFormat.Value)
+    }
+
+    $encoding = $PesterPreference.TestResult.OutputEncoding.Value
+    try {
+        $null = [System.Text.Encoding]::GetEncoding($encoding)
+    }
+    catch {
+        throw "TestResult.OutputEncoding '$encoding' is not a supported encoding name. For a list of supported encodings see [System.Text.Encoding]::GetEncodings()."
     }
 }
