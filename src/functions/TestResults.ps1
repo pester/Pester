@@ -95,7 +95,7 @@ function Export-NUnitReport {
         [string] $Format = 'NUnit2.5'
     )
 
-    Export-XmlReport -Result $Result -Path $Path -Format $Format
+    Export-XmlReport -Result $Result -Path $Path -Format $Format -Encoding 'UTF8'
 }
 
 function Export-JUnitReport {
@@ -142,7 +142,7 @@ function Export-JUnitReport {
         [String] $Path
     )
 
-    Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
+    Export-XmlReport -Result $Result -Path $Path -Format JUnitXml -Encoding 'UTF8'
 }
 
 function Export-XmlReport {
