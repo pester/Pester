@@ -736,6 +736,31 @@ function Invoke-Pester {
             $plugins.Add((Get-MockPlugin))
             $plugins.Add((Get-SkipRemainingOnFailurePlugin))
 
+            # Auto-enable CodeCoverage if any non-default option was set (and Enabled was not explicitly set)
+            if (-not $PesterPreference.CodeCoverage.Enabled.IsModified -and -not $PesterPreference.CodeCoverage.Enabled.Value) {
+                if ($PesterPreference.CodeCoverage.OutputFormat.IsModified -or
+                    $PesterPreference.CodeCoverage.OutputPath.IsModified -or
+                    $PesterPreference.CodeCoverage.OutputEncoding.IsModified -or
+                    $PesterPreference.CodeCoverage.Path.IsModified -or
+                    $PesterPreference.CodeCoverage.ExcludeTests.IsModified -or
+                    $PesterPreference.CodeCoverage.RecursePaths.IsModified -or
+                    $PesterPreference.CodeCoverage.UseBreakpoints.IsModified -or
+                    $PesterPreference.CodeCoverage.CoveragePercentTarget.IsModified -or
+                    $PesterPreference.CodeCoverage.SingleHitBreakpoints.IsModified) {
+                    $PesterPreference.CodeCoverage.Enabled = $true
+                }
+            }
+
+            # Auto-enable TestResult if any non-default option was set (and Enabled was not explicitly set)
+            if (-not $PesterPreference.TestResult.Enabled.IsModified -and -not $PesterPreference.TestResult.Enabled.Value) {
+                if ($PesterPreference.TestResult.OutputFormat.IsModified -or
+                    $PesterPreference.TestResult.OutputPath.IsModified -or
+                    $PesterPreference.TestResult.OutputEncoding.IsModified -or
+                    $PesterPreference.TestResult.TestSuiteName.IsModified) {
+                    $PesterPreference.TestResult.Enabled = $true
+                }
+            }
+
             if ($PesterPreference.CodeCoverage.Enabled.Value) {
                 $plugins.Add((Get-CoveragePlugin))
             }
