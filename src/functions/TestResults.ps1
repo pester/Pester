@@ -525,12 +525,28 @@ function Get-TestResultPlugin {
         Name = 'TestResult'
     }
 
+    $p.Start = {
+        param($Context)
+
+        # Resolve the output path early (before tests run) so relative paths are
+        # relative to the original invocation directory, not wherever tests leave us.
+        $testResultConfig = $PesterPreference.TestResult
+        $outputPath = if ([IO.Path]::IsPathRooted($testResultConfig.OutputPath.Value)) {
+            $testResultConfig.OutputPath.Value
+        }
+        else {
+            & $SafeCommands['Join-Path'] $pwd.Path $testResultConfig.OutputPath.Value
+        }
+        $Context.Configuration['TestResult.OutputPath'] = $outputPath
+    }
+
     $p.End = {
         param($Context)
 
         $run = $Context.TestRun
         $testResultConfig = $PesterPreference.TestResult
-        Export-PesterResult -Result $run -Path $testResultConfig.OutputPath.Value -Format $testResultConfig.OutputFormat.Value -Encoding $testResultConfig.OutputEncoding.Value
+        $outputPath = $Context.Configuration['TestResult.OutputPath']
+        Export-PesterResult -Result $run -Path $outputPath -Format $testResultConfig.OutputFormat.Value -Encoding $testResultConfig.OutputEncoding.Value
     }
 
     New-PluginObject @p
