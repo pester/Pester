@@ -11,9 +11,9 @@ InPesterModuleScope {
             "TestDrive:\nonexistant" | Should -Not -Exist
         }
 
-        It 'works for path with escaped [ ] characters' {
+        It 'works for path with literal [ ] characters' {
             New-Item -Path "TestDrive:\[test].txt" -ItemType File | Out-Null
-            "TestDrive:\``[test``].txt"  | Should -Exist
+            "TestDrive:\[test].txt"  | Should -Exist
         }
 
         It 'returns correct result for function drive' {
