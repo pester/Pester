@@ -50,6 +50,19 @@ function Format-String2 ($Value) {
         return '<empty>'
     }
 
+    # Escape control characters so they are visible in error messages.
+    # Without this, chars like ESC (0x1B used in ANSI sequences) are invisible
+    # and make error output confusing. See https://github.com/pester/Pester/issues/2561
+    $Value = $Value `
+        -replace "`0", '␀' `
+        -replace "`a", '␇' `
+        -replace "`b", '␈' `
+        -replace "`t", '␉' `
+        -replace "`f", '␌' `
+        -replace "`r", '␍' `
+        -replace "`n", '␊' `
+        -replace "`e", '␛'
+
     "'$Value'"
 }
 

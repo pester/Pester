@@ -9,8 +9,15 @@ Describe "Should-BeNull" {
         { 1 | Should-BeNull } | Verify-AssertionFailed
     }
 
-    It "Given empty array it fails" {
-        { @() | Should-BeNull } | Verify-AssertionFailed
+    It "Given empty array piped it passes (void function output is empty array)" {
+        # When a function returns no output, PowerShell sends @() through the pipeline.
+        # Should-BeNull treats this as $null since "no output" is effectively null.
+        # See https://github.com/pester/Pester/issues/2555
+        @() | Should-BeNull
+    }
+
+    It "Given empty array by parameter it fails" {
+        { Should-BeNull -Actual @() } | Verify-AssertionFailed
     }
 
     It "Returns the given value" {
