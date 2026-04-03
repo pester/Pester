@@ -2966,4 +2966,48 @@ i -PassThru:$PassThru {
             $ex.Exception.Message | Verify-Like '*Unbound scriptblock*'
         }
     }
+
+    # Regression test for https://github.com/pester/Pester/issues/2538
+    # When a container has discovery errors (e.g. syntax error in BeforeAll), the
+    # overall result must be Failed, not Passed. Before this fix, errors were checked
+    # after Passed, so a container with both Passed=true and ErrorRecord was marked Passed.
+    b "Discovery errors mark container as Failed" {
+        t "container with discovery error has result Failed" {
+            $sb = {
+                Describe 'Has discovery error' {
+                    BeforeAll {
+                        throw 'deliberate discovery error'
+                    }
+                    It 'should not run' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "container without errors still passes" {
+            $sb = {
+                Describe 'All good' {
+                    It 'passes' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Passed'
+        }
+    }
 }
