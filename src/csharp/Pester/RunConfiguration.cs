@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.IO;
+using System.Collections;
 using System.Management.Automation;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
@@ -33,6 +34,7 @@ namespace Pester
         private BoolOption _skipRun;
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
+        private StringOption _repoRoot;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -54,7 +56,8 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
-                configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach ), v => FailOnNullOrEmptyForEach  = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(RepoRoot), v => RepoRoot = v);
             }
         }
 
@@ -70,7 +73,8 @@ namespace Pester
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
-            FailOnNullOrEmptyForEach  = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
+            FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
+            RepoRoot = new StringOption("Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.", FindRepoRoot());
         }
 
         public StringArrayOption Path
@@ -247,6 +251,39 @@ namespace Pester
                     _failOnNullOrEmptyForEach = new BoolOption(_failOnNullOrEmptyForEach, value.Value);
                 }
             }
+        }
+
+        public StringOption RepoRoot
+        {
+            get { return _repoRoot; }
+            set
+            {
+                if (_repoRoot == null)
+                {
+                    _repoRoot = value;
+                }
+                else
+                {
+                    _repoRoot = new StringOption(_repoRoot, value?.Value);
+                }
+            }
+        }
+
+        private static string FindRepoRoot()
+        {
+            var originalDir = Directory.GetCurrentDirectory();
+            var currentDir = originalDir;
+            while (!Directory.Exists(System.IO.Path.Combine(currentDir, ".git")))
+            {
+                var parentDir = Directory.GetParent(currentDir);
+                if (parentDir == null)
+                {
+                    return originalDir;
+                }
+                currentDir = parentDir.FullName;
+            }
+            return currentDir;
+
         }
     }
 }

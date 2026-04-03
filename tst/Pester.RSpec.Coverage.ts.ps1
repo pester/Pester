@@ -50,10 +50,6 @@ i -PassThru:$PassThru {
             $c.CodeCoverage.Enabled = $true
             $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1"
 
-            # # makes it easier to visualize this in VSCode, if this fails
-            # # comment this line out to use Jacoco
-            # $c.CodeCoverage.OutputFormat = "CoverageGutters"
-
             try {
                 $env:PESTER_CC_DEBUG = 1
                 $env:PESTER_CC_DEBUG_FILE = "CoverageTestFile"

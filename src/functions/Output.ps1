@@ -336,9 +336,8 @@ function Write-CoverageReport {
         $ReportStrings.FileSingular
     }
 
-    $commonParent = Get-CommonParentPath -Path $CoverageReport.AnalyzedFiles
     $report = $CoverageReport.MissedCommands | & $SafeCommands['Select-Object'] -Property @(
-        @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo $commonParent } }
+        @{ Name = 'File'; Expression = { Get-RelativePath -Path $_.File -RelativeTo (Get-ReportRoot) } }
         'Class'
         'Function'
         'Line'

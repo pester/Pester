@@ -274,199 +274,7 @@ InPesterModuleScope {
             }
 
             It 'JaCoCo report must be correct' {
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "JaCoCo"
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"', 'dump=""'
-                $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)", ''
-                $jaCoCoReportXml = $jaCoCoReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
-                $jaCoCoReportXml = $jaCoCoReportXml.Replace($root.Replace('\', '/'), '')
-                (Clear-WhiteSpace $jaCoCoReportXml) | Should -Be (Clear-WhiteSpace '
-                <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-                <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
-                <report name="Pester (date)">
-                    <sessioninfo id="this" start="" dump="" />
-                    <package name="CommonRoot">
-                        <class name="CommonRoot/TestScript" sourcefilename="TestScript.ps1">
-                            <method name="NestedFunction" desc="()" line="5">
-                                <counter type="INSTRUCTION" missed="0" covered="2" />
-                                <counter type="LINE" missed="0" covered="2" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="FunctionOne" desc="()" line="9">
-                                <counter type="INSTRUCTION" missed="1" covered="6" />
-                                <counter type="LINE" missed="0" covered="5" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="FunctionTwo" desc="()" line="22">
-                                <counter type="INSTRUCTION" missed="1" covered="0" />
-                                <counter type="LINE" missed="1" covered="0" />
-                                <counter type="METHOD" missed="1" covered="0" />
-                            </method>
-                            <method name="&lt;script&gt;" desc="()" line="25">
-                                <counter type="INSTRUCTION" missed="0" covered="3" />
-                                <counter type="LINE" missed="0" covered="3" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MyBaseClass" desc="()" line="31">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MyClass" desc="()" line="39">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MethodOne" desc="()" line="44">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <method name="MethodTwo" desc="()" line="49">
-                                <counter type="INSTRUCTION" missed="1" covered="0" />
-                                <counter type="LINE" missed="1" covered="0" />
-                                <counter type="METHOD" missed="1" covered="0" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="3" covered="14" />
-                            <counter type="LINE" missed="2" covered="13" />
-                            <counter type="METHOD" missed="2" covered="6" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <class name="CommonRoot/TestScript2" sourcefilename="TestScript2.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="1">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <class name="CommonRoot/TestScriptExit" sourcefilename="TestScriptExit.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="2">
-                                <counter type="INSTRUCTION" missed="0" covered="2" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="0" covered="2" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <class name="CommonRoot/TestScriptStatements" sourcefilename="TestScriptStatements.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="3">
-                                <counter type="INSTRUCTION" missed="3" covered="16" />
-                                <counter type="LINE" missed="3" covered="14" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="3" covered="16" />
-                            <counter type="LINE" missed="3" covered="14" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <sourcefile name="TestScript.ps1">
-                            <line nr="5" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="9" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="11" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="15" mi="1" ci="1" mb="0" cb="0" />
-                            <line nr="17" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="22" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="31" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="39" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="44" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="49" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="53" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="54" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="3" covered="14" />
-                            <counter type="LINE" missed="2" covered="13" />
-                            <counter type="METHOD" missed="2" covered="6" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <sourcefile name="TestScript2.ps1">
-                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <sourcefile name="TestScriptExit.ps1">
-                            <line nr="2" mi="0" ci="2" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="0" covered="2" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <sourcefile name="TestScriptStatements.ps1">
-                            <line nr="3" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="6" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="11" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="12" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="13" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="14" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="17" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="18" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="19" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="21" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="24" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="25" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="26" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="28" mi="1" ci="0" mb="0" cb="0" />
-                            <line nr="32" mi="0" ci="1" mb="0" cb="0" />
-                            <line nr="33" mi="0" ci="2" mb="0" cb="0" />
-                            <line nr="36" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="3" covered="16" />
-                            <counter type="LINE" missed="3" covered="14" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <counter type="INSTRUCTION" missed="6" covered="33" />
-                        <counter type="LINE" missed="5" covered="29" />
-                        <counter type="METHOD" missed="2" covered="9" />
-                        <counter type="CLASS" missed="0" covered="4" />
-                    </package>
-                    <package name="CommonRoot/TestSubFolder">
-                        <class name="CommonRoot/TestSubFolder/TestScript3"
-                            sourcefilename="TestSubFolder/TestScript3.ps1">
-                            <method name="&lt;script&gt;" desc="()" line="1">
-                                <counter type="INSTRUCTION" missed="0" covered="1" />
-                                <counter type="LINE" missed="0" covered="1" />
-                                <counter type="METHOD" missed="0" covered="1" />
-                            </method>
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </class>
-                        <sourcefile name="TestSubFolder/TestScript3.ps1">
-                            <line nr="1" mi="0" ci="1" mb="0" cb="0" />
-                            <counter type="INSTRUCTION" missed="0" covered="1" />
-                            <counter type="LINE" missed="0" covered="1" />
-                            <counter type="METHOD" missed="0" covered="1" />
-                            <counter type="CLASS" missed="0" covered="1" />
-                        </sourcefile>
-                        <counter type="INSTRUCTION" missed="0" covered="1" />
-                        <counter type="LINE" missed="0" covered="1" />
-                        <counter type="METHOD" missed="0" covered="1" />
-                        <counter type="CLASS" missed="0" covered="1" />
-                    </package>
-                    <counter type="INSTRUCTION" missed="6" covered="34" />
-                    <counter type="LINE" missed="5" covered="30" />
-                    <counter type="METHOD" missed="2" covered="10" />
-                    <counter type="CLASS" missed="0" covered="5" />
-                </report>
-                ')
-            }
-
-            It 'JaCoCo for CoverageGutters report must be correct' {
-                # when using output for CoverageGutters in VSCodethe output needs to be slightly different,
-                # paths need to be reported relative to the output file and sourcefile name must be just the
-                # file name, adding a new formatter, instead of changing the default one
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds 10000 -CoverageReport $coverageReport -ReportRoot $TestDrive
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'Pester \([^\)]*', 'Pester (date'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'start="[0-9]*"', 'start=""'
                 $jaCoCoReportXml = $jaCoCoReportXml -replace 'dump="[0-9]*"', 'dump=""'
@@ -654,7 +462,7 @@ InPesterModuleScope {
             }
 
             It 'Cobertura report must be correct' {
-                [String]$coberturaReportXml = Get-CoberturaReportXml -TotalMilliseconds 10000 -CoverageReport $coverageReport
+                [String]$coberturaReportXml = Get-CoberturaReportXml -TotalMilliseconds 10000 -CoverageReport $coverageReport -ReportRoot $TestDrive
                 $coberturaReportXml = $coberturaReportXml -replace 'timestamp="[0-9]*"', 'timestamp=""'
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
@@ -789,14 +597,14 @@ InPesterModuleScope {
 
             It 'JaCoCo returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
-                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -Format "CoverageGutters"
+                [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -ReportRoot $TestDrive
                 $jaCoCoReportXml | Should -Not -Be $null
                 $jaCoCoReportXml | Should -Be ([String]::Empty)
             }
 
             It 'Cobertura returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
-                [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000
+                [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000 -ReportRoot $TestDrive
                 $coberturaReportXml | Should -Not -Be $null
                 $coberturaReportXml | Should -Be ([String]::Empty)
             }

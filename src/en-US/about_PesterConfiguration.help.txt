@@ -73,6 +73,10 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $true
 
+        RepoRoot: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.
+        Type: string
+        Default value: '<path of .git>'
+
     Filter:
         Tag: Tags of Describe, Context or It to be run.
         Type: string[]
@@ -99,7 +103,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, CoverageGutters, Cobertura
+        OutputFormat: Format to use for code coverage report. Possible values: JaCoCo, Cobertura
         Type: string
         Default value: 'JaCoCo'
 
@@ -134,6 +138,10 @@ SECTIONS AND OPTIONS
         SingleHitBreakpoints: Remove breakpoint when it is hit. This increases performance of breakpoint based CodeCoverage.
         Type: bool
         Default value: $true
+
+        ReportRoot: Root path for the code coverage report. Uses Run.RepoRoot by default.
+        Type: string
+        Default value: $null
 
     TestResult:
         Enabled: Enable TestResult.
