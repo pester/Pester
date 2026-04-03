@@ -12,7 +12,7 @@
     `Should -Exist` calls Test-Path. Test-Path expects a file,
     returns $false because the file was removed, and fails the test.
     #>
-    [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
+    [bool] $succeeded = & $SafeCommands['Test-Path'] -LiteralPath $ActualValue
 
     if ($Negate) {
         $succeeded = -not $succeeded
