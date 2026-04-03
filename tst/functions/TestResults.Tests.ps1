@@ -91,4 +91,28 @@ InPesterModuleScope {
         Pop-Location
 
     }
+
+    # Regression test for https://github.com/pester/Pester/issues/2678
+    # Get-CimInstance can fail with access denied when not running as Administrator.
+    # The fix adds -ErrorAction Ignore and a fallback to prevent the entire test report
+    # from failing just because OS info is unavailable.
+    Describe "Get-RunTimeEnvironment" {
+        It "Returns a hashtable with expected keys without throwing" {
+            $result = Get-RunTimeEnvironment
+            $result | Should -BeOfType [hashtable]
+            $result.Keys | Should -Contain 'os-version'
+            $result.Keys | Should -Contain 'platform'
+            $result.Keys | Should -Contain 'machine-name'
+            $result.Keys | Should -Contain 'user'
+            $result.Keys | Should -Contain 'cwd'
+            $result.Keys | Should -Contain 'clr-version'
+        }
+
+        It "Returns non-null os-version and platform values" {
+            # Even with access denied, the fallback should provide 'Unknown' / '0.0.0.0'
+            $result = Get-RunTimeEnvironment
+            $result['os-version'] | Should -Not -BeNullOrEmpty
+            $result['platform'] | Should -Not -BeNullOrEmpty
+        }
+    }
 }
