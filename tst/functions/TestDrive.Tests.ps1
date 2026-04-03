@@ -100,6 +100,89 @@ InPesterModuleScope {
 
         }
     }
+
+    # Regression test for https://github.com/pester/Pester/issues/2657
+    # Clear-TestDrive was O(n) per item because it called Remove-Item on every child
+    # individually, even children of directories being removed. The fix uses a HashSet
+    # to only remove "root" new items, letting -Recurse handle descendants.
+    Describe "Clear-TestDrive" {
+        It "Removes new files but keeps excluded (baseline) files" {
+            $root = New-RandomTempDirectory
+            try {
+                # Create baseline items (simulate what exists before a test)
+                $baseFile = Join-Path $root 'baseline.txt'
+                Set-Content -Path $baseFile -Value 'keep'
+                $baseDir = Join-Path $root 'basedir'
+                $null = New-Item -ItemType Directory -Path $baseDir
+                $baseNested = Join-Path $baseDir 'nested.txt'
+                Set-Content -Path $baseNested -Value 'keep'
+
+                # Snapshot the baseline
+                $snapshot = Get-TestDriveChildItem -TestDrivePath $root
+
+                # Create new items (simulate what a test creates)
+                $newFile = Join-Path $root 'new.txt'
+                Set-Content -Path $newFile -Value 'remove'
+                $newDir = Join-Path $root 'newdir'
+                $null = New-Item -ItemType Directory -Path $newDir
+                $newNested = Join-Path $newDir 'child.txt'
+                Set-Content -Path $newNested -Value 'remove'
+
+                # Run Clear-TestDrive
+                Clear-TestDrive -TestDrivePath $root -Exclude $snapshot
+
+                # Baseline items should still exist
+                $baseFile | Should -Exist
+                $baseNested | Should -Exist
+
+                # New items should be removed
+                $newFile | Should -Not -Exist
+                $newDir | Should -Not -Exist
+                $newNested | Should -Not -Exist
+            }
+            finally {
+                Remove-Item -Path $root -Recurse -Force -ErrorAction Ignore
+            }
+        }
+
+        It "Handles empty test drive (no new items)" {
+            $root = New-RandomTempDirectory
+            try {
+                $baseFile = Join-Path $root 'only.txt'
+                Set-Content -Path $baseFile -Value 'keep'
+                $snapshot = Get-TestDriveChildItem -TestDrivePath $root
+
+                # No new items created — Clear should be a no-op
+                Clear-TestDrive -TestDrivePath $root -Exclude $snapshot
+
+                $baseFile | Should -Exist
+            }
+            finally {
+                Remove-Item -Path $root -Recurse -Force -ErrorAction Ignore
+            }
+        }
+
+        It "Removes nested new directory in one call (parent removal covers children)" {
+            $root = New-RandomTempDirectory
+            try {
+                $snapshot = Get-TestDriveChildItem -TestDrivePath $root
+
+                # Create a deep nested structure
+                $deepDir = Join-Path $root 'a/b/c'
+                $null = New-Item -ItemType Directory -Path $deepDir -Force
+                Set-Content -Path (Join-Path $deepDir 'deep.txt') -Value 'remove'
+                Set-Content -Path (Join-Path $root 'a/b/mid.txt') -Value 'remove'
+
+                Clear-TestDrive -TestDrivePath $root -Exclude $snapshot
+
+                # The entire 'a' tree should be gone
+                Join-Path $root 'a' | Should -Not -Exist
+            }
+            finally {
+                Remove-Item -Path $root -Recurse -Force -ErrorAction Ignore
+            }
+        }
+    }
 }
 
 Describe 'Repair missing TestDrive' {
