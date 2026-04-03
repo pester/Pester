@@ -30,7 +30,8 @@
             foreach ($item in $items) {
                 if ($item.PSIsContainer) {
                     # this is an existing directory search it for tests file
-                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File
+                    # use -Force to include hidden items (e.g. dot-prefixed folders on Linux)
+                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File -Force
                 }
                 elseif ("FileSystem" -ne $item.PSProvider.Name) {
                     # item is not a directory and exists but is not a file so we are not interested
@@ -60,7 +61,8 @@
         else {
             # this is a path that does not exist so let's hope it is
             # a wildcarded path that will resolve to some files
-            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File
+            # use -Force to include hidden items (e.g. dot-prefixed folders on Linux)
+            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File -Force
         }
     }
 
@@ -176,6 +178,9 @@ function PostProcess-RspecTestRun ($TestRun) {
         $b.Result = if ($b.Skip) {
             "Skipped"
         }
+        elseif (0 -lt $b.ErrorRecord.Count) {
+            "Failed"
+        }
         elseif ($b.Passed) {
             "Passed"
         }
@@ -206,11 +211,11 @@ function PostProcess-RspecTestRun ($TestRun) {
         $b.result = if ($b.Skip) {
             "Skipped"
         }
-        elseif ($b.Passed) {
-            "Passed"
-        }
         elseif (0 -lt $b.ErrorRecord.Count) {
             "Failed"
+        }
+        elseif ($b.Passed) {
+            "Passed"
         }
         elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
