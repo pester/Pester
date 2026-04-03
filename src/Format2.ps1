@@ -46,11 +46,17 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
 }
 
 function Format-String2 ($Value) {
-    if ('' -eq $Value) {
+    # Use .Length instead of '' -eq $Value because PowerShell's -eq operator
+    # considers some control characters (NUL, BEL, BS, ESC) equal to empty string.
+    if ($null -eq $Value -or $Value.Length -eq 0) {
         return '<empty>'
     }
 
-    "'$Value'"
+    # Escape ASCII control characters (0x00..0x1F) to the Unicode "Control
+    # Pictures" block (U+2400..U+241F) so they remain visible in error messages.
+    # See https://github.com/pester/Pester/issues/2561. Hot loop lives in C#
+    # (Pester.Formatter) for speed.
+    "'" + [Pester.Formatter]::EscapeControlChars($Value) + "'"
 }
 
 function Format-Null2 {
