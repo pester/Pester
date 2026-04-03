@@ -554,7 +554,12 @@ function Format-CDataString ($Output) {
     $linesCount = $out.Length
     $o = for ($i = 0; $i -lt $linesCount; $i++) {
         # The input is array of objects, convert them to strings.
-        $line = if ($null -eq $out[$i]) { [String]::Empty } else { $out[$i].ToString() }
+        $line = if ($null -eq $out[$i]) {
+            [String]::Empty
+        }
+        else {
+            try { $out[$i].ToString() } catch { "<Output object ToString() failed: $($_.Exception.Message)>" }
+        }
 
         if (0 -gt $line.IndexOfAny($script:invalidCDataChars)) {
             # No special chars that need replacing.
