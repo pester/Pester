@@ -157,7 +157,10 @@ function Get-DisplayProperty2 ([Type]$Type) {
     # and for types that do not exist
 
     $propertyMap = @{
-        'System.Diagnostics.Process' = 'Id', 'Name'
+        'System.Diagnostics.Process'  = 'Id', 'Name'
+        # DirectoryInfo and FileInfo have circular references (Root, Directory) that cause infinite recursion
+        'System.IO.DirectoryInfo'     = 'Name', 'FullName'
+        'System.IO.FileInfo'          = 'Name', 'FullName', 'Length'
     }
 
     $propertyMap[$Type.FullName]

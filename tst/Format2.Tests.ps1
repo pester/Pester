@@ -165,6 +165,22 @@ InPesterModuleScope {
         ) {
             Format-Nicely2 -Value $Value | Verify-Equal $Expected
         }
+
+        # Regression test for https://github.com/pester/Pester/issues/2474
+        # DirectoryInfo has circular references (Root -> DirectoryInfo) that caused
+        # infinite recursion. Verify formatting completes without hanging.
+        It "Formats DirectoryInfo without infinite recursion" {
+            $dir = [System.IO.DirectoryInfo]::new($TestDrive)
+            $job = Start-Job -ScriptBlock {
+                param($modulePath, $dirPath)
+                Import-Module $modulePath
+                $d = [System.IO.DirectoryInfo]::new($dirPath)
+                & (Get-Module Pester) { Format-Nicely2 -Value $args[0] } $d
+            } -ArgumentList (Get-Module Pester).Path, $TestDrive
+            $result = $job | Wait-Job -Timeout 10 | Receive-Job
+            $job | Remove-Job -Force
+            $result | Should -Not -BeNullOrEmpty
+        }
     }
 
     Describe "Get-DisplayProperty2" {
@@ -174,6 +190,19 @@ InPesterModuleScope {
             param ($Type, $Expected)
             $Actual = Get-DisplayProperty2 -Type $Type
             "$Actual" | Verify-Equal "$Expected"
+        }
+
+        # Regression tests for https://github.com/pester/Pester/issues/2474
+        # DirectoryInfo and FileInfo have circular references (Root, Directory)
+        # that cause infinite recursion without an explicit property map.
+        It "Returns 'Name FullName' for DirectoryInfo" {
+            $Actual = Get-DisplayProperty2 -Type ([System.IO.DirectoryInfo])
+            "$Actual" | Verify-Equal "Name FullName"
+        }
+
+        It "Returns 'Name FullName Length' for FileInfo" {
+            $Actual = Get-DisplayProperty2 -Type ([System.IO.FileInfo])
+            "$Actual" | Verify-Equal "Name FullName Length"
         }
     }
 
