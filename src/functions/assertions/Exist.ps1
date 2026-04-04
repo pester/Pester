@@ -1,4 +1,4 @@
-﻿function Should-ExistAssertion($ActualValue, [switch] $Negate, [string] $Because) {
+﻿function Should-ExistAssertion($ActualValue, [switch] $Negate, [string] $Because, [switch] $LiteralPath) {
     <#
     .SYNOPSIS
     Does not perform any comparison, but checks if the object calling Exist is present in a PS Provider.
@@ -12,7 +12,12 @@
     `Should -Exist` calls Test-Path. Test-Path expects a file,
     returns $false because the file was removed, and fails the test.
     #>
-    [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
+    if ($LiteralPath) {
+        [bool] $succeeded = & $SafeCommands['Test-Path'] -LiteralPath $ActualValue
+    }
+    else {
+        [bool] $succeeded = & $SafeCommands['Test-Path'] $ActualValue
+    }
 
     if ($Negate) {
         $succeeded = -not $succeeded
