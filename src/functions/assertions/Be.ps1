@@ -47,22 +47,29 @@ function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [st
 }
 
 function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
-    $ActualValue = $($ActualValue)
-    $ExpectedValue = $($ExpectedValue)
 
-    if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string]))) {
-        return "Expected $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { Format-Because $Because }) but got $(Format-Nicely $ActualValue)."
+    $actualType = if ($null -eq $ActualValue) { '<null>' } else { $ActualValue.GetType().Name }
+    $expectedType = if ($null -eq $ExpectedValue) { '<null>' } else { $ExpectedValue.GetType().Name }
+    
+    $actualCount = if ($ActualValue -is [Array]) { $ActualValue.Count } else { 1 }
+    $expectedCount = if ($ExpectedValue -is [Array]) { $ExpectedValue.Count } else { 1 }
+
+
+    $ActualValueUnrolled = $($ActualValue)
+    $ExpectedValueUnrolled = $($ExpectedValue)
+
+
+    if ($actualType -ne $expectedType -or ($ActualValue -is [Array] -and $ExpectedValue -is [Array] -and $actualCount -ne $expectedCount)) {
+        $message = "Expected a collection with length $expectedCount and type [$expectedType], but got a collection with length $actualCount and type [$actualType].`n"
+        $message += "Expected: $(Format-Nicely $ExpectedValue)`n"
+        $message += "Actual:   $(Format-Nicely $ActualValue)"
+        if ($Because) { $message += "`nBecause: $Because" }
+        return $message
     }
-    <#joining the output strings to a single string here, otherwise I get
-       Cannot find an overload for "Exception" and the argument count: "4".
-       at line: 63 in C:\Users\nohwnd\github\pester\functions\Assertions\Should.ps1
 
-    This is a quickwin solution, doing the join in the Should directly might be better
-    way of doing this. But I don't want to mix two problems.
-    #>
-    (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -Because $Because) -join "`n"
+
 }
+
 
 function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."
