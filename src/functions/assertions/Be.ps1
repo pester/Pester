@@ -45,21 +45,19 @@ function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [st
         }
     }
 }
-
 function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
-
+    # 获取类型和长度信息
     $actualType = if ($null -eq $ActualValue) { '<null>' } else { $ActualValue.GetType().Name }
     $expectedType = if ($null -eq $ExpectedValue) { '<null>' } else { $ExpectedValue.GetType().Name }
-    
+
     $actualCount = if ($ActualValue -is [Array]) { $ActualValue.Count } else { 1 }
     $expectedCount = if ($ExpectedValue -is [Array]) { $ExpectedValue.Count } else { 1 }
 
+    # 判断是否需要显示类型/长度详情
+    $showDetail = ($actualType -ne $expectedType) -or 
+                  ($ActualValue -is [Array] -and $ExpectedValue -is [Array] -and $actualCount -ne $expectedCount)
 
-    $ActualValueUnrolled = $($ActualValue)
-    $ExpectedValueUnrolled = $($ExpectedValue)
-
-
-    if ($actualType -ne $expectedType -or ($ActualValue -is [Array] -and $ExpectedValue -is [Array] -and $actualCount -ne $expectedCount)) {
+    if ($showDetail) {
         $message = "Expected a collection with length $expectedCount and type [$expectedType], but got a collection with length $actualCount and type [$actualType].`n"
         $message += "Expected: $(Format-Nicely $ExpectedValue)`n"
         $message += "Actual:   $(Format-Nicely $ActualValue)"
@@ -67,7 +65,16 @@ function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
         return $message
     }
 
+    # 原有逻辑：处理普通情况和字符串
+    $ActualValueUnrolled = $($ActualValue)
+    $ExpectedValueUnrolled = $($ExpectedValue)
 
+    if (-not (($ExpectedValueUnrolled -is [string]) -and ($ActualValueUnrolled -is [string]))) {
+        return "Expected $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { " because $Because" } else { '' }) but got $(Format-Nicely $ActualValue)."
+    }
+
+    # 字符串比较的特殊处理
+    (Get-CompareStringMessage -Expected $ExpectedValueUnrolled -Actual $ActualValueUnrolled -Because $Because)
 }
 
 
