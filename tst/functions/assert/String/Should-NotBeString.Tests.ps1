@@ -50,5 +50,15 @@ Describe "Should-NotBeString" {
     It "Can be called with positional parameters" {
         { Should-NotBeString "a" "a" } | Verify-AssertionFailed
     }
+
+    It "Throws when collection of strings is passed in by pipeline, even if the last string is different from the expected string" {
+        $err = { "abc", "bde" | Should-NotBeString -Expected "abc" } | Verify-Throw
+        $err.Exception | Verify-Type ([ArgumentException])
+    }
+
+    It "Throws when -Actual is not a string" {
+        $err = { Should-NotBeString -Expected "abc" -Actual 1 } | Verify-Throw
+        $err.Exception | Verify-Type ([ArgumentException])
+    }
 }
 

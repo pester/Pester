@@ -80,8 +80,13 @@
         [switch] $FromNow,
 
         [Parameter(Position = 0, ParameterSetName = "Expected")]
-        [DateTime] $Expected
+        [DateTime] $Expected,
+
+        [String] $Because
     )
+
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
+    $Actual = $collectedInput.Actual
 
     # Now is just a syntax marker, we don't need to do anything with it.
     $Now = $Now
