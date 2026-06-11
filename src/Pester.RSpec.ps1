@@ -8,6 +8,12 @@
         [string] $Extension
     )
 
+    # Folders we never want to descend into during discovery. .git in particular can
+    # hold hundreds of thousands of small files on a real repo; enumerating them only
+    # to filter the results out later wastes a lot of time, so the recursive walk
+    # below stops as soon as it sees one of these names.
+    $skipFolders = @('.git', '.svn', '.hg')
+
     $files = foreach ($p in $Path) {
         if ([String]::IsNullOrWhiteSpace($p)) {
             continue
@@ -29,9 +35,11 @@
 
             foreach ($item in $items) {
                 if ($item.PSIsContainer) {
-                    # this is an existing directory search it for tests file
-                    # use -Force to include hidden items (e.g. dot-prefixed folders on Linux)
-                    & $SafeCommands['Get-ChildItem'] -Recurse -Path $item -Filter "*$Extension" -File -Force
+                    # Walk the directory tree ourselves so we never open the contents of
+                    # VCS folders. Get-ChildItem -Force returns hidden items so this works
+                    # both for dot-prefixed folders on Linux and for folders with the
+                    # Hidden file attribute on Windows.
+                    Find-FileInDirectory -Directory $item -Extension $Extension -SkipFolders $skipFolders
                 }
                 elseif ("FileSystem" -ne $item.PSProvider.Name) {
                     # item is not a directory and exists but is not a file so we are not interested
@@ -59,33 +67,50 @@
             }
         }
         else {
-            # this is a path that does not exist so let's hope it is
-            # a wildcarded path that will resolve to some files
-            # use -Force to include hidden items (e.g. dot-prefixed folders on Linux)
-            & $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File -Force
-        }
-    }
-
-    # Exclude files found inside version-control metadata directories.
-    # These are almost never wanted and .git in particular can contain many files.
-    $vcsDirectories = @('.git', '.svn', '.hg')
-    $filteredFiles = foreach ($f in $files) {
-        # normalize backslashes for cross-platform ease of use
-        $normalizedPath = $f.FullName -replace "/", "\"
-        $dominated = $false
-        foreach ($vcs in $vcsDirectories) {
-            if ($normalizedPath -like "*\${vcs}\*") {
-                $dominated = $true
-                break
+            # The path didn't resolve to anything, so let Get-ChildItem try to expand
+            # whatever shape it is (typically a wildcard pattern that currently has no
+            # matches). Use -Force so hidden folders are still considered, and strip any
+            # results that landed inside a VCS metadata directory.
+            foreach ($f in (& $SafeCommands['Get-ChildItem'] -Recurse -Path $p -Filter "*$Extension" -File -Force)) {
+                $inSkipFolder = $false
+                $parent = $f.Directory
+                while ($null -ne $parent) {
+                    if ($skipFolders -contains $parent.Name) {
+                        $inSkipFolder = $true
+                        break
+                    }
+                    $parent = $parent.Parent
+                }
+                if (-not $inSkipFolder) { $f }
             }
         }
-        if (-not $dominated) { $f }
     }
 
     # Deduplicate files if overlapping -Path values
-    $uniquePaths = [System.Collections.Generic.HashSet[string]]::new(@($filteredFiles).Count)
-    $uniqueFiles = foreach ($f in $filteredFiles) { if ($uniquePaths.Add($f.FullName)) { $f } }
+    $uniquePaths = [System.Collections.Generic.HashSet[string]]::new(@($files).Count)
+    $uniqueFiles = foreach ($f in $files) { if ($uniquePaths.Add($f.FullName)) { $f } }
     Filter-Excluded -Files $uniqueFiles -ExcludePath $ExcludePath | & $SafeCommands['Where-Object'] { $_ }
+}
+
+function Find-FileInDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.IO.DirectoryInfo] $Directory,
+        [Parameter(Mandatory = $true)]
+        [string] $Extension,
+        [string[]] $SkipFolders
+    )
+
+    # Files in this directory first, then descend into each subdirectory that we are
+    # allowed to enter. The set returned is equivalent to
+    # `Get-ChildItem -Recurse -Filter "*$Extension" -File -Force` rooted at $Directory,
+    # minus anything under one of $SkipFolders.
+    & $SafeCommands['Get-ChildItem'] -LiteralPath $Directory.FullName -Filter "*$Extension" -File -Force
+
+    foreach ($d in (& $SafeCommands['Get-ChildItem'] -LiteralPath $Directory.FullName -Directory -Force)) {
+        if ($SkipFolders -contains $d.Name) { continue }
+        Find-FileInDirectory -Directory $d -Extension $Extension -SkipFolders $SkipFolders
+    }
 }
 
 function Filter-Excluded ($Files, $ExcludePath) {

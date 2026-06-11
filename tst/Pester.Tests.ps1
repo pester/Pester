@@ -249,6 +249,74 @@ InPesterModuleScope {
             $result.Count | Should -Be 2
         }
 
+        Context 'Hidden folders and VCS metadata' {
+            BeforeAll {
+                # Reset TestDrive contents to a known shape for these tests.
+                Get-ChildItem 'TestDrive:\' -Force | Remove-Item -Recurse -Force
+
+                # Visible test file in a normal subfolder.
+                New-Item -ItemType Directory 'TestDrive:\normal' | Out-Null
+                New-Item -ItemType File 'TestDrive:\normal\Visible.Tests.ps1'
+
+                # Hidden (dot-prefixed) folder that we still want to discover.
+                New-Item -ItemType Directory 'TestDrive:\.hidden' | Out-Null
+                New-Item -ItemType File 'TestDrive:\.hidden\InHidden.Tests.ps1'
+
+                # Hidden folder one level deep.
+                New-Item -ItemType Directory 'TestDrive:\.config\tests' | Out-Null
+                New-Item -ItemType File 'TestDrive:\.config\tests\NestedHidden.Tests.ps1'
+
+                # .git tree that must never be enumerated. Files at multiple depths
+                # so we can tell if the walker descended into it.
+                New-Item -ItemType Directory 'TestDrive:\.git\objects\aa' | Out-Null
+                New-Item -ItemType File 'TestDrive:\.git\HeadLevel.Tests.ps1'
+                New-Item -ItemType File 'TestDrive:\.git\objects\aa\DeepInGit.Tests.ps1'
+
+                # On Windows the dot-prefix alone does not flag a folder as hidden,
+                # so set the attribute explicitly. Without this the original bug
+                # would not reproduce on Windows because Get-ChildItem already
+                # returned dot-prefixed folders. Use a version short-circuit so
+                # $IsWindows is not evaluated under Strict mode in PowerShell 5.1
+                # (where the automatic variable does not exist).
+                if (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows) {
+                    foreach ($d in '.hidden', '.config', '.git') {
+                        $di = Get-Item -LiteralPath "TestDrive:\$d" -Force
+                        $di.Attributes = $di.Attributes -bor [System.IO.FileAttributes]::Hidden
+                    }
+                }
+            }
+
+            It 'discovers test files inside dot-prefixed (hidden) folders' {
+                $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
+                $names | Should -Contain 'InHidden.Tests.ps1'
+            }
+
+            It 'discovers test files in nested hidden folders' {
+                $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
+                $names | Should -Contain 'NestedHidden.Tests.ps1'
+            }
+
+            It 'does not descend into .git directories' {
+                # Both files live under .git at different depths; neither should
+                # appear in the result, proving the walker stops at .git without
+                # opening its contents.
+                $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
+                $names | Should -Not -Contain 'HeadLevel.Tests.ps1'
+                $names | Should -Not -Contain 'DeepInGit.Tests.ps1'
+            }
+
+            It 'returns the same set as Get-ChildItem -Recurse -Force minus VCS folders' {
+                $found = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty FullName | Sort-Object)
+                $expected = @(
+                    Get-ChildItem -Path 'TestDrive:\' -Recurse -Filter '*.Tests.ps1' -File -Force |
+                        Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' } |
+                        Select-Object -ExpandProperty FullName |
+                        Sort-Object
+                )
+                $found | Should -Be $expected
+            }
+        }
+
         # It 'Assigns empty array and hashtable to the Arguments and Parameters properties when none are specified by the caller' {
         #     $result = @(Find-File 'TestDrive:\SomeFile.ps1' -Extension ".Tests.ps1")
 
