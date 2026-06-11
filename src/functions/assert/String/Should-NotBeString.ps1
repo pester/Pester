@@ -59,6 +59,13 @@ function Should-NotBeString {
         [switch]$IgnoreWhitespace
     )
 
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
+    $Actual = $collectedInput.Actual
+
+    if ($Actual -isnot [string]) {
+        throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -ne operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
+    }
+
     if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace) {
         if (-not $CustomMessage) {
             $formattedMessage = Get-StringNotEqualDefaultFailureMessage -Expected $Expected -Actual $Actual

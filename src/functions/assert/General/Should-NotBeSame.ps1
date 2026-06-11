@@ -46,6 +46,8 @@
         [String]$Because
     )
 
+    $null = Ensure-ExpectedIsNotCollection $Expected
+
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual
     if ([object]::ReferenceEquals($Expected, $Actual)) {

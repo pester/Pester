@@ -30,5 +30,13 @@ Describe "Should-NotBeSame" {
             Should-NotBeSame $obj $obj
         } | Verify-AssertionFailed
     }
+
+    It "Throws when collection is passed to -Expected" {
+        $err = {
+            $obj = New-Object -TypeName PSObject
+            $obj | Should-NotBeSame -Expected @()
+        } | Verify-Throw
+        $err.Exception | Verify-Type ([ArgumentException])
+    }
 }
 

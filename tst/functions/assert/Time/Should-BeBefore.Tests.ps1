@@ -49,6 +49,17 @@ Describe "Should-BeBefore" {
         { $Actual | Should-BeBefore 10minutes -Ago -FromNow } | Verify-Throw
     }
 
+    It "Fails for array input even if the last item is before the expected date" {
+        $past = [DateTime]::Now.AddDays(-1)
+        $future = [DateTime]::Now.AddDays(1)
+        { $future, $past | Should-BeBefore -Expected ([DateTime]::Now) } | Verify-AssertionFailed
+    }
+
+    It "Has Because parameter" {
+        $err = { [DateTime]::Now.AddDays(1) | Should-BeBefore -Expected ([DateTime]::Now) -Because 'I said so' } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*because I said so*'
+    }
+
     It "Can check file creation date" {
         New-Item -ItemType Directory -Path "TestDrive:\MyFolder" -Force | Out-Null
         $path = "TestDrive:\MyFolder\test.txt"

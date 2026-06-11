@@ -42,4 +42,9 @@ Describe "Should-BeSame" {
         $object = New-Object Diagnostics.Process
         { Should-BeSame $object "abc" } | Verify-AssertionFailed
     }
+
+    It "Throws when collection is passed to -Expected" {
+        $err = { "dummy" | Should-BeSame -Expected @() } | Verify-Throw
+        $err.Exception | Verify-Type ([ArgumentException])
+    }
 }
