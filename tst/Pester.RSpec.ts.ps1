@@ -2968,15 +2968,43 @@ i -PassThru:$PassThru {
     }
 
     # Regression test for https://github.com/pester/Pester/issues/2538
-    # When a container has discovery errors (e.g. syntax error in BeforeAll), the
-    # overall result must be Failed, not Passed. Before this fix, errors were checked
-    # after Passed, so a container with both Passed=true and ErrorRecord was marked Passed.
+    # When discovery of a Describe body throws after at least one passing It, the
+    # container ends up with Passed=$true (the It passed) AND a non-empty
+    # ErrorRecord (the discovery throw lands on the container, not the inner
+    # block). Before this fix the result was computed by checking Passed before
+    # ErrorRecord, so such a container was reported as Passed even though the run
+    # also listed it under FailedContainers. The fix flips the precedence so
+    # ErrorRecord wins.
     b "Discovery errors mark container as Failed" {
-        t "container with discovery error has result Failed" {
+        t "container with discovery error after a passing It has result Failed" {
+            # Exact repro from the issue: an It runs (so Passed becomes $true) and
+            # then a throw at the bottom of the Describe body fails discovery.
             $sb = {
-                Describe 'Has discovery error' {
+                Describe 'd' {
+                    It '1' {}
+                    throw 'omg'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+            $r.FailedContainersCount | Verify-Equal 1
+        }
+
+        t "container with BeforeAll throw has result Failed" {
+            # BeforeAll throws at execution time. Passed is $false but ErrorRecord
+            # is set; verify the ErrorRecord branch still produces Failed (it would
+            # also fall through to the existing ShouldRun/Executed branch, but the
+            # new ErrorRecord branch is what should fire).
+            $sb = {
+                Describe 'Has BeforeAll error' {
                     BeforeAll {
-                        throw 'deliberate discovery error'
+                        throw 'deliberate BeforeAll error'
                     }
                     It 'should not run' {
                         $true | Should -Be $true
@@ -3008,6 +3036,7 @@ i -PassThru:$PassThru {
             })
 
             $r.Result | Verify-Equal 'Passed'
+            $r.Containers[0].Result | Verify-Equal 'Passed'
         }
     }
 }
