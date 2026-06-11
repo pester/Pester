@@ -92,10 +92,10 @@ InPesterModuleScope {
 
     }
 
-    # Regression test for https://github.com/pester/Pester/issues/2678
+    # Regression tests for https://github.com/pester/Pester/issues/2678
     # Get-CimInstance can fail with access denied when not running as Administrator.
-    # The fix adds -ErrorAction Ignore and a fallback to prevent the entire test report
-    # from failing just because OS info is unavailable.
+    # The fix adds -ErrorAction Ignore and a fallback to Unknown values so the report
+    # is not broken just because OS info is unavailable.
     Describe "Get-RunTimeEnvironment" {
         It "Returns a hashtable with expected keys without throwing" {
             $result = Get-RunTimeEnvironment
@@ -106,13 +106,34 @@ InPesterModuleScope {
             $result.Keys | Should -Contain 'user'
             $result.Keys | Should -Contain 'cwd'
             $result.Keys | Should -Contain 'clr-version'
+            $result['os-version'] | Should -Not -BeNullOrEmpty
+            $result['platform']   | Should -Not -BeNullOrEmpty
         }
 
-        It "Returns non-null os-version and platform values" {
-            # Even with access denied, the fallback should provide 'Unknown' / '0.0.0.0'
-            $result = Get-RunTimeEnvironment
-            $result['os-version'] | Should -Not -BeNullOrEmpty
-            $result['platform'] | Should -Not -BeNullOrEmpty
+        It "Falls back to Unknown OS info when Get-CimInstance returns null (access denied)" -Skip:(-not $IsWindows) {
+            # Simulate -ErrorAction Ignore swallowing an access-denied error: the call returns $null.
+            # Before the fix, $osSystemInformation stayed $null and $osSystemInformation.Version
+            # silently produced $null fields in the report; an ugly access-denied error was also
+            # printed because -ErrorAction Ignore was missing.
+            $originalCim = $SafeCommands['Get-CimInstance']
+            $originalWmi = $SafeCommands['Get-WmiObject']
+            try {
+                $SafeCommands['Get-CimInstance'] = { param($Class) }
+                if ($null -ne $originalWmi) {
+                    $SafeCommands['Get-WmiObject'] = { param($Class) }
+                }
+
+                $result = Get-RunTimeEnvironment
+
+                $result['platform']   | Should -Be 'Unknown'
+                $result['os-version'] | Should -Be '0.0.0.0'
+            }
+            finally {
+                $SafeCommands['Get-CimInstance'] = $originalCim
+                if ($null -ne $originalWmi) {
+                    $SafeCommands['Get-WmiObject'] = $originalWmi
+                }
+            }
         }
     }
 }
