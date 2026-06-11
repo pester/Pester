@@ -468,10 +468,10 @@ function Get-RunTimeEnvironment {
     $computerName = $env:ComputerName
     $userName = $env:Username
     if ($null -ne $SafeCommands['Get-CimInstance']) {
-        $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem)
+        $osSystemInformation = (& $SafeCommands['Get-CimInstance'] Win32_OperatingSystem -ErrorAction Ignore)
     }
     elseif ($null -ne $SafeCommands['Get-WmiObject']) {
-        $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem)
+        $osSystemInformation = (& $SafeCommands['Get-WmiObject'] Win32_OperatingSystem -ErrorAction Ignore)
     }
     elseif ($IsMacOS -or $IsLinux) {
         $osSystemInformation = @{
@@ -492,7 +492,9 @@ function Get-RunTimeEnvironment {
             # well, we tried
         }
     }
-    else {
+
+    # Fall back to unknown values if WMI/CIM returned null (e.g. access denied when not running as Administrator)
+    if ($null -eq $osSystemInformation) {
         $osSystemInformation = @{
             Name    = 'Unknown'
             Version = '0.0.0.0'
