@@ -23,6 +23,10 @@ Describe "Should-BeAfter" {
         [DateTime]::Now.Add([timespan]::FromMinutes(20)) | Should-BeAfter
     }
 
+    It "Does not throw when actual date is before expected date using positional DateTime" {
+        [DateTime]::Now.AddDays(1) | Should-BeAfter ([DateTime]::Now)
+    }
+
     It "Throws when actual date is before expected date" -ForEach @(
         @{ Actual = [DateTime]::Now.AddDays(-1); Expected = [DateTime]::Now }
     ) {
