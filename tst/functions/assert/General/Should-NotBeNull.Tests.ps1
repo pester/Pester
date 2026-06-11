@@ -18,6 +18,18 @@ InPesterModuleScope {
             Should-NotBeNull -Actual @()
         }
 
+        It "Given @(`$null) through pipeline it fails (single `$null item unwraps to `$null)" {
+            { @($null) | Should-NotBeNull } | Verify-AssertionFailed
+        }
+
+        It "Given ,`$null through pipeline it fails (single `$null item unwraps to `$null)" {
+            { , $null | Should-NotBeNull } | Verify-AssertionFailed
+        }
+
+        It "Given @(`$null, `$null) through pipeline it passes (multi-item array is a collection, not `$null)" {
+            @($null, $null) | Should-NotBeNull
+        }
+
         It "Can be called with positional parameters" {
             { Should-NotBeNull $null } | Verify-AssertionFailed
         }

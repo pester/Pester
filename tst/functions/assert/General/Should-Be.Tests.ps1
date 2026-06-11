@@ -81,4 +81,12 @@ Describe "Should-Be" {
     It "Given empty array through pipeline against `$null it passes (empty pipeline unwraps to `$null for value assertions)" {
         @() | Should-Be -Expected $null
     }
+
+    It "Given @(`$null) through pipeline against `$null it passes (single `$null item unwraps to `$null)" {
+        @($null) | Should-Be -Expected $null
+    }
+
+    It "Given ,`$null through pipeline against `$null it passes (single `$null item unwraps to `$null)" {
+        , $null | Should-Be -Expected $null
+    }
 }
