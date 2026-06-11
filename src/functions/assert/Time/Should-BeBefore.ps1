@@ -67,16 +67,17 @@
         [Parameter(Position = 2, ValueFromPipeline = $true)]
         $Actual,
 
-        [Parameter(Position = 0, ParameterSetName = "Now")]
+        [Parameter(ParameterSetName = "Now")]
         [switch] $Now,
 
-        [Parameter(Position = 0, ParameterSetName = "Fluent")]
-        $Time,
+        [Parameter(Position = 0, ParameterSetName = "FluentAgo")]
+        [Parameter(Position = 0, ParameterSetName = "FluentFromNow")]
+        [String] $Time,
 
-        [Parameter(Position = 1, ParameterSetName = "Fluent")]
+        [Parameter(Mandatory, ParameterSetName = "FluentAgo")]
         [switch] $Ago,
 
-        [Parameter(Position = 1, ParameterSetName = "Fluent")]
+        [Parameter(Mandatory, ParameterSetName = "FluentFromNow")]
         [switch] $FromNow,
 
         [Parameter(Position = 0, ParameterSetName = "Expected")]
@@ -92,21 +93,17 @@
     $Now = $Now
 
     $currentTime = [datetime]::UtcNow.ToLocalTime()
-    if ($PSCmdlet.ParameterSetName -eq "Expected") {
-        # do nothing we already have expected value
-    }
-    elseif ($PSCmdlet.ParameterSetName -eq "Now") {
-        $Expected = $currentTime
-    }
-    else {
-        if ($Ago -and $FromNow -or (-not $Ago -and -not $FromNow)) {
-            throw "You must provide either -Ago or -FromNow switch, but not both or none."
+    switch ($PSCmdlet.ParameterSetName) {
+        "Expected" {
+            # do nothing we already have expected value
         }
-
-        if ($Ago) {
+        "Now" {
+            $Expected = $currentTime
+        }
+        "FluentAgo" {
             $Expected = $currentTime - (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
-        else {
+        "FluentFromNow" {
             $Expected = $currentTime + (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
     }
