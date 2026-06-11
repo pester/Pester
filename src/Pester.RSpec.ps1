@@ -176,6 +176,9 @@ function PostProcess-RspecTestRun ($TestRun) {
         $b.Result = if ($b.Skip) {
             "Skipped"
         }
+        elseif (0 -lt $b.ErrorRecord.Count) {
+            "Failed"
+        }
         elseif ($b.Passed) {
             "Passed"
         }
@@ -206,11 +209,11 @@ function PostProcess-RspecTestRun ($TestRun) {
         $b.result = if ($b.Skip) {
             "Skipped"
         }
-        elseif ($b.Passed) {
-            "Passed"
-        }
         elseif (0 -lt $b.ErrorRecord.Count) {
             "Failed"
+        }
+        elseif ($b.Passed) {
+            "Passed"
         }
         elseif (-not $discoveryOnly -and $b.ShouldRun -and (-not $b.Executed -or -not $b.Passed)) {
             "Failed"
