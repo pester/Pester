@@ -46,6 +46,43 @@ InPesterModuleScope {
                 }
             }
 
+            It "Given @() through pipeline when unrolling it captures `$null" {
+                $collectedInput = @() | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given @(`$null) through pipeline when unrolling it captures `$null (PowerShell emits one `$null item)" {
+                $collectedInput = @($null) | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given ,`$null through pipeline when unrolling it captures `$null (PowerShell emits one `$null item)" {
+                $collectedInput = , $null | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
+            It "Given @(`$null, `$null) through pipeline when unrolling it captures the collection (two items stay as a collection)" {
+                $collectedInput = @($null, $null) | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                Verify-Type -Actual $collectedInput.Actual -Expected ([Object[]])
+                if (2 -ne $collectedInput.Actual.Count -or $null -ne $collectedInput.Actual[0] -or $null -ne $collectedInput.Actual[1]) {
+                    throw "Expected @(`$null, `$null), but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
             It "Given List[int] through pipeline it captures the items in Object[]" {
                 $collectedInput = [Collections.Generic.List[int]]@(1, 2) | Assert-PassThru
 
