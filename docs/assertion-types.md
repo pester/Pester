@@ -43,13 +43,11 @@ Another special case is `@()`. A value assertion will handle it as `$null`, but 
 1 | Should-Be -Expected 1
 @(1) | Should-Be -Expected 1
 $null | Should-Be -Expected $null
-@() | Should-Be -Expected $null #< --- TODO: this is not the case right now, we special case this as empty array, but is that correct? it does not play well with the value and collection assertion, and we special case it just because we can.
-# $null | will give $local:input -> $null , and @() | will give $local:input -> @(), is that distinction important when we know that we will only check against values?
+@() | Should-Be -Expected $null
 
 # This fails, because -Expected does not allow collections.
 @() | Should-Be -Expected @()
-
-
+```
 
 ```powershell
 # Should-BeCollection is a collection assertion:

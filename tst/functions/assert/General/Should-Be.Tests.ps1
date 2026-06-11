@@ -77,4 +77,8 @@ Describe "Should-Be" {
         $err = { "dummy" | Should-Be @() } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
     }
+
+    It "Given empty array through pipeline against `$null it passes (empty pipeline unwraps to `$null for value assertions)" {
+        @() | Should-Be -Expected $null
+    }
 }

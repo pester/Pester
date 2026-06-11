@@ -46,6 +46,15 @@ InPesterModuleScope {
                 }
             }
 
+            It "Given @() through pipeline when unrolling it captures `$null" {
+                $collectedInput = @() | Assert-PassThru -UnrollInput
+
+                Verify-True $collectedInput.IsPipelineInput
+                if ($null -ne $collectedInput.Actual) {
+                    throw "Expected `$null, but got $(Format-Nicely2 $collectedInput.Actual)."
+                }
+            }
+
             It "Given List[int] through pipeline it captures the items in Object[]" {
                 $collectedInput = [Collections.Generic.List[int]]@(1, 2) | Assert-PassThru
 

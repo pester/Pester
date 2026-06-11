@@ -9,8 +9,12 @@ Describe "Should-BeNull" {
         { 1 | Should-BeNull } | Verify-AssertionFailed
     }
 
-    It "Given empty array it fails" {
-        { @() | Should-BeNull } | Verify-AssertionFailed
+    It "Given empty array through pipeline it passes (empty pipeline unwraps to `$null for value assertions)" {
+        @() | Should-BeNull
+    }
+
+    It "Given empty array through -Actual parameter it fails" {
+        { Should-BeNull -Actual @() } | Verify-AssertionFailed
     }
 
     It "Returns the given value" {
