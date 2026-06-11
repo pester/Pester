@@ -2969,19 +2969,28 @@ i -PassThru:$PassThru {
 
     # Regression test for https://github.com/pester/Pester/issues/2515
     # Find-File should discover test files inside hidden (dot-prefixed) directories.
-    # Without -Force on Get-ChildItem, hidden folders are silently skipped.
+    # Without -Force on Get-ChildItem, hidden folders are silently skipped on Linux
+    # (dot-prefix convention) and on Windows when the Hidden file attribute is set.
+    # The fix also filters out VCS metadata directories (.git/.svn/.hg) so they
+    # are not accidentally swept in now that we pass -Force.
     b "Find-File discovers hidden folders" {
         t "discovers test files in dot-prefixed (hidden) subdirectories" {
-            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterHidden_$([IO.Path]::GetRandomFileName().Substring(0,4))"
+            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterHidden_$([IO.Path]::GetRandomFileName().Substring(0,8))"
             $hiddenDir = Join-Path $tempDir '.hidden'
             $null = New-Item -ItemType Directory -Path $hiddenDir -Force
+            # On Windows the dot-prefix alone is not enough — mark it Hidden so
+            # Get-ChildItem actually treats it as hidden (matches Linux behavior).
+            if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+                $di = Get-Item -LiteralPath $hiddenDir -Force
+                $di.Attributes = $di.Attributes -bor [System.IO.FileAttributes]::Hidden
+            }
             $testFile = Join-Path $hiddenDir 'MyHidden.Tests.ps1'
             Set-Content -Path $testFile -Value "Describe 'Hidden' { It 'works' { `$true | Should -Be `$true } }"
 
             try {
                 $found = & (Get-Module Pester) { Find-File -Path $args[0] -Extension '.Tests.ps1' } $tempDir
-                $found | Should -Not -BeNullOrEmpty
-                ($found | ForEach-Object { $_.FullName }) | Should -Contain $testFile
+                $foundPaths = @($found | ForEach-Object { $_.FullName })
+                ($foundPaths -contains $testFile) | Verify-True
             }
             finally {
                 Remove-Item -Path $tempDir -Recurse -Force
@@ -2989,16 +2998,20 @@ i -PassThru:$PassThru {
         }
 
         t "discovers test files in nested hidden directories" {
-            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterHidden2_$([IO.Path]::GetRandomFileName().Substring(0,4))"
+            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterHidden2_$([IO.Path]::GetRandomFileName().Substring(0,8))"
             $nestedHidden = Join-Path $tempDir '.config/tests'
             $null = New-Item -ItemType Directory -Path $nestedHidden -Force
+            if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+                $dotConfig = Get-Item -LiteralPath (Join-Path $tempDir '.config') -Force
+                $dotConfig.Attributes = $dotConfig.Attributes -bor [System.IO.FileAttributes]::Hidden
+            }
             $testFile = Join-Path $nestedHidden 'Deep.Tests.ps1'
             Set-Content -Path $testFile -Value "Describe 'Deep' { It 'works' { `$true | Should -Be `$true } }"
 
             try {
                 $found = & (Get-Module Pester) { Find-File -Path $args[0] -Extension '.Tests.ps1' } $tempDir
-                $found | Should -Not -BeNullOrEmpty
-                ($found | ForEach-Object { $_.FullName }) | Should -Contain $testFile
+                $foundPaths = @($found | ForEach-Object { $_.FullName })
+                ($foundPaths -contains $testFile) | Verify-True
             }
             finally {
                 Remove-Item -Path $tempDir -Recurse -Force
@@ -3006,7 +3019,7 @@ i -PassThru:$PassThru {
         }
 
         t "excludes test files inside .git directories" {
-            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterGitExclude_$([IO.Path]::GetRandomFileName().Substring(0,4))"
+            $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterGitExclude_$([IO.Path]::GetRandomFileName().Substring(0,8))"
             $gitDir = Join-Path $tempDir '.git'
             $hiddenDir = Join-Path $tempDir '.hidden'
             $null = New-Item -ItemType Directory -Path $gitDir -Force
@@ -3018,10 +3031,10 @@ i -PassThru:$PassThru {
 
             try {
                 $found = & (Get-Module Pester) { Find-File -Path $args[0] -Extension '.Tests.ps1' } $tempDir
-                $found | Should -Not -BeNullOrEmpty
-                $foundPaths = $found | ForEach-Object { $_.FullName }
-                $foundPaths | Should -Contain $hiddenTestFile
-                $foundPaths | Should -Not -Contain $gitTestFile
+                $foundPaths = @($found | ForEach-Object { $_.FullName })
+                # The hidden test must be discovered, the .git one must be filtered out.
+                ($foundPaths -contains $hiddenTestFile) | Verify-True
+                ($foundPaths -contains $gitTestFile) | Verify-False
             }
             finally {
                 Remove-Item -Path $tempDir -Recurse -Force
