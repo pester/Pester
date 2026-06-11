@@ -2980,7 +2980,9 @@ i -PassThru:$PassThru {
             $null = New-Item -ItemType Directory -Path $hiddenDir -Force
             # On Windows the dot-prefix alone is not enough — mark it Hidden so
             # Get-ChildItem actually treats it as hidden (matches Linux behavior).
-            if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+            # Use a short-circuit check so $IsWindows is not evaluated under Strict
+            # mode in PowerShell 5.1 (where the automatic variable does not exist).
+            if (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows) {
                 $di = Get-Item -LiteralPath $hiddenDir -Force
                 $di.Attributes = $di.Attributes -bor [System.IO.FileAttributes]::Hidden
             }
@@ -3001,7 +3003,7 @@ i -PassThru:$PassThru {
             $tempDir = Join-Path ([IO.Path]::GetTempPath()) "PesterHidden2_$([IO.Path]::GetRandomFileName().Substring(0,8))"
             $nestedHidden = Join-Path $tempDir '.config/tests'
             $null = New-Item -ItemType Directory -Path $nestedHidden -Force
-            if ($IsWindows -or $env:OS -eq 'Windows_NT') {
+            if (($PSVersionTable.PSVersion.Major -lt 6) -or $IsWindows) {
                 $dotConfig = Get-Item -LiteralPath (Join-Path $tempDir '.config') -Force
                 $dotConfig.Attributes = $dotConfig.Attributes -bor [System.IO.FileAttributes]::Hidden
             }
