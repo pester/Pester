@@ -1,4 +1,8 @@
-﻿function Format-Collection2 ($Value, [switch]$Pretty) {
+﻿
+# 0x1B is escape, the control code "`e" was introduces in Powershell 7, and so we write it directly as the number here.
+[char[]] $script:specialChars = foreach ($ch in ("`0", "`a", "`b", "`t", "`f", "`r", "`n", 0x1B)) { [char]$ch }
+
+function Format-Collection2 ($Value, [switch]$Pretty) {
     $length = 0
     $o = foreach ($v in $Value) {
         $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty
@@ -45,9 +49,33 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
     $o
 }
 
+function Replace-SpecialCharactersInString ($Value) {
+
+}
 function Format-String2 ($Value) {
     if ('' -eq $Value) {
         return '<empty>'
+    }
+
+
+    # Special characters like `n or `e should be rendered as their visible versions.
+    # Especially `e which is used in ANSI codes and can entirely break our output.
+    #
+    # We convert each of these using the unicode printable version,
+    # which is obtained by adding 0x2400
+    [int]$unicodeControlPictures = 0x2400
+
+    if (0 -lt $Value.IndexOfAny($script:specialChars)) {
+        $chars = [char[]]$Value
+        $charCount = $chars.Length
+        for ($j = 0; $j -lt $charCount; $j++) {
+            $char = $chars[$j]
+            if ($char -in $script:specialChars) {
+                $chars[$j] = [char]([int]$char + $unicodeControlPictures)
+            }
+        }
+
+        $Value = $chars -join ''
     }
 
     "'$Value'"
