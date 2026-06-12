@@ -1001,9 +1001,9 @@ function Invoke-Mock {
     )
 
     if ('End' -eq $FromBlock) {
-        if (-not $MockCallState.ShouldExecuteOriginalCommand) {
+        if (-not $MockCallState.MatchedNoBehavior) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and matched at least one behavior, returning."
             }
             return
         }
