@@ -1,4 +1,4 @@
-function Should-NotHaveParameter {
+﻿function Should-NotHaveParameter {
     <#
     .SYNOPSIS
     Asserts that a command has does not have the parameter.
@@ -50,4 +50,5 @@ function Should-NotHaveParameter {
     $testResult = Should-HaveParameterAssertion @PSBoundParameters
 
     Test-AssertionResult $testResult
+    Set-AssertionPassResult
 }

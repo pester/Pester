@@ -718,6 +718,7 @@ function Should-BeEquivalent {
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."
+    Set-AssertionPassResult
 }
 
 function Get-EquivalencyOption {
