@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [datetime] is before the expected [datetime].
 
+    .DESCRIPTION
+    This assertion accepts either an expected `[datetime]` or a fluent relative time expression. Use `-Now`, `-Ago`, or `-FromNow` to compare against the current local time.
+
     .PARAMETER Actual
     The actual [datetime] value.
 

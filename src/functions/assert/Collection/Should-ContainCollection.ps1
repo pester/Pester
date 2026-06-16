@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion uses PowerShell containment to check whether the actual collection contains the expected value. The comparison uses the contained value's own equality semantics.
+
     .PARAMETER Expected
     A collection of items.
 

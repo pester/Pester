@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
 
+    .DESCRIPTION
+    This assertion requires a string that contains at least one non-whitespace character. It fails for `$null, `""`, whitespace-only strings, and non-string values.
+
     .PARAMETER Actual
     The actual value that will be compared.
 

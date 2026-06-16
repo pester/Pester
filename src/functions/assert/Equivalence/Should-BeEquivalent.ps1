@@ -619,6 +619,9 @@ function Should-BeEquivalent {
     .SYNOPSIS
     Compares two objects for equivalency, by recursively comparing their properties for equivalency.
 
+    .DESCRIPTION
+    This assertion performs a deep comparison of the actual and expected objects, recursing through nested properties and collections. Use `-ExcludePath`, `-ExcludePathsNotOnExpected`, or `-Comparator Equality` to narrow what counts as equivalent.
+
     .PARAMETER Actual
     The actual object to compare.
 
