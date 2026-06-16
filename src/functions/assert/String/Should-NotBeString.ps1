@@ -1,4 +1,4 @@
-﻿function Get-StringNotEqualDefaultFailureMessage ([String]$Expected, $Actual) {
+function Get-StringNotEqualDefaultFailureMessage ([String]$Expected, $Actual) {
     "Expected the strings to be different but they were the same '$Expected'."
 }
 
@@ -74,6 +74,6 @@ function Should-NotBeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because
         }
 
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation -Expected $Expected -Actual $Actual -Because $Because)
     }
 }

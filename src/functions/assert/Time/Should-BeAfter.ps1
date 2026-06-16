@@ -1,4 +1,4 @@
-﻿function Should-BeAfter {
+function Should-BeAfter {
     <#
     .SYNOPSIS
     Asserts that the provided [datetime] is after the expected [datetime].
@@ -110,6 +110,6 @@
 
     if ($Actual -le $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected>,<because> but it was before: <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 }

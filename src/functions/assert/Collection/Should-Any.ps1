@@ -1,4 +1,4 @@
-﻿function Should-Any {
+function Should-Any {
     <#
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for any of the items in the collection, the assertion passes.
@@ -52,7 +52,7 @@
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 
     $failReasons = $null
@@ -96,6 +96,6 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 }

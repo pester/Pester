@@ -1,4 +1,4 @@
-﻿function Should-ContainCollection {
+function Should-ContainCollection {
     <#
     .SYNOPSIS
     Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.
@@ -49,6 +49,6 @@
     $Actual = $collectedInput.Actual
     if ($Actual -notcontains $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>, but it was not there."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 }

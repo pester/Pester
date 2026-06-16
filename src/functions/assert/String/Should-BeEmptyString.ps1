@@ -1,4 +1,4 @@
-﻿function Should-BeEmptyString {
+function Should-BeEmptyString {
     <#
     .SYNOPSIS
     Ensures that input is an empty string.
@@ -53,6 +53,6 @@
 
     if ($Actual -isnot [String] -or -not [String]::IsNullOrEmpty( $Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is empty,<because> but got <actualType>: <actual>" -Pretty
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation)
     }
 }

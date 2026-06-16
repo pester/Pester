@@ -1,4 +1,4 @@
-﻿function Should-NotBe {
+function Should-NotBe {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are not equal.
@@ -41,6 +41,6 @@
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -eq $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to be different than the actual value,<because> but they were equal."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 }
