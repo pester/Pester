@@ -955,4 +955,42 @@ i -PassThru:$PassThru {
             $xmlResult.Validate({ throw $args[1].Exception })
         }
     }
+
+    # Regression test for https://github.com/pester/Pester/issues/2649
+    # When a test outputs an object whose ToString() throws, the NUnit3 report
+    # writer (Format-CDataString) would crash, losing the entire report.
+    # The fix wraps ToString() in try/catch and uses a fallback string.
+    b "NUnit3 report handles objects with broken ToString()" {
+        t "should produce valid report when test output object throws on ToString" {
+            $sb = {
+                Describe 'Describe' {
+                    It 'Outputs broken object' {
+                        # Output an object whose ToString() will throw
+                        $broken = [PSCustomObject]@{ Name = 'X' }
+                        $broken | Add-Member -MemberType ScriptMethod -Name ToString -Force -Value {
+                            throw [System.InvalidOperationException]::new('ToString failed')
+                        }
+                        $broken
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            # The test itself should pass
+            $r.Result | Verify-Equal 'Passed'
+
+            # Converting to NUnit3 report should NOT throw
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+
+            # The output section should contain the fallback message
+            $xmlTest = $xmlResult.'test-run'.'test-suite'.'test-suite'.'test-case'
+            $xmlTest.result | Verify-Equal 'Passed'
+            $xmlTest.output.'#cdata-section' | Verify-Like '*ToString() failed*'
+        }
+    }
 }
