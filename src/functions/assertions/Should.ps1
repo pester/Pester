@@ -238,16 +238,27 @@ function Invoke-Assertion {
 
     $testResult = & $AssertionEntry.Test -ActualValue $ValueToTest -Negate:$Negate -CallerSessionState $CallerSessionState @BoundParameters
 
-    Test-AssertionResult $testResult
+    Test-AssertionResult -TestResult $testResult -File $File -LineNumber $LineNumber -LineText $LineText -ShouldThrow $ShouldThrow -AddErrorCallback $AddErrorCallback
 }
 
 function Test-AssertionResult {
     param (
-        $TestResult
+        $TestResult,
+        [Management.Automation.InvocationInfo] $InvocationInfo,
+        $File,
+        $LineNumber,
+        $LineText,
+        [bool] $ShouldThrow,
+        [ScriptBlock] $AddErrorCallback
     )
 
     if (-not $TestResult.Succeeded) {
-        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($TestResult.FailureMessage, $file, $lineNumber, $lineText, $shouldThrow, $TestResult)
+        if ($null -ne $InvocationInfo) {
+            Invoke-AssertionFailed -Message $TestResult.FailureMessage -InvocationInfo $InvocationInfo -ShouldResult $TestResult
+            return
+        }
+
+        $errorRecord = [Pester.Factory]::CreateShouldErrorRecord($TestResult.FailureMessage, $File, $LineNumber, $LineText, $ShouldThrow, $TestResult)
 
         if ($null -eq $AddErrorCallback -or $ShouldThrow) {
             # throw this error to fail the test immediately

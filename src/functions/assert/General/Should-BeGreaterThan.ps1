@@ -40,6 +40,6 @@
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -ge $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be greater than <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $Message -InvocationInfo $MyInvocation)
     }
 }

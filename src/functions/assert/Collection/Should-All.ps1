@@ -53,7 +53,7 @@
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $Message -InvocationInfo $MyInvocation)
     }
 
     $failReasons = $null
@@ -105,6 +105,6 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $Message -InvocationInfo $MyInvocation)
     }
 }

@@ -360,6 +360,40 @@ i -PassThru:$PassThru {
             $err[-3] | Verify-Equal "Expected: 'a'"
             $err[-2] | Verify-Equal "But was:  'b'"
         }
+
+        t "new Should-* assertions still throw in parameter filters when Should ErrorAction preference is set to Continue" {
+            $sb = {
+                Describe "a" {
+                    It "it" {
+                        function f ($Name) { "real function" }
+                        Mock f -MockWith { "default mock" }
+                        Mock f -ParameterFilter { $Name | Should-Be "a" } -MockWith { "mock with filter" }
+
+                        f "b"
+                        "won't reach this"
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{
+                        ScriptBlock = $sb
+                        PassThru    = $true
+                    }
+                    Should = @{
+                        ErrorAction = 'Continue'
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
+                })
+
+            $t = $r.Containers[0].Blocks[0].Tests[0]
+            $t.StandardOutput | Verify-Null
+            $t.ErrorRecord.Count | Verify-Equal 1
+            $t.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $t.ErrorRecord[0].Exception.Message | Verify-Equal "Expected [string] 'a', but got [string] 'b'."
+        }
     }
 
     b "splatting on default params" {

@@ -1599,6 +1599,14 @@ function Invoke-ScriptBlock {
             SwitchTimerUserCode           = $switchTimerUserCode
         }
 
+        $assertionContext = @{
+            Configuration   = $Configuration
+            AddErrorCallback = {
+                param($err)
+                $null = $parameters.ErrorRecord.Add($err)
+            }
+        }
+
         # here we are moving into the user scope if the provided
         # scriptblock was bound to user scope, so we want to take some actions
         # typically switching between user and framework timer. There are still tiny pieces of
@@ -1615,16 +1623,23 @@ function Invoke-ScriptBlock {
                 & $OnUserScopeTransition
             }
         }
-        do {
-            $standardOutput = if ($NoNewScope) {
-                . $wrapperScriptBlock $parameters
-            }
-            else {
-                & $wrapperScriptBlock $parameters
-            }
-            # if the code reaches here we did not break
-            #$break = $false
-        } while ($false)
+        $previousAssertionContext = $script:PesterAssertionContext
+        try {
+            $script:PesterAssertionContext = $assertionContext
+            do {
+                $standardOutput = if ($NoNewScope) {
+                    . $wrapperScriptBlock $parameters
+                }
+                else {
+                    & $wrapperScriptBlock $parameters
+                }
+                # if the code reaches here we did not break
+                #$break = $false
+            } while ($false)
+        }
+        finally {
+            $script:PesterAssertionContext = $previousAssertionContext
+        }
     }
     catch {
         $err = $_

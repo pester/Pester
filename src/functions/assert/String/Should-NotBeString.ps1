@@ -74,6 +74,6 @@ function Should-NotBeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because
         }
 
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $formattedMessage -InvocationInfo $MyInvocation)
     }
 }

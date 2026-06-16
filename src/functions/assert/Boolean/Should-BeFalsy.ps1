@@ -48,6 +48,6 @@
     $Actual = $collectedInput.Actual
     if ($Actual) {
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because -DefaultMessage 'Expected <expectedType> <expected> or a falsy value: 0, "", $null or @(),<because> but got: <actualType> <actual>.'
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $Message -InvocationInfo $MyInvocation)
     }
 }

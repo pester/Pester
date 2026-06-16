@@ -173,7 +173,7 @@
     if ($PSBoundParameters.ContainsKey('Verifiable')) {
         $PSBoundParameters.Remove('Verifiable')
         $testResult = Should-InvokeVerifiable @PSBoundParameters
-        Test-AssertionResult $testResult
+        Test-AssertionResult -TestResult $testResult -InvocationInfo $MyInvocation
         return
     }
 
@@ -183,5 +183,5 @@
     $PSBoundParameters["CallerSessionState"] = $PSCmdlet.SessionState
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
-    Test-AssertionResult $testResult
+    Test-AssertionResult -TestResult $testResult -InvocationInfo $MyInvocation
 }

@@ -1175,7 +1175,13 @@ function Test-ParameterFilter {
         # TODO: not binding the bound parameters here because it would make the parameters unbound when the user does
         # not provide a param block, which they would never provide, so that is okay, but if there is a workaround this then
         # it would be nice to have. maybe changing the order in which I bind?
-        & $private:______mock_parameters.ScriptBlock @______arguments
+        $previousAssertionMockParameterFilter = & $private:______mock_parameters.Set_PesterAssertionMockParameterFilter -IsActive $true
+        try {
+            & $private:______mock_parameters.ScriptBlock @______arguments
+        }
+        finally {
+            $null = & $private:______mock_parameters.Set_PesterAssertionMockParameterFilter -IsActive $previousAssertionMockParameterFilter
+        }
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1196,6 +1202,7 @@ function Test-ParameterFilter {
         SessionState       = $SessionState
         Context            = $context
         Set_StrictMode     = $SafeCommands['Set-StrictMode']
+        Set_PesterAssertionMockParameterFilter = ${function:Set-PesterAssertionMockParameterFilter}
         WriteDebugMessages = $PesterPreference.Debug.WriteDebugMessages.Value
         Write_DebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             { param ($Message) & $SafeCommands["Write-PesterDebugMessage"] -Scope Mock -Message $Message }

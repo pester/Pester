@@ -449,6 +449,82 @@ i -PassThru:$PassThru {
             $test.ErrorRecord.Count | Verify-Equal 2
         }
 
+        t "New Should-* assertions collect multiple failures when configured to Continue" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should-Be 2
+                        1 | Should-BeGreaterThan 2
+                        "but still output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord.Count | Verify-Equal 2
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-False
+            $test.ErrorRecord[1].TargetObject.Terminating | Verify-False
+            $test.StandardOutput | Verify-Equal "but still output this"
+        }
+
+        t "New Should-* assertions fail immediately when configured to Stop" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should-Be 2
+                        "do not output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Stop' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord.Count | Verify-Equal 1
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "New Should-* assertions throw outside of Pester runtime" {
+            $modulePath = (Get-Module Pester | Select-Object -First 1 -ExpandProperty Path)
+            $job = Start-Job -ScriptBlock {
+                param($PesterPath)
+                Import-Module $PesterPath -Force | Out-Null
+                $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' } }
+
+                try {
+                    1 | Should-Be 2
+                    [PSCustomObject]@{ Threw = $false }
+                }
+                catch {
+                    [PSCustomObject]@{
+                        Threw              = $true
+                        FullyQualifiedErrorId = $_.FullyQualifiedErrorId
+                        Message            = $_.Exception.Message
+                        Terminating        = $_.TargetObject.Terminating
+                    }
+                }
+            } -ArgumentList $modulePath
+
+            $result = $job | Wait-Job | Receive-Job
+            $job | Remove-Job -Force
+
+            $result.Threw | Verify-True
+            $result.FullyQualifiedErrorId | Verify-Equal 'PesterAssertionFailed'
+            $result.Message | Verify-Equal 'Expected [int] 2, but got [int] 1.'
+            $result.Terminating | Verify-True
+        }
+
         t "Should throws when called outside of Pester" {
             $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' } }
             $err = { 1 | Should -Be 2 } | Verify-Throw

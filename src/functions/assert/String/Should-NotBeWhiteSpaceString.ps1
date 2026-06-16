@@ -54,6 +54,6 @@
 
     if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $formattedMessage -InvocationInfo $MyInvocation)
     }
 }

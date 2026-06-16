@@ -714,7 +714,7 @@ function Should-BeEquivalent {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
         # the parameter is -Option not -Options
         $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $message -InvocationInfo $MyInvocation)
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."

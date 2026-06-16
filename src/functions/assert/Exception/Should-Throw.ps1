@@ -1,4 +1,4 @@
-function Should-Throw {
+﻿function Should-Throw {
     <#
     .SYNOPSIS
     Asserts that a script block throws an exception.
@@ -128,7 +128,7 @@ function Should-Throw {
 
         $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
             -DefaultMessage $defaultMessage
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        return (Invoke-AssertionFailed -Message $Message -InvocationInfo $MyInvocation)
     }
 
     $err.ErrorRecord
