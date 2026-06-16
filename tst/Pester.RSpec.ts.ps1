@@ -2076,9 +2076,29 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Blocks[0].Result | Verify-Equal 'Failed'
-            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal 'd2 <_>'
-            # ExpandedPath is updated as far as possible (parent block) before failure in block
-            $r.Containers[0].Blocks[0].Blocks[0].ExpandedPath | Verify-Equal 'd 1.d2 <_>'
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedName | Verify-Equal 'd2 1'
+            $r.Containers[0].Blocks[0].Blocks[0].ExpandedPath | Verify-Equal 'd 1.d2 1'
+        }
+
+        t "Data-driven Describe names are expanded before BeforeAll throws" {
+            $sb = {
+                Describe 'Test <_>' -ForEach @('a', 'b') {
+                    BeforeAll { throw 'something' }
+                    It 'is a or b' {
+                        $_ | Should -Match '[ab]'
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'Detailed' }
+            })
+
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'Test a'
+            $r.Containers[0].Blocks[0].ExpandedPath | Verify-Equal 'Test a'
+            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'Test b'
+            $r.Containers[0].Blocks[1].ExpandedPath | Verify-Equal 'Test b'
         }
 
         t "ExpandedPath is expanded for parent blocks when test is skipped or fails in BeforeEach" {

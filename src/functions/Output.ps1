@@ -298,7 +298,7 @@ function Write-PesterReport {
 
     if (0 -lt $RunResult.FailedBlocksCount) {
         Write-PesterHostMessage ('BeforeAll \ AfterAll failed: {0}' -f $RunResult.FailedBlocksCount) -Foreground $ReportTheme.Fail
-        Write-PesterHostMessage ($(foreach ($b in $RunResult.FailedBlocks) { "  - $($b.Path -join '.')" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
+        Write-PesterHostMessage ($(foreach ($b in $RunResult.FailedBlocks) { "  - $(if (-not [string]::IsNullOrWhiteSpace($b.ExpandedPath)) { $b.ExpandedPath } else { $b.Path -join '.' })" }) -join [Environment]::NewLine) -Foreground $ReportTheme.Fail
     }
 
     if (0 -lt $RunResult.FailedContainersCount) {
@@ -773,7 +773,8 @@ function Get-WriteScreenPlugin ($Verbosity) {
 
         foreach ($e in $Context.Block.ErrorRecord) { ConvertTo-FailureLines $e }
 
-        $errorHeader = "[-] $($Context.Block.FrameworkData.CommandUsed) $($Context.Block.Path -join ".") failed"
+        $blockPath = if (-not [string]::IsNullOrWhiteSpace($Context.Block.ExpandedPath)) { $Context.Block.ExpandedPath } else { $Context.Block.Path -join "." }
+        $errorHeader = "[-] $($Context.Block.FrameworkData.CommandUsed) $blockPath failed"
 
         $formatErrorParams = @{
             Err                 = $Context.Block.ErrorRecord

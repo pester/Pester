@@ -248,6 +248,33 @@ i -PassThru:$PassThru {
             @($describe1).Count | Verify-Equal 1
             @($describe2).Count | Verify-Equal 1
         }
+
+        t 'BeforeAll failures use expanded names for each data item' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Output.RenderMode = 'ConsoleColor'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'Test <_>' -ForEach @('a', 'b') {
+                        BeforeAll { throw 'something' }
+                        It 'is a or b' {
+                            $_ | Should -Match '[ab]'
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            @($output | Select-String -Pattern '\[-\] Describe Test a failed\s*$').Count | Verify-Equal 1
+            @($output | Select-String -Pattern '\[-\] Describe Test b failed\s*$').Count | Verify-Equal 1
+            @($output | Select-String -Pattern '  - Test a\s*$').Count | Verify-Equal 1
+            @($output | Select-String -Pattern '  - Test b\s*$').Count | Verify-Equal 1
+        }
     }
 
     b 'Output for container names' {

@@ -377,32 +377,37 @@ function Invoke-Block ($previousBlock) {
                     $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($block.ScriptBlock, $null)
                     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
 
+                    $expandCurrentBlockName = if (-not $Block.IsRoot) {
+                        # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
+                        # avoid using variables so we don't run into conflicts
+                        $sb = {
+
+                            $____Pester.CurrentBlock.ExpandedName = if ($____Pester.CurrentBlock.Name -like "*<*") { & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"'))) } else { $____Pester.CurrentBlock.Name }
+
+                            $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
+                                # to avoid including Root name in the path
+                                $____Pester.CurrentBlock.ExpandedName
+                            }
+                            else {
+                                "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)"
+                            }
+                        }
+
+                        $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentBlock.ScriptBlock, $null)
+                        $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
+
+                        $sb
+                    }
+
                     $result = Invoke-ScriptBlock `
                         -ScriptBlock $sb `
                         -OuterSetup @(
                         $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                                @($previousBlock.EachBlockSetup)
                             })
-                        $(if (-not $Block.IsRoot) {
-                                # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
-                                # avoid using variables so we don't run into conflicts
-                                $sb = {
-
-                                    $____Pester.CurrentBlock.ExpandedName = if ($____Pester.CurrentBlock.Name -like "*<*") { & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"'))) } else { $____Pester.CurrentBlock.Name }
-
-                                    $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
-                                        # to avoid including Root name in the path
-                                        $____Pester.CurrentBlock.ExpandedName
-                                    }
-                                    else {
-                                        "$($____Pester.CurrentBlock.Parent.ExpandedPath).$($____Pester.CurrentBlock.ExpandedName)"
-                                    }
-                                }
-
-                                $SessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($State.CurrentBlock.ScriptBlock, $null)
-                                $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
-
-                                $sb
+                        $expandCurrentBlockName
+                        $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
+                                @($block.OneTimeTestSetup)
                             })
                     ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
