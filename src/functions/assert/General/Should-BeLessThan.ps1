@@ -3,6 +3,9 @@ function Should-BeLessThan {
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is less than the expected value.
 
+    .DESCRIPTION
+    This assertion uses PowerShell comparison semantics and passes only when the actual value is strictly less than the expected value.
+
     .PARAMETER Expected
     The expected value.
 

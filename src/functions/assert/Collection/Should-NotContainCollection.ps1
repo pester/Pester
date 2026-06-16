@@ -3,6 +3,9 @@ function Should-NotContainCollection {
     .SYNOPSIS
     Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion uses PowerShell containment to check that the actual collection does not contain the expected value. The comparison uses the contained value's own equality semantics.
+
     .PARAMETER Expected
     A collection of items.
 

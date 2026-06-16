@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that a command has the expected parameter.
 
+    .DESCRIPTION
+    This assertion inspects command metadata and can also verify parameter details such as type, default value, aliases, parameter set membership, mandatory status, and argument completers.
+
     .PARAMETER ParameterName
     The name of the parameter to check. E.g. Uri
 

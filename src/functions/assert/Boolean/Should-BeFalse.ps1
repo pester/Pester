@@ -3,6 +3,9 @@ function Should-BeFalse {
     .SYNOPSIS
     Compares the actual value to a boolean $false. It does not convert input values to boolean, and will fail for any value that is not $false.
 
+    .DESCRIPTION
+    This assertion only passes for the Boolean value `$false. It does not coerce input, so `$null, 0, or other falsy values still fail.
+
     .PARAMETER Actual
     The actual value to compare to $false.
 

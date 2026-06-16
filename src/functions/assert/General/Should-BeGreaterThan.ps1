@@ -3,6 +3,9 @@ function Should-BeGreaterThan {
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is greater than the expected value.
 
+    .DESCRIPTION
+    This assertion uses PowerShell comparison semantics and passes only when the actual value is strictly greater than the expected value.
+
     .PARAMETER Expected
     The expected value.
 

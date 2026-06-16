@@ -3,6 +3,9 @@ function Should-NotBeNull {
     .SYNOPSIS
     Asserts that the input is not `$null`.
 
+    .DESCRIPTION
+    This assertion passes for any value other than exactly `$null. Empty strings, empty collections, and other falsy values are not treated as null.
+
     .PARAMETER Actual
     The actual value.
 

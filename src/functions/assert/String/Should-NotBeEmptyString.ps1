@@ -3,6 +3,9 @@ function Should-NotBeEmptyString {
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null or empty string.
 
+    .DESCRIPTION
+    This assertion requires the actual value to be a string and fails for `$null, `""`, and non-string values. Use it when empty should not be accepted as a valid string value.
+
     .PARAMETER Actual
     The actual value that will be compared.
 

@@ -3,6 +3,9 @@ function Should-BeTruthy {
     .SYNOPSIS
     Compares the actual value to a boolean $true. It converts input values to boolean, and will fail for any value is not $true, or truthy.
 
+    .DESCRIPTION
+    This assertion evaluates the input using PowerShell truthiness rules. It passes for values that PowerShell treats as true, not just the Boolean `$true.
+
     .PARAMETER Actual
     The actual value to compare to $true.
 

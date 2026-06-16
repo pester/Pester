@@ -3,6 +3,9 @@ function Should-NotBe {
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are not equal.
 
+    .DESCRIPTION
+    This assertion compares values using PowerShell equality semantics and passes only when they are different. Use the collection-specific assertions when you need to compare arrays or other collections.
+
     .PARAMETER Expected
     The expected value.
 

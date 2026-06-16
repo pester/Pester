@@ -3,6 +3,9 @@ function Should-BeTrue {
     .SYNOPSIS
     Compares the actual value to a boolean $true. It does not convert input values to boolean, and will fail for any value is not $true.
 
+    .DESCRIPTION
+    This assertion only passes for the Boolean value `$true. It does not coerce input, so truthy non-Boolean values still fail.
+
     .PARAMETER Actual
     The actual value to compare to $true.
 

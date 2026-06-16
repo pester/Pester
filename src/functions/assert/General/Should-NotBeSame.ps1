@@ -3,6 +3,9 @@ function Should-NotBeSame {
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is not the same instance as the expected value.
 
+    .DESCRIPTION
+    This assertion checks reference inequality rather than value inequality. It passes when the two values are different instances, even if their contents are equal.
+
     .PARAMETER Expected
     The expected value.
 
