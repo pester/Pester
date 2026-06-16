@@ -62,8 +62,7 @@ function Mock {
     Optionally, you may create a Parameter Filter which will examine the
     parameters passed to the mocked command and will invoke the mocked
     behavior only if the values of the parameter values pass the filter. If
-    they do not, the original command implementation will be invoked instead
-    of a mock.
+    they do not, and there is no default mock, the call will throw.
 
     You may create multiple mocks for the same command, each using a different
     ParameterFilter. ParameterFilters will be evaluated in reverse order of
@@ -772,11 +771,9 @@ function Should-InvokeAssertion {
     .NOTES
     The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
     (if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
-    which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
-    mocked command are made which did not match any mock's parameter filter (resulting in the original command
-    being executed instead of a mock), these calls to the original command are not tracked in the call history.
-    In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
-    to the original.
+    which matches its parameter filter, regardless of how the Mock was created.  If a call does not match
+    any mock's parameter filter and there is no default mock, the call throws instead of invoking the
+    original command, so every tracked call is a call to a mock behavior.
     #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
@@ -1001,15 +998,15 @@ function Invoke-Mock {
     )
 
     if ('End' -eq $FromBlock) {
-        if (-not $MockCallState.ShouldExecuteOriginalCommand) {
+        if (-not $MockCallState.MatchedNoBehavior) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and matched at least one behavior, returning."
             }
             return
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, no behaviors in scope, forwarding to Invoke-MockInternal (will throw)."
             }
             Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
             return
@@ -1018,7 +1015,7 @@ function Invoke-Mock {
 
     if ('Begin' -eq $FromBlock) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
+            Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, no behaviors in scope, forwarding to Invoke-MockInternal (will throw)."
         }
         Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
         return
