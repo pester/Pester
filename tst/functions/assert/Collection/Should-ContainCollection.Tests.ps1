@@ -8,7 +8,7 @@ InPesterModuleScope {
 
         It "Fails when collection of single item does not contain the expected item" {
             $err = { @(5) | Should-ContainCollection 1 } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected [int] 1 to be present in [Object[]] 5, but it was not there."
+            $err.Exception.Message | Verify-Equal "Expected [int] 1 to be present in [Object[]] @(5), but it was not there."
         }
 
         It "Passes when collection of multiple items contains the expected item" {
