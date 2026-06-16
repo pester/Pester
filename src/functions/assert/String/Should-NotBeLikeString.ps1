@@ -1,4 +1,4 @@
-﻿function Test-NotLike {
+function Test-NotLike {
     param (
         [String]$Expected,
         $Actual,
@@ -90,7 +90,7 @@ function Should-NotBeLikeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because -CaseSensitive:$CaseSensitive
         }
 
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation -Expected $Expected -Actual $Actual -Because $Because)
     }
     Set-AssertionPassResult
 }

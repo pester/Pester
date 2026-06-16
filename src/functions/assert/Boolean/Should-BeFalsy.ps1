@@ -1,4 +1,4 @@
-﻿function Should-BeFalsy {
+function Should-BeFalsy {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $false or a falsy value: 0, "", $null or @(). It converts the input value to a boolean.
@@ -48,7 +48,7 @@
     $Actual = $collectedInput.Actual
     if ($Actual) {
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because -DefaultMessage 'Expected <expectedType> <expected> or a falsy value: 0, "", $null or @(),<because> but got: <actualType> <actual>.'
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
     Set-AssertionPassResult
 }

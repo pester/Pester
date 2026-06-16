@@ -128,7 +128,7 @@
 
         $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
             -DefaultMessage $defaultMessage
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
 
     $err.ErrorRecord
