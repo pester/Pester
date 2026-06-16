@@ -1,4 +1,4 @@
-function Should-Throw {
+﻿function Should-Throw {
     <#
     .SYNOPSIS
     Asserts that a script block throws an exception.
@@ -132,6 +132,7 @@ function Should-Throw {
     }
 
     $err.ErrorRecord
+    Set-AssertionPassResult
 }
 
 function Get-ErrorObject ($ErrorRecord) {

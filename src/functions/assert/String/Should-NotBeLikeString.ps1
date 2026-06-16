@@ -92,4 +92,5 @@ function Should-NotBeLikeString {
 
         throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
     }
+    Set-AssertionPassResult
 }

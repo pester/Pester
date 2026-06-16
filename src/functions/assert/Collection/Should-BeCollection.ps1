@@ -64,6 +64,7 @@
             $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items."
             throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
         }
+        Set-AssertionPassResult
         return
     }
 
@@ -125,4 +126,5 @@
             throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
         }
     }
+    Set-AssertionPassResult
 }

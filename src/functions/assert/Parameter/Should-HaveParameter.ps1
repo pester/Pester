@@ -1,4 +1,4 @@
-function Should-HaveParameter {
+﻿function Should-HaveParameter {
     <#
     .SYNOPSIS
     Asserts that a command has the expected parameter.
@@ -74,4 +74,5 @@ function Should-HaveParameter {
     $testResult = Should-HaveParameterAssertion @PSBoundParameters
 
     Test-AssertionResult $testResult
+    Set-AssertionPassResult
 }

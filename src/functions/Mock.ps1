@@ -1205,7 +1205,19 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $result = & $wrapper $parameters
+    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    $script:______isInMockParameterFilter = $true
+    try {
+        $result = & $wrapper $parameters
+    }
+    finally {
+        if ($null -eq $previousIsInMockParameterFilter) {
+            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
+        }
+        else {
+            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
+        }
+    }
     $passed = [bool]$result
     if ($passed) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
