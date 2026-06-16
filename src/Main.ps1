@@ -513,6 +513,8 @@ function Invoke-Pester {
 
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
+            Resolve-AutoEnabledConfiguration -PesterPreference $PesterPreference
+
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
             $sessionState = $PSCmdlet.SessionState
 
@@ -770,6 +772,12 @@ function Convert-PesterSimpleParameterSet ($BoundParameters) {
     return $Configuration
 }
 
+function Resolve-AutoEnabledConfiguration {
+    param ([PesterConfiguration] $PesterPreference)
+
+    $PesterPreference.CodeCoverage.ResolveEnabled()
+    $PesterPreference.TestResult.ResolveEnabled()
+}
 
 function ConvertTo-Pester4Result {
     <#

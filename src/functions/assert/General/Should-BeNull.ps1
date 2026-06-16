@@ -1,4 +1,4 @@
-﻿function Should-BeNull {
+function Should-BeNull {
     <#
     .SYNOPSIS
     Asserts that the input is `$null`.
@@ -34,6 +34,7 @@
     $Actual = $collectedInput.Actual
     if ($null -ne $Actual) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected `$null,<because> but got <actualType> '<actual>'."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

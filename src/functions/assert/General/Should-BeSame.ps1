@@ -1,4 +1,4 @@
-﻿function Should-BeSame {
+function Should-BeSame {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are the same instance.
@@ -57,6 +57,7 @@
     $Actual = $collectedInput.Actual
     if (-not ([object]::ReferenceEquals($Expected, $Actual))) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> to be the same instance but it was not. Actual: <actualType> <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

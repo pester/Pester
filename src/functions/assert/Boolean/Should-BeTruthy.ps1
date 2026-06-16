@@ -1,4 +1,4 @@
-﻿function Should-BeTruthy {
+function Should-BeTruthy {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $true. It converts input values to boolean, and will fail for any value is not $true, or truthy.
@@ -49,6 +49,7 @@
     $Actual = $collectedInput.Actual
     if (-not $Actual) {
         $Message = Get-AssertionMessage -Expected $true -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> or a truthy value,<because> but got: <actualType> <actual>."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

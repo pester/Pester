@@ -1,4 +1,4 @@
-﻿function Should-BeLessThan {
+function Should-BeLessThan {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is less than the expected value.
@@ -40,6 +40,7 @@
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -le $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be less than <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

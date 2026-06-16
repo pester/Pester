@@ -2497,6 +2497,33 @@ Describe "Mock definition output" {
 }
 
 Describe 'Mocking using ParameterFilter' {
+    Context 'Should-* assertions used in ParameterFilter' {
+        It 'matches a filter that uses Should-Be' {
+            function Get-MockFilterValue {
+                param ([string] $Name)
+
+                $Name
+            }
+
+            Mock Get-MockFilterValue { 'fallback' }
+            Mock Get-MockFilterValue { 'mocked' } -ParameterFilter { $Name | Should-Be 'foo' }
+
+            Get-MockFilterValue -Name 'foo' | Should -Be 'mocked'
+        }
+
+        It 'matches a filter that uses Should-BeString' {
+            function Get-MockFilterText {
+                param ([string] $Name)
+
+                $Name
+            }
+
+            Mock Get-MockFilterText { 'fallback' }
+            Mock Get-MockFilterText { 'mocked' } -ParameterFilter { $Name | Should-BeString 'foo' }
+
+            Get-MockFilterText -Name 'foo' | Should -Be 'mocked'
+        }
+    }
 
     Context 'Scriptblock [Scriptblock]::Create() passed to ParameterFilter as var' {
         BeforeAll {

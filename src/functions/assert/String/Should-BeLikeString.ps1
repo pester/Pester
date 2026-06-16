@@ -1,4 +1,4 @@
-﻿function Test-Like {
+function Test-Like {
     param (
         [String]$Expected,
         $Actual,
@@ -81,6 +81,7 @@ function Should-BeLikeString {
         }
 
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected the string '$Actual' to$caseSensitiveMessage be like '$Expected',<because> but it did not."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

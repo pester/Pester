@@ -1,4 +1,4 @@
-﻿function Should-NotBeWhiteSpaceString {
+function Should-NotBeWhiteSpaceString {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
@@ -54,6 +54,7 @@
 
     if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

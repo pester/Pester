@@ -1,4 +1,4 @@
-﻿function Should-BeGreaterThanOrEqual {
+function Should-BeGreaterThanOrEqual {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is greater than or equal to the expected value.
@@ -40,6 +40,7 @@
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -gt $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be greater than or equal to <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

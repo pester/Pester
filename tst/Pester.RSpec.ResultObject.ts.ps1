@@ -192,6 +192,30 @@ i -PassThru:$PassThru {
             $result.Containers[0].Blocks[2].Result | Verify-Equal "Passed"
         }
 
+        t "Result object exposes ShouldResult for new Should-* failures" {
+            $result = Invoke-Pester -Configuration @{
+                Run    = @{
+                    ScriptBlock = {
+                        Describe "d1" {
+                            It "fails" {
+                                'actual' | Should-Be 'expected' -Because 'the values should match'
+                            }
+                        }
+                    }
+                    PassThru    = $true
+                }
+                Output = @{ Verbosity = "None" }
+            }
+
+            $shouldResult = $result.Tests[0].ErrorRecord[0].TargetObject.ShouldResult
+
+            $result.Result | Verify-Equal "Failed"
+            $shouldResult | Verify-NotNull
+            $shouldResult.ExpectResult.Expected | Verify-Equal "'expected'"
+            $shouldResult.ExpectResult.Actual | Verify-Equal "'actual'"
+            $shouldResult.ExpectResult.Because | Verify-Equal "the values should match"
+        }
+
         t "Result object indicates failure when AfterAll fails" {
             $sb = {
 

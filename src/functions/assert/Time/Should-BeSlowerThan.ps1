@@ -1,4 +1,4 @@
-﻿function Should-BeSlowerThan {
+function Should-BeSlowerThan {
     <#
     .SYNOPSIS
     Asserts that the provided [timespan] is slower than the expected [timespan].
@@ -64,16 +64,19 @@
 
         if ($sw.Elapsed -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -Because $Because -Data @{ scriptblock = $Actual } -DefaultMessage "The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
-            throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
         }
+        Set-AssertionPassResult
         return
     }
 
     if ($Actual -is [timespan]) {
         if ($Actual -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "The provided [timespan] should be longer than <expectedType> <expected>,<because> but it was shorter: <actual>"
-            throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
         }
+        Set-AssertionPassResult
         return
     }
+    Set-AssertionPassResult
 }

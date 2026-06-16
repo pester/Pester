@@ -1,4 +1,4 @@
-﻿function Should-NotHaveType {
+function Should-NotHaveType {
     <#
     .SYNOPSIS
     Asserts that the input is not of the expected type.
@@ -42,6 +42,7 @@
     $Actual = $collectedInput.Actual
     if ($Actual -is $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to be of different type than <expected>,<because> but got <actualType> <actual>."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
+    Set-AssertionPassResult
 }

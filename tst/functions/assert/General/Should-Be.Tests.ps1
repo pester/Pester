@@ -58,6 +58,18 @@ Describe "Should-Be" {
         { 1, 2, 3 | Should-Be 3 } | Verify-AssertionFailed
     }
 
+    It "Outputs ShouldResult for failed pipeline assertions" {
+        $err = { 'actual' | Should-Be 'expected' -Because 'the values should match' } | Verify-AssertionFailed
+        $shouldResult = $err.TargetObject['ShouldResult']
+
+        $shouldResult | Verify-NotNull
+        $shouldResult.Succeeded | Verify-False
+        $shouldResult.FailureMessage | Verify-Equal $err.Exception.Message
+        $shouldResult.ExpectResult.Expected | Verify-Equal "'expected'"
+        $shouldResult.ExpectResult.Actual | Verify-Equal "'actual'"
+        $shouldResult.ExpectResult.Because | Verify-Equal "the values should match"
+    }
+
     Context "Validate messages" {
         It "Given two values that are not the same '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
             @{ Expected = "a" ; Actual = 10 ; Message = "Expected [string] 'a', but got [int] 10." },
