@@ -52,7 +52,8 @@
     #>
 
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
-    param(
+    [CmdletBinding()]
+    param (
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,

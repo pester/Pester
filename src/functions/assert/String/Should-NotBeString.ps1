@@ -1,4 +1,4 @@
-function Get-StringNotEqualDefaultFailureMessage ([String]$Expected, $Actual) {
+﻿function Get-StringNotEqualDefaultFailureMessage ([String]$Expected, $Actual) {
     "Expected the strings to be different but they were the same '$Expected'."
 }
 
@@ -49,6 +49,7 @@ function Should-NotBeString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -74,7 +75,7 @@ function Should-NotBeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because
         }
 
-        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation -Expected $Expected -Actual $Actual -Because $Because)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet -Expected $Expected -Actual $Actual -Because $Because
     }
     Set-AssertionPassResult
 }

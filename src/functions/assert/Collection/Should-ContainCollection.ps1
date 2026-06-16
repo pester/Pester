@@ -1,4 +1,4 @@
-function Should-ContainCollection {
+﻿function Should-ContainCollection {
     <#
     .SYNOPSIS
     Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.
@@ -37,6 +37,7 @@ function Should-ContainCollection {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -49,7 +50,7 @@ function Should-ContainCollection {
     $Actual = $collectedInput.Actual
     if ($Actual -notcontains $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>, but it was not there."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

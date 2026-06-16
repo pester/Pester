@@ -1,4 +1,4 @@
-function Should-BeCollection {
+﻿function Should-BeCollection {
     <#
     .SYNOPSIS
     Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
@@ -41,6 +41,7 @@ function Should-BeCollection {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -56,13 +57,13 @@ function Should-BeCollection {
 
     if (-not (Is-Collection -Value $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Actual <actualType> <actual> is not a collection."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'Count') {
         if ($Count -ne $Actual.Count) {
             $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items."
-            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
         Set-AssertionPassResult
         return
@@ -70,12 +71,12 @@ function Should-BeCollection {
 
     if (-not (Is-Collection -Value $Expected)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> is not a collection."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     if (-not (Is-CollectionSize -Expected $Expected -Actual $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     if (-Not $InOrder) {
@@ -123,7 +124,7 @@ function Should-BeCollection {
             $expectedDifference = $(for ($e = 0; $e -lt $actualLength; $e++) { if ($same -ne $expectedCopy[$e]) { "$(Format-Nicely2 $expectedCopy[$e]) (index $e)" } }) -join ", "
 
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -Data @{ expectedDifference = $expectedDifference; actualDifference = $actualDifference } -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>"
-            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
     }
     Set-AssertionPassResult

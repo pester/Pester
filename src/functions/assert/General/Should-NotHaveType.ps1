@@ -1,4 +1,4 @@
-function Should-NotHaveType {
+﻿function Should-NotHaveType {
     <#
     .SYNOPSIS
     Asserts that the input is not of the expected type.
@@ -30,6 +30,7 @@ function Should-NotHaveType {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -42,7 +43,7 @@ function Should-NotHaveType {
     $Actual = $collectedInput.Actual
     if ($Actual -is $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to be of different type than <expected>,<because> but got <actualType> <actual>."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

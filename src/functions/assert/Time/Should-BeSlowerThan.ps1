@@ -1,4 +1,4 @@
-function Should-BeSlowerThan {
+﻿function Should-BeSlowerThan {
     <#
     .SYNOPSIS
     Asserts that the provided [timespan] is slower than the expected [timespan].
@@ -43,6 +43,7 @@ function Should-BeSlowerThan {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -64,7 +65,7 @@ function Should-BeSlowerThan {
 
         if ($sw.Elapsed -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -Because $Because -Data @{ scriptblock = $Actual } -DefaultMessage "The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
-            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
         Set-AssertionPassResult
         return
@@ -73,7 +74,7 @@ function Should-BeSlowerThan {
     if ($Actual -is [timespan]) {
         if ($Actual -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "The provided [timespan] should be longer than <expectedType> <expected>,<because> but it was shorter: <actual>"
-            throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
         Set-AssertionPassResult
         return

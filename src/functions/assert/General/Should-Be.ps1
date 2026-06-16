@@ -1,4 +1,4 @@
-function Should-Be {
+﻿function Should-Be {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are equal.
@@ -28,6 +28,7 @@ function Should-Be {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -42,7 +43,7 @@ function Should-Be {
 
     if ((Ensure-ExpectedIsNotCollection $Expected) -ne $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> but got <actualType> <actual>."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

@@ -449,6 +449,57 @@ i -PassThru:$PassThru {
             $test.ErrorRecord.Count | Verify-Equal 2
         }
 
+        t "Non-terminating new assertions fail the test after running to completion" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        Should-Be -Actual 1 -Expected 2
+                        Should-BeTrue -Actual $false
+                        "but still output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord.Count | Verify-Equal 2
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-False
+            $test.ErrorRecord[1].TargetObject.Terminating | Verify-False
+            $test.StandardOutput | Verify-Equal "but still output this"
+        }
+
+        t "New assertions fail immediately when -ErrorAction is set to Stop" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should-Be 2 -ErrorAction Stop
+                        "do not output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "New assertions throw when called outside of Pester" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' } }
+            $err = { 1 | Should-Be 2 } | Verify-Throw
+            $err.Exception.Message | Verify-Equal "Expected [int] 2, but got [int] 1."
+        }
+
         t "Should throws when called outside of Pester" {
             $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' } }
             $err = { 1 | Should -Be 2 } | Verify-Throw

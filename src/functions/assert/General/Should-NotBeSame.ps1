@@ -1,4 +1,4 @@
-function Should-NotBeSame {
+﻿function Should-NotBeSame {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is not the same instance as the expected value.
@@ -38,6 +38,7 @@ function Should-NotBeSame {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -52,7 +53,7 @@ function Should-NotBeSame {
     $Actual = $collectedInput.Actual
     if ([object]::ReferenceEquals($Expected, $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to not be the same instance,<because> but they were the same instance."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }
