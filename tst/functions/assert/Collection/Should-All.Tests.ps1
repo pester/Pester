@@ -1,4 +1,6 @@
-﻿Set-StrictMode -Version Latest
+﻿. $PSScriptRoot\Collection.TestSetup.ps1
+
+Set-StrictMode -Version Latest
 
 Describe "Should-All" {
     It "Passes when all items in the given collection pass the predicate" -TestCases @(

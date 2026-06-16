@@ -1,4 +1,6 @@
-﻿Set-StrictMode -Version Latest
+﻿. $PSScriptRoot\Collection.TestSetup.ps1
+
+Set-StrictMode -Version Latest
 
 Describe "Should-BeCollection" {
     It "Passes when collections have the same count and items" -ForEach @(
