@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that a script block throws an exception.
 
+    .DESCRIPTION
+    This assertion executes the script block and expects it to throw. Optional filters let you match the exception type, message, or FullyQualifiedErrorId, and `-AllowNonTerminatingError` accepts non-terminating errors.
+
     .PARAMETER ScriptBlock
     The script block that should throw an exception.
 

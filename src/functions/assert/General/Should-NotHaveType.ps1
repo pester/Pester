@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is not of the expected type.
 
+    .DESCRIPTION
+    This assertion uses `-is` to verify that the actual value is not assignable to the expected type. Derived types and implemented interfaces still count as the expected type.
+
     .PARAMETER Expected
     The expected type.
 

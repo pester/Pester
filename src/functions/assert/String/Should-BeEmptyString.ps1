@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that input is an empty string.
 
+    .DESCRIPTION
+    This assertion requires the actual value to be a string and uses `[string]::IsNullOrEmpty()` for the check. `$null` and non-string values still fail the assertion.
+
     .PARAMETER Actual
     The actual value that will be compared to an empty string.
 

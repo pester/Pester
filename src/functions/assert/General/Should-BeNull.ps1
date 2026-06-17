@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is `$null`.
 
+    .DESCRIPTION
+    This assertion passes only when the actual value is exactly `$null. Empty strings, empty collections, and other falsy values do not count as null.
+
     .PARAMETER Actual
     The actual value.
 

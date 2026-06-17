@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion uses PowerShell containment to check that the actual collection does not contain the expected value. The comparison uses the contained value's own equality semantics.
+
     .PARAMETER Expected
     A collection of items.
 
@@ -49,7 +52,7 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
     if ($Actual -contains $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in collection <actual>, but it was there."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in <actualType> <actual>,<because> but it was there."
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult

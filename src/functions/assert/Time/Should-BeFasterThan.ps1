@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [timespan] or [scriptblock] is faster than the expected [timespan].
 
+    .DESCRIPTION
+    This assertion accepts either a `[timespan]` or a script block to measure. Fluent time values such as `1s` are converted to a `[timespan]` before the comparison.
+
     .PARAMETER Actual
     The actual [timespan] or [scriptblock] value.
 

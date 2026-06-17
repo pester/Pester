@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
 
+    .DESCRIPTION
+    This assertion verifies that both values are collections and compares their contents rather than their collection types. When you use `-Count`, it only checks the number of items.
+
     .PARAMETER Expected
     A collection of items.
 

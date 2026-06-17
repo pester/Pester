@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that a command has does not have the parameter.
 
+    .DESCRIPTION
+    This assertion inspects command metadata to verify that a parameter is absent. It only checks the parameter name, unlike `Should-HaveParameter`, which can also validate parameter details.
+
     .PARAMETER ParameterName
     The name of the parameter to check. E.g. Uri
 

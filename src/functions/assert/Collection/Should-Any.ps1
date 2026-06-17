@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for any of the items in the collection, the assertion passes.
 
+    .DESCRIPTION
+    This assertion runs the filter script against each item until one passes. Nested Should-* failures are treated as filter failures and included in the reported reasons when nothing matches.
+
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
 

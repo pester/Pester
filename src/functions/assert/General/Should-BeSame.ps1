@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are the same instance.
 
+    .DESCRIPTION
+    This assertion checks reference equality rather than value equality. Use it with reference types when you need to verify that both variables point to the same instance.
+
     .PARAMETER Expected
     The expected value.
 
