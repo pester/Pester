@@ -264,7 +264,7 @@ Describe "Swallowing output" {
 
                 It "Should swallow test output with -PassThru" {
 
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None";
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Output "None";
 
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
@@ -279,7 +279,7 @@ Describe "Swallowing output" {
                 }
 
                 It "Should swallow test output without -PassThru" {
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None"
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Output "None"
                     $results | Should -Be $null
                 }
 
@@ -315,7 +315,7 @@ Describe "Swallowing output" {
 
                 It "Should swallow test output with -PassThru" {
 
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None"
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Output "None"
 
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
@@ -330,7 +330,7 @@ Describe "Swallowing output" {
                 }
 
                 It "Should swallow test output without -PassThru" {
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None"
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Output "None"
                     $results | Should -Be $null
                 }
 
@@ -367,7 +367,7 @@ Describe "Swallowing output" {
 
                 It "Should swallow test output with -PassThru" {
 
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Show "None"
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -PassThru -Output "None"
 
                     # note - the pipe command unrolls enumerable objects, so we have to wrap
                     #        results in a sacrificial array to retain its original structure
@@ -382,7 +382,7 @@ Describe "Swallowing output" {
                 }
 
                 It "Should swallow test output without -PassThru" {
-                    $results = Invoke-Pester -Script "TestDrive:\Invoke-MyFunction.Tests.ps1" -Show "None"
+                    $results = Invoke-Pester -Path "TestDrive:\Invoke-MyFunction.Tests.ps1" -Output "None"
                     $results | Should -Be $null
                 }
             }

@@ -216,14 +216,14 @@ i -PassThru:$PassThru {
             }
 
             t "Including tag runs just the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -Tag i1 -PassThru
+                $result = Invoke-Pester -Path $file1 -TagFilter i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-False
             }
 
             t "Excluding tag skips the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -ExcludeTag i1 -PassThru
+                $result = Invoke-Pester -Path $file1 -ExcludeTagFilter i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-True

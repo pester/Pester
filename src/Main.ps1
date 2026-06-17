@@ -303,24 +303,17 @@ function Invoke-Pester {
     and all subdirectories recursively. You can use its parameters to select tests
     by file name, test name, or tag.
 
-    To run Pester tests in scripts that take parameter values, use the Script
-    parameter with a hash table value.
+    To run parameterized tests, or to mix files and script blocks, use
+    New-PesterContainer or the Configuration parameter.
 
     Also, by default, Pester tests write test results to the console host, much like
-    Write-Host does, but you can use the Show parameter set to None to suppress the host
-    messages, use the PassThru parameter to generate a custom object
-    (PSCustomObject) that contains the test results, use the OutputXml and
-    OutputFormat parameters to write the test results to an XML file, and use the
-    EnableExit parameter to return an exit code that contains the number of failed
-    tests.
+    Write-Host does, but you can use the Output parameter with value None to suppress
+    host messages, use the PassThru parameter to generate a [Pester.Run] object that
+    contains the test results, or use the Configuration parameter to write test results
+    or code coverage output to files.
 
-    You can also use the Strict parameter to fail all skipped tests.
-    This feature is ideal for build systems and other processes that require success
-    on every test.
-
-    To help with test design, Invoke-Pester includes a CodeCoverage parameter that
-    lists commands, classes, functions, and lines of code that did not run during test
-    execution and returns the code that ran as a percentage of all tested code.
+    For build systems, use the CI parameter to enable test result output and fail the
+    process when tests fail.
 
     Invoke-Pester, and the Pester module that exports it, are products of an
     open-source project hosted on GitHub. To view, comment, or contribute to the
@@ -338,69 +331,6 @@ function Invoke-Pester {
     To also enable CodeCoverage use this configuration option:
         CodeCoverage.Enabled = $true
 
-    .PARAMETER CodeCoverage
-    (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.Enabled = $true
-    Adds a code coverage report to the Pester tests. Takes strings or hash table values.
-    A code coverage report lists the lines of code that did and did not run during
-    a Pester test. This report does not tell whether code was tested; only whether
-    the code ran during the test.
-    By default, the code coverage report is written to the host program
-    (like Write-Host). When you use the PassThru parameter, the custom object
-    that Invoke-Pester returns has an additional CodeCoverage property that contains
-    a custom object with detailed results of the code coverage test, including lines
-    hit, lines missed, and helpful statistics.
-    However, NUnitXml and JUnitXml output (OutputXML, OutputFormat) do not include
-    any code coverage information, because it's not supported by the schema.
-    Enter the path to the files of code under test (not the test file).
-    Wildcard characters are supported. If you omit the path, the default is local
-    directory, not the directory specified by the Script parameter. Pester test files
-    are by default excluded from code coverage when a directory is provided. When you
-    provide a test file directly using string, code coverage will be measured. To include
-    tests in code coverage of a directory, use the dictionary syntax and provide
-    IncludeTests = $true option, as shown below.
-    To run a code coverage test only on selected classes, functions or lines in a script,
-    enter a hash table value with the following keys:
-    -- Path (P)(mandatory) <string>: Enter one path to the files. Wildcard characters
-    are supported, but only one string is permitted.
-    -- IncludeTests <bool>: Includes code coverage for Pester test files (*.tests.ps1).
-    Default is false.
-    One of the following: Class/Function or StartLine/EndLine
-    -- Class (C) <string>: Enter the class name. Wildcard characters are
-    supported, but only one string is permitted. Default is *.
-    -- Function (F) <string>: Enter the function name. Wildcard characters are
-    supported, but only one string is permitted. Default is *.
-    -or-
-    -- StartLine (S): Performs code coverage analysis beginning with the specified
-    line. Default is line 1.
-    -- EndLine (E): Performs code coverage analysis ending with the specified line.
-    Default is the last line of the script.
-
-    .PARAMETER CodeCoverageOutputFile
-    (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.OutputPath
-    The path where Invoke-Pester will save formatted code coverage results file.
-    The path must include the location and name of the folder and file name with
-    a required extension (usually the xml).
-    If this path is not provided, no file will be generated.
-
-    .PARAMETER CodeCoverageOutputFileEncoding
-    (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.OutputEncoding
-    Sets the output encoding of CodeCoverageOutputFileFormat
-    Default is utf8
-
-    .PARAMETER CodeCoverageOutputFileFormat
-    (Deprecated v4)
-    Replace with ConfigurationProperty CodeCoverage.OutputFormat
-    The name of a code coverage report file format.
-    Default value is: JaCoCo.
-    Currently supported formats are:
-    - JaCoCo - this XML file format is compatible with Azure Devops, VSTS/TFS
-
-    The ReportGenerator tool can be used to consolidate multiple reports and provide code coverage reporting.
-    https://github.com/danielpalme/ReportGenerator
-
     .PARAMETER Configuration
     [PesterConfiguration] object for Advanced Configuration created using `New-PesterConfiguration`.
     For help on each option see about_PesterConfiguration or inspect the object.
@@ -409,12 +339,6 @@ function Invoke-Pester {
     Specifies one or more ContainerInfo-objects that define containers with tests.
     ContainerInfo-objects are generated using New-PesterContainer. Useful for
     scenarios where data-driven test are generated, e.g. parametrized test files.
-
-    .PARAMETER EnableExit
-    (Deprecated v4)
-    Replace with ConfigurationProperty Run.Exit
-    Will cause Invoke-Pester to exit with a exit code equal to the number of failed
-    tests once all tests have been run. Use this to "fail" a build when any tests fail.
 
     .PARAMETER ExcludePath
     (Deprecated v4)
@@ -435,82 +359,20 @@ function Invoke-Pester {
 
     Default value is: Normal
 
-    .PARAMETER OutputFile
-    (Deprecated v4)
-    Replace with ConfigurationProperty TestResult.OutputPath
-    The path where Invoke-Pester will save formatted test results log file.
-    The path must include the location and name of the folder and file name with
-    the xml extension.
-    If this path is not provided, no log will be generated.
-
-    .PARAMETER OutputFormat
-    (Deprecated v4)
-    Replace with ConfigurationProperty TestResult.OutputFormat
-    The format of output. Currently NUnitXml and JUnitXml is supported.
-
     .PARAMETER PassThru
     Replace with ConfigurationProperty Run.PassThru
     Returns a custom object (PSCustomObject) that contains the test results.
     By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
     If you try to save the result in a variable, the variable is empty unless you
     use the PassThru parameter.
-    To suppress the host output, use the Show parameter set to None.
+    To suppress the host output, use the Output parameter with value None.
 
     .PARAMETER Path
-    Aliases Script
     Specifies one or more paths to files containing tests. The value is a path\file
     name or name pattern. Wildcards are permitted.
 
-    .PARAMETER PesterOption
-    (Deprecated v4)
-    This parameter is ignored in v5, and is only present for backwards compatibility
-    when migrating from v4.
-
-    .PARAMETER Quiet
-    (Deprecated v4)
-    The parameter Quiet is deprecated since Pester v4.0 and will be deleted
-    in the next major version of Pester. Please use the parameter Show
-    with value 'None' instead.
-    The parameter Quiet suppresses the output that Pester writes to the host program,
-    including the result summary and CodeCoverage output.
-    This parameter does not affect the PassThru custom object or the XML output that
-    is written when you use the Output parameters.
-
-    .PARAMETER Show
-    (Deprecated v4)
-    Replace with ConfigurationProperty Output.Verbosity
-    Customizes the output Pester writes to the screen. Available options are None, Default,
-    Passed, Failed, Skipped, Inconclusive, Describe, Context, Summary, Header, All, Fails.
-    The options can be combined to define presets.
-    ConfigurationProperty Output.Verbosity supports the following values:
-    None
-    Minimal
-    Normal
-    Detailed
-    Diagnostic
-
-    Show parameter supports the following parameter values:
-    None - (None) to write no output to the screen.
-    All - (Detailed) to write all available information (this is default option).
-    Default - (Detailed)
-    Detailed - (Detailed)
-    Fails - (Normal) to write everything except Passed (but including Describes etc.).
-    Diagnostic - (Diagnostic)
-    Normal - (Normal)
-    Minimal - (Minimal)
-
-    A common setting is also Failed, Summary, to write only failed tests and test summary.
-    This parameter does not affect the PassThru custom object or the XML output that
-    is written when you use the Output parameters.
-
-    .PARAMETER Strict
-    (Deprecated v4)
-    Makes Skipped tests to Failed tests. Useful for continuous
-    integration where you need to make sure all tests passed.
-
     .PARAMETER TagFilter
     (Deprecated v4)
-    Aliases Tag, Tags
     Replace with ConfigurationProperty Filter.Tag
 
     .EXAMPLE
@@ -562,25 +424,17 @@ function Invoke-Pester {
     [OutputType([Pester.Run])]
     param(
         [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Simple")]
-        [Parameter(Position = 0, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
-        [Alias("Script")] # Legacy set for v4 compatibility during migration - deprecated
         [String[]] $Path = '.',
         [Parameter(ParameterSetName = "Simple")]
         [String[]] $ExcludePath = @(),
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(Position = 4, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
-        [Alias("Tag")] # Legacy set for v4 compatibility during migration - deprecated
-        [Alias("Tags")] # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $TagFilter,
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $ExcludeTagFilter,
 
-        [Parameter(Position = 1, Mandatory = 0, ParameterSetName = "Legacy")]  # Legacy set for v4 compatibility during migration - deprecated
         [Parameter(ParameterSetName = "Simple")]
-        [Alias("Name")]  # Legacy set for v4 compatibility during migration - deprecated
         [string[]] $FullNameFilter,
 
         [Parameter(ParameterSetName = "Simple")]
@@ -591,50 +445,13 @@ function Invoke-Pester {
         [String] $Output = "Normal",
 
         [Parameter(ParameterSetName = "Simple")]
-        [Parameter(ParameterSetName = "Legacy")] # Legacy set for v4 compatibility during migration - deprecated
         [Switch] $PassThru,
 
         [Parameter(ParameterSetName = "Simple")]
         [Pester.ContainerInfo[]] $Container,
 
         [Parameter(ParameterSetName = "Advanced")]
-        [PesterConfiguration] $Configuration,
-
-        # rest of the Legacy set
-        [Parameter(Position = 2, Mandatory = 0, ParameterSetName = "Legacy", DontShow)]  # Legacy set for v4 compatibility during migration - deprecated
-        [switch]$EnableExit,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [object[]] $CodeCoverage = @(),
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [string] $CodeCoverageOutputFile,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [string] $CodeCoverageOutputFileEncoding = 'utf8',
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [ValidateSet('JaCoCo')]
-        [String]$CodeCoverageOutputFileFormat = "JaCoCo",
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [Switch]$Strict,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [string] $OutputFile,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [ValidateSet('NUnitXml', 'NUnit2.5', 'JUnitXml')]
-        [string] $OutputFormat = 'NUnitXml',
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [Switch]$Quiet,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [object]$PesterOption,
-
-        [Parameter(ParameterSetName = "Legacy", DontShow)] # Legacy set for v4 compatibility during migration - deprecated
-        [String] $Show = 'All'
+        [PesterConfiguration] $Configuration
     )
     begin {
         $start = [DateTime]::Now
@@ -667,12 +484,6 @@ function Invoke-Pester {
             if ('Simple' -eq $PSCmdlet.ParameterSetName) {
                 # dot-sourcing the function to allow removing local variables
                 $Configuration = . Convert-PesterSimpleParameterSet -BoundParameters $PSBoundParameters
-            }
-            elseif ('Legacy' -eq $PSCmdlet.ParameterSetName) {
-                & $SafeCommands['Write-Warning'] 'You are using Legacy parameter set that adapts Pester 5 syntax to Pester 4 syntax. This parameter set is deprecated, and does not work 100%. The -Strict and -PesterOption parameters are ignored, and providing advanced configuration to -Path (-Script), and -CodeCoverage via a hash table does not work. Please refer to https://github.com/pester/Pester/releases/tag/5.0.1#legacy-parameter-set for more information.'
-
-                # dot-sourcing the function to allow removing local variables
-                $Configuration = . Convert-PesterLegacyParameterSet -BoundParameters $PSBoundParameters
             }
 
             # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
@@ -893,7 +704,7 @@ function Convert-PesterSimpleParameterSet ($BoundParameters) {
         'Path'             = {
             if ($null -ne $Path) {
                 if (@($Path)[0] -is [System.Collections.IDictionary]) {
-                    throw 'Passing hashtable configuration to -Path / -Script is currently not supported in Pester 5.0. Please provide just paths, as an array of strings.'
+                    throw 'Passing hashtable configuration to -Path is currently not supported in Pester 5.0. Please provide just paths, as an array of strings.'
                 }
 
                 $Configuration.Run.Path = $Path
@@ -961,146 +772,12 @@ function Convert-PesterSimpleParameterSet ($BoundParameters) {
     return $Configuration
 }
 
-function Convert-PesterLegacyParameterSet ($BoundParameters) {
-    $Configuration = [PesterConfiguration]::Default
-
-    $migrations = @{
-        'Path'                           = {
-            if ($null -ne $Path) {
-                $Configuration.Run.Path = $Path
-            }
-        }
-
-        'FullNameFilter'                 = {
-            if ($null -ne $FullNameFilter -and 0 -lt @($FullNameFilter).Count) {
-                $Configuration.Filter.FullName = $FullNameFilter
-            }
-        }
-
-        'EnableExit'                     = {
-            if ($EnableExit) {
-                $Configuration.Run.Exit = $true
-            }
-        }
-
-        'TagFilter'                      = {
-            if ($null -ne $TagFilter -and 0 -lt @($TagFilter).Count) {
-                $Configuration.Filter.Tag = $TagFilter
-            }
-        }
-
-        'ExcludeTagFilter'               = {
-            if ($null -ne $ExcludeTagFilter -and 0 -lt @($ExcludeTagFilter).Count) {
-                $Configuration.Filter.ExcludeTag = $ExcludeTagFilter
-            }
-        }
-
-        'PassThru'                       = {
-            if ($null -ne $PassThru) {
-                $Configuration.Run.PassThru = [bool] $PassThru
-            }
-        }
-
-        'CodeCoverage'                   = {
-            # advanced CC options won't work (hashtable)
-            if ($null -ne $CodeCoverage) {
-                $Configuration.CodeCoverage.Enabled = $true
-                $Configuration.CodeCoverage.Path = $CodeCoverage
-            }
-        }
-
-        'CodeCoverageOutputFile'         = {
-            if ($null -ne $CodeCoverageOutputFile) {
-                $Configuration.CodeCoverage.Enabled = $true
-                $Configuration.CodeCoverage.OutputPath = $CodeCoverageOutputFile
-            }
-        }
-
-        'CodeCoverageOutputFileEncoding' = {
-            if ($null -ne $CodeCoverageOutputFileEncoding) {
-                $Configuration.CodeCoverage.Enabled = $true
-                $Configuration.CodeCoverage.OutputEncoding = $CodeCoverageOutputFileEncoding
-            }
-        }
-
-        'CodeCoverageOutputFileFormat'   = {
-            if ($null -ne $CodeCoverageOutputFileFormat) {
-                $Configuration.CodeCoverage.Enabled = $true
-                $Configuration.CodeCoverage.OutputFormat = $CodeCoverageOutputFileFormat
-            }
-        }
-
-        'OutputFile'                     = {
-            if ($null -ne $OutputFile -and 0 -lt @($OutputFile).Count) {
-                $Configuration.TestResult.Enabled = $true
-                $Configuration.TestResult.OutputPath = $OutputFile
-            }
-        }
-
-        'OutputFormat'                   = {
-            if ($null -ne $OutputFormat -and 0 -lt @($OutputFormat).Count) {
-                $Configuration.TestResult.OutputFormat = $OutputFormat
-            }
-        }
-
-        'Show'                           = {
-            if ($null -ne $Show) {
-                # most used v4 options are adapted, and it also takes v5 options to be able to migrate gradually
-                # without switching the whole param set just to get Diagnostic output
-                # {None | Default | Passed | Failed | Skipped | Inconclusive | Describe | Context | Summary | Header | Fails | All}
-                $verbosity = switch ($Show) {
-                    'All' { 'Detailed' }
-                    'Default' { 'Detailed' }
-                    'Fails' { 'Normal' }
-                    'Diagnostic' { 'Diagnostic' }
-                    'Detailed' { 'Detailed' }
-                    'Normal' { 'Normal' }
-                    'Minimal' { 'Minimal' }
-                    'None' { 'None' }
-                    default { 'Detailed' }
-                }
-
-                $Configuration.Output.Verbosity = $verbosity
-            }
-        }
-
-        'Quiet'                          = {
-            if ($null -ne $Quiet) {
-                if ($Quiet) {
-                    $Configuration.Output.Verbosity = 'None'
-                }
-            }
-        }
-    }
-
-    # Run all applicable migrations and remove variable to avoid leaking into child scopes
-    foreach ($key in $migrations.Keys) {
-        if ($BoundParameters.ContainsKey($key)) {
-            . $migrations[$key]
-            & $SafeCommands['Get-Variable'] -Name $key -Scope Local | Remove-Variable
-        }
-    }
-
-    # Remove auto null-variables for undefined parameters in set
-    # TODO: Why are these special? Only removed when not defined, but they're never used. Other are only removed when explicitly set
-    if (-not $BoundParameters.ContainsKey('Strict')) {
-        & $SafeCommands['Get-Variable'] 'Strict' -Scope Local | Remove-Variable
-    }
-
-    if (-not $BoundParameters.ContainsKey('PesterOption')) {
-        & $SafeCommands['Get-Variable'] 'PesterOption' -Scope Local | Remove-Variable
-    }
-
-    return $Configuration
-}
-
 function Resolve-AutoEnabledConfiguration {
     param ([PesterConfiguration] $PesterPreference)
 
     $PesterPreference.CodeCoverage.ResolveEnabled()
     $PesterPreference.TestResult.ResolveEnabled()
 }
-
 
 function ConvertTo-Pester4Result {
     <#
