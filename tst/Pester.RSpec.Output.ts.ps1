@@ -184,6 +184,37 @@ i -PassThru:$PassThru {
             $i3Start = $output | Select-String -Pattern '\[\|\] i3\.\.\.$'
             @($i3Start).Count | Verify-Equal 1
         }
+
+        t 'Start markers show expanded names for data-driven tests' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Debug.ShowStartMarkers = $true
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'ConsoleColor'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'Iteration <_>' -ForEach @(1, 2, 3) {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $i1Start = $output | Select-String -Pattern '\[\|\] Iteration 1\.\.\.$'
+            @($i1Start).Count | Verify-Equal 1
+            $i2Start = $output | Select-String -Pattern '\[\|\] Iteration 2\.\.\.$'
+            @($i2Start).Count | Verify-Equal 1
+            $i3Start = $output | Select-String -Pattern '\[\|\] Iteration 3\.\.\.$'
+            @($i3Start).Count | Verify-Equal 1
+        }
     }
 
     b 'Output for container names' {

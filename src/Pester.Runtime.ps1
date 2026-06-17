@@ -661,6 +661,21 @@ function Invoke-TestItem {
                         $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal)
                         $sb
                     )
+                    # Write start marker after name expansion so it shows the
+                    # fully expanded test name (fixes #2635).
+                    {
+                        if ($PesterPreference.Debug.ShowStartMarkers.Value) {
+                            $level = $Test.Path.Count
+                            $margin = $ReportStrings.Margin * ($level)
+                            $out = "$($Test.ExpandedName)..."
+
+                            if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
+                                $out += ", $($Test.ScriptBlock.File):$($Test.StartLine)"
+                            }
+
+                            Write-PesterHostMessage -ForegroundColor $ReportTheme.Information "$margin[|] $out"
+                        }
+                    }
                 ) `
                     -ScriptBlock $Test.ScriptBlock `
                     -Teardown @(

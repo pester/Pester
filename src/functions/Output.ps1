@@ -613,18 +613,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
             if ($_test.First) {
                 Write-BlockToScreen $_test.Block
             }
-
-            if ($PesterPreference.Debug.ShowStartMarkers.Value) {
-                $level = $_test.Path.Count
-                $margin = $ReportStrings.Margin * ($level)
-                $out = "$($_test.ExpandedName)..."
-
-                if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
-                    $out += ", $($_test.ScriptBlock.File):$($_test.StartLine)"
-                }
-
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.Information "$margin[|] $out"
-            }
         }
     }
 
