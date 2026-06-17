@@ -35,6 +35,7 @@ namespace Pester
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
         private StringOption _repoRoot;
+        private BoolOption _perFileDiscovery;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -58,6 +59,7 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RepoRoot), v => RepoRoot = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(PerFileDiscovery), v => PerFileDiscovery = v);
             }
         }
 
@@ -75,6 +77,7 @@ namespace Pester
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
             RepoRoot = new StringOption("Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.", FindRepoRoot());
+            PerFileDiscovery = new BoolOption("Discovers and runs tests one container at a time instead of discovering all containers first. Improves container isolation and reduces memory usage.", true);
         }
 
         public StringArrayOption Path
@@ -265,6 +268,22 @@ namespace Pester
                 else
                 {
                     _repoRoot = new StringOption(_repoRoot, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption PerFileDiscovery
+        {
+            get { return _perFileDiscovery; }
+            set
+            {
+                if (_perFileDiscovery == null)
+                {
+                    _perFileDiscovery = value;
+                }
+                else
+                {
+                    _perFileDiscovery = new BoolOption(_perFileDiscovery, value.Value);
                 }
             }
         }

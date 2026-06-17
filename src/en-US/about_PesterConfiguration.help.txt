@@ -77,6 +77,10 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: '<path of .git>'
 
+        PerFileDiscovery: Discovers and runs tests one container at a time instead of discovering all containers first. Improves container isolation and reduces memory usage.
+        Type: bool
+        Default value: $true
+
     Filter:
         Tag: Tags of Describe, Context or It to be run.
         Type: string[]
