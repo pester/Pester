@@ -24,4 +24,10 @@ Describe "Should-BeSlowerThan" {
     ) {
         { $Actual | Should-BeSlowerThan -Expected $Expected } | Verify-AssertionFailed
     }
+
+    It "Has Because parameter" -ForEach @(
+        @{ Actual = [timespan]::FromMilliseconds(1); Expected = "1000ms"; Because = "I said so" }
+    ) {
+        { $Actual | Should-BeSlowerThan -Expected $Expected -Because $Because } | Verify-AssertionFailed
+    }
 }

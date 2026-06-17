@@ -49,7 +49,7 @@ Describe "Should-BeFasterThan" {
     }
 
     It "Has Because parameter" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "1ms"; Because = "I said so" }
+        @{ Actual = [timespan]::FromMilliseconds(100); Expected = "1ms"; Because = "I said so" }
     ) {
         { $Actual | Should-BeFasterThan -Expected $Expected -Because $Because } | Verify-AssertionFailed
     }
