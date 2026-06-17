@@ -124,6 +124,10 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-ScriptBlock2 -Value $Value
     }
 
+    if (Is-Collection -Value $Value) {
+        return Format-Collection2 -Value $Value -Pretty:$Pretty
+    }
+
     if (Is-Value -Value $Value) {
         return $Value
     }
@@ -138,10 +142,6 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
 
     if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {
         return Format-DataTable2 -Value $Value -Pretty:$Pretty
-    }
-
-    if (Is-Collection -Value $Value) {
-        return Format-Collection2 -Value $Value -Pretty:$Pretty
     }
 
     Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty

@@ -51,7 +51,7 @@ function Should-NotContainCollection {
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
     if ($Actual -contains $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in collection <actual>, but it was there."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in <actualType> <actual>,<because> but it was there."
         throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
     }
     Set-AssertionPassResult
