@@ -1,4 +1,4 @@
-function Should-NotBeNull {
+﻿function Should-NotBeNull {
     <#
     .SYNOPSIS
     Asserts that the input is not `$null`.
@@ -27,6 +27,7 @@ function Should-NotBeNull {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -37,7 +38,7 @@ function Should-NotBeNull {
     $Actual = $collectedInput.Actual
     if ($null -eq $Actual) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected not `$null,<because> but got `$null."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

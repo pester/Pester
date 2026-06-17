@@ -1,4 +1,4 @@
-function Should-NotBe {
+﻿function Should-NotBe {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are not equal.
@@ -31,6 +31,7 @@ function Should-NotBe {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -44,7 +45,7 @@ function Should-NotBe {
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -eq $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to be different than the actual value,<because> but they were equal."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

@@ -1,4 +1,4 @@
-function Should-BeNull {
+﻿function Should-BeNull {
     <#
     .SYNOPSIS
     Asserts that the input is `$null`.
@@ -27,6 +27,7 @@ function Should-BeNull {
     #>
 
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -37,7 +38,7 @@ function Should-BeNull {
     $Actual = $collectedInput.Actual
     if ($null -ne $Actual) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected `$null,<because> but got <actualType> '<actual>'."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

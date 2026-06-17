@@ -1,4 +1,4 @@
-function Should-NotBeEmptyString {
+﻿function Should-NotBeEmptyString {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null or empty string.
@@ -45,6 +45,7 @@ function Should-NotBeEmptyString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 0, ValueFromPipeline = $true)]
         $Actual,
@@ -56,7 +57,7 @@ function Should-NotBeEmptyString {
 
     if ($Actual -isnot [String] -or [String]::IsNullOrEmpty($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null or empty,<because> but got <actualType>: <actual>" -Pretty
-        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

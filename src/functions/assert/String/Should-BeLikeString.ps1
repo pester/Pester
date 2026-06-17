@@ -1,4 +1,4 @@
-function Test-Like {
+﻿function Test-Like {
     param (
         [String]$Expected,
         $Actual,
@@ -57,6 +57,7 @@ function Should-BeLikeString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -81,7 +82,7 @@ function Should-BeLikeString {
         }
 
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected the string '$Actual' to$caseSensitiveMessage be like '$Expected',<because> but it did not."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

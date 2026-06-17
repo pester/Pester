@@ -1,4 +1,4 @@
-function Should-BeGreaterThanOrEqual {
+﻿function Should-BeGreaterThanOrEqual {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is greater than or equal to the expected value.
@@ -31,6 +31,7 @@ function Should-BeGreaterThanOrEqual {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -43,7 +44,7 @@ function Should-BeGreaterThanOrEqual {
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -gt $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be greater than or equal to <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

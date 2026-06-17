@@ -1,4 +1,4 @@
-function Should-BeLessThan {
+﻿function Should-BeLessThan {
     <#
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is less than the expected value.
@@ -31,6 +31,7 @@ function Should-BeLessThan {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -43,7 +44,7 @@ function Should-BeLessThan {
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -le $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be less than <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

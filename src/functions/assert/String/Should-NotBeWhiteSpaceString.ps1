@@ -1,4 +1,4 @@
-function Should-NotBeWhiteSpaceString {
+﻿function Should-NotBeWhiteSpaceString {
     <#
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
@@ -46,6 +46,7 @@ function Should-NotBeWhiteSpaceString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 0, ValueFromPipeline = $true)]
         $Actual,
@@ -57,7 +58,7 @@ function Should-NotBeWhiteSpaceString {
 
     if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-        throw (New-ShouldErrorRecord -Message $formattedMessage -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

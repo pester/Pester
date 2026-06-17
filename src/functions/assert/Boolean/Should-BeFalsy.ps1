@@ -1,4 +1,4 @@
-function Should-BeFalsy {
+﻿function Should-BeFalsy {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $false or a falsy value: 0, "", $null or @(). It converts the input value to a boolean.
@@ -41,6 +41,7 @@ function Should-BeFalsy {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
@@ -51,7 +52,7 @@ function Should-BeFalsy {
     $Actual = $collectedInput.Actual
     if ($Actual) {
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because -DefaultMessage 'Expected <expectedType> <expected> or a falsy value: 0, "", $null or @(),<because> but got: <actualType> <actual>.'
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

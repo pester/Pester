@@ -1,4 +1,4 @@
-function Should-BeFalse {
+﻿function Should-BeFalse {
     <#
     .SYNOPSIS
     Compares the actual value to a boolean $false. It does not convert input values to boolean, and will fail for any value that is not $false.
@@ -41,6 +41,7 @@ function Should-BeFalse {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
@@ -51,7 +52,7 @@ function Should-BeFalse {
     $Actual = $collectedInput.Actual
     if ($Actual -isnot [bool] -or $Actual) {
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because  -DefaultMessage "Expected <expectedType> <expected>,<because> but got: <actualType> <actual>."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

@@ -1,4 +1,4 @@
-function Should-HaveType {
+﻿function Should-HaveType {
     <#
     .SYNOPSIS
     Asserts that the input is of the expected type.
@@ -31,6 +31,7 @@ function Should-HaveType {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -43,7 +44,7 @@ function Should-HaveType {
     $Actual = $collectedInput.Actual
     if ($Actual -isnot $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to have type <expected>,<because> but got <actualType> <actual>."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

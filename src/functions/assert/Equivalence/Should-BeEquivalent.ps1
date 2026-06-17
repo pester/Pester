@@ -1,4 +1,4 @@
-function Test-Same ($Expected, $Actual) {
+﻿function Test-Same ($Expected, $Actual) {
     [object]::ReferenceEquals($Expected, $Actual)
 }
 
@@ -717,7 +717,7 @@ function Should-BeEquivalent {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
         # the parameter is -Option not -Options
         $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
-        throw (New-ShouldErrorRecord -Message $message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $message -CallerCmdlet $PSCmdlet
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."

@@ -1,4 +1,4 @@
-function Should-All {
+﻿function Should-All {
     <#
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for all the items in the collection, the assertion passes.
@@ -56,7 +56,7 @@ function Should-All {
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     $failReasons = $null
@@ -108,7 +108,7 @@ function Should-All {
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        throw (New-ShouldErrorRecord -Message $Message -Invocation $MyInvocation)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
 }

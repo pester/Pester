@@ -1,4 +1,4 @@
-function Test-MatchString {
+﻿function Test-MatchString {
     param (
         [String]$Expected,
         $Actual,
@@ -54,6 +54,7 @@ function Should-MatchString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -82,7 +83,7 @@ function Should-MatchString {
         }
 
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected the string '$Actual' to$caseSensitiveMessage match pattern '$Expected',<because> but it did not."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     if ($script:______isInMockParameterFilter) { return $true }
