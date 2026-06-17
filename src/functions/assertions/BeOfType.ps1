@@ -37,7 +37,24 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
         $trimmedType = $ExpectedType -replace '^\[(.*)\]$', '$1'
         $parsedType = $trimmedType -as [Type]
         if ($null -eq $parsedType) {
-            throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded."
+            # PowerShell classes loaded via dot-sourcing may not be visible to
+            # the module scope. Try to resolve from the actual value's type (#2701).
+            if ($null -ne $ActualValue) {
+                $actualType = $ActualValue.GetType()
+                # Walk the inheritance chain to find a matching type name
+                $t = $actualType
+                while ($null -ne $t) {
+                    if ($t.Name -eq $trimmedType -or $t.FullName -eq $trimmedType) {
+                        $parsedType = $t
+                        break
+                    }
+                    $t = $t.BaseType
+                }
+            }
+
+            if ($null -eq $parsedType) {
+                throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded."
+            }
         }
 
         $ExpectedType = $parsedType
