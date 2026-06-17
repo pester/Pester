@@ -96,8 +96,74 @@ function Should-BeString {
 
     $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
     if (-not ($stringsAreEqual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
+        if ($Actual -is [string]) {
+            $Message = Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because
+        }
+        else {
+            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
+        }
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
+}
+
+function Get-StringDifferenceMessage {
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Expected,
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Actual,
+        [switch] $CaseSensitive,
+        [string] $Because
+    )
+
+    $maxLength = [Math]::Max($Expected.Length, $Actual.Length)
+
+    $differenceIndex = $null
+    for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
+        if ($CaseSensitive) {
+            if ($Expected[$i] -cne $Actual[$i]) { $differenceIndex = $i }
+        }
+        else {
+            if ($Expected[$i] -ne $Actual[$i]) { $differenceIndex = $i }
+        }
+    }
+
+    $because = if ($Because) { " because $Because," } else { "" }
+
+    $sb = [System.Text.StringBuilder]::new()
+    $null = $sb.AppendLine("Expected strings to be the same,$because but they were different.")
+
+    if ($Expected.Length -ne $Actual.Length) {
+        $null = $sb.AppendLine("Expected length: $($Expected.Length)")
+        $null = $sb.AppendLine("Actual length:   $($Actual.Length)")
+    }
+    else {
+        $null = $sb.AppendLine("String lengths are both $($Expected.Length).")
+    }
+    $null = $sb.AppendLine("Strings differ at index $differenceIndex.")
+
+    $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
+    $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
+
+    # Recompute difference index on expanded strings
+    $maxLength = [Math]::Max($expectedExpanded.Length, $actualExpanded.Length)
+    $expandedDiffIndex = $null
+    for ($i = 0; $i -lt $maxLength -and ($null -eq $expandedDiffIndex); ++$i) {
+        if ($CaseSensitive) {
+            if ($expectedExpanded[$i] -cne $actualExpanded[$i]) { $expandedDiffIndex = $i }
+        }
+        else {
+            if ($expectedExpanded[$i] -ne $actualExpanded[$i]) { $expandedDiffIndex = $i }
+        }
+    }
+
+    $prefix = "Expected: '"
+    $null = $sb.AppendLine("$prefix$expectedExpanded'")
+    $null = $sb.AppendLine("But was:  '$actualExpanded'")
+    $null = $sb.Append((' ' * ($prefix.Length - 1)) + ('-' * $expandedDiffIndex) + '^')
+
+    $sb.ToString()
 }
