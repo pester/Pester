@@ -133,17 +133,18 @@ function Get-StringDifferenceMessage {
 
     $because = if ($Because) { " because $Because," } else { "" }
 
-    $sb = [System.Text.StringBuilder]::new()
-    $null = $sb.AppendLine("Expected strings to be the same,$because but they were different.")
+    $lines = @(
+        "Expected strings to be the same,$because but they were different."
+    )
 
     if ($Expected.Length -ne $Actual.Length) {
-        $null = $sb.AppendLine("Expected length: $($Expected.Length)")
-        $null = $sb.AppendLine("Actual length:   $($Actual.Length)")
+        $lines += "Expected length: $($Expected.Length)"
+        $lines += "Actual length:   $($Actual.Length)"
     }
     else {
-        $null = $sb.AppendLine("String lengths are both $($Expected.Length).")
+        $lines += "String lengths are both $($Expected.Length)."
     }
-    $null = $sb.AppendLine("Strings differ at index $differenceIndex.")
+    $lines += "Strings differ at index $differenceIndex."
 
     $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
     $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
@@ -161,9 +162,9 @@ function Get-StringDifferenceMessage {
     }
 
     $prefix = "Expected: '"
-    $null = $sb.AppendLine("$prefix$expectedExpanded'")
-    $null = $sb.AppendLine("But was:  '$actualExpanded'")
-    $null = $sb.Append((' ' * ($prefix.Length - 1)) + ('-' * $expandedDiffIndex) + '^')
+    $lines += "$prefix$expectedExpanded'"
+    $lines += "But was:  '$actualExpanded'"
+    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $expandedDiffIndex) + '^'
 
-    $sb.ToString()
+    $lines -join "`n"
 }
