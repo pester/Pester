@@ -118,21 +118,51 @@ Describe "Should-BeString" {
 
     It "Throws with default message when test fails" {
         $err = { Should-BeString -Expected "abc" -Actual "bde" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Like "*Expected strings to be the same*but they were different*"
-        $err.Exception.Message | Verify-Like "*Strings differ at index 0*"
-        $err.Exception.Message | Verify-Like "*Expected: 'abc'*"
-        $err.Exception.Message | Verify-Like "*But was:  'bde'*"
+        $err.Exception.Message | Verify-Equal @'
+Expected strings to be the same, but they were different.
+String lengths are both 3.
+Strings differ at index 0.
+Expected: 'abc'
+But was:  'bde'
+          ^
+'@
     }
 
-    It "Shows difference index and arrow marker" {
+    It "Shows arrow at correct position for case-sensitive difference" {
         $err = { "hello world" | Should-BeString "Hello World" -CaseSensitive } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Like "*Strings differ at index 0*"
-        $err.Exception.Message | Verify-Like "*^*"
+        $err.Exception.Message | Verify-Equal @'
+Expected strings to be the same, but they were different.
+String lengths are both 11.
+Strings differ at index 0.
+Expected: 'Hello World'
+But was:  'hello world'
+          ^
+'@
+    }
+
+    It "Shows arrow with dashes for mid-string difference" {
+        $err = { "abc" | Should-BeString "abcdef" } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal @'
+Expected strings to be the same, but they were different.
+Expected length: 6
+Actual length:   3
+Strings differ at index 3.
+Expected: 'abcdef'
+But was:  'abc'
+          ---^
+'@
     }
 
     It "Shows expanded whitespace characters in diff" {
         $err = { "abc`ndef" | Should-BeString "abc`r`ndef" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Like "*abc\r\ndef*"
-        $err.Exception.Message | Verify-Like "*abc\ndef*"
+        $err.Exception.Message | Verify-Equal @'
+Expected strings to be the same, but they were different.
+Expected length: 8
+Actual length:   7
+Strings differ at index 3.
+Expected: 'abc\r\ndef'
+But was:  'abc\ndef'
+          ----^
+'@
     }
 }
