@@ -391,4 +391,30 @@ i -PassThru:$PassThru {
             }
         }
     }
+
+    b '$WhatIfPreference does not break Pester' {
+        t 'Invoke-Pester succeeds when $WhatIfPreference is $true' {
+                $sb = {
+                    $WhatIfPreference = $true
+
+                    $PesterPreference = [PesterConfiguration]::Default
+                    $PesterPreference.Output.Verbosity = 'None'
+
+                    $container = New-PesterContainer -ScriptBlock {
+                        Describe 'd1' {
+                            It 'i1' {
+                                1 | Should -Be 1
+                            }
+                        }
+                    }
+                    $r = Invoke-Pester -Container $container -PassThru
+                    if ($r.FailedCount -ne 0) { throw "Expected 0 failures, got $($r.FailedCount)" }
+                    if ($r.PassedCount -ne 1) { throw "Expected 1 passed, got $($r.PassedCount)" }
+                }
+
+                $output = Invoke-InNewProcess $sb
+                $whatIfLines = $output | Select-String -Pattern 'What if:'
+                @($whatIfLines).Count | Verify-Equal 0
+        }
+    }
 }

@@ -454,6 +454,10 @@ function Invoke-Pester {
         [PesterConfiguration] $Configuration
     )
     begin {
+        # Prevent $WhatIfPreference from leaking into Pester internals (#2585).
+        # When the caller sets $WhatIfPreference = $true, it propagates to child
+        # scopes and breaks commands that Pester relies on (New-Item, Remove-Item, etc.).
+        $WhatIfPreference = $false
         $start = [DateTime]::Now
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
