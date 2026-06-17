@@ -391,9 +391,7 @@ i -PassThru:$PassThru {
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.StandardOutput | Verify-Null
-            $err = $t.ErrorRecord[0] -split "`n"
-            $err[-3] | Verify-Equal "Expected: 'a'"
-            $err[-2] | Verify-Equal "But was:  'b'"
+            $t.ErrorRecord[0].Exception.Message | Verify-Equal "Expected [string] 'a', but got [string] 'b'."
         }
     }
 
