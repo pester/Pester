@@ -307,8 +307,7 @@ function Test-CommandInScope {
     $classResult = !$Class
     $functionResult = !$Function
     for ($ast = $Command; $null -ne $ast; $ast = $ast.Parent) {
-        if (!$classResult -and $PSVersionTable.PSVersion.Major -ge 5) {
-            # Classes have been introduced in PowerShell 5.0
+        if (!$classResult) {
             $classAst = $ast -as [System.Management.Automation.Language.TypeDefinitionAst]
             if ($null -ne $classAst -and $classAst.Name -like $Class) {
                 $classResult = $true
@@ -412,20 +411,18 @@ function IsIgnoredCommand {
         return $true
     }
 
-    if ($PSVersionTable.PSVersion.Major -ge 4) {
-        if ($Command.Extent.Text -eq 'Configuration') {
-            # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
-            # stays zero (even though they are executed.)  For now, ignore them, unless we can come
-            # up with a better solution.
-            return $true
-        }
+    if ($Command.Extent.Text -eq 'Configuration') {
+        # More DSC voodoo.  Calls to "configuration" generate breakpoints, but their HitCount
+        # stays zero (even though they are executed.)  For now, ignore them, unless we can come
+        # up with a better solution.
+        return $true
+    }
 
-        if (IsChildOfHashtableDynamicKeyword -Command $Command) {
-            # The lines inside DSC resource declarations don't trigger their breakpoints when executed,
-            # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
-            # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
-            return $true
-        }
+    if (IsChildOfHashtableDynamicKeyword -Command $Command) {
+        # The lines inside DSC resource declarations don't trigger their breakpoints when executed,
+        # just like the "configuration" keyword itself.  I don't know why, at this point, but just like
+        # configuration, we'll ignore it so it doesn't clutter up the coverage analysis with useless junk.
+        return $true
     }
 
     if ($Command.Extent.Text -match '^{?& \$wrappedCmd @PSBoundParameters ?}?$' -and
@@ -443,12 +440,10 @@ function IsIgnoredCommand {
         return $true
     }
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        if ($Command -is [System.Management.Automation.Language.CommandExpressionAst] -and
-            $Command.Expression[0] -is [System.Management.Automation.Language.BaseCtorInvokeMemberExpressionAst]) {
-            # Calls to inherited "base(...)" constructor does not trigger breakpoint or tracer hit, ignore.
-            return $true
-        }
+    if ($Command -is [System.Management.Automation.Language.CommandExpressionAst] -and
+        $Command.Expression[0] -is [System.Management.Automation.Language.BaseCtorInvokeMemberExpressionAst]) {
+        # Calls to inherited "base(...)" constructor does not trigger breakpoint or tracer hit, ignore.
+        return $true
     }
 
     return $false
@@ -458,21 +453,9 @@ function IsChildOfHashtableDynamicKeyword {
     param ([System.Management.Automation.Language.Ast] $Command)
 
     for ($ast = $Command.Parent; $null -ne $ast; $ast = $ast.Parent) {
-        if ($PSVersionTable.PSVersion.Major -ge 5) {
-            # The ast behaves differently for DSC resources with version 5+.  There's a new DynamicKeywordStatementAst class,
-            # and they no longer are represented by CommandAst objects.
-
-            if ($ast -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -and
-                $ast.CommandElements[-1] -is [System.Management.Automation.Language.HashtableAst]) {
-                return $true
-            }
-        }
-        else {
-            if ($ast -is [System.Management.Automation.Language.CommandAst] -and
-                $null -ne $ast.DefiningKeyword -and
-                $ast.DefiningKeyword.BodyMode -eq [System.Management.Automation.Language.DynamicKeywordBodyMode]::Hashtable) {
-                return $true
-            }
+        if ($ast -is [System.Management.Automation.Language.DynamicKeywordStatementAst] -and
+            $ast.CommandElements[-1] -is [System.Management.Automation.Language.HashtableAst]) {
+            return $true
         }
     }
 
@@ -500,14 +483,10 @@ function IsClosingLoopCondition {
 function Get-ParentClassName {
     param ([System.Management.Automation.Language.Ast] $Ast)
 
-    if ($PSVersionTable.PSVersion.Major -ge 5) {
-        # Classes have been introduced in PowerShell 5.0
+    $parent = $Ast.Parent
 
-        $parent = $Ast.Parent
-
-        while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst]) {
-            $parent = $parent.Parent
-        }
+    while ($null -ne $parent -and $parent -isnot [System.Management.Automation.Language.TypeDefinitionAst]) {
+        $parent = $parent.Parent
     }
 
     if ($null -eq $parent) {
