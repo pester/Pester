@@ -294,10 +294,10 @@ function Invoke-Pester {
     Pester tests in PowerShell scripts.
 
     You can run scripts that include Pester tests just as you would any other
-    Windows PowerShell script, including typing the full path at the command line
+    PowerShell script, including typing the full path at the command line
     and running in a script editing program. Typically, you use Invoke-Pester to run
     all Pester tests in a directory, or to use its many helpful parameters,
-    including parameters that generate custom objects or XML files.
+    including parameters that generate custom objects or test result files.
 
     By default, Invoke-Pester runs all *.Tests.ps1 files in the current directory
     and all subdirectories recursively. You can use its parameters to select tests
@@ -306,7 +306,7 @@ function Invoke-Pester {
     To run parameterized tests, or to mix files and script blocks, use
     New-PesterContainer or the Configuration parameter.
 
-    Also, by default, Pester tests write test results to the console host, much like
+    By default, Pester tests write test results to the console host, much like
     Write-Host does, but you can use the Output parameter with value None to suppress
     host messages, use the PassThru parameter to generate a [Pester.Run] object that
     contains the test results, or use the Configuration parameter to write test results
@@ -320,14 +320,12 @@ function Invoke-Pester {
     repository, see https://github.com/Pester.
 
     .PARAMETER CI
-    (Introduced v5)
     Enable Test Results and Exit after Run.
 
-    Replace with ConfigurationProperty
+    Equivalent to setting:
         TestResult.Enabled = $true
         Run.Exit = $true
 
-    Since 5.2.0, this option no longer enables CodeCoverage.
     To also enable CodeCoverage use this configuration option:
         CodeCoverage.Enabled = $true
 
@@ -341,30 +339,30 @@ function Invoke-Pester {
     scenarios where data-driven test are generated, e.g. parametrized test files.
 
     .PARAMETER ExcludePath
-    (Deprecated v4)
-    Replace with ConfigurationProperty Run.ExcludePath
+    Specifies one or more paths to exclude from the test run.
+    Equivalent to ConfigurationProperty Run.ExcludePath.
 
     .PARAMETER ExcludeTagFilter
-    (Deprecated v4)
-    Replace with ConfigurationProperty Filter.ExcludeTag
+    Specifies tags to exclude from the test run.
+    Equivalent to ConfigurationProperty Filter.ExcludeTag.
 
     .PARAMETER FullNameFilter
-    (Deprecated v4)
-    Replace with ConfigurationProperty Filter.FullName
+    Specifies test full names (including Describe/Context/It path) to run.
+    Equivalent to ConfigurationProperty Filter.FullName.
 
     .PARAMETER Output
-    (Deprecated v4)
-    Replace with ConfigurationProperty Output.Verbosity
-    Supports Diagnostic, Detailed, Normal, Minimal, None
+    Specifies the verbosity of the test output.
+    Supports Diagnostic, Detailed, Normal, Minimal, None.
+    Equivalent to ConfigurationProperty Output.Verbosity.
 
     Default value is: Normal
 
     .PARAMETER PassThru
-    Replace with ConfigurationProperty Run.PassThru
-    Returns a custom object (PSCustomObject) that contains the test results.
+    Returns a [Pester.Run] object that contains the test results.
     By default, Invoke-Pester writes to the host program, not to the output stream (stdout).
     If you try to save the result in a variable, the variable is empty unless you
     use the PassThru parameter.
+    Equivalent to ConfigurationProperty Run.PassThru.
     To suppress the host output, use the Output parameter with value None.
 
     .PARAMETER Path
@@ -372,8 +370,8 @@ function Invoke-Pester {
     name or name pattern. Wildcards are permitted.
 
     .PARAMETER TagFilter
-    (Deprecated v4)
-    Replace with ConfigurationProperty Filter.Tag
+    Specifies tags to include in the test run. Only tests with matching tags will run.
+    Equivalent to ConfigurationProperty Filter.Tag.
 
     .EXAMPLE
     Invoke-Pester
