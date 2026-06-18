@@ -1937,21 +1937,29 @@ function Repair-EnumParameters {
 }
 
 function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchingCalls) {
+    if ($null -eq $callHistory -or $callHistory.Count -eq 0) {
+        return "Performed invocations:`n  <none>"
+    }
+
     $result = "Performed invocations:"
     foreach ($historyEntry in $callHistory) {
-        $Context = $historyEntry.BoundParams
-        $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "-$($p.Key) $($p.Value)" } }) -join " "
-        $m = "$(if ($hasContext) { "$c" } else { })."
-
-        if ($historyEntry -in $matchingCalls) {
-            $result += "`n  $($historyEntry.Behavior.CommandName) $m *"
+        $params = $historyEntry.BoundParams
+        if ($null -ne $params -and $params.Count -gt 0) {
+            $paramText = ($params.GetEnumerator() | ForEach-Object { "-$($_.Key) $(Format-Nicely2 $_.Value)" }) -join " "
         }
         else {
-            $result += "`n  $($historyEntry.Behavior.CommandName) $m"
+            $paramText = ""
+        }
+
+        $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
+        $cmd = $historyEntry.Behavior.CommandName
+        if ($paramText) {
+            $result += "`n  $marker $cmd $paramText"
+        }
+        else {
+            $result += "`n  $marker $cmd"
         }
     }
-    $result += "`n(* matching calls)"
 
     $result
 }
