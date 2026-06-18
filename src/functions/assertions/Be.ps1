@@ -312,7 +312,7 @@ function Expand-SpecialCharacters {
         [AllowEmptyString()]
         [string[]]$InputObject)
     process {
-        $InputObject -replace "`n", "\n" -replace "`r", "\r" -replace "`t", "\t" -replace "`0", "\0" -replace "`b", "\b"
+        [Pester.Formatter]::EscapeControlChars($InputObject)
     }
 }
 
