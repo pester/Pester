@@ -223,7 +223,7 @@ InPesterModuleScope {
 
         It "Given two collections '<expected>' '<actual>' it compares each value with each value and returns message '<message> if any of them are not equivalent" -TestCases @(
             @{ Actual = (1, 2, 3); Expected = (4, 5, 6); Message = "Expected collection @(4, 5, 6) to be equivalent to @(1, 2, 3) but some values were missing: @(4, 5, 6)." },
-            @{ Actual = (1, 2, 3); Expected = (1, 2, 2); Message = "Expected collection @(1, 2, 2) to be equivalent to @(1, 2, 3) but some values were missing: 2." }
+            @{ Actual = (1, 2, 3); Expected = (1, 2, 2); Message = "Expected collection @(1, 2, 2) to be equivalent to @(1, 2, 3) but some values were missing: @(2)." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message

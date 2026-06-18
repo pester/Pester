@@ -554,7 +554,7 @@ i -PassThru:$PassThru {
     }
 
     b "Outputing into a file" {
-        t "Write NUnit report using Invoke-Pester -OutputFormat NUnitXml" {
+        t "Write NUnit report using TestResult configuration with NUnitXml" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
@@ -568,7 +568,11 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $script -Force
 
                 $xml = [IO.Path]::GetTempFileName()
-                $r = Invoke-Pester -Show None -Path $script -OutputFormat NUnitXml -OutputFile $xml -PassThru
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ Path = $script; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'NUnitXml'; OutputPath = $xml }
+                    })
 
                 $xmlResult = [xml] (Get-Content $xml -Raw)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -587,7 +591,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        t "Write NUnit report using Invoke-Pester -OutputFormat NUnit2.5" {
+        t "Write NUnit report using TestResult configuration with NUnit2.5" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
@@ -601,7 +605,11 @@ i -PassThru:$PassThru {
                 $sb | Set-Content -Path $script -Force
 
                 $xml = [IO.Path]::GetTempFileName()
-                $r = Invoke-Pester -Show None -Path $script -OutputFormat NUnit2.5 -OutputFile $xml -PassThru
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ Path = $script; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'NUnit2.5'; OutputPath = $xml }
+                    })
 
                 $xmlResult = [xml] (Get-Content $xml -Raw)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'
@@ -620,7 +628,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        t "Write NUnit report using Invoke-Pester -OutputFormat NUnit2.5 into a folder that does not exist" {
+        t "Write NUnit report using TestResult configuration with NUnit2.5 into a folder that does not exist" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
@@ -636,7 +644,11 @@ i -PassThru:$PassThru {
                 $dir = Join-Path ([IO.Path]::GetTempPath()) "dir$([Guid]::NewGuid())"
 
                 $xml = Join-Path $dir "TestResults.xml"
-                $r = Invoke-Pester -Show None -Path $script -OutputFormat NUnit2.5 -OutputFile $xml -PassThru
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ Path = $script; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'NUnit2.5'; OutputPath = $xml }
+                    })
 
                 $xmlResult = [xml] (Get-Content $xml -Raw)
                 $xmlTestCase = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'.'results'.'test-suite'.'results'.'test-case'

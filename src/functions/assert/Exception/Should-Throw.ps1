@@ -1,7 +1,10 @@
-function Should-Throw {
+﻿function Should-Throw {
     <#
     .SYNOPSIS
     Asserts that a script block throws an exception.
+
+    .DESCRIPTION
+    This assertion executes the script block and expects it to throw. Optional filters let you match the exception type, message, or FullyQualifiedErrorId, and `-AllowNonTerminatingError` accepts non-terminating errors.
 
     .PARAMETER ScriptBlock
     The script block that should throw an exception.
@@ -50,6 +53,7 @@ function Should-Throw {
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true, Mandatory = $true)]
         [ScriptBlock]$ScriptBlock,
@@ -128,10 +132,11 @@ function Should-Throw {
 
         $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
             -DefaultMessage $defaultMessage
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     $err.ErrorRecord
+    Set-AssertionPassResult
 }
 
 function Get-ErrorObject ($ErrorRecord) {

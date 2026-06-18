@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the actual value to a boolean $true. It does not convert input values to boolean, and will fail for any value is not $true.
 
+    .DESCRIPTION
+    This assertion only passes for the Boolean value `$true. It does not coerce input, so truthy non-Boolean values still fail.
+
     .PARAMETER Actual
     The actual value to compare to $true.
 
@@ -38,6 +41,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
@@ -48,6 +52,7 @@
     $Actual = $collectedInput.Actual
     if ($Actual -isnot [bool] -or -not $Actual) {
         $Message = Get-AssertionMessage -Expected $true -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> but got: <actualType> <actual>."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null or empty string.
 
+    .DESCRIPTION
+    This assertion requires the actual value to be a string and fails for `$null, `""`, and non-string values. Use it when empty should not be accepted as a valid string value.
+
     .PARAMETER Actual
     The actual value that will be compared.
 
@@ -42,6 +45,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 0, ValueFromPipeline = $true)]
         $Actual,
@@ -53,6 +57,7 @@
 
     if ($Actual -isnot [String] -or [String]::IsNullOrEmpty($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null or empty,<because> but got <actualType>: <actual>" -Pretty
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

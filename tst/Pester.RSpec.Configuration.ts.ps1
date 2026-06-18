@@ -583,6 +583,150 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "auto-enabling output features" {
+        t "CodeCoverage.Path auto-enables code coverage" {
+            $coverageScript = "$PSScriptRoot/CoverageTestFile.ps1"
+            $coverageOutputPath = [IO.Path]::GetTempFileName()
+            Remove-Item $coverageOutputPath -Force
+
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run          = @{
+                            ScriptBlock = {
+                                Describe "auto coverage" {
+                                    It "covers script" {
+                                        . $coverageScript
+                                    }
+                                }
+                            }.GetNewClosure()
+                            PassThru    = $true
+                        }
+                        Output       = @{
+                            Verbosity = 'None'
+                        }
+                        CodeCoverage = @{
+                            Path       = $coverageScript
+                            OutputPath = $coverageOutputPath
+                        }
+                    })
+
+                $r.CodeCoverage | Verify-NotNull
+                (Test-Path $coverageOutputPath) | Verify-True
+            }
+            finally {
+                if (Test-Path $coverageOutputPath) {
+                    Remove-Item $coverageOutputPath -Force -ErrorAction Ignore
+                }
+            }
+        }
+
+        t "CodeCoverage.Enabled = `$false still disables code coverage" {
+            $coverageScript = "$PSScriptRoot/CoverageTestFile.ps1"
+            $coverageOutputPath = [IO.Path]::GetTempFileName()
+            Remove-Item $coverageOutputPath -Force
+
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run          = @{
+                            ScriptBlock = {
+                                Describe "disabled coverage" {
+                                    It "does not export coverage" {
+                                        . $coverageScript
+                                    }
+                                }
+                            }.GetNewClosure()
+                            PassThru    = $true
+                        }
+                        Output       = @{
+                            Verbosity = 'None'
+                        }
+                        CodeCoverage = @{
+                            Enabled    = $false
+                            Path       = $coverageScript
+                            OutputPath = $coverageOutputPath
+                        }
+                    })
+
+                $r.CodeCoverage | Verify-Null
+                (Test-Path $coverageOutputPath) | Verify-False
+            }
+            finally {
+                if (Test-Path $coverageOutputPath) {
+                    Remove-Item $coverageOutputPath -Force -ErrorAction Ignore
+                }
+            }
+        }
+
+        t "TestResult.OutputPath auto-enables test result export" {
+            $testResultOutputPath = [IO.Path]::GetTempFileName()
+            Remove-Item $testResultOutputPath -Force
+
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{
+                            ScriptBlock = {
+                                Describe "auto testresult" {
+                                    It "exports xml" {
+                                        $true | Should -Be $true
+                                    }
+                                }
+                            }
+                            PassThru    = $true
+                        }
+                        Output     = @{
+                            Verbosity = 'None'
+                        }
+                        TestResult = @{
+                            OutputPath = $testResultOutputPath
+                        }
+                    })
+
+                $r.Result | Verify-Equal 'Passed'
+                (Test-Path $testResultOutputPath) | Verify-True
+            }
+            finally {
+                if (Test-Path $testResultOutputPath) {
+                    Remove-Item $testResultOutputPath -Force -ErrorAction Ignore
+                }
+            }
+        }
+
+        t "TestResult.Enabled = `$false still disables test result export" {
+            $testResultOutputPath = [IO.Path]::GetTempFileName()
+            Remove-Item $testResultOutputPath -Force
+
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{
+                            ScriptBlock = {
+                                Describe "disabled testresult" {
+                                    It "does not export xml" {
+                                        $true | Should -Be $true
+                                    }
+                                }
+                            }
+                            PassThru    = $true
+                        }
+                        Output     = @{
+                            Verbosity = 'None'
+                        }
+                        TestResult = @{
+                            Enabled    = $false
+                            OutputPath = $testResultOutputPath
+                        }
+                    })
+
+                $r.Result | Verify-Equal 'Passed'
+                (Test-Path $testResultOutputPath) | Verify-False
+            }
+            finally {
+                if (Test-Path $testResultOutputPath) {
+                    Remove-Item $testResultOutputPath -Force -ErrorAction Ignore
+                }
+            }
+        }
+    }
+
     b "configuration modified at runtime" {
         t "changes at runtime doesn't leak to advanced configuration object" {
             $c = [PesterConfiguration] @{

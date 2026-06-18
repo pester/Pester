@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is `$null`.
 
+    .DESCRIPTION
+    This assertion passes only when the actual value is exactly `$null. Empty strings, empty collections, and other falsy values do not count as null.
+
     .PARAMETER Actual
     The actual value.
 
@@ -24,6 +27,7 @@
     #>
 
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -34,6 +38,7 @@
     $Actual = $collectedInput.Actual
     if ($null -ne $Actual) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected `$null,<because> but got <actualType> '<actual>'."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

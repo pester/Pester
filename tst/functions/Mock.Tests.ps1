@@ -40,41 +40,6 @@ BeforeAll {
         ${OutBuffer} ) {
         return "Please strip me of my common parameters. They are far too common."
     }
-
-    function PipelineInputFunction {
-        param(
-            [Parameter(ValueFromPipeline = $True)]
-            [int]$PipeInt1,
-            [Parameter(ValueFromPipeline = $True)]
-            [int[]]$PipeInt2,
-            [Parameter(ValueFromPipeline = $True)]
-            [string]$PipeStr,
-            [Parameter(ValueFromPipelineByPropertyName = $True)]
-            [int]$PipeIntProp,
-            [Parameter(ValueFromPipelineByPropertyName = $True)]
-            [int[]]$PipeArrayProp,
-            [Parameter(ValueFromPipelineByPropertyName = $True)]
-            [string]$PipeStringProp
-        )
-        begin {
-            $p = 0
-        }
-        process {
-            foreach ($i in $input) {
-                $p += 1
-                write-output @{
-                    index          = $p;
-                    val            = $i;
-                    PipeInt1       = $PipeInt1;
-                    PipeInt2       = $PipeInt2;
-                    PipeStr        = $PipeStr;
-                    PipeIntProp    = $PipeIntProp;
-                    PipeArrayProp  = $PipeArrayProp;
-                    PipeStringProp = $PipeStringProp;
-                }
-            }
-        }
-    }
 }
 
 Describe "When the caller mocks a command Pester uses internally" {
@@ -373,10 +338,9 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
 }
 
 Describe "When calling Mock on existing function without matching bound params" {
-    It "Should redirect to real function" {
+    It "Should throw because no parameter filter matched the call" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
-        $result = FunctionUnderTest "badTest"
-        $result | Should -Be "I am a real world test"
+        { FunctionUnderTest "badTest" } | Should -Throw "*no default mock to fall back to*"
     }
 }
 
@@ -389,10 +353,9 @@ Describe "When calling Mock on existing function with matching bound params" {
 }
 
 Describe  "When calling Mock on existing function without matching unbound arguments" {
-    It "Should redirect to real function" {
+    It "Should throw because no parameter filter matched the call" {
         Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "test" -and $args[0] -eq 'notArg0' }
-        $result = FunctionUnderTestWithoutParams -param1 "test" "arg0"
-        $result | Should -Be "I am a real world test with no params"
+        { FunctionUnderTestWithoutParams -param1 "test" "arg0" } | Should -Throw "*no default mock to fall back to*"
     }
 }
 
@@ -518,15 +481,6 @@ Describe 'When calling Mock on a module-internal function.' {
         BeforeAll {
             Mock -ModuleName TestModule InternalFunction { 'I am the mock test' }
             Mock -ModuleName TestModule Start-Sleep { }
-            Mock -ModuleName TestModule2 InternalFunction -ParameterFilter { $args[0] -eq 'Test' } {
-                "I'm the mock who's been passed parameter Test"
-            }
-            # Mock -ModuleName TestModule2 InternalFunction2 {
-            #     # this does not work in v5 because we are running the mock in the test scope
-            #     # so this module internal function is not accessible to the mock body
-            #     InternalFunction 'Test'
-            # }
-            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
             Mock -ModuleName TestModule2 Get-Content { }
         }
 
@@ -552,24 +506,12 @@ Describe 'When calling Mock on a module-internal function.' {
             TestModule2\PublicFunction | Should -Be 'I am the second module internal function'
         }
 
-
-        # this does not work because mock bodies are now run in test scope
-        # and so the internal function hidden in the mock body is not accessible
-        # It 'Should call mocks from inside another mock' {
-        #     TestModule2\PublicFunction2 | Should -Be "I'm the mock who's been passed parameter Test"
-        # }
-
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
             TestModule2\FuncThatOverwritesExecutionContext | Should -Be 'I am the second module internal function'
             TestModule\FuncThatOverwritesExecutionContext | Should -Be 'I am the mock test'
         }
 
-        It 'Should call the original command from the proper scope if no parameter filters match' {
-            TestModule2\ScopeTest | Should -Be 'TestModule2'
-        }
-
         It 'Does not trigger the mocked Get-Content from Pester internals' {
-            Mock -ModuleName TestModule2 Get-CallerModuleName -ParameterFilter { $false }
             Should -Invoke -ModuleName TestModule2 -CommandName Get-Content -Times 0 -Scope It
         }
     }
@@ -632,6 +574,7 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
 Describe "When Creating Verifiable Mock that is not called" {
     Context "In the test script's scope" {
         It "Should throw" {
+            Mock FunctionUnderTest { return "default" }
             Mock FunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
             FunctionUnderTest "three" | Out-Null
             $result = $null
@@ -654,6 +597,7 @@ Describe "When Creating Verifiable Mock that is not called" {
                 }
             } | Import-Module -Force
 
+            Mock -ModuleName TestModule ModuleFunctionUnderTest { return "default" }
             Mock -ModuleName TestModule ModuleFunctionUnderTest { return "I am a verifiable test" } -Verifiable -parameterFilter { $param1 -eq "one" }
             TestModule\ModuleFunctionUnderTest "three" | Out-Null
 
@@ -1942,104 +1886,6 @@ Describe 'Mocking New-Object' {
     }
 }
 
-Describe 'Mocking a function taking input from pipeline' {
-    BeforeAll {
-        $psobj = New-Object -TypeName psobject -Property @{'PipeIntProp' = '1'; 'PipeArrayProp' = 1; 'PipeStringProp' = 1 }
-        $psArrayobj = New-Object -TypeName psobject -Property @{'PipeArrayProp' = @(1) }
-        $noMockArrayResult = @(1, 2) | PipelineInputFunction
-        $noMockIntResult = 1 | PipelineInputFunction
-        $noMockStringResult = '1' | PipelineInputFunction
-        $noMockResultByProperty = $psobj | PipelineInputFunction -PipeStr 'val'
-        $noMockArrayResultByProperty = $psArrayobj | PipelineInputFunction -PipeStr 'val'
-
-        Mock PipelineInputFunction { write-output 'mocked' } -ParameterFilter { $PipeStr -eq 'blah' }
-    }
-    context 'when calling original function with an array' {
-        BeforeAll {
-            $result = @(1, 2) | PipelineInputFunction
-        }
-
-        it 'Returns actual implementation' {
-            $result[0].keys | ForEach {
-                $result[0][$_] | Should -Be $noMockArrayResult[0][$_]
-                $result[1][$_] | Should -Be $noMockArrayResult[1][$_]
-            }
-        }
-    }
-
-    context 'when calling original function with an int' {
-        BeforeAll {
-            $result = 1 | PipelineInputFunction
-        }
-        it 'Returns actual implementation' {
-            $result.keys | ForEach {
-                $result[$_] | Should -Be $noMockIntResult[$_]
-            }
-        }
-    }
-
-    context 'when calling original function with a string' {
-        BeforeAll {
-            $result = '1' | PipelineInputFunction
-        }
-        it 'Returns actual implementation' {
-            $result.keys | ForEach {
-                $result[$_] | Should -Be $noMockStringResult[$_]
-            }
-        }
-    }
-
-    context 'when calling original function and pipeline is bound by property name' {
-        BeforeAll {
-            $result = $psobj | PipelineInputFunction -PipeStr 'val'
-        }
-
-        it 'Returns actual implementation' {
-            $result.keys | ForEach {
-                $result[$_] | Should -Be $noMockResultByProperty[$_]
-            }
-        }
-    }
-
-    context 'when calling original function and forcing a parameter binding exception' {
-        BeforeAll {
-            Mock PipelineInputFunction {
-                if ($MyInvocation.ExpectingInput) {
-                    throw New-Object -TypeName System.Management.Automation.ParameterBindingException
-                }
-                write-output $MyInvocation.ExpectingInput
-            }
-            $result = $psobj | PipelineInputFunction
-        }
-
-        it 'falls back to no pipeline input' {
-            $result | Should -Be $false
-        }
-    }
-
-    context 'when calling original function and pipeline is bound by property name with array values' {
-        BeforeAll {
-            $result = $psArrayobj | PipelineInputFunction -PipeStr 'val'
-        }
-
-        it 'Returns actual implementation' {
-            $result.keys | ForEach {
-                $result[$_] | Should -Be $noMockArrayResultByProperty[$_]
-            }
-        }
-    }
-
-    context 'when calling the mocked function' {
-        BeforeAll {
-            $result = 'blah' | PipelineInputFunction
-        }
-
-        it 'Returns mocked implementation' {
-            $result | Should -Be 'mocked'
-        }
-    }
-}
-
 Describe 'Mocking module-qualified calls' {
 
     BeforeAll {
@@ -2289,6 +2135,9 @@ Describe 'Nested Mock calls' {
     BeforeAll {
         $testDate = New-Object DateTime(2012, 6, 13)
 
+        Mock Get-Date -ParameterFilter { $Date -eq $testDate -and $Format -eq 'o' } {
+            '2012-06-13T00:00:00.0000000'
+        }
         Mock Get-Date -ParameterFilter { $null -eq $Date } {
             Get-Date -Date $testDate -Format o
         }
@@ -2453,83 +2302,6 @@ Describe "Restoring original commands when mock scopes exit" {
     }
 }
 
-Describe "Mocking Set-Variable" {
-    It "sets variable correctly when mocking Set-Variable without -Scope parameter" {
-
-        Set-Variable -Name v1 -Value 1
-        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
-
-        # we mock the command but the mock will never be triggered because
-        # the filter will never pass, so this mock will always call through
-        # to the real Set-Variable
-        Mock Set-Variable -ParameterFilter { $false }
-
-        Set-Variable -Name v2 -Value 10
-
-        # if mock works correctly then then we should see
-        # 10 here because calling through to the Set-Variable
-        # should work the same as calling it directly
-        $v2 | Should -Be 10
-    }
-
-    It "sets variable correctly when mocking Set-Variable without -Scope 0 parameter" {
-
-        Set-Variable -Name v1 -Value 1
-        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
-
-        Mock Set-Variable -ParameterFilter { $false }
-
-        Set-Variable -Name v2 -Value 11 -Scope 0
-        $v2 | Should -Be 11
-    }
-
-    It "sets variable correctly when mocking Set-Variable without -Scope Local parameter" {
-
-        Set-Variable -Name v1 -Value 1
-        $v1 | Should -Be 1 -Because "we defined it without mocking Set-Variable"
-
-        Mock Set-Variable -ParameterFilter { $false }
-
-        Set-Variable -Name v2 -Value 12 -Scope Local
-
-        $v2 | Should -Be 12
-    }
-
-    It "sets variable correctly when mocking Set-Variable with -Scope 3 parameter" {
-        & {
-            # scope 3
-            & {
-                # scope 2
-                & {
-                    # scope 1
-                    & {
-                        Set-Variable -Name v1 -Value 2 -Scope 3
-                    }
-                }
-            }
-
-            $v1 | Should -Be 2 -Because "we defined it without mocking Set-Variable"
-        }
-
-
-        & {
-            # scope 3
-            & {
-                # scope 2
-                & {
-                    # scope 1
-                    & {
-                        Mock Set-Variable -ParameterFilter { $false }
-                        Set-Variable -Name v2 -Value 11 -Scope 3
-                    }
-                }
-            }
-            $v2 | Should -Be 11
-        }
-    }
-
-}
-
 Describe "Mocking functions with conflicting parameters" {
     InPesterModuleScope {
         Context "Faked conflicting parameter" {
@@ -2546,6 +2318,7 @@ Describe "Mocking functions with conflicting parameters" {
                     $ParamToAvoid
                 }
 
+                Mock Get-ExampleTest { "default mock" }
                 Mock Get-ExampleTest { "World" } -ParameterFilter { $_ParamToAvoid -eq "Hello" }
             }
 
@@ -2553,8 +2326,8 @@ Describe "Mocking functions with conflicting parameters" {
                 Get-ExampleTest -ParamToAvoid "Hello" | Should -Be "World"
             }
 
-            It 'defaults to the original function' {
-                Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "Bye"
+            It 'falls back to the default mock when no parameter filter matches' {
+                Get-ExampleTest -ParamToAvoid "Bye" | Should -Be "default mock"
             }
 
             Context "Should -Invoke" {
@@ -2724,6 +2497,33 @@ Describe "Mock definition output" {
 }
 
 Describe 'Mocking using ParameterFilter' {
+    Context 'Should-* assertions used in ParameterFilter' {
+        It 'matches a filter that uses Should-Be' {
+            function Get-MockFilterValue {
+                param ([string] $Name)
+
+                $Name
+            }
+
+            Mock Get-MockFilterValue { 'fallback' }
+            Mock Get-MockFilterValue { 'mocked' } -ParameterFilter { $Name | Should-Be 'foo' }
+
+            Get-MockFilterValue -Name 'foo' | Should -Be 'mocked'
+        }
+
+        It 'matches a filter that uses Should-BeString' {
+            function Get-MockFilterText {
+                param ([string] $Name)
+
+                $Name
+            }
+
+            Mock Get-MockFilterText { 'fallback' }
+            Mock Get-MockFilterText { 'mocked' } -ParameterFilter { $Name | Should-BeString 'foo' }
+
+            Get-MockFilterText -Name 'foo' | Should -Be 'mocked'
+        }
+    }
 
     Context 'Scriptblock [Scriptblock]::Create() passed to ParameterFilter as var' {
         BeforeAll {
@@ -3137,8 +2937,12 @@ Describe 'Mocking with nested Pester runs' {
                         Get-Command | Should -Be 2
                     }
 
-                    It 'outer mock is not available' {
-                        Get-Date | Should -Not -Be 1
+                    It 'outer mock bootstrap leaks but throws instead of falling through' {
+                        # The outer Mock Get-Date {1} installs a bootstrap alias in the script
+                        # session state that is visible to this nested Invoke-Pester run.
+                        # Pester 6 never falls through to the original command, so calling
+                        # Get-Date here without mocking it locally throws with a clear message.
+                        { Get-Date } | Should -Throw "*No mock for command 'Get-Date' is defined in this scope*"
                     }
                 }
             }) -Output None -PassThru

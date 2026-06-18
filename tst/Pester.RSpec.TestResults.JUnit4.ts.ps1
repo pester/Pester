@@ -271,7 +271,7 @@ i -PassThru:$PassThru {
     }
 
     b "Writing JUnit report into file" {
-        t "should write XML when using -OutputFormat JUnitXml" {
+        t "should write XML when using TestResult configuration" {
             try {
                 $sb = {
                     Describe "Mocked Describe" {
@@ -288,7 +288,11 @@ i -PassThru:$PassThru {
 
                 $xmlPath = Join-Path $temp "JUnit.xml"
 
-                $r = Invoke-Pester -Path $filePath -OutputFormat JUnitXML -OutputFile $xmlPath -Show None -PassThru
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ Path = $filePath; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'JUnitXml'; OutputPath = $xmlPath }
+                    })
 
                 $xmlResult = [xml] (Get-Content -Path $xmlPath)
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
@@ -361,7 +365,7 @@ i -PassThru:$PassThru {
 
                 $xmlPath = Join-Path $temp "JUnit.xml"
 
-                $r = Invoke-Pester -Path $filePath -Show None -PassThru
+                $r = Invoke-Pester -Path $filePath -Output None -PassThru
 
                 # act
                 Export-JUnitReport -Result $r -Path $xmlPath
@@ -379,7 +383,7 @@ i -PassThru:$PassThru {
             }
         }
 
-        t "Write JUnit report using Invoke-Pester -OutputFormat JUnitXML into a folder that does not exist" {
+        t "Write JUnit report using TestResult configuration into a folder that does not exist" {
             $sb = {
                 Describe "Mocked Describe" {
                     It "Successful testcase" {
@@ -395,7 +399,11 @@ i -PassThru:$PassThru {
                 $dir = Join-Path ([IO.Path]::GetTempPath()) "dir$([Guid]::NewGuid())"
 
                 $xml = Join-Path $dir "TestResults.xml"
-                $r = Invoke-Pester -Show None -Path $script -OutputFormat JUnitXML -OutputFile $xml -PassThru
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ Path = $script; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'JUnitXml'; OutputPath = $xml }
+                    })
 
                 $xmlResult = [xml] (Get-Content -Path $xml)
                 $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'

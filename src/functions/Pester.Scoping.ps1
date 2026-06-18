@@ -46,18 +46,3 @@
         Set-ScriptBlockHint -ScriptBlock $ScriptBlock
     }
 }
-
-function Get-ScriptBlockScope {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock, $null)
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope SessionState "Getting scope from ScriptBlock '$($sessionStateInternal.Hint)'"
-    }
-    $sessionStateInternal
-}

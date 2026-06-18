@@ -291,13 +291,13 @@ i -PassThru:$PassThru {
 
                 $sb = [scriptblock]::Create("
                 try {
-                    Invoke-Pester -Path $testpath -EnableExit
+                    Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ Path = '$testpath'; Exit = `$true } })
                     `$exitCode = `$LASTEXITCODE
                 }
                 finally {
                     # exitcode was set to 99 in the test because the test passed,
                     # BUT after the run the exit code should be 0 because all tests pass
-                    # AND we should NOT exit the process even though the -EnableExit is used
+                    # AND we should NOT exit the process even though Run.Exit is enabled
                     # to allow running multiple successful runs in the same process.
                     # So to ensure we did not exit too early we set exitcode and
                     # check it in finally.
@@ -343,7 +343,7 @@ i -PassThru:$PassThru {
 
                 $sb = [scriptblock]::Create("
                 try {
-                    Invoke-Pester -Path $testpath -EnableExit
+                    Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ Path = '$testpath'; Exit = `$true } })
                     `$codeAfterPester = `$true
                 }
                 finally {
@@ -389,6 +389,32 @@ i -PassThru:$PassThru {
             finally {
                 $ps.Dispose()
             }
+        }
+    }
+
+    b '$WhatIfPreference does not break Pester' {
+        t 'Invoke-Pester succeeds when $WhatIfPreference is $true' {
+                $sb = {
+                    $WhatIfPreference = $true
+
+                    $PesterPreference = [PesterConfiguration]::Default
+                    $PesterPreference.Output.Verbosity = 'None'
+
+                    $container = New-PesterContainer -ScriptBlock {
+                        Describe 'd1' {
+                            It 'i1' {
+                                1 | Should -Be 1
+                            }
+                        }
+                    }
+                    $r = Invoke-Pester -Container $container -PassThru
+                    if ($r.FailedCount -ne 0) { throw "Expected 0 failures, got $($r.FailedCount)" }
+                    if ($r.PassedCount -ne 1) { throw "Expected 1 passed, got $($r.PassedCount)" }
+                }
+
+                $output = Invoke-InNewProcess $sb
+                $whatIfLines = $output | Select-String -Pattern 'What if:'
+                @($whatIfLines).Count | Verify-Equal 0
         }
     }
 }

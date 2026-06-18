@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is not of the expected type.
 
+    .DESCRIPTION
+    This assertion uses `-is` to verify that the actual value is not assignable to the expected type. Derived types and implemented interfaces still count as the expected type.
+
     .PARAMETER Expected
     The expected type.
 
@@ -30,6 +33,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -42,6 +46,7 @@
     $Actual = $collectedInput.Actual
     if ($Actual -is $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to be of different type than <expected>,<because> but got <actualType> <actual>."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

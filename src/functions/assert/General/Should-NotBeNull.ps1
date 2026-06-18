@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the input is not `$null`.
 
+    .DESCRIPTION
+    This assertion passes for any value other than exactly `$null. Empty strings, empty collections, and other falsy values are not treated as null.
+
     .PARAMETER Actual
     The actual value.
 
@@ -24,6 +27,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -34,6 +38,7 @@
     $Actual = $collectedInput.Actual
     if ($null -eq $Actual) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected not `$null,<because> but got `$null."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

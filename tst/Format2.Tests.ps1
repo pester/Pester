@@ -165,6 +165,22 @@ InPesterModuleScope {
         ) {
             Format-Nicely2 -Value $Value | Verify-Equal $Expected
         }
+
+        # Regression test for https://github.com/pester/Pester/issues/2474
+        # DirectoryInfo has circular references (Root -> DirectoryInfo) that caused
+        # infinite recursion. Verify formatting completes without hanging.
+        It "Formats DirectoryInfo without infinite recursion" {
+            $dir = [System.IO.DirectoryInfo]::new($TestDrive)
+            $job = Start-Job -ScriptBlock {
+                param($modulePath, $dirPath)
+                Import-Module $modulePath
+                $d = [System.IO.DirectoryInfo]::new($dirPath)
+                & (Get-Module Pester) { Format-Nicely2 -Value $args[0] } $d
+            } -ArgumentList (Get-Module Pester).Path, $TestDrive
+            $result = $job | Wait-Job -Timeout 10 | Receive-Job
+            $job | Remove-Job -Force
+            $result | Should -Not -BeNullOrEmpty
+        }
     }
 
     Describe "Get-DisplayProperty2" {
@@ -174,6 +190,19 @@ InPesterModuleScope {
             param ($Type, $Expected)
             $Actual = Get-DisplayProperty2 -Type $Type
             "$Actual" | Verify-Equal "$Expected"
+        }
+
+        # Regression tests for https://github.com/pester/Pester/issues/2474
+        # DirectoryInfo and FileInfo have circular references (Root, Directory)
+        # that cause infinite recursion without an explicit property map.
+        It "Returns 'Name FullName' for DirectoryInfo" {
+            $Actual = Get-DisplayProperty2 -Type ([System.IO.DirectoryInfo])
+            "$Actual" | Verify-Equal "Name FullName"
+        }
+
+        It "Returns 'Name FullName Length' for FileInfo" {
+            $Actual = Get-DisplayProperty2 -Type ([System.IO.FileInfo])
+            "$Actual" | Verify-Equal "Name FullName Length"
         }
     }
 
@@ -211,6 +240,68 @@ InPesterModuleScope {
 
         It "Formats string to be sorrounded by quotes" {
             Format-String2 -Value "abc" | Verify-Equal "'abc'"
+        }
+
+        # Regression tests for https://github.com/pester/Pester/issues/2561
+        # Control characters must be escaped to Unicode control pictures so they are
+        # visible in error messages instead of being invisible or breaking output.
+        # Note: control picture chars (U+2400-U+241B) are written as literal Unicode in
+        # single-quoted strings so the tests parse on PowerShell 5.1 too (`u{XXXX} is PS 6+).
+        It "Escapes null character to control picture" {
+            Format-String2 -Value "`0" | Verify-Equal "'␀'"
+        }
+
+        It "Escapes bell character to control picture" {
+            Format-String2 -Value "`a" | Verify-Equal "'␇'"
+        }
+
+        It "Escapes backspace character to control picture" {
+            Format-String2 -Value "`b" | Verify-Equal "'␈'"
+        }
+
+        It "Escapes tab character to control picture" {
+            Format-String2 -Value "`t" | Verify-Equal "'␉'"
+        }
+
+        It "Escapes form feed character to control picture" {
+            Format-String2 -Value "`f" | Verify-Equal "'␌'"
+        }
+
+        It "Escapes carriage return character to control picture" {
+            Format-String2 -Value "`r" | Verify-Equal "'␍'"
+        }
+
+        It "Escapes newline character to control picture" {
+            Format-String2 -Value "`n" | Verify-Equal "'␊'"
+        }
+
+        It "Escapes ESC character to control picture" {
+            Format-String2 -Value "$([char]27)" | Verify-Equal "'␛'"
+        }
+
+        It "Leaves normal strings unchanged" {
+            Format-String2 -Value "hello" | Verify-Equal "'hello'"
+        }
+
+        It "Escapes ANSI sequence making escape char visible" {
+            # ESC[31m is a common ANSI red color code; the ESC byte should become ␛
+            $ansi = "$([char]27)[31m"
+            $result = Format-String2 -Value $ansi
+            $result | Verify-Equal "'␛[31m'"
+        }
+
+        It "Escapes multiple control chars in one string" {
+            $value = "a`t`nb"
+            $result = Format-String2 -Value $value
+            $result | Verify-Equal "'a␉␊b'"
+        }
+
+        It "Escaped output contains no actual control characters" {
+            # Round-trip: the escaped output should be a clean displayable string
+            $value = "`0`a`b`t`f`r`n$([char]27)"
+            $result = Format-String2 -Value $value
+            # The result should not contain any of the original control characters
+            $result | Should -Not -Match '[\x00-\x1F]'
         }
     }
 }

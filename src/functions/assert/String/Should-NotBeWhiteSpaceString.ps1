@@ -3,6 +3,9 @@
     .SYNOPSIS
     Ensures that the input is a string, and that the input is not $null, empty, or whitespace only string.
 
+    .DESCRIPTION
+    This assertion requires a string that contains at least one non-whitespace character. It fails for `$null, `""`, whitespace-only strings, and non-string values.
+
     .PARAMETER Actual
     The actual value that will be compared.
 
@@ -43,6 +46,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 0, ValueFromPipeline = $true)]
         $Actual,
@@ -54,6 +58,7 @@
 
     if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
         $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

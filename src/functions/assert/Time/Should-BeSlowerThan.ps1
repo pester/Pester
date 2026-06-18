@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [timespan] is slower than the expected [timespan].
 
+    .DESCRIPTION
+    This assertion accepts either a `[timespan]` or a script block to measure. Fluent time values such as `1s` are converted to a `[timespan]` before the comparison.
+
     .PARAMETER Actual
     The actual [timespan] or [scriptblock] value.
 
@@ -43,11 +46,13 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Position = 0)]
-        $Expected
+        $Expected,
+        [string] $Because
     )
 
     if ($Expected -isnot [timespan]) {
@@ -64,16 +69,19 @@
 
         if ($sw.Elapsed -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -Because $Because -Data @{ scriptblock = $Actual } -DefaultMessage "The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
-            throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
+        Set-AssertionPassResult
         return
     }
 
     if ($Actual -is [timespan]) {
         if ($Actual -le $Expected) {
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "The provided [timespan] should be longer than <expectedType> <expected>,<because> but it was shorter: <actual>"
-            throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
         }
+        Set-AssertionPassResult
         return
     }
+    Set-AssertionPassResult
 }

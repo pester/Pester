@@ -62,8 +62,7 @@ function Mock {
     Optionally, you may create a Parameter Filter which will examine the
     parameters passed to the mocked command and will invoke the mocked
     behavior only if the values of the parameter values pass the filter. If
-    they do not, the original command implementation will be invoked instead
-    of a mock.
+    they do not, and there is no default mock, the call will throw.
 
     You may create multiple mocks for the same command, each using a different
     ParameterFilter. ParameterFilters will be evaluated in reverse order of
@@ -772,11 +771,9 @@ function Should-InvokeAssertion {
     .NOTES
     The parameter filter passed to Should -Invoke does not necessarily have to match the parameter filter
     (if any) which was used to create the Mock.  Should -Invoke will find any entry in the command history
-    which matches its parameter filter, regardless of how the Mock was created.  However, if any calls to the
-    mocked command are made which did not match any mock's parameter filter (resulting in the original command
-    being executed instead of a mock), these calls to the original command are not tracked in the call history.
-    In other words, Should -Invoke can only be used to check for calls to the mocked implementation, not
-    to the original.
+    which matches its parameter filter, regardless of how the Mock was created.  If a call does not match
+    any mock's parameter filter and there is no default mock, the call throws instead of invoking the
+    original command, so every tracked call is a call to a mock behavior.
     #>
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     param(
@@ -1001,15 +998,15 @@ function Invoke-Mock {
     )
 
     if ('End' -eq $FromBlock) {
-        if (-not $MockCallState.ShouldExecuteOriginalCommand) {
+        if (-not $MockCallState.MatchedNoBehavior) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should not execute the original command, returning."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and matched at least one behavior, returning."
             }
             return
         }
         else {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, forwarding the call to Invoke-MockInternal without call history and without behaviors."
+                Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, no behaviors in scope, forwarding to Invoke-MockInternal (will throw)."
             }
             Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
             return
@@ -1018,7 +1015,7 @@ function Invoke-Mock {
 
     if ('Begin' -eq $FromBlock) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and should execute the original command, Invoke-MockInternal without call history and without behaviors."
+            Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, no behaviors in scope, forwarding to Invoke-MockInternal (will throw)."
         }
         Invoke-MockInternal @PSBoundParameters -Behaviors @() -CallHistory @{}
         return
@@ -1037,7 +1034,7 @@ function Invoke-Mock {
     # because it does not contain whitespace, but if someone mistypes we won't be able to fix it
     # to be empty string in the below condition.
     $TargetModule = $ModuleName
-    $targettingAModule = -not [string]::IsNullOrWhiteSpace($TargetModule)
+    $targetingAModule = -not [string]::IsNullOrWhiteSpace($TargetModule)
 
     $getBehaviorMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         # output scriptblock that we can call later
@@ -1052,7 +1049,7 @@ function Invoke-Mock {
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Filtering behaviors for command $CommandName, for target module $(if ($targettingAModule) { $TargetModule } else { '$null' }) (Showing all behaviors for this command, actual filtered list is further in the log, look for 'Filtered parametrized behaviors:' and 'Filtered default behaviors:'):"
+        Write-PesterDebugMessage -Scope Mock -Message "Filtering behaviors for command $CommandName, for target module $(if ($targetingAModule) { $TargetModule } else { '$null' }) (Showing all behaviors for this command, actual filtered list is further in the log, look for 'Filtered parametrized behaviors:' and 'Filtered default behaviors:'):"
     }
 
     $moduleBehaviors = [System.Collections.Generic.List[Object]]@()
@@ -1092,7 +1089,7 @@ function Invoke-Mock {
             else {
                 # not the targeted module, skip it
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targettingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
+                    Write-PesterDebugMessage -Scope Mock -Message "Behavior is not from the target module $(if ($targetingAModule) { $TargetModule } else { '$null' }), skipping it:`n$(& $getBehaviorMessage $b)"
                 }
             }
         }
@@ -1101,11 +1098,11 @@ function Invoke-Mock {
                 # keep the first found (the last one defined)
                 if ($null -eq $nonModuleDefaultBehavior) {
                     $nonModuleDefaultBehavior = $b
-                    if ($targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                    if ($targetingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from script scope, saving it to use as a fallback if default behavior for module $TargetModule is not found:`n$(& $getBehaviorMessage $b)"
                     }
 
-                    if (-not $targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                    if (-not $targetingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
                         Write-PesterDebugMessage -Scope Mock -Message "Behavior is a default behavior from script scope, saving it:`n$(& $getBehaviorMessage $b)"
                     }
                 }
@@ -1116,11 +1113,11 @@ function Invoke-Mock {
                 }
             }
             else {
-                if ($targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                if ($targetingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock -Message "Behavior is a parametrized behavior from script scope, skipping it. (Parametrized script scope behaviors are not used as fallback for module scoped mocks.):`n$(& $getBehaviorMessage $b)"
                 }
 
-                if (-not $targettingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
+                if (-not $targetingAModule -and $PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock -Message "Behavior is a parametrized behavior from script scope, adding it to non-module parametrized behavior list:`n$(& $getBehaviorMessage $b)"
                 }
 
@@ -1134,7 +1131,7 @@ function Invoke-Mock {
     # then the default mock for Remove-Item should be effective.
 
     # using @() to always get array. This avoids null error in Invoke-MockInternal when no behaviors where found (if-else unwraps the lists)
-    $behaviors = @(if ($targettingAModule) {
+    $behaviors = @(if ($targetingAModule) {
             # we have default module behavior add it to the filtered behaviors if there are any
             if ($null -ne $moduleDefaultBehavior) {
                 $moduleBehaviors.Add($moduleDefaultBehavior)
@@ -1180,7 +1177,7 @@ function Invoke-Mock {
             }
         }
         $message = if ($null -ne $default) { & $getBehaviorMessage $b } else { '$null' }
-        $fallBack = if ($null -ne $default -and $targettingAModule -and [string]::IsNullOrEmpty($b.ModuleName) ) { " (fallback to script scope default behavior)" } else { $null }
+        $fallBack = if ($null -ne $default -and $targetingAModule -and [string]::IsNullOrEmpty($b.ModuleName) ) { " (fallback to script scope default behavior)" } else { $null }
         Write-PesterDebugMessage -Scope Mock -Message "Filtered default behavior$($fallBack):`n$message"
     }
 

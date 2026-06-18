@@ -23,6 +23,10 @@ Describe "Should-BeBefore" {
         [DateTime]::Now.Add([timespan]::FromMinutes(-20)) | Should-BeBefore
     }
 
+    It "Does not throw when actual date is before expected date using positional DateTime" {
+        [DateTime]::Now.AddDays(-1) | Should-BeBefore ([DateTime]::Now)
+    }
+
     It "Throws when actual date is after expected date" -ForEach @(
         @{ Actual = [DateTime]::Now.AddDays(1); Expected = [DateTime]::Now }
     ) {
@@ -47,6 +51,17 @@ Describe "Should-BeBefore" {
 
     It "Throws when both -Ago and -FromNow are used" {
         { $Actual | Should-BeBefore 10minutes -Ago -FromNow } | Verify-Throw
+    }
+
+    It "Fails for array input even if the last item is before the expected date" {
+        $past = [DateTime]::Now.AddDays(-1)
+        $future = [DateTime]::Now.AddDays(1)
+        { $future, $past | Should-BeBefore -Expected ([DateTime]::Now) } | Verify-AssertionFailed
+    }
+
+    It "Has Because parameter" {
+        $err = { [DateTime]::Now.AddDays(1) | Should-BeBefore -Expected ([DateTime]::Now) -Because 'I said so' } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*because I said so*'
     }
 
     It "Can check file creation date" {

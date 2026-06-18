@@ -59,7 +59,7 @@ function Write-NUnit3TestRunChildNode {
             continue
         }
 
-        # Incremenet assembly-id per container and reset node-counter
+        # Increment assembly-id per container and reset node-counter
         $reportIds.Assembly++
         $reportIds.Node = 1000
         Write-NUnit3TestSuiteElement -XmlWriter $XmlWriter -Node $container -RuntimeEnvironment $RuntimeEnvironment
@@ -554,7 +554,12 @@ function Format-CDataString ($Output) {
     $linesCount = $out.Length
     $o = for ($i = 0; $i -lt $linesCount; $i++) {
         # The input is array of objects, convert them to strings.
-        $line = if ($null -eq $out[$i]) { [String]::Empty } else { $out[$i].ToString() }
+        $line = if ($null -eq $out[$i]) {
+            [String]::Empty
+        }
+        else {
+            try { $out[$i].ToString() } catch { "<Output object ToString() failed: $($_.Exception.Message)>" }
+        }
 
         if (0 -gt $line.IndexOfAny($script:invalidCDataChars)) {
             # No special chars that need replacing.
@@ -652,7 +657,7 @@ function Write-NUnit3DataProperty ([System.Collections.IDictionary] $Data, [Syst
 }
 
 function Get-NUnit3NodeId {
-    # depends on inhertied $reportIds created in Write-NUnit3TestRunChildNode
+    # depends on inherited $reportIds created in Write-NUnit3TestRunChildNode
     if ($null -eq $reportIds) { return '' }
 
     # Unique id (string):  <asemmblyid>-<counter>

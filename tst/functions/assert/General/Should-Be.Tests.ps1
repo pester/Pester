@@ -58,6 +58,18 @@ Describe "Should-Be" {
         { 1, 2, 3 | Should-Be 3 } | Verify-AssertionFailed
     }
 
+    It "Outputs ShouldResult for failed pipeline assertions" {
+        $err = { 'actual' | Should-Be 'expected' -Because 'the values should match' } | Verify-AssertionFailed
+        $shouldResult = $err.TargetObject['ShouldResult']
+
+        $shouldResult | Verify-NotNull
+        $shouldResult.Succeeded | Verify-False
+        $shouldResult.FailureMessage | Verify-Equal $err.Exception.Message
+        $shouldResult.ExpectResult.Expected | Verify-Equal "'expected'"
+        $shouldResult.ExpectResult.Actual | Verify-Equal "'actual'"
+        $shouldResult.ExpectResult.Because | Verify-Equal "the values should match"
+    }
+
     Context "Validate messages" {
         It "Given two values that are not the same '<expected>' and '<actual>' it returns expected message '<message>'" -TestCases @(
             @{ Expected = "a" ; Actual = 10 ; Message = "Expected [string] 'a', but got [int] 10." },
@@ -76,5 +88,17 @@ Describe "Should-Be" {
     It "Given collection to Expected it throws" {
         $err = { "dummy" | Should-Be @() } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
+    }
+
+    It "Given empty array through pipeline against `$null it passes (empty pipeline unwraps to `$null for value assertions)" {
+        @() | Should-Be -Expected $null
+    }
+
+    It "Given @(`$null) through pipeline against `$null it passes (single `$null item unwraps to `$null)" {
+        @($null) | Should-Be -Expected $null
+    }
+
+    It "Given ,`$null through pipeline against `$null it passes (single `$null item unwraps to `$null)" {
+        , $null | Should-Be -Expected $null
     }
 }

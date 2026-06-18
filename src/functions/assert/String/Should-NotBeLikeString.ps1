@@ -65,6 +65,7 @@ function Should-NotBeLikeString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -90,6 +91,7 @@ function Should-NotBeLikeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because -CaseSensitive:$CaseSensitive
         }
 
-        throw [Pester.Factory]::CreateShouldErrorRecord($formattedMessage, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet -Expected $Expected -Actual $Actual -Because $Because
     }
+    Set-AssertionPassResult
 }

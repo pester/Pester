@@ -10,7 +10,7 @@
     This is like running `@(1,2,3).Count` in PowerShell.
     #>
     if ($ExpectedValue -lt 0) {
-        throw [ArgumentException]"Excpected collection size must be greater than or equal to 0."
+        throw [ArgumentException]"Expected collection size must be greater than or equal to 0."
     }
     $count = if ($null -eq $ActualValue) {
         0

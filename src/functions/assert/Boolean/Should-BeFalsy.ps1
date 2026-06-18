@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the actual value to a boolean $false or a falsy value: 0, "", $null or @(). It converts the input value to a boolean.
 
+    .DESCRIPTION
+    This assertion evaluates the input using PowerShell truthiness rules. It passes for values such as `$false, 0, `""`, `$null, and empty collections.
+
     .PARAMETER Actual
     The actual value to compare to $false.
 
@@ -38,6 +41,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true)]
         $Actual,
@@ -48,6 +52,7 @@
     $Actual = $collectedInput.Actual
     if ($Actual) {
         $Message = Get-AssertionMessage -Expected $false -Actual $Actual -Because $Because -DefaultMessage 'Expected <expectedType> <expected> or a falsy value: 0, "", $null or @(),<because> but got: <actualType> <actual>.'
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

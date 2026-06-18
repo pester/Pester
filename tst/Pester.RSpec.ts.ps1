@@ -216,14 +216,14 @@ i -PassThru:$PassThru {
             }
 
             t "Including tag runs just the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -Tag i1 -PassThru
+                $result = Invoke-Pester -Path $file1 -TagFilter i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-True
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-False
             }
 
             t "Excluding tag skips the test with that tag" {
-                $result = Invoke-Pester -Path $file1 -ExcludeTag i1 -PassThru
+                $result = Invoke-Pester -Path $file1 -ExcludeTagFilter i1 -PassThru
 
                 $result.Containers[0].Blocks[0].Tests[0].Executed | Verify-False
                 $result.Containers[0].Blocks[0].Tests[1].Executed | Verify-True
@@ -447,6 +447,57 @@ i -PassThru:$PassThru {
             $test | Verify-NotNull
             $test.Result | Verify-Equal "Failed"
             $test.ErrorRecord.Count | Verify-Equal 2
+        }
+
+        t "Non-terminating new assertions fail the test after running to completion" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        Should-Be -Actual 1 -Expected 2
+                        Should-BeTrue -Actual $false
+                        "but still output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord.Count | Verify-Equal 2
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-False
+            $test.ErrorRecord[1].TargetObject.Terminating | Verify-False
+            $test.StandardOutput | Verify-Equal "but still output this"
+        }
+
+        t "New assertions fail immediately when -ErrorAction is set to Stop" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" {
+                        1 | Should-Be 2 -ErrorAction Stop
+                        "do not output this"
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Should = @{ ErrorAction = 'Continue' }
+                })
+
+            $test = $r.Containers[0].Blocks[0].Tests[0]
+            $test | Verify-NotNull
+            $test.Result | Verify-Equal "Failed"
+            $test.ErrorRecord[0].TargetObject.Terminating | Verify-True
+            $test.StandardOutput | Verify-Null
+        }
+
+        t "New assertions throw when called outside of Pester" {
+            $PesterPreference = [PesterConfiguration]@{ Should = @{ ErrorAction = 'Continue' } }
+            $err = { 1 | Should-Be 2 } | Verify-Throw
+            $err.Exception.Message | Verify-Equal "Expected [int] 2, but got [int] 1."
         }
 
         t "Should throws when called outside of Pester" {
@@ -2964,6 +3015,79 @@ i -PassThru:$PassThru {
 
             $ex = { Invoke-Pester -Configuration $conf } | Verify-Throw
             $ex.Exception.Message | Verify-Like '*Unbound scriptblock*'
+        }
+    }
+
+    # Regression test for https://github.com/pester/Pester/issues/2538
+    # When discovery of a Describe body throws after at least one passing It, the
+    # container ends up with Passed=$true (the It passed) AND a non-empty
+    # ErrorRecord (the discovery throw lands on the container, not the inner
+    # block). Before this fix the result was computed by checking Passed before
+    # ErrorRecord, so such a container was reported as Passed even though the run
+    # also listed it under FailedContainers. The fix flips the precedence so
+    # ErrorRecord wins.
+    b "Discovery errors mark container as Failed" {
+        t "container with discovery error after a passing It has result Failed" {
+            # Exact repro from the issue: an It runs (so Passed becomes $true) and
+            # then a throw at the bottom of the Describe body fails discovery.
+            $sb = {
+                Describe 'd' {
+                    It '1' {}
+                    throw 'omg'
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+            $r.FailedContainersCount | Verify-Equal 1
+        }
+
+        t "container with BeforeAll throw has result Failed" {
+            # BeforeAll throws at execution time. Passed is $false but ErrorRecord
+            # is set; verify the ErrorRecord branch still produces Failed (it would
+            # also fall through to the existing ShouldRun/Executed branch, but the
+            # new ErrorRecord branch is what should fire).
+            $sb = {
+                Describe 'Has BeforeAll error' {
+                    BeforeAll {
+                        throw 'deliberate BeforeAll error'
+                    }
+                    It 'should not run' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "container without errors still passes" {
+            $sb = {
+                Describe 'All good' {
+                    It 'passes' {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                Output = @{ Verbosity = 'None' }
+            })
+
+            $r.Result | Verify-Equal 'Passed'
+            $r.Containers[0].Result | Verify-Equal 'Passed'
         }
     }
 }

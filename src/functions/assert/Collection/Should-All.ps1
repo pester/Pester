@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares all items in a collection to a filter script. If the filter returns true, or does not throw for all the items in the collection, the assertion passes.
 
+    .DESCRIPTION
+    This assertion runs the filter script against every item in the collection. Nested Should-* failures are treated as filter failures and included in the reported reasons.
+
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
 
@@ -53,7 +56,7 @@
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
     $failReasons = $null
@@ -105,6 +108,7 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

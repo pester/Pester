@@ -227,13 +227,13 @@ function Get-CompareStringMessage {
         }
 
         $ellipsis = "..."
-        # we will sorround the output with Expected: '' and But was: '', from which the Expected: '' is longer
+        # we will surround the output with Expected: '' and But was: '', from which the Expected: '' is longer
         # so subtract that from the maximum line length, to get how much of the line we actually have available
-        $sorroundLength = "Expected: ''".Length
+        $surroundLength = "Expected: ''".Length
         # the deeper we are in the test structure the less space we have on screen because we are adding margin
         # before the output each describe level adds one space + 3 spaces for the test output margin
         $sideOffset = @((Get-CurrentTest).Path).Length + 3
-        $availableLineLength = $maximumLineLength - $sorroundLength - $sideOffset
+        $availableLineLength = $maximumLineLength - $surroundLength - $sideOffset
 
         $expectedExcerpt = Format-AsExcerpt -InputObject $expectedExpanded -DifferenceIndex $differenceIndex -LineLength $availableLineLength -ExcerptMarker $ellipsis -ContextLength $ContextLength
 
@@ -241,7 +241,7 @@ function Get-CompareStringMessage {
 
         "Expected: '{0}'" -f $expectedExcerpt.Line
         "But was:  '{0}'" -f $actualExcerpt.Line
-        " " * ($sorroundLength - 1) + '-' * $actualExcerpt.DifferenceIndex + '^'
+        " " * ($surroundLength - 1) + '-' * $actualExcerpt.DifferenceIndex + '^'
     }
 }
 

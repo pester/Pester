@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if they are not equal.
 
+    .DESCRIPTION
+    This assertion compares values using PowerShell equality semantics and passes only when they are different. Use the collection-specific assertions when you need to compare arrays or other collections.
+
     .PARAMETER Expected
     The expected value.
 
@@ -28,6 +31,7 @@
 
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -41,6 +45,7 @@
     $Actual = $collectedInput.Actual
     if ((Ensure-ExpectedIsNotCollection $Expected) -eq $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to be different than the actual value,<because> but they were equal."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

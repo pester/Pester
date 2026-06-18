@@ -23,8 +23,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
         }
 
-        # TODO: Missing on new Should-* assertions
-        It 'Description is defined' -Skip:($_.Name -match '^Should-') {
+        It 'Description is defined' {
             # Property is missing if undefined
             $help.description | Should -Not -BeNullOrEmpty
         }

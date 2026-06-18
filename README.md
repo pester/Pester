@@ -167,7 +167,7 @@ install:
   - ps: Install-Module Pester -Force -Scope CurrentUser
 build: off
 test_script:
-  - ps: Invoke-Pester -EnableExit
+  - ps: Invoke-Pester -CI
 ```
 
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)

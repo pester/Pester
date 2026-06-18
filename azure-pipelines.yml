@@ -82,20 +82,23 @@ stages:
             PS7_Ubuntu_24_04:
               vmImage: ubuntu-24.04
               pwsh: true
-            PS7_macOS_13:
-              vmImage: macOS-13
-              pwsh: true
             PS7_macOS_14:
               vmImage: macOS-14
               pwsh: true
-            PS7_Windows_Server2019:
-              vmImage: windows-2019
+            PS7_macOS_15:
+              vmImage: macOS-15
               pwsh: true
             PS7_Windows_Server2022:
               vmImage: windows-2022
               pwsh: true
             PS_5_1_Windows_Server2022:
               vmImage: windows-2022
+              pwsh: false
+            PS7_Windows_Server2025:
+              vmImage: windows-2025
+              pwsh: true
+            PS_5_1_Windows_Server2025:
+              vmImage: windows-2025
               pwsh: false
         pool:
           vmImage: $[ variables['vmImage'] ]
@@ -127,3 +130,23 @@ stages:
               failTaskOnFailedTests: true
             condition: succeededOrFailed()
         timeoutInMinutes: 20
+  # Run one step after the matrix so we don't have to list all the 
+  # separate items in GitHub, and still are able to await the completion of the run
+  # before auto-merge is allowed.
+  - stage: Done
+    jobs:
+      - job: Done
+        workspace:
+          clean: all
+        steps:
+          - checkout: none
+          - task: PowerShell@2
+            displayName: 'All done'
+            inputs:
+              targetType: inline
+              pwsh: true
+              script: |
+                "done"
+              workingDirectory: '$(Build.SourcesDirectory)'
+
+

@@ -112,12 +112,32 @@ function Clear-TestDrive {
 
         Remove-TestDriveSymbolicLinks -Path $TestDrivePath
 
-        foreach ($i in [IO.Directory]::GetFileSystemEntries($TestDrivePath, '*.*', [System.IO.SearchOption]::AllDirectories)) {
-            if ($Exclude -contains $i) {
-                continue
-            }
+        $allCurrent = [IO.Directory]::GetFileSystemEntries($TestDrivePath, '*.*', [System.IO.SearchOption]::AllDirectories)
 
-            & $SafeCommands['Remove-Item'] -Force -Recurse $i -ErrorAction Ignore
+        # Collect new items (those not in the snapshot taken before the test)
+        $newItems = foreach ($i in $allCurrent) {
+            if ($Exclude -notcontains $i) {
+                $i
+            }
+        }
+
+        if (-not $newItems) {
+            return
+        }
+
+        # Build a set of new item paths for O(1) parent lookups
+        $newItemSet = [System.Collections.Generic.HashSet[string]]::new(
+            [string[]]@($newItems),
+            [System.StringComparer]::OrdinalIgnoreCase)
+
+        # Only delete "root" new items (those whose parent directory is not also a new item).
+        # Deleting with -Recurse removes all descendants in one call, avoiding redundant
+        # Remove-Item calls on already-deleted children.
+        foreach ($item in $newItemSet) {
+            $parent = [IO.Path]::GetDirectoryName($item)
+            if (-not $newItemSet.Contains($parent)) {
+                & $SafeCommands['Remove-Item'] -Path $item -Force -Recurse -ErrorAction Ignore
+            }
         }
     }
 }

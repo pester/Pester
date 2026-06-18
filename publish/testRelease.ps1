@@ -10,7 +10,13 @@ Get-Module Pester | Remove-Module
 Import-Module $psd1 -ErrorAction Stop
 
 $xml = Join-Path $PSScriptRoot Test.Version.xml
-$result = Invoke-Pester -Script $PSScriptRoot -Tag VersionChecks, StyleRules -OutputFile $xml -OutputFormat NUnitXml -PassThru -Strict -ErrorAction Stop
+$configuration = [PesterConfiguration]@{
+    Run        = @{ Path = $PSScriptRoot; PassThru = $true }
+    Filter     = @{ Tag = 'VersionChecks', 'StyleRules' }
+    TestResult = @{ Enabled = $true; OutputPath = $xml; OutputFormat = 'NUnitXml' }
+}
+
+$result = Invoke-Pester -Configuration $configuration -ErrorAction Stop
 
 if ($LocalBuild) {
     # when I build release locally I don't want to

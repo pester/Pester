@@ -185,6 +185,7 @@
         $PSBoundParameters.Remove('Verifiable')
         $testResult = Should-InvokeVerifiable @PSBoundParameters
         Test-AssertionResult $testResult
+        Set-AssertionPassResult
         return
     }
 
@@ -196,4 +197,5 @@
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
     Test-AssertionResult $testResult
+    Set-AssertionPassResult
 }

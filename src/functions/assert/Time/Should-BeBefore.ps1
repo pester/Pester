@@ -3,6 +3,9 @@
     .SYNOPSIS
     Asserts that the provided [datetime] is before the expected [datetime].
 
+    .DESCRIPTION
+    This assertion accepts either an expected `[datetime]` or a fluent relative time expression. Use `-Now`, `-Ago`, or `-FromNow` to compare against the current local time.
+
     .PARAMETER Actual
     The actual [datetime] value.
 
@@ -67,47 +70,50 @@
         [Parameter(Position = 2, ValueFromPipeline = $true)]
         $Actual,
 
-        [Parameter(Position = 0, ParameterSetName = "Now")]
+        [Parameter(ParameterSetName = "Now")]
         [switch] $Now,
 
-        [Parameter(Position = 0, ParameterSetName = "Fluent")]
-        $Time,
+        [Parameter(Position = 0, ParameterSetName = "FluentAgo")]
+        [Parameter(Position = 0, ParameterSetName = "FluentFromNow")]
+        [String] $Time,
 
-        [Parameter(Position = 1, ParameterSetName = "Fluent")]
+        [Parameter(Mandatory, ParameterSetName = "FluentAgo")]
         [switch] $Ago,
 
-        [Parameter(Position = 1, ParameterSetName = "Fluent")]
+        [Parameter(Mandatory, ParameterSetName = "FluentFromNow")]
         [switch] $FromNow,
 
         [Parameter(Position = 0, ParameterSetName = "Expected")]
-        [DateTime] $Expected
+        [DateTime] $Expected,
+
+        [String] $Because
     )
+
+    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
+    $Actual = $collectedInput.Actual
 
     # Now is just a syntax marker, we don't need to do anything with it.
     $Now = $Now
 
     $currentTime = [datetime]::UtcNow.ToLocalTime()
-    if ($PSCmdlet.ParameterSetName -eq "Expected") {
-        # do nothing we already have expected value
-    }
-    elseif ($PSCmdlet.ParameterSetName -eq "Now") {
-        $Expected = $currentTime
-    }
-    else {
-        if ($Ago -and $FromNow -or (-not $Ago -and -not $FromNow)) {
-            throw "You must provide either -Ago or -FromNow switch, but not both or none."
+    switch ($PSCmdlet.ParameterSetName) {
+        "Expected" {
+            # do nothing we already have expected value
         }
-
-        if ($Ago) {
+        "Now" {
+            $Expected = $currentTime
+        }
+        "FluentAgo" {
             $Expected = $currentTime - (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
-        else {
+        "FluentFromNow" {
             $Expected = $currentTime + (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
     }
 
     if ($Actual -ge $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the provided [datetime] to be before <expectedType> <expected>,<because> but it was after: <actual>"
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }

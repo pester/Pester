@@ -4,7 +4,7 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
     .SYNOPSIS
     Asserts that the actual value should be an object of a specified type
     (or a subclass of the specified type) using PowerShell's -is operator.
-    Expected type can be provided using full type name strings or a type wrapped in parantheses.
+    Expected type can be provided using full type name strings or a type wrapped in parentheses.
 
     .EXAMPLE
     $actual = Get-Item $env:SystemRoot
@@ -30,7 +30,7 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
     .EXAMPLE
     $actual | Should -BeOfType ([System.IO.DirectoryInfo])
 
-    Test using a type-object. Remember to use parantheses for consistent behavior with PowerShell classes.
+    Test using a type-object. Remember to use parentheses for consistent behavior with PowerShell classes.
     #>
     if ($ExpectedType -is [string]) {
         # parses type that is provided as a string in brackets (such as [int])
@@ -43,9 +43,9 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
         $ExpectedType = $parsedType
     }
 
-    $succeded = $ActualValue -is $ExpectedType
+    $succeeded = $ActualValue -is $ExpectedType
     if ($Negate) {
-        $succeded = -not $succeded
+        $succeeded = -not $succeeded
     }
 
     $failureMessage = ''
@@ -70,7 +70,7 @@ function Should-BeOfTypeAssertion($ActualValue, $ExpectedType, [switch] $Negate,
     $ExpectedValue = if ($Negate) { "not $(Format-Nicely $ExpectedType) or any of its subtypes" } else { "a $(Format-Nicely $ExpectedType) or any of its subtypes" }
 
     return [Pester.ShouldResult] @{
-        Succeeded      = $succeded
+        Succeeded      = $succeeded
         FailureMessage = $failureMessage
         ExpectResult   = @{
             Actual   = Format-Nicely $ActualValue

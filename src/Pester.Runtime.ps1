@@ -1991,7 +1991,7 @@ function PostProcess-DiscoveredBlock {
         }
 
         # traverses the block structure after a block was found and
-        # link childs to their parents, filter blocks and tests to
+        # link children to their parents, filter blocks and tests to
         # determine which should run, and mark blocks and tests
         # as first or last to know when one time setups & teardowns should run
         $b.IsRoot = $b -eq $RootBlock

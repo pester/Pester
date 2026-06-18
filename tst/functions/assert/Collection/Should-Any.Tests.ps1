@@ -51,8 +51,8 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
 
     It "Validate messages" -TestCases @(
         @{ Actual = @(3, 4, 5); Message = "Expected at least one item in collection @(3, 4, 5) to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
-        @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
-        @{ Actual = 3; Message = "Expected at least one item in collection 3 to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
+        @{ Actual = 3; Message = "Expected at least one item in collection @(3) to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
+        @{ Actual = 3; Message = "Expected at least one item in collection @(3) to pass filter { `$_ -eq 1 }, but none of the items passed the filter." }
     ) {
         $err = { $Actual | Should-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Equal $Message

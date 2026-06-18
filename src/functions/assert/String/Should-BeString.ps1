@@ -79,6 +79,7 @@ function Should-BeString {
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -95,7 +96,75 @@ function Should-BeString {
 
     $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
     if (-not ($stringsAreEqual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        if ($Actual -is [string]) {
+            $Message = Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because
+        }
+        else {
+            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
+        }
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
+}
+
+function Get-StringDifferenceMessage {
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Expected,
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Actual,
+        [switch] $CaseSensitive,
+        [string] $Because
+    )
+
+    $maxLength = [Math]::Max($Expected.Length, $Actual.Length)
+
+    $differenceIndex = $null
+    for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
+        if ($CaseSensitive) {
+            if ($Expected[$i] -cne $Actual[$i]) { $differenceIndex = $i }
+        }
+        else {
+            if ($Expected[$i] -ne $Actual[$i]) { $differenceIndex = $i }
+        }
+    }
+
+    $because = if ($Because) { " because $Because," } else { "" }
+
+    $lines = @(
+        "Expected strings to be the same,$because but they were different."
+    )
+
+    if ($Expected.Length -ne $Actual.Length) {
+        $lines += "Expected length: $($Expected.Length)"
+        $lines += "Actual length:   $($Actual.Length)"
+    }
+    else {
+        $lines += "String lengths are both $($Expected.Length)."
+    }
+    $lines += "Strings differ at index $differenceIndex."
+
+    $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
+    $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
+
+    # Recompute difference index on expanded strings
+    $maxLength = [Math]::Max($expectedExpanded.Length, $actualExpanded.Length)
+    $expandedDiffIndex = $null
+    for ($i = 0; $i -lt $maxLength -and ($null -eq $expandedDiffIndex); ++$i) {
+        if ($CaseSensitive) {
+            if ($expectedExpanded[$i] -cne $actualExpanded[$i]) { $expandedDiffIndex = $i }
+        }
+        else {
+            if ($expectedExpanded[$i] -ne $actualExpanded[$i]) { $expandedDiffIndex = $i }
+        }
+    }
+
+    $prefix = "Expected: '"
+    $lines += "$prefix$expectedExpanded'"
+    $lines += "But was:  '$actualExpanded'"
+    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $expandedDiffIndex) + '^'
+
+    $lines -join "`n"
 }

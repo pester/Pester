@@ -3,6 +3,9 @@
     .SYNOPSIS
     Compares the expected value to actual value, to see if the actual value is not the same instance as the expected value.
 
+    .DESCRIPTION
+    This assertion checks reference inequality rather than value inequality. It passes when the two values are different instances, even if their contents are equal.
+
     .PARAMETER Expected
     The expected value.
 
@@ -38,6 +41,7 @@
     https://pester.dev/docs/assertions
     #>
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+    [CmdletBinding()]
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
@@ -46,10 +50,13 @@
         [String]$Because
     )
 
+    $null = Ensure-ExpectedIsNotCollection $Expected
+
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
     $Actual = $collectedInput.Actual
     if ([object]::ReferenceEquals($Expected, $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to not be the same instance,<because> but they were the same instance."
-        throw [Pester.Factory]::CreateShouldErrorRecord($Message, $MyInvocation.ScriptName, $MyInvocation.ScriptLineNumber, $MyInvocation.Line.TrimEnd([System.Environment]::NewLine), $true)
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
+    Set-AssertionPassResult
 }
