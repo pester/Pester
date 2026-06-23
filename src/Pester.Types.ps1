@@ -12,7 +12,7 @@ if ($null -ne $configurationType) {
     }
 }
 
-if ($PSVersionTable.PSVersion.Major -ge 6) {
+if ($PSVersionTable.PSVersion.Major -ge 7) {
     $path = "$PSScriptRoot/bin/net8.0/Pester.dll"
     # PESTER_BUILD
     if ((Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {

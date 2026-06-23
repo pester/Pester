@@ -4,8 +4,8 @@
 }
 
 function GetPesterOs {
-    # Prior to v6, PowerShell was solely on Windows. In v6, the $IsWindows variable was introduced.
-    if ((GetPesterPsVersion) -lt 6) {
+    # Prior to v7, PowerShell was solely on Windows. In v6, the $IsWindows variable was introduced.
+    if ((GetPesterPsVersion) -lt 7) {
         'Windows'
     }
     elseif (& $SafeCommands['Get-Variable'] -Name 'IsWindows' -ErrorAction 'Ignore' -ValueOnly ) {

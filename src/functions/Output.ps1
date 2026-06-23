@@ -74,7 +74,7 @@ function Write-PesterHostMessage {
 
     begin {
         # Custom PSHosts without UI will fail with Write-Host. Works in PS5+ due to use of InformationRecords
-        $HostSupportsOutput = $null -ne $host.UI.RawUI.ForegroundColor -or $PSVersionTable.PSVersion.Major -ge 5
+        $HostSupportsOutput = $true # Pester 6 requires PS 5.1+ which always supports InformationRecords
         if (-not $HostSupportsOutput) { return }
 
         # Source https://docs.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#text-formatting
