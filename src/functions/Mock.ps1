@@ -1945,7 +1945,8 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
     foreach ($historyEntry in $callHistory) {
         $params = $historyEntry.BoundParams
         if ($null -ne $params -and $params.Count -gt 0) {
-            $paramText = ($params.GetEnumerator() | ForEach-Object { "-$($_.Key) $(Format-Nicely2 $_.Value)" }) -join " "
+            $parts = foreach ($p in $params.GetEnumerator()) { "-$($p.Key) $(Format-Nicely2 $p.Value)" }
+            $paramText = $parts -join " "
         }
         else {
             $paramText = ""
