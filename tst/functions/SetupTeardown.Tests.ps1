@@ -63,16 +63,12 @@ Describe 'Multiple Test Case setup blocks' {
     }
 
     Context 'The context' {
-        It 'Executes Describe setup blocks first, then Context blocks in the order they were defined (even if they are defined after the It block.)' {
-            $testVariable | Should -Be 'Set in the second Context BeforeEach'
+        It 'Executes Describe setup blocks first, then Context block' {
+            $testVariable | Should -Be 'Set in Context BeforeEach'
         }
 
         BeforeEach {
-            $testVariable = 'Set in the first Context BeforeEach'
-        }
-
-        BeforeEach {
-            $testVariable = 'Set in the second Context BeforeEach'
+            $testVariable = 'Set in Context BeforeEach'
         }
     }
 
@@ -113,18 +109,14 @@ Describe 'Multiple Test Case teardown blocks' {
 
     Context 'The context' {
         AfterEach {
-            $container.Value = 'Set in the first Context AfterEach'
+            $container.Value = 'Set in the Context AfterEach'
         }
 
         It 'Performs a test in Context' { "some output" }
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
-            $container.Value | Should -Be 'Set in the second Describe AfterEach'
+            $container.Value | Should -Be 'Set in Describe AfterEach'
         }
-    }
-
-    AfterEach {
-        $container.Value = 'Set in the second Describe AfterEach'
     }
 }
 
@@ -210,7 +202,89 @@ Describe 'Unbound scriptsblocks as input' {
     }
 }
 
-# if ($PSVersionTable.PSVersion.Major -ge 3) {
+Describe 'Duplicate setup and teardown blocks throw' {
+    It 'Throws when two BeforeAll are defined in the same block' {
+        $sb = {
+            Describe 'd' {
+                BeforeAll { }
+                BeforeAll { }
+                It 'i' { }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeAll is already defined*'
+    }
+
+    It 'Throws when two AfterAll are defined in the same block' {
+        $sb = {
+            Describe 'd' {
+                AfterAll { }
+                AfterAll { }
+                It 'i' { }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterAll is already defined*'
+    }
+
+    It 'Throws when two BeforeEach are defined in the same block' {
+        $sb = {
+            Describe 'd' {
+                BeforeEach { }
+                BeforeEach { }
+                It 'i' { }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeEach is already defined*'
+    }
+
+    It 'Throws when two AfterEach are defined in the same block' {
+        $sb = {
+            Describe 'd' {
+                AfterEach { }
+                AfterEach { }
+                It 'i' { }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterEach is already defined*'
+    }
+
+    It 'Allows same hook type in different blocks' {
+        $sb = {
+            Describe 'd' {
+                BeforeAll { $script:x = 1 }
+                Context 'c' {
+                    BeforeAll { $script:y = 2 }
+                    It 'i' { $script:x + $script:y | Should -Be 3 }
+                }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.FailedCount | Should -Be 0
+    }
+}
 #     # TODO: this depends on the old pester internals it would be easier to test in P
 #     $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
 
