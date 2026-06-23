@@ -160,9 +160,9 @@ Expected strings to be the same, but they were different.
 Expected length: 8
 Actual length:   7
 Strings differ at index 3.
-Expected: 'abc\r\ndef'
-But was:  'abc\ndef'
-          ----^
+Expected: 'abc␍␊def'
+But was:  'abc␊def'
+          ---^
 '@ -replace "`r`n", "`n")
     }
 }

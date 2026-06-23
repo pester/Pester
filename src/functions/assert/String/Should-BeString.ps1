@@ -149,22 +149,10 @@ function Get-StringDifferenceMessage {
     $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
     $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
 
-    # Recompute difference index on expanded strings
-    $maxLength = [Math]::Max($expectedExpanded.Length, $actualExpanded.Length)
-    $expandedDiffIndex = $null
-    for ($i = 0; $i -lt $maxLength -and ($null -eq $expandedDiffIndex); ++$i) {
-        if ($CaseSensitive) {
-            if ($expectedExpanded[$i] -cne $actualExpanded[$i]) { $expandedDiffIndex = $i }
-        }
-        else {
-            if ($expectedExpanded[$i] -ne $actualExpanded[$i]) { $expandedDiffIndex = $i }
-        }
-    }
-
     $prefix = "Expected: '"
     $lines += "$prefix$expectedExpanded'"
     $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $expandedDiffIndex) + '^'
+    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $differenceIndex) + '^'
 
     $lines -join "`n"
 }
