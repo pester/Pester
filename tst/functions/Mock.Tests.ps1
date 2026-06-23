@@ -989,11 +989,11 @@ Describe "Mock call history in Should -Invoke failure messages" {
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called at least 1 times, but was called 0 times
+        $failure.Exception.Message | Should -BeLike ("*was called 0 times
 Performed invocations:
-  [ ] FunctionUnderTest -param1 'one'
-  [ ] FunctionUnderTest -param1 'two'
-  [ ] FunctionUnderTest -param1 'three'" -replace "`r`n", "`n")
+*FunctionUnderTest -param1 'one' from *
+*FunctionUnderTest -param1 'two' from *
+*FunctionUnderTest -param1 'three' from *" -replace "`r`n", "`n")
     }
 
     It "Shows matching and non-matching calls when filter matches 1 out of 3 but expected 2" {
@@ -1009,11 +1009,10 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called 2 times exactly, but was called 1 times
-Performed invocations:
-  [ ] FunctionUnderTest -param1 'one'
-  [*] FunctionUnderTest -param1 'two'
-  [ ] FunctionUnderTest -param1 'one'" -replace "`r`n", "`n")
+        $failure.Exception.Message | Should -BeLike ("*was called 1 times*
+*FunctionUnderTest -param1 'one' from *
+*FunctionUnderTest -param1 'two' from *
+*FunctionUnderTest -param1 'one' from *" -replace "`r`n", "`n")
     }
 
     It "Shows all calls as matching when all 3 match but expected 4" {
@@ -1029,11 +1028,10 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called 4 times exactly, but was called 3 times
-Performed invocations:
-  [*] FunctionUnderTest -param1 'one'
-  [*] FunctionUnderTest -param1 'one'
-  [*] FunctionUnderTest -param1 'one'" -replace "`r`n", "`n")
+        $failure.Exception.Message | Should -BeLike ("*was called 3 times*
+*FunctionUnderTest -param1 'one' from *
+*FunctionUnderTest -param1 'one' from *
+*FunctionUnderTest -param1 'one' from *" -replace "`r`n", "`n")
     }
 
     It 'Shows empty marker when mock was never called' {

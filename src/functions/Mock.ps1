@@ -1954,11 +1954,20 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
 
         $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
         $cmd = $historyEntry.Behavior.CommandName
+
+        $location = ""
+        $sb = $historyEntry.Behavior.ScriptBlock
+        if ($null -ne $sb -and $sb.File) {
+            $file = $sb.File
+            $line = $sb.StartPosition.StartLine
+            $location = " from ${file}:${line}"
+        }
+
         if ($paramText) {
-            $result += "`n  $marker $cmd $paramText"
+            $result += "`n  $marker $cmd $paramText$location"
         }
         else {
-            $result += "`n  $marker $cmd"
+            $result += "`n  $marker $cmd$location"
         }
     }
 
