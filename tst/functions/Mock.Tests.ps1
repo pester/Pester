@@ -989,19 +989,11 @@ Describe "Mock call history in Should -Invoke failure messages" {
             $failure = $_
         }
 
-<<<<<<< Updated upstream
-        $failure.Exception.Message | Should -BeLike ("*was called 0 times
-Performed invocations:
-*FunctionUnderTest -param1 'one' from *
-*FunctionUnderTest -param1 'two' from *
-*FunctionUnderTest -param1 'three' from *" -replace "`r`n", "`n")
-=======
         $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 0 times
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[] ] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
   [[] ] FunctionUnderTest -param1 'three' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
->>>>>>> Stashed changes
     }
 
     It "Shows matching and non-matching calls when filter matches 1 out of 3 but expected 2" {
@@ -1017,18 +1009,11 @@ Performed invocations:
             $failure = $_
         }
 
-<<<<<<< Updated upstream
-        $failure.Exception.Message | Should -BeLike ("*was called 1 times*
-*FunctionUnderTest -param1 'one' from *
-*FunctionUnderTest -param1 'two' from *
-*FunctionUnderTest -param1 'one' from *" -replace "`r`n", "`n")
-=======
         $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 times*
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
->>>>>>> Stashed changes
     }
 
     It "Shows all calls as matching when all 3 match but expected 4" {
@@ -1044,18 +1029,11 @@ Performed invocations:
             $failure = $_
         }
 
-<<<<<<< Updated upstream
-        $failure.Exception.Message | Should -BeLike ("*was called 3 times*
-*FunctionUnderTest -param1 'one' from *
-*FunctionUnderTest -param1 'one' from *
-*FunctionUnderTest -param1 'one' from *" -replace "`r`n", "`n")
-=======
         $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 3 times*
 Performed invocations:
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
->>>>>>> Stashed changes
     }
 
     It 'Shows empty marker when mock was never called' {
