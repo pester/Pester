@@ -262,15 +262,26 @@
     if ($buts.Count -eq 0) {
         # Parameter exists (in set if specified), assert remaining requirements
 
-        if ($Mandatory) {
+        if ($PSBoundParameters.ContainsKey('Mandatory')) {
             $testMandatory = $parameterAttributes | & $SafeCommands['Where-Object'] { $_.Mandatory }
-            $filters += "which is$(if ($Negate) {' not'}) mandatory"
 
-            if (-not $Negate -and -not $testMandatory) {
-                $buts += "it wasn't mandatory"
+            if ($Mandatory) {
+                $filters += "which is$(if ($Negate) {' not'}) mandatory"
+
+                if (-not $Negate -and -not $testMandatory) {
+                    $buts += "it wasn't mandatory"
+                }
+                elseif ($Negate -and $testMandatory) {
+                    $buts += 'it was mandatory'
+                }
             }
-            elseif ($Negate -and $testMandatory) {
-                $buts += 'it was mandatory'
+            else {
+                # Explicit -Mandatory:$false means "parameter must NOT be mandatory"
+                $filters += "which is not mandatory"
+
+                if ($testMandatory) {
+                    $buts += 'it was mandatory'
+                }
             }
         }
 
