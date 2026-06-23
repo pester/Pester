@@ -155,6 +155,14 @@ But was:  'abc'
 
     It "Shows expanded whitespace characters in diff" {
         $err = { "abc`ndef" | Should-BeString "abc`r`ndef" } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Equal ("Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   7`nStrings differ at index 3.`nExpected: 'abc␍␊def'`nBut was:  'abc␊def'`n          ---^" -replace "`r`n", "`n")
+        $err.Exception.Message | Verify-Equal (@'
+Expected strings to be the same, but they were different.
+Expected length: 8
+Actual length:   7
+Strings differ at index 3.
+Expected: 'abc␍␊def'
+But was:  'abc␊def'
+          ---^
+'@ -replace "`r`n", "`n")
     }
 }
