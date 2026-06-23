@@ -975,6 +975,83 @@ Describe "When Calling Should -Invoke without exactly" {
     }
 }
 
+Describe "Mock call history in Should -Invoke failure messages" {
+    It "Shows all calls as non-matching when filter matches 0 out of 3" {
+        Mock FunctionUnderTest { }
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+        FunctionUnderTest "three"
+
+        try {
+            Should -Invoke FunctionUnderTest -ParameterFilter { $param1 -eq 'four' }
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called at least 1 times, but was called 0 times
+Performed invocations:
+  [ ] FunctionUnderTest -param1 'one'
+  [ ] FunctionUnderTest -param1 'two'
+  [ ] FunctionUnderTest -param1 'three'" -replace "`r`n", "`n")
+    }
+
+    It "Shows matching and non-matching calls when filter matches 1 out of 3 but expected 2" {
+        Mock FunctionUnderTest { }
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+        FunctionUnderTest "one"
+
+        try {
+            Should -Invoke FunctionUnderTest -Exactly 2 -ParameterFilter { $param1 -eq 'two' }
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called 2 times exactly, but was called 1 times
+Performed invocations:
+  [ ] FunctionUnderTest -param1 'one'
+  [*] FunctionUnderTest -param1 'two'
+  [ ] FunctionUnderTest -param1 'one'" -replace "`r`n", "`n")
+    }
+
+    It "Shows all calls as matching when all 3 match but expected 4" {
+        Mock FunctionUnderTest { }
+        FunctionUnderTest "one"
+        FunctionUnderTest "one"
+        FunctionUnderTest "one"
+
+        try {
+            Should -Invoke FunctionUnderTest -Exactly 4 -ParameterFilter { $param1 -eq 'one' }
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -Be ("Expected FunctionUnderTest to be called 4 times exactly, but was called 3 times
+Performed invocations:
+  [*] FunctionUnderTest -param1 'one'
+  [*] FunctionUnderTest -param1 'one'
+  [*] FunctionUnderTest -param1 'one'" -replace "`r`n", "`n")
+    }
+
+    It 'Shows empty marker when mock was never called' {
+        Mock FunctionUnderTest { }
+
+        try {
+            Should -Invoke FunctionUnderTest -Exactly 1
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 times exactly, but was called 0 times
+Performed invocations:
+  <none>' -replace "`r`n", "`n")
+    }
+}
+
 Describe "When Calling Should -Not -Invoke -ExclusiveFilter" {
     BeforeAll {
         Mock FunctionUnderTest {}
