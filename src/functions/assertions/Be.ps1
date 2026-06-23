@@ -207,24 +207,8 @@ function Get-CompareStringMessage {
             "Strings differ at index $differenceIndex."
         }
 
-        # find the difference in the string with expanded characters, this is the fastest and most foolproof way of
-        # getting the updated difference index. we could also inspect the new string and try to find every occurrence
-        # of special character before the difference index, but '\n' is valid piece of string
-        # or inspect the original string, but then we need to make sure that we look for all the special characters.
-        # instead we just compare it again.
-
         $actualExpanded = Expand-SpecialCharacters -InputObject $actual
         $expectedExpanded = Expand-SpecialCharacters -InputObject $ExpectedValue
-        $maxLength = if ($expectedExpanded.Length -gt $actualExpanded.Length) { $expectedExpanded.Length } else { $actualExpanded.Length }
-        $differenceIndex = $null
-        for ($i = 0; $i -lt $maxLength -and ($null -eq $differenceIndex); ++$i) {
-            $differenceIndex = if ($CaseSensitive -and ($expectedExpanded[$i] -cne $actualExpanded[$i])) {
-                $i
-            }
-            elseif ($expectedExpanded[$i] -ne $actualExpanded[$i]) {
-                $i
-            }
-        }
 
         $ellipsis = "..."
         # we will surround the output with Expected: '' and But was: '', from which the Expected: '' is longer

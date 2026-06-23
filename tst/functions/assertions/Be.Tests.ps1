@@ -151,15 +151,15 @@ InPesterModuleScope {
         }
 
         It "Replaces non-printable characters correctly" {
-            ShouldBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '$(([char]0x240A))$(([char]0x240D))$(([char]0x2408))$(([char]0x2400))$(([char]0x2409))y'`nBut was:  '$(([char]0x240A))$(([char]0x240D))$(([char]0x2408))$(([char]0x2400))$(([char]0x2409))x'`n           -----^"
+            ShouldBeFailureMessage "`n`r`b`0`tx" "`n`r`b`0`ty" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 6.`nStrings differ at index 5.`nExpected: '␊␍␈␀␉y'`nBut was:  '␊␍␈␀␉x'`n           -----^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced before the difference" {
-            ShouldBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123$(([char]0x240A))789'`nBut was:  '123$(([char]0x240A))456'`n           ----^"
+            ShouldBeFailureMessage "123`n456" "123`n789" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 7.`nStrings differ at index 4.`nExpected: '123␊789'`nBut was:  '123␊456'`n           ----^"
         }
 
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
-            ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!$(([char]0x240A))123'`nBut was:  'abcd$(([char]0x240A))123'`n           ---^"
+            ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!␊123'`nBut was:  'abcd␊123'`n           ---^"
         }
     }
 }
