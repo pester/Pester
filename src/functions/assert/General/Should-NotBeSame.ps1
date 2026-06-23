@@ -17,7 +17,7 @@
 
     .EXAMPLE
     ```powershell
-    $object = New-Object -TypeName PSObject
+    $object = [PSObject]::new()
     $object | Should-NotBeSame $object
     ```
 
@@ -25,7 +25,7 @@
 
     .EXAMPLE
     ```powershell
-    $object = New-Object -TypeName PSObject
+    $object = [PSObject]::new()
     $object | Should-NotBeSame $object
     ```
 

@@ -44,7 +44,6 @@ $script:SafeCommands = @{
     'New-Item'             = & $Get_Command -Name New-Item             -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'New-ItemProperty'     = & $Get_Command -Name New-ItemProperty     -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'New-Module'           = & $Get_Command -Name New-Module           -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters
-    'New-Object'           = & $Get_Command -Name New-Object           -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'New-PSDrive'          = & $Get_Command -Name New-PSDrive          -Module Microsoft.PowerShell.Management @safeCommandLookupParameters
     'New-Variable'         = & $Get_Command -Name New-Variable         -Module Microsoft.PowerShell.Utility    @safeCommandLookupParameters
     'Out-Host'             = & $Get_Command -Name Out-Host             -Module Microsoft.PowerShell.Core       @safeCommandLookupParameters

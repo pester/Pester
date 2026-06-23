@@ -46,8 +46,8 @@ function Get-TempRegistry {
             $null = & $SafeCommands['New-Item'] -Path $pesterTempRegistryRoot -ErrorAction Stop
         }
     }
-    catch [Exception] {
-        throw ([Exception]"Was not able to create a Pester Registry key for TestRegistry at '$pesterTempRegistryRoot'", ($_.Exception))
+    catch {
+        throw [Exception]::new("Was not able to create a Pester Registry key for TestRegistry at '$pesterTempRegistryRoot'", $_.Exception)
     }
     return $pesterTempRegistryRoot
 }

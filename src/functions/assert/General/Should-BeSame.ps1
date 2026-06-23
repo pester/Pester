@@ -17,7 +17,7 @@
 
     .EXAMPLE
     ```powershell
-    $a = New-Object Object
+    $a = [Object]::new()
     $a | Should-BeSame $a
     ```
 
@@ -25,8 +25,8 @@
 
     .EXAMPLE
     ```powershell
-    $a = New-Object Object
-    $b = New-Object Object
+    $a = [Object]::new()
+    $b = [Object]::new()
     $a | Should-BeSame $b
     ```
 

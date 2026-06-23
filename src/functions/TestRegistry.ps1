@@ -88,8 +88,8 @@ function New-RandomTempRegistry {
             & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
         }
     }
-    catch [Exception] {
-        throw ([Exception]"Was not able to registry key for TestRegistry at '$Path'", ($_.Exception))
+    catch {
+        throw [Exception]::new("Was not able to registry key for TestRegistry at '$Path'", $_.Exception)
     }
 }
 
