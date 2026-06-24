@@ -55,7 +55,7 @@
     $Actual = $collectedInput.Actual
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
+        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
