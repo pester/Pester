@@ -219,4 +219,23 @@ function Resolve-CodeCoverageConfiguration {
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }
+
+    # Validate the output encoding up front. Out-File accepts only a fixed set of encodings and the
+    # set differs between PowerShell versions, so probe it with the same command used to write the
+    # report. Without this an invalid encoding throws while writing the report at the very end of
+    # the run, which discards the results and breaks -PassThru (#2451).
+    $outputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+    $encodingProbe = $null
+    try {
+        $encodingProbe = [System.IO.Path]::GetTempFileName()
+        & $SafeCommands['Out-File'] -InputObject '' -LiteralPath $encodingProbe -Encoding $outputEncoding -ErrorAction Stop
+    }
+    catch {
+        throw "Cannot use CodeCoverage.OutputEncoding '$outputEncoding'. $($_.Exception.Message)"
+    }
+    finally {
+        if ($null -ne $encodingProbe) {
+            [System.IO.File]::Delete($encodingProbe)
+        }
+    }
 }

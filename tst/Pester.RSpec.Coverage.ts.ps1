@@ -319,4 +319,27 @@ i -PassThru:$PassThru {
             @($r.CodeCoverage.FilesAnalyzed) -match '\.Tests.ps1$' | Verify-NotNull
         }
     }
+
+    b 'CodeCoverage.OutputEncoding is validated up front' {
+        t 'Invalid CodeCoverage.OutputEncoding is rejected with a clear message before the run (#2451)' {
+            $err = & (Get-Module Pester) {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.CodeCoverage.OutputEncoding = 'not-a-real-encoding'
+                try { Resolve-CodeCoverageConfiguration; $null } catch { $_ }
+            }
+
+            $err | Verify-NotNull
+            ($err.Exception.Message -like "*CodeCoverage.OutputEncoding 'not-a-real-encoding'*") | Verify-True
+        }
+
+        t 'Valid CodeCoverage.OutputEncoding is accepted' {
+            $err = & (Get-Module Pester) {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.CodeCoverage.OutputEncoding = 'utf8'
+                try { Resolve-CodeCoverageConfiguration; $null } catch { $_ }
+            }
+
+            $err | Verify-Null
+        }
+    }
 }
