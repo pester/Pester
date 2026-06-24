@@ -36,7 +36,7 @@ For this reason a value assertion will handle this as `1`, but a collection asse
 
 Another special case is `@()`. A value assertion will handle it as `$null`, but a collection assertion will handle it as `@()`.
 
-`$null` remains `$null` in both cases.
+A value assertion handles `$null` as `$null`. A collection assertion handles a piped `$null` as `@($null)`, because the pipeline sends a single `$null` item, which is indistinguishable from `@($null)`. The `-Actual` syntax keeps `$null` as `$null` for both.
 
 ```powershell
 # Should-Be is a value assertion:
@@ -57,6 +57,16 @@ $null | Should-Be -Expected $null
 
 # This fails, because -Expected requires a collection.
 $null | Should-BeCollection -Expected $null
+```
+
+Pipeline input also loses the concrete collection type. A typed array like `[int[]](1, 2)` arrives as `[object[]]` once the pipeline unwraps and re-collects it, and a single-item typed array like `[int[]]@(1)` arrives as the bare element `[int]`. Use the `-Actual` syntax when you need to assert on the original collection type, it passes the value through unchanged:
+
+```powershell
+# The pipeline loses the [int[]] type, the value is now [object[]]:
+[int[]](1, 2) | Should-HaveType ([object[]])
+
+# -Actual preserves the original type:
+Should-HaveType -Actual ([int[]](1, 2)) -Expected ([int[]])
 ```
 
 ### Using the -Actual syntax
