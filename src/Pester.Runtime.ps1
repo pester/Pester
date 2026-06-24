@@ -755,6 +755,9 @@ function New-EachTestSetup {
     )
 
     if (Is-Discovery) {
+        if ($null -ne $state.CurrentBlock.EachTestSetup) {
+            throw "BeforeEach is already defined in this block. Each block can only have one BeforeEach. Combine the code into a single BeforeEach block."
+        }
         $state.CurrentBlock.EachTestSetup = $ScriptBlock
     }
 }
@@ -767,6 +770,9 @@ function New-EachTestTeardown {
     )
 
     if (Is-Discovery) {
+        if ($null -ne $state.CurrentBlock.EachTestTeardown) {
+            throw "AfterEach is already defined in this block. Each block can only have one AfterEach. Combine the code into a single AfterEach block."
+        }
         $state.CurrentBlock.EachTestTeardown = $ScriptBlock
     }
 }
@@ -780,6 +786,9 @@ function New-OneTimeTestSetup {
     )
 
     if (Is-Discovery) {
+        if ($null -ne $state.CurrentBlock.OneTimeTestSetup) {
+            throw "BeforeAll is already defined in this block. Each block can only have one BeforeAll. Combine the code into a single BeforeAll block."
+        }
         $state.CurrentBlock.OneTimeTestSetup = $ScriptBlock
     }
 }
@@ -792,6 +801,9 @@ function New-OneTimeTestTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
+        if ($null -ne $state.CurrentBlock.OneTimeTestTeardown) {
+            throw "AfterAll is already defined in this block. Each block can only have one AfterAll. Combine the code into a single AfterAll block."
+        }
         $state.CurrentBlock.OneTimeTestTeardown = $ScriptBlock
     }
 }
