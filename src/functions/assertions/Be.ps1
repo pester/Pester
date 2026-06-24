@@ -46,35 +46,37 @@ function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [st
     }
 }
 function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
-    # 获取类型和长度信息
-    $actualType = if ($null -eq $ActualValue) { '<null>' } else { $ActualValue.GetType().Name }
-    $expectedType = if ($null -eq $ExpectedValue) { '<null>' } else { $ExpectedValue.GetType().Name }
+    # Two collections of different lengths can still render the same once single-element
+    # arrays are unrolled (e.g. ',$a | Should -Be $a' wraps the array), which makes the
+    # plain "Expected @(1, 2, 3), but got @(1, 2, 3)." message look nonsensical. Spell out
+    # the lengths instead so the difference is visible. (#1154)
+    $actualIsCollection = $ActualValue -is [System.Collections.IEnumerable] -and $ActualValue -isnot [string]
+    $expectedIsCollection = $ExpectedValue -is [System.Collections.IEnumerable] -and $ExpectedValue -isnot [string]
 
-    $actualCount = if ($ActualValue -is [Array]) { $ActualValue.Count } else { 1 }
-    $expectedCount = if ($ExpectedValue -is [Array]) { $ExpectedValue.Count } else { 1 }
+    if ($actualIsCollection -and $expectedIsCollection) {
+        $actualLength = @($ActualValue).Count
+        $expectedLength = @($ExpectedValue).Count
 
-    # 判断是否需要显示类型/长度详情
-    $showDetail = ($actualType -ne $expectedType) -or 
-                  ($ActualValue -is [Array] -and $ExpectedValue -is [Array] -and $actualCount -ne $expectedCount)
-
-    if ($showDetail) {
-        $message = "Expected a collection with length $expectedCount and type [$expectedType], but got a collection with length $actualCount and type [$actualType].`n"
-        $message += "Expected: $(Format-Nicely $ExpectedValue)`n"
-        $message += "Actual:   $(Format-Nicely $ActualValue)"
-        if ($Because) { $message += "`nBecause: $Because" }
-        return $message
+        if ($actualLength -ne $expectedLength) {
+            return "Expected a collection $(Format-Nicely $ExpectedValue) with length $expectedLength,$(if ($null -ne $Because) { Format-Because $Because }) but got a collection $(Format-Nicely $ActualValue) with length $actualLength."
+        }
     }
 
-    # 原有逻辑：处理普通情况和字符串
-    $ActualValueUnrolled = $($ActualValue)
-    $ExpectedValueUnrolled = $($ExpectedValue)
+    # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
+    $ActualValue = $($ActualValue)
+    $ExpectedValue = $($ExpectedValue)
 
-    if (-not (($ExpectedValueUnrolled -is [string]) -and ($ActualValueUnrolled -is [string]))) {
-        return "Expected $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { " because $Because" } else { '' }) but got $(Format-Nicely $ActualValue)."
+    if (-not (($ExpectedValue -is [string]) -and ($ActualValue -is [string]))) {
+        return "Expected $(Format-Nicely $ExpectedValue),$(if ($null -ne $Because) { Format-Because $Because }) but got $(Format-Nicely $ActualValue)."
     }
+    <#joining the output strings to a single string here, otherwise I get
+       Cannot find an overload for "Exception" and the argument count: "4".
+       at line: 63 in C:\Users\nohwnd\github\pester\functions\Assertions\Should.ps1
 
-    # 字符串比较的特殊处理
-    (Get-CompareStringMessage -Expected $ExpectedValueUnrolled -Actual $ActualValueUnrolled -Because $Because)
+    This is a quickwin solution, doing the join in the Should directly might be better
+    way of doing this. But I don't want to mix two problems.
+    #>
+    (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -Because $Because) -join "`n"
 }
 
 
