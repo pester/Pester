@@ -2210,6 +2210,40 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
         }
+
+        t 'literal backticks in a name are kept and do not break expansion (#2044)' {
+            $sb = {
+                Describe 'd <user.name> `tick`' {
+                    It 'i <user.name> `tick`' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" } })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i Jakub `tick`'
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd Jakub `tick`'
+        }
+
+        t 'a template name cannot inject code through backticks (#2044)' {
+            $global:____pesterInjected = $false
+            try {
+                $sb = {
+                    Describe 'd' {
+                        It 'i <x> `$($global:____pesterInjected = $true)`' -ForEach @(@{ x = 1 }) { }
+                    }
+                }
+
+                $container = New-PesterContainer -ScriptBlock $sb
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i 1 `$($global:____pesterInjected = $true)`'
+                $global:____pesterInjected | Verify-Equal $false
+            }
+            finally {
+                Remove-Variable -Scope Global -Name ____pesterInjected -ErrorAction Ignore
+            }
+        }
     }
 
     b "Running Pester in Pester" {

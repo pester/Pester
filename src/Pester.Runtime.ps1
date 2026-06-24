@@ -388,7 +388,19 @@ function Invoke-Block ($previousBlock) {
                                 # avoid using variables so we don't run into conflicts
                                 $sb = {
 
-                                    $____Pester.CurrentBlock.ExpandedName = if ($____Pester.CurrentBlock.Name -like "*<*") { & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentBlock.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"'))) } else { $____Pester.CurrentBlock.Name }
+                                    $____Pester.CurrentBlock.ExpandedName = if ($____Pester.CurrentBlock.Name -like "*<*") {
+                                        $____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentBlock.Name.Length)
+                                        $____PesterExpandedPos = 0
+                                        foreach ($____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+                                            $null = $____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($____PesterExpandedPos, $____PesterExpandedMatch.Index - $____PesterExpandedPos))
+                                            if ($____PesterExpandedMatch.Groups[1].Success) { $null = $____PesterExpandedName.Append('$($').Append($____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                            elseif ($____PesterExpandedMatch.Groups[2].Success) { $null = $____PesterExpandedName.Append($____PesterExpandedMatch.Groups[2].Value) }
+                                            else { $null = $____PesterExpandedName.Append('`').Append($____PesterExpandedMatch.Groups[3].Value) }
+                                            $____PesterExpandedPos = $____PesterExpandedMatch.Index + $____PesterExpandedMatch.Length
+                                        }
+                                        $null = $____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($____PesterExpandedPos))
+                                        & ([ScriptBlock]::Create('"' + $____PesterExpandedName.ToString() + '"'))
+                                    } else { $____Pester.CurrentBlock.Name }
 
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
                                         # to avoid including Root name in the path
@@ -648,7 +660,21 @@ function Invoke-TestItem {
                         $sb = {
 
                             $____Pester.CurrentTest.ExpandedName = if ($____Pester.CurrentTest.Name -like "*<*") {
-                                & ([ScriptBlock]::Create(('"' + ($____Pester.CurrentTest.Name -replace '\$', '`$' -replace '"', '`"' -replace '(?<!`)<([^>^`]+)>', '$$($$$1)') + '"')))
+                                # Expand only the <template> items; escape every other character so literal
+                                # backticks, $ and " stay inert and cannot break parsing or inject code (#2044).
+                                # `< and `> escape a literal angle bracket. Locals are $____Pester-prefixed so a
+                                # <template> that references a user variable is not shadowed.
+                                $____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentTest.Name.Length)
+                                $____PesterExpandedPos = 0
+                                foreach ($____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+                                    $null = $____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($____PesterExpandedPos, $____PesterExpandedMatch.Index - $____PesterExpandedPos))
+                                    if ($____PesterExpandedMatch.Groups[1].Success) { $null = $____PesterExpandedName.Append('$($').Append($____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                    elseif ($____PesterExpandedMatch.Groups[2].Success) { $null = $____PesterExpandedName.Append($____PesterExpandedMatch.Groups[2].Value) }
+                                    else { $null = $____PesterExpandedName.Append('`').Append($____PesterExpandedMatch.Groups[3].Value) }
+                                    $____PesterExpandedPos = $____PesterExpandedMatch.Index + $____PesterExpandedMatch.Length
+                                }
+                                $null = $____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($____PesterExpandedPos))
+                                & ([ScriptBlock]::Create('"' + $____PesterExpandedName.ToString() + '"'))
                             }
                             else {
                                 $____Pester.CurrentTest.Name
