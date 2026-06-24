@@ -60,4 +60,52 @@ Describe "Should-HaveParameter" {
             Get-Command f | Should-HaveParameter a -Mandatory:$false
         }
     }
+
+    Context "HasArgumentCompleter" {
+        It "Fails when parameter does not exist and -HasArgumentCompleter is specified" {
+            function f () { }
+
+            { Get-Command f | Should-HaveParameter a -HasArgumentCompleter } | Verify-Throw
+        }
+
+        It "Fails when parameter exists but has no argument completer" {
+            function f ($a) { }
+
+            { Get-Command f | Should-HaveParameter a -HasArgumentCompleter } | Verify-Throw
+        }
+
+        It "Passes when parameter exists and has argument completer" {
+            function f {
+                param(
+                    [ArgumentCompleter({ @('one', 'two') })]
+                    $a
+                )
+            }
+
+            Get-Command f | Should-HaveParameter a -HasArgumentCompleter
+        }
+
+        It "Fails when parameter does not exist and -HasArgumentCompleter:`$false is specified" {
+            function f () { }
+
+            { Get-Command f | Should-HaveParameter a -HasArgumentCompleter:$false } | Verify-Throw
+        }
+
+        It "Fails when parameter has argument completer but -HasArgumentCompleter:`$false is specified" {
+            function f {
+                param(
+                    [ArgumentCompleter({ @('one', 'two') })]
+                    $a
+                )
+            }
+
+            { Get-Command f | Should-HaveParameter a -HasArgumentCompleter:$false } | Verify-Throw
+        }
+
+        It "Passes when parameter exists and has no argument completer with -HasArgumentCompleter:`$false" {
+            function f ($a) { }
+
+            Get-Command f | Should-HaveParameter a -HasArgumentCompleter:$false
+        }
+    }
 }
