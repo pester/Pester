@@ -44,6 +44,30 @@ Expected [int] 2, but got [int] 1." -replace "`r`n", "`n")
         { Should-Any -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
     }
 
+    It "Reports the empty-collection failure when called outside Invoke-Pester (regression)" {
+        # The empty-collection branch must not depend on a `$data` variable. It previously
+        # read an undefined `$data` and passed it to Get-AssertionMessage, which threw
+        # "You cannot call a method on a null-valued expression". A live Invoke-Pester run
+        # masks the bug because the framework keeps a `$data` variable in scope
+        # (Invoke-InNewScriptScope), so we run in a clean runspace with no active run to
+        # reproduce the real-world call, e.g. invoking the assertion from the console.
+        $modulePath = (Get-Module Pester | Select-Object -First 1).Path
+        $ps = [PowerShell]::Create()
+        try {
+            $null = $ps.AddScript(@"
+Import-Module '$modulePath' -Force
+try { @() | Should-Any -FilterScript { `$_ -eq 1 }; 'NO-FAILURE' }
+catch { `$_.FullyQualifiedErrorId + '||' + (`$_.Exception.Message -split [Environment]::NewLine)[0] }
+"@)
+            $result = @($ps.Invoke())
+        }
+        finally {
+            $ps.Dispose()
+        }
+
+        ($result -join '') | Verify-Equal "PesterAssertionFailed||Expected at least one item in collection to pass filter { `$_ -eq 1 }, but [Object[]] @() contains no items to compare."
+    }
+
     It "Can filter using variables from the sorrounding context" {
         $f = 1
         2, 4 | Should-Any { $_ / $f }
