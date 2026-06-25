@@ -45,34 +45,6 @@ function Export-PesterResult {
     }
 }
 
-function Get-OutputEncodingFromName {
-    # Converts a PowerShell-style encoding name (the values accepted by Out-File -Encoding, e.g. 'UTF8',
-    # 'UTF8BOM', 'Unicode', 'UTF32', 'ASCII') or a .NET web name (e.g. 'utf-16') to a [System.Text.Encoding]
-    # instance for use with XmlWriterSettings.Encoding. Falls back to UTF-8 (with BOM, the historical default)
-    # when the value is empty or not a recognized encoding (#2452).
-    param ([string] $Encoding)
-
-    switch -Regex ($Encoding) {
-        '^\s*$' { return [System.Text.UTF8Encoding]::new($true) }
-        '(?i)^utf-?8(-?bom)?$' { return [System.Text.UTF8Encoding]::new($true) }
-        '(?i)^utf-?8-?nobom$' { return [System.Text.UTF8Encoding]::new($false) }
-        '(?i)^(unicode|utf-?16(le)?)$' { return [System.Text.UnicodeEncoding]::new($false, $true) }
-        '(?i)^(bigendianunicode|utf-?16be)$' { return [System.Text.UnicodeEncoding]::new($true, $true) }
-        '(?i)^(utf-?32(le)?)$' { return [System.Text.UTF32Encoding]::new($false, $true) }
-        '(?i)^(bigendianutf32|utf-?32be)$' { return [System.Text.UTF32Encoding]::new($true, $true) }
-        '(?i)^ascii$' { return [System.Text.Encoding]::ASCII }
-        default {
-            try {
-                return [System.Text.Encoding]::GetEncoding($Encoding)
-            }
-            catch {
-                & $SafeCommands['Write-Warning'] "TestResult.OutputEncoding '$Encoding' is not a valid encoding name, falling back to 'UTF8'. $($_.Exception.Message)"
-                return [System.Text.UTF8Encoding]::new($true)
-            }
-        }
-    }
-}
-
 function Export-NUnitReport {
     <#
     .SYNOPSIS
