@@ -73,6 +73,18 @@ InPesterModuleScope {
             $array1 | Should -Not -EQ $array3
         }
 
+        It 'Enumerates non-IList collections such as hashtable keys and values (#1200)' {
+            # [hashtable].Keys/.Values are enumerable but not IList, so binding them to an [object[]] parameter
+            # used to wrap them as a single element and report two equal collections as different.
+            $hashtable = @{ One = 1; Two = 2 }
+            $hashtable.Keys | Should -Be $hashtable.Keys
+            $hashtable.Values | Should -Be $hashtable.Values
+            $hashtable.Keys | Should -Not -Be @('One')
+
+            $ordered = [ordered]@{ One = 1; Two = 2 }
+            @('One', 'Two') | Should -Be $ordered.Keys
+        }
+
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
             { abc } | Should -Be " aBc "
             { abc } | Should -EQ " aBc "

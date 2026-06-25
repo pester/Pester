@@ -318,8 +318,8 @@ function Expand-SpecialCharacters {
 
 function ArraysAreEqual {
     param (
-        [object[]] $First,
-        [object[]] $Second,
+        [object] $First,
+        [object] $Second,
         [switch] $CaseSensitive,
         [int] $RecursionDepth = 0,
         [int] $RecursionLimit = 100
@@ -329,6 +329,14 @@ function ArraysAreEqual {
     if ($RecursionDepth -gt $RecursionLimit) {
         throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
     }
+
+    # Enumerate the inputs ourselves with @(). PowerShell's [object[]] parameter binding wraps a non-IList
+    # enumerable - such as the collection returned by [hashtable].Keys/.Values - into a single element instead
+    # of enumerating it, which made Should -Be report two equal collections as different (#1200). @() uses the
+    # same enumeration the pipeline does (LanguagePrimitives.GetEnumerator), so it expands those collections
+    # while leaving strings, hashtables, scriptblocks and scalars as single values.
+    $First = @($First)
+    $Second = @($Second)
 
     # Do not remove the subexpression @() operators in the following two lines; doing so can cause a
     # silly error in PowerShell v3.  (Null Reference exception from the PowerShell engine in a
