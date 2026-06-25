@@ -3233,35 +3233,32 @@ Describe "Mocking using deep module path notation 'Root/Mid/Leaf'" {
     }
 }
 
-Describe "Disambiguating nested modules with same name across two root modules using slash notation" {
-    # Scenario from PR #2412: ClientA and ClientB each have a nested module named 'Repository'.
-    # Without slash notation both would throw 'Multiple script or manifest modules named Repository'.
+Describe "Disambiguating nested modules with the same name across two root modules using slash notation" {
+    # Scenario from PR #2412: ClientA and ClientB each have a nested module named 'Repository'
+    # (same name, loaded from different folders). With two same-named modules loaded a plain
+    # -ModuleName 'Repository' throws 'Multiple script or manifest modules named Repository';
+    # slash notation targets exactly one of them.
 
     BeforeAll {
         $sharedName = 'Repository'
         $rootA = 'ClientA'
         $rootB = 'ClientB'
 
-        $nestedPathA = "TestDrive:/$sharedName`_A.psm1"
-        $nestedPathB = "TestDrive:/$sharedName`_B.psm1"
-        Set-Content -Path $nestedPathA -Value {
+        # Same base name, different folders, so both load as 'Repository'.
+        $null = New-Item -ItemType Directory -Path "TestDrive:/A", "TestDrive:/B"
+        Set-Content -Path "TestDrive:/A/$sharedName.psm1" -Value {
             function Get-Data { 'dataA' }
             function Invoke-Api { Get-Data }
         }
-        Set-Content -Path $nestedPathB -Value {
+        Set-Content -Path "TestDrive:/B/$sharedName.psm1" -Value {
             function Get-Data { 'dataB' }
             function Invoke-Api { Get-Data }
         }
 
-        $manifestA = "TestDrive:/$rootA.psd1"
-        $manifestB = "TestDrive:/$rootB.psd1"
-
-        # Both nested scripts load as 'Repository' because the -NestedModules name
-        # determines the loaded module name.
-        New-ModuleManifest -Path $manifestA -NestedModules ".\$sharedName`_A.psm1" -FunctionsToExport 'Invoke-Api'
-        New-ModuleManifest -Path $manifestB -NestedModules ".\$sharedName`_B.psm1" -FunctionsToExport 'Invoke-Api'
-        Import-Module $manifestA -Force
-        Import-Module $manifestB -Force
+        New-ModuleManifest -Path "TestDrive:/$rootA.psd1" -NestedModules ".\A\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        New-ModuleManifest -Path "TestDrive:/$rootB.psd1" -NestedModules ".\B\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        Import-Module "TestDrive:/$rootA.psd1" -Force
+        Import-Module "TestDrive:/$rootB.psd1" -Force
     }
 
     AfterAll {
@@ -3269,16 +3266,22 @@ Describe "Disambiguating nested modules with same name across two root modules u
         Get-Module $rootB -ErrorAction SilentlyContinue | Remove-Module -Force
     }
 
-    It 'Should mock Get-Data only in ClientA nested module' {
-        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName`_A" -MockWith { 'mockedA' }
-        # ClientA's Invoke-Api calls the mocked Get-Data
-        InModuleScope "$rootA/$sharedName`_A" { Invoke-Api } | Should -Be 'mockedA'
+    It 'loads both nested modules under the same name, so a plain name is ambiguous' {
+        # Guard: confirms the scenario genuinely exercises disambiguation.
+        @(Get-Module $sharedName -All).Count | Should -BeGreaterThan 1
     }
 
-    It 'Should-Invoke uses slash notation to check ClientA call history' {
-        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName`_A" -MockWith { 'mockedA' }
-        InModuleScope "$rootA/$sharedName`_A" { Invoke-Api } | Out-Null
-        Should -Invoke 'Get-Data' -ModuleName "$rootA/$sharedName`_A" -Exactly -Times 1
+    It 'mocks Get-Data in the ClientA copy, leaving the identically-named ClientB copy untouched' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Should -Be 'mockedA'
+        # the mock must not bleed into the same-named nested module under ClientB
+        InModuleScope "$rootB/$sharedName" { Invoke-Api } | Should -Be 'dataB'
+    }
+
+    It 'Should-Invoke uses slash notation to check the ClientA copy call history' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Out-Null
+        Should -Invoke 'Get-Data' -ModuleName "$rootA/$sharedName" -Exactly -Times 1
     }
 }
 

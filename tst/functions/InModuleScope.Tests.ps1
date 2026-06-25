@@ -234,27 +234,23 @@ Describe 'Get-CompatibleModule' {
         }
     }
 
-    Context 'when two root modules share a nested module name (disambiguation use-case)' {
+    Context 'when two root modules have a nested module with the SAME name (disambiguation use-case)' {
         BeforeAll {
             $sharedNestedName = 'SharedRepository'
             $rootA = 'ClientA'
             $rootB = 'ClientB'
-            $manifestA = "TestDrive:/$rootA.psd1"
-            $manifestB = "TestDrive:/$rootB.psd1"
-            $nestedA = "TestDrive:/$sharedNestedName`_A.psm1"
-            $nestedB = "TestDrive:/$sharedNestedName`_B.psm1"
-            # Both root modules have a nested module called 'SharedRepository'
-            Set-Content -Path $nestedA -Value '[string]$Script:RepoId = "RepoA"'
-            Set-Content -Path $nestedB -Value '[string]$Script:RepoId = "RepoB"'
-            # Rename nested copies so they each load as 'SharedRepository' (same base name)
-            $nestedPathA = "TestDrive:/$sharedNestedName.psm1"
-            $nestedPathB = "TestDrive:/B_$sharedNestedName.psm1"
-            Set-Content -Path $nestedPathA -Value '[string]$Script:RepoId = "RepoA"'
-            Set-Content -Path $nestedPathB -Value '[string]$Script:RepoId = "RepoB"'
-            New-ModuleManifest -Path $manifestA -NestedModules ".\$sharedNestedName.psm1"
-            New-ModuleManifest -Path $manifestB -NestedModules ".\B_$sharedNestedName.psm1"
-            Import-Module $manifestA -Force
-            Import-Module $manifestB -Force
+
+            # Two nested modules with the *same* base name in different folders, so both load
+            # as 'SharedRepository'. A plain -ModuleName is then ambiguous and slash notation is
+            # required to pick one. Each copy stamps a different value so we can prove which one
+            # was resolved by its content, not just by its name.
+            $null = New-Item -ItemType Directory -Path "TestDrive:/A", "TestDrive:/B"
+            Set-Content -Path "TestDrive:/A/$sharedNestedName.psm1" -Value '[string]$Script:RepoId = "RepoA"'
+            Set-Content -Path "TestDrive:/B/$sharedNestedName.psm1" -Value '[string]$Script:RepoId = "RepoB"'
+            New-ModuleManifest -Path "TestDrive:/$rootA.psd1" -NestedModules ".\A\$sharedNestedName.psm1"
+            New-ModuleManifest -Path "TestDrive:/$rootB.psd1" -NestedModules ".\B\$sharedNestedName.psm1"
+            Import-Module "TestDrive:/$rootA.psd1" -Force
+            Import-Module "TestDrive:/$rootB.psd1" -Force
         }
 
         AfterAll {
@@ -262,11 +258,20 @@ Describe 'Get-CompatibleModule' {
             Get-Module $rootB -ErrorAction SilentlyContinue | Remove-Module -Force
         }
 
-        It 'should resolve to ClientA nested module via slash notation' {
-            $name = InModuleScope -ModuleName "$rootA/$sharedNestedName" -ScriptBlock {
-                $ExecutionContext.SessionState.Module.Name
-            }
-            $name | Should -Be $sharedNestedName
+        It 'loads both nested modules under the same name, so a plain name is ambiguous' {
+            # Guard: proves the scenario actually exercises disambiguation. If only one module
+            # named SharedRepository were loaded, slash notation would add nothing here.
+            @(Get-Module $sharedNestedName -All).Count | Should -BeGreaterThan 1
+        }
+
+        It 'resolves to the ClientA copy via slash notation (verified by content)' {
+            $repoId = InModuleScope -ModuleName "$rootA/$sharedNestedName" -ScriptBlock { $Script:RepoId }
+            $repoId | Should -Be 'RepoA'
+        }
+
+        It 'resolves to the ClientB copy via slash notation (verified by content)' {
+            $repoId = InModuleScope -ModuleName "$rootB/$sharedNestedName" -ScriptBlock { $Script:RepoId }
+            $repoId | Should -Be 'RepoB'
         }
     }
 }
