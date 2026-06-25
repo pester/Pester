@@ -80,10 +80,12 @@ function New-PesterState {
 
         Stack               = [Collections.Stack]@()
 
-        # captured here so the <> template expansion (which runs in the user's session state) can
+        # Captured here so the <> template expansion (which runs in the user's session state) can
         # invoke it via "& $____Pester.FormatNicelyForTemplate" while the function itself stays bound
         # to the Pester module session state, where Format-Nicely2 is available (#2744).
-        FormatNicelyForTemplate = ${function:Format-NicelyForTemplate}
+        # Format-NicelyForTemplate lives in Format2.ps1, which is not loaded when the runtime is
+        # tested in isolation (Pester.Runtime.ts.ps1); fall back to plain interpolation there.
+        FormatNicelyForTemplate = $(if ($null -ne ${function:Format-NicelyForTemplate}) { ${function:Format-NicelyForTemplate} } else { { param($____PesterFallbackValue) "$($____PesterFallbackValue)" } })
     }
 
     $o.TotalStopWatch.Restart()
