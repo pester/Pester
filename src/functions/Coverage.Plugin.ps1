@@ -190,7 +190,16 @@
             $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
         }
 
-        $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
+        $outputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+        try {
+            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $outputEncoding -Force -ErrorAction Stop
+        }
+        catch {
+            # An invalid CodeCoverage.OutputEncoding would otherwise throw here, at the very end of the
+            # run, discarding the results and breaking -PassThru. Fall back to utf8 and warn instead (#2451).
+            & $SafeCommands['Write-Warning'] "Could not write the code coverage report using CodeCoverage.OutputEncoding '$outputEncoding', falling back to 'utf8'. $($_.Exception.Message)"
+            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding 'utf8' -Force
+        }
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
         }
@@ -218,24 +227,5 @@ function Resolve-CodeCoverageConfiguration {
     $supportedFormats = 'JaCoCo', 'Cobertura'
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
-    }
-
-    # Validate the output encoding up front. Out-File accepts only a fixed set of encodings and the
-    # set differs between PowerShell versions, so probe it with the same command used to write the
-    # report. Without this an invalid encoding throws while writing the report at the very end of
-    # the run, which discards the results and breaks -PassThru (#2451).
-    $outputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
-    $encodingProbe = $null
-    try {
-        $encodingProbe = [System.IO.Path]::GetTempFileName()
-        & $SafeCommands['Out-File'] -InputObject '' -LiteralPath $encodingProbe -Encoding $outputEncoding -ErrorAction Stop
-    }
-    catch {
-        throw "Cannot use CodeCoverage.OutputEncoding '$outputEncoding'. $($_.Exception.Message)"
-    }
-    finally {
-        if ($null -ne $encodingProbe) {
-            [System.IO.File]::Delete($encodingProbe)
-        }
     }
 }

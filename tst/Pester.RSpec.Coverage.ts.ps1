@@ -1,4 +1,4 @@
-param ([switch] $PassThru, [switch] $NoBuild)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
@@ -320,26 +320,61 @@ i -PassThru:$PassThru {
         }
     }
 
-    b 'CodeCoverage.OutputEncoding is validated up front' {
-        t 'Invalid CodeCoverage.OutputEncoding is rejected with a clear message before the run (#2451)' {
-            $err = & (Get-Module Pester) {
-                $PesterPreference = [PesterConfiguration]::Default
-                $PesterPreference.CodeCoverage.OutputEncoding = 'not-a-real-encoding'
-                try { Resolve-CodeCoverageConfiguration; $null } catch { $_ }
-            }
+    b 'CodeCoverage.OutputEncoding falls back gracefully when invalid' {
+        t 'Invalid CodeCoverage.OutputEncoding does not crash the run; it falls back to utf8 and warns (#2451)' {
+            $sb = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+            $dir = Join-Path ([IO.Path]::GetTempPath()) ("cc_" + [Guid]::NewGuid())
 
-            $err | Verify-NotNull
-            ($err.Exception.Message -like "*CodeCoverage.OutputEncoding 'not-a-real-encoding'*") | Verify-True
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.PassThru = $true
+            $c.Output.Verbosity = 'None'
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1"
+            $c.CodeCoverage.OutputPath = "$dir/coverage.xml"
+            $c.CodeCoverage.OutputEncoding = 'not-a-real-encoding'
+
+            try {
+                $warnings = @()
+                # Previously an invalid encoding threw while writing the report at the very end of the
+                # run, discarding the results and breaking -PassThru (#2451).
+                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3> $null
+
+                $r.Result | Verify-Equal 'Passed'
+                $r.CodeCoverage | Verify-NotNull
+                (Test-Path "$dir/coverage.xml") | Verify-True
+                ((Get-Item "$dir/coverage.xml").Length -gt 0) | Verify-True
+                ($warnings -match "CodeCoverage.OutputEncoding 'not-a-real-encoding'") | Verify-NotNull
+            }
+            finally {
+                if (Test-Path $dir) { Remove-Item $dir -Force -Recurse }
+            }
         }
 
-        t 'Valid CodeCoverage.OutputEncoding is accepted' {
-            $err = & (Get-Module Pester) {
-                $PesterPreference = [PesterConfiguration]::Default
-                $PesterPreference.CodeCoverage.OutputEncoding = 'utf8'
-                try { Resolve-CodeCoverageConfiguration; $null } catch { $_ }
-            }
+        t 'Valid CodeCoverage.OutputEncoding writes the report without an encoding warning' {
+            $sb = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+            $dir = Join-Path ([IO.Path]::GetTempPath()) ("cc_" + [Guid]::NewGuid())
 
-            $err | Verify-Null
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.PassThru = $true
+            $c.Output.Verbosity = 'None'
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1"
+            $c.CodeCoverage.OutputPath = "$dir/coverage.xml"
+            $c.CodeCoverage.OutputEncoding = 'utf8'
+
+            try {
+                $warnings = @()
+                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3> $null
+
+                $r.Result | Verify-Equal 'Passed'
+                (Test-Path "$dir/coverage.xml") | Verify-True
+                ($warnings -match 'CodeCoverage.OutputEncoding') | Verify-Null
+            }
+            finally {
+                if (Test-Path $dir) { Remove-Item $dir -Force -Recurse }
+            }
         }
     }
 }
