@@ -2128,8 +2128,8 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
-            # <_> expands $null to an empty string, not to 'System.Collections.Hashtable'
-            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i '
+            # <_> renders the $null item as '$null' (Format-Nicely2), not the parent hashtable
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i $null'
         }
 
         t "Describe and Context -ForEach @(`$null) set `$_ to `$null (#2320)" {
@@ -2145,9 +2145,9 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
-            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd '
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd $null'
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal 'Passed'
-            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'c '
+            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'c $null'
         }
 
         t "a `$null entry in -ForEach generates its own test with `$_ set to `$null (#2320)" {
@@ -2166,8 +2166,8 @@ i -PassThru:$PassThru {
             $tests[0].Result | Verify-Equal 'Passed'
             $tests[1].Result | Verify-Equal 'Passed'
             $tests[2].Result | Verify-Equal 'Passed'
-            # the middle entry is the $null one and renders as empty
-            $tests[1].ExpandedName | Verify-Equal 'i '
+            # the middle entry is the $null one and renders as '$null'
+            $tests[1].ExpandedName | Verify-Equal 'i $null'
         }
 
         t "ExpandedPath is expanded for parent blocks when block setup fails" {
@@ -2264,7 +2264,29 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
-            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is [string]"
+        }
+
+        t 'template values are formatted with Format-Nicely2 (#2744)' {
+            $sb = {
+                Describe 'd' {
+                    It 'bool <_>'      -ForEach @($true) { }
+                    It 'int <_>'       -ForEach @(42) { }
+                    It 'array <_>'     -ForEach @(, @(1, 2, 3)) { }
+                    It 'hashtable <_>' -ForEach @(@{ Name = 'Jakub' }) { }
+                    It 'string <_>'    -ForEach @('Jakub') { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $t = $r.Containers[0].Blocks[0].Tests
+            $t[0].ExpandedName | Verify-Equal 'bool $true'
+            $t[1].ExpandedName | Verify-Equal 'int 42'
+            $t[2].ExpandedName | Verify-Equal 'array @(1, 2, 3)'
+            $t[3].ExpandedName | Verify-Equal "hashtable @{Name='Jakub'}"
+            # a top-level string is rendered without quotes, so the common case stays clean
+            $t[4].ExpandedName | Verify-Equal 'string Jakub'
         }
 
         t 'literal backticks in a name are kept and do not break expansion (#2044)' {
