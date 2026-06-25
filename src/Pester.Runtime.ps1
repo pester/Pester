@@ -385,21 +385,21 @@ function Invoke-Block ($previousBlock) {
                             })
                         $(if (-not $Block.IsRoot) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
-                                # avoid using variables so we don't run into conflicts
+                                # the $private:____PesterExpanded* locals below neither leak into nor inherit from the user scope
                                 $sb = {
 
                                     $____Pester.CurrentBlock.ExpandedName = if ($____Pester.CurrentBlock.Name -like "*<*") {
-                                        $____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentBlock.Name.Length)
-                                        $____PesterExpandedPos = 0
-                                        foreach ($____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
-                                            $null = $____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($____PesterExpandedPos, $____PesterExpandedMatch.Index - $____PesterExpandedPos))
-                                            if ($____PesterExpandedMatch.Groups[1].Success) { $null = $____PesterExpandedName.Append('$($').Append($____PesterExpandedMatch.Groups[1].Value).Append(')') }
-                                            elseif ($____PesterExpandedMatch.Groups[2].Success) { $null = $____PesterExpandedName.Append($____PesterExpandedMatch.Groups[2].Value) }
-                                            else { $null = $____PesterExpandedName.Append('`').Append($____PesterExpandedMatch.Groups[3].Value) }
-                                            $____PesterExpandedPos = $____PesterExpandedMatch.Index + $____PesterExpandedMatch.Length
+                                        $private:____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentBlock.Name.Length)
+                                        $private:____PesterExpandedPos = 0
+                                        foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+                                            $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
+                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                            elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
+                                            else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
+                                            $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                         }
-                                        $null = $____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($____PesterExpandedPos))
-                                        & ([ScriptBlock]::Create('"' + $____PesterExpandedName.ToString() + '"'))
+                                        $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos))
+                                        & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
                                     } else { $____Pester.CurrentBlock.Name }
 
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
@@ -654,7 +654,7 @@ function Invoke-TestItem {
                     }
                     $(
                         # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
-                        # avoid using any variables to avoid running into conflict with user variables
+                        # the $private:____PesterExpanded* locals below neither leak into nor inherit from the user scope
                         # $ExecutionContext.SessionState.InvokeCommand.ExpandString() has some weird bug in PowerShell 4 and 3, that makes hashtable resolve to null
                         # instead I create a expandable string in a scriptblock and evaluate
                         $sb = {
@@ -662,19 +662,19 @@ function Invoke-TestItem {
                             $____Pester.CurrentTest.ExpandedName = if ($____Pester.CurrentTest.Name -like "*<*") {
                                 # Expand only the <template> items; escape every other character so literal
                                 # backticks, $ and " stay inert and cannot break parsing or inject code (#2044).
-                                # `< and `> escape a literal angle bracket. Locals are $____Pester-prefixed so a
-                                # <template> that references a user variable is not shadowed.
-                                $____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentTest.Name.Length)
-                                $____PesterExpandedPos = 0
-                                foreach ($____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
-                                    $null = $____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($____PesterExpandedPos, $____PesterExpandedMatch.Index - $____PesterExpandedPos))
-                                    if ($____PesterExpandedMatch.Groups[1].Success) { $null = $____PesterExpandedName.Append('$($').Append($____PesterExpandedMatch.Groups[1].Value).Append(')') }
-                                    elseif ($____PesterExpandedMatch.Groups[2].Success) { $null = $____PesterExpandedName.Append($____PesterExpandedMatch.Groups[2].Value) }
-                                    else { $null = $____PesterExpandedName.Append('`').Append($____PesterExpandedMatch.Groups[3].Value) }
-                                    $____PesterExpandedPos = $____PesterExpandedMatch.Index + $____PesterExpandedMatch.Length
+                                # `< and `> escape a literal angle bracket. Locals are $private: and $____Pester-prefixed
+                                # so they don't leak into the user scope and a <template> referencing a user variable is not shadowed.
+                                $private:____PesterExpandedName = [System.Text.StringBuilder]::new($____Pester.CurrentTest.Name.Length)
+                                $private:____PesterExpandedPos = 0
+                                foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+                                    $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
+                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                    elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
+                                    else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
+                                    $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                 }
-                                $null = $____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($____PesterExpandedPos))
-                                & ([ScriptBlock]::Create('"' + $____PesterExpandedName.ToString() + '"'))
+                                $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos))
+                                & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
                             }
                             else {
                                 $____Pester.CurrentTest.Name

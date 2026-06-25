@@ -2244,6 +2244,36 @@ i -PassThru:$PassThru {
                 Remove-Variable -Scope Global -Name ____pesterInjected -ErrorAction Ignore
             }
         }
+
+        t 'template-expansion locals do not leak into child scopes (#2044)' {
+            # The name-expansion builder locals are $private: so user code that opens a child
+            # scope (a called function, & { }, a script block) does not inherit Pester internals.
+            # Without $private: these would be inherited by every child scope spawned from a test.
+            $sb = {
+                Describe 'd <user.name>' {
+                    It 'i <user.name>' {
+                        $global:____pesterLeaked = @(
+                            & {
+                                foreach ($n in '____PesterExpandedName', '____PesterExpandedPos', '____PesterExpandedMatch') {
+                                    if (Get-Variable -Name $n -ErrorAction SilentlyContinue) { $n }
+                                }
+                            }
+                        ) -join ','
+                    }
+                } -ForEach @(@{ User = @{ Name = 'Jakub' } })
+            }
+
+            try {
+                $container = New-PesterContainer -ScriptBlock $sb
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
+                $global:____pesterLeaked | Verify-Equal ''
+            }
+            finally {
+                Remove-Variable -Scope Global -Name ____pesterLeaked -ErrorAction Ignore
+            }
+        }
     }
 
     b "Running Pester in Pester" {
