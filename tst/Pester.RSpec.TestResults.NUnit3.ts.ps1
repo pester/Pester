@@ -928,6 +928,75 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'TestResult.OutputEncoding' {
+        # https://github.com/pester/Pester/issues/2452
+        t 'Defaults to utf8 with BOM and an utf-8 xml declaration' {
+            try {
+                $xml = [IO.Path]::GetTempFileName()
+                $null = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'NUnit3'; OutputPath = $xml }
+                    })
+
+                $bytes = [IO.File]::ReadAllBytes($xml)
+                # utf-8 BOM
+                $bytes[0] | Verify-Equal 0xEF
+                $bytes[1] | Verify-Equal 0xBB
+                $bytes[2] | Verify-Equal 0xBF
+                ([Text.Encoding]::UTF8.GetString($bytes)) -match 'encoding="utf-8"' | Verify-True
+            }
+            finally {
+                if (Test-Path $xml) { Remove-Item $xml -Force -ErrorAction Ignore }
+            }
+        }
+
+        t 'Writes the report using the configured TestResult.OutputEncoding (utf-16)' {
+            try {
+                $xml = [IO.Path]::GetTempFileName()
+                $null = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                        Output     = @{ Verbosity = 'None' }
+                        TestResult = @{ Enabled = $true; OutputFormat = 'NUnit3'; OutputPath = $xml; OutputEncoding = 'utf-16' }
+                    })
+
+                $bytes = [IO.File]::ReadAllBytes($xml)
+                # utf-16 LE BOM
+                $bytes[0] | Verify-Equal 0xFF
+                $bytes[1] | Verify-Equal 0xFE
+                # declaration must match the actual encoding, not be hardcoded to utf-8
+                ([Text.Encoding]::Unicode.GetString($bytes)) -match 'encoding="utf-16"' | Verify-True
+            }
+            finally {
+                if (Test-Path $xml) { Remove-Item $xml -Force -ErrorAction Ignore }
+            }
+        }
+
+        t 'Falls back to utf8 and warns when TestResult.OutputEncoding is invalid' {
+            try {
+                $xml = [IO.Path]::GetTempFileName()
+                $c = [PesterConfiguration]@{
+                    Run        = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                    Output     = @{ Verbosity = 'None' }
+                    TestResult = @{ Enabled = $true; OutputFormat = 'NUnit3'; OutputPath = $xml; OutputEncoding = 'not-a-real-encoding' }
+                }
+
+                $warnings = @()
+                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3> $null
+
+                $r.Result | Verify-Equal 'Passed'
+                $bytes = [IO.File]::ReadAllBytes($xml)
+                $bytes[0] | Verify-Equal 0xEF
+                $bytes[1] | Verify-Equal 0xBB
+                $bytes[2] | Verify-Equal 0xBF
+                ($warnings -match "TestResult.OutputEncoding 'not-a-real-encoding'") | Verify-NotNull
+            }
+            finally {
+                if (Test-Path $xml) { Remove-Item $xml -Force -ErrorAction Ignore }
+            }
+        }
+    }
+
     b 'Blocks with test and child-blocks' {
         t 'Should validate against the nunit 3 schema' {
             # https://github.com/pester/Pester/issues/2143
