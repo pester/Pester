@@ -190,7 +190,16 @@
             $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
         }
 
-        $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -Force
+        $outputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
+        try {
+            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $outputEncoding -Force -ErrorAction Stop
+        }
+        catch {
+            # An invalid CodeCoverage.OutputEncoding would otherwise throw here, at the very end of the
+            # run, discarding the results and breaking -PassThru. Fall back to utf8 and warn instead (#2451).
+            & $SafeCommands['Write-Warning'] "Could not write the code coverage report using CodeCoverage.OutputEncoding '$outputEncoding', falling back to 'utf8'. $($_.Exception.Message)"
+            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding 'utf8' -Force
+        }
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
         }
