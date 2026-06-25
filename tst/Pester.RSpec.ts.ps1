@@ -2968,6 +2968,110 @@ i -PassThru:$PassThru {
                 }
             }
         }
+
+        foreach ($mode in 'Block', 'Container', 'Run') {
+            t "Remaining tests are skipped when a block setup fails in mode '$mode' (#2454)" {
+                $container = [ordered]@{
+                    RootBeforeAll  = 0
+                    RootAfterAll   = 0
+                    BlockBeforeAll = 0
+                    BlockAfterAll  = 0
+                }
+
+                $sb1 = {
+                    BeforeAll { $container.RootBeforeAll++ }
+                    AfterAll { $container.RootAfterAll++ }
+
+                    Describe 'd1' {
+                        # The block's own setup fails. No test runs in this block, so the
+                        # EachTestTeardownEnd hook never fires - skipping the remaining tests has
+                        # to be triggered from block teardown instead (#2454).
+                        BeforeAll { $container.BlockBeforeAll++; throw 'BeforeAll failure' }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Test in failed block' { $true | Should -BeTrue }
+                    }
+                    Describe 'd2' {
+                        BeforeAll { $container.BlockBeforeAll++ }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Sibling test' { $true | Should -BeTrue }
+                    }
+                }
+
+                $sb2 = {
+                    BeforeAll { $container.RootBeforeAll++ }
+                    AfterAll { $container.RootAfterAll++ }
+
+                    Describe 'd1' {
+                        BeforeAll { $container.BlockBeforeAll++ }
+                        AfterAll { $container.BlockAfterAll++ }
+
+                        It 'Other container test' { $true | Should -BeTrue }
+                    }
+                }
+
+                $c = [PesterConfiguration] @{
+                    Run    = @{
+                        ScriptBlock            = $sb1, $sb2
+                        PassThru               = $true
+                        SkipRemainingOnFailure = $mode
+                    }
+                    Output = @{
+                        CIFormat = 'None'
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration $c
+
+                # The block whose BeforeAll threw is Failed, and its own test keeps the Failed
+                # result - it is not turned into a Skipped one.
+                $r.Containers[0].Blocks[0].Result | Verify-Equal 'Failed'
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Failed'
+
+                # AfterAll always executes for the failed block; BeforeAll and AfterAll must not run
+                # for blocks that end up skipped.
+                switch ($mode) {
+                    'Block' {
+                        # Only the failed block is affected; the sibling and the next container run
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Passed'
+                        $r.Containers[1].Result | Verify-Equal 'Passed'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
+
+                        $container.RootBeforeAll | Verify-Equal 2
+                        $container.RootAfterAll | Verify-Equal 2
+                        $container.BlockBeforeAll | Verify-Equal 3
+                        $container.BlockAfterAll | Verify-Equal 3
+                    }
+                    'Container' {
+                        # The sibling in the same container is skipped; the next container still runs
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
+                        $r.Containers[1].Result | Verify-Equal 'Passed'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Passed'
+
+                        # The skip points at the block that failed, not at a test
+                        $r.Containers[0].Blocks[1].Tests[0].ErrorRecord.TargetObject.Message |
+                            Verify-Equal "Skipped due to previous failure at 'd1' and Run.SkipRemainingOnFailure set to 'Container'"
+
+                        $container.RootBeforeAll | Verify-Equal 2
+                        $container.RootAfterAll | Verify-Equal 2
+                        $container.BlockBeforeAll | Verify-Equal 2
+                        $container.BlockAfterAll | Verify-Equal 2
+                    }
+                    'Run' {
+                        # Everything after the failure is skipped, including the next container
+                        $r.Containers[0].Blocks[1].Result | Verify-Equal 'Skipped'
+                        $r.Containers[1].Result | Verify-Equal 'Skipped'
+                        $r.Containers[1].Blocks[0].Result | Verify-Equal 'Skipped'
+
+                        $container.RootBeforeAll | Verify-Equal 1
+                        $container.RootAfterAll | Verify-Equal 1
+                        $container.BlockBeforeAll | Verify-Equal 1
+                        $container.BlockAfterAll | Verify-Equal 1
+                    }
+                }
+            }
+        }
     }
 
     b 'Changes to CWD are reverted on exit' {
