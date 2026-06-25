@@ -8,8 +8,8 @@ function Resolve-SkipRemainingOnFailureConfiguration {
 function Set-RemainingAsSkipped {
     param(
         [Parameter(Mandatory)]
-        [Pester.Test]
-        $FailedTest,
+        [string]
+        $FailedPath,
 
         [Parameter(Mandatory)]
         [Pester.Block]
@@ -18,7 +18,7 @@ function Set-RemainingAsSkipped {
 
     $errorRecord = [Pester.Factory]::CreateErrorRecord(
         'PesterTestSkipped',
-        "Skipped due to previous failure at '$($FailedTest.ExpandedPath)' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'",
+        "Skipped due to previous failure at '$FailedPath' and Run.SkipRemainingOnFailure set to '$($PesterPreference.Run.SkipRemainingOnFailure.Value)'",
         $null,
         $null,
         $null,
@@ -58,6 +58,11 @@ function Get-SkipRemainingOnFailurePlugin {
         $Context.Configuration.SkipRemainingOnFailureCount = 0
     }
 
+    # A failing *test* is handled in EachTestTeardownEnd. A failing *block* (its BeforeAll or
+    # AfterAll threw) never runs a test teardown, so without an EachBlockTeardownEnd hook the
+    # remaining tests/blocks keep running (#2454). Block.OwnPassed is $false only when the block's
+    # own setup/teardown failed - a failing child test leaves it $true - so the two hooks never
+    # double-fire for the same failure.
     if ($PesterPreference.Run.SkipRemainingOnFailure.Value -eq 'Block') {
         $p.EachTestTeardownEnd = {
             param($Context)
@@ -65,7 +70,17 @@ function Get-SkipRemainingOnFailurePlugin {
             # If test was not skipped and failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in the block recursively
-                Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block
+                Set-RemainingAsSkipped -FailedPath $Context.Test.ExpandedPath -Block $Context.Block
+            }
+        }
+
+        $p.EachBlockTeardownEnd = {
+            param($Context)
+
+            # If the block's own setup/teardown failed and it was not skipped
+            if (-not $Context.Block.OwnPassed -and -not $Context.Block.Skip) {
+                # Skip all remaining tests in the block recursively
+                Set-RemainingAsSkipped -FailedPath $Context.Block.ExpandedPath -Block $Context.Block
             }
         }
     }
@@ -77,7 +92,17 @@ function Get-SkipRemainingOnFailurePlugin {
             # If test was not skipped and failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in the container recursively
-                Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block.Root
+                Set-RemainingAsSkipped -FailedPath $Context.Test.ExpandedPath -Block $Context.Block.Root
+            }
+        }
+
+        $p.EachBlockTeardownEnd = {
+            param($Context)
+
+            # If the block's own setup/teardown failed and it was not skipped
+            if (-not $Context.Block.OwnPassed -and -not $Context.Block.Skip) {
+                # Skip all remaining tests in the container recursively
+                Set-RemainingAsSkipped -FailedPath $Context.Block.ExpandedPath -Block $Context.Block.Root
             }
         }
     }
@@ -86,12 +111,12 @@ function Get-SkipRemainingOnFailurePlugin {
         $p.ContainerRunStart = {
             param($Context)
 
-            # If a test failed in a previous container, skip all tests
-            if ($Context.Configuration.SkipRemainingFailedTest) {
+            # If a failure happened in a previous container, skip all tests
+            if ($Context.Configuration.SkipRemainingFailedPath) {
                 # Skip container root block to avoid root-level BeforeAll/AfterAll from running. Only applicable in this mode
                 $Context.Block.Root.Skip = $true
                 # Skip all remaining tests in current container
-                Set-RemainingAsSkipped -FailedTest $Context.Configuration.SkipRemainingFailedTest -Block $Context.Block
+                Set-RemainingAsSkipped -FailedPath $Context.Configuration.SkipRemainingFailedPath -Block $Context.Block
             }
         }
 
@@ -101,11 +126,24 @@ function Get-SkipRemainingOnFailurePlugin {
             # If test was not skipped but failed
             if (-not $Context.Test.Skipped -and -not $Context.Test.Passed) {
                 # Skip all remaining tests in current container
-                Set-RemainingAsSkipped -FailedTest $Context.Test -Block $Context.Block.Root
+                Set-RemainingAsSkipped -FailedPath $Context.Test.ExpandedPath -Block $Context.Block.Root
 
-                # Store failed test so we can skip remaining containers in ContainerRunStart-step
-                # TODO: Use $Context.GlobalPluginData.SkipRemainingOnFailure.FailedTest when exposed in $Context
-                $Context.Configuration.SkipRemainingFailedTest = $Context.Test
+                # Store failed path so we can skip remaining containers in ContainerRunStart-step
+                # TODO: Use $Context.GlobalPluginData.SkipRemainingOnFailure.FailedPath when exposed in $Context
+                $Context.Configuration.SkipRemainingFailedPath = $Context.Test.ExpandedPath
+            }
+        }
+
+        $p.EachBlockTeardownEnd = {
+            param($Context)
+
+            # If the block's own setup/teardown failed and it was not skipped
+            if (-not $Context.Block.OwnPassed -and -not $Context.Block.Skip) {
+                # Skip all remaining tests in current container
+                Set-RemainingAsSkipped -FailedPath $Context.Block.ExpandedPath -Block $Context.Block.Root
+
+                # Store failed path so we can skip remaining containers in ContainerRunStart-step
+                $Context.Configuration.SkipRemainingFailedPath = $Context.Block.ExpandedPath
             }
         }
     }
