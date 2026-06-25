@@ -168,6 +168,7 @@
         [scriptblock] $ExclusiveFilter,
 
         [Parameter(ParameterSetName = 'Default')]
+        [Alias('FromModule')]
         [string] $ModuleName,
         [Parameter(ParameterSetName = 'Default')]
         [string] $Scope = 0,

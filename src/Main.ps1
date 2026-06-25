@@ -265,6 +265,19 @@ function Add-AssertionDynamicParameterSet {
             $null = $script:AssertionDynamicParams.Add($parameter.Name, $dynamic)
         }
 
+        foreach ($alias in $parameter.Aliases) {
+            $aliasExists = foreach ($existingAttribute in $dynamic.Attributes) {
+                if ($existingAttribute -is [System.Management.Automation.AliasAttribute] -and $existingAttribute.AliasNames -contains $alias) {
+                    $true
+                    break
+                }
+            }
+
+            if (-not $aliasExists) {
+                $null = $dynamic.Attributes.Add([System.Management.Automation.AliasAttribute]::new($alias))
+            }
+        }
+
         $attribute = [Management.Automation.ParameterAttribute]::new()
         $attribute.ParameterSetName = $AssertionEntry.Name
         $attribute.Mandatory = $false

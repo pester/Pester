@@ -224,6 +224,7 @@ function Mock {
         [ScriptBlock]$MockWith = {},
         [switch]$Verifiable,
         [ScriptBlock]$ParameterFilter,
+        [Alias('FromModule')]
         [string]$ModuleName,
         [string[]]$RemoveParameterType,
         [string[]]$RemoveParameterValidation
@@ -788,6 +789,7 @@ function Should-InvokeAssertion {
         [Parameter(ParameterSetName = 'ExclusiveFilter', Mandatory = $true)]
         [scriptblock] $ExclusiveFilter,
 
+        [Alias('FromModule')]
         [string] $ModuleName,
         [string] $Scope = 0,
         [switch] $Exactly,
@@ -978,6 +980,7 @@ function Invoke-Mock {
         [Parameter(Mandatory = $true)]
         [hashtable] $MockCallState,
 
+        [Alias('FromModule')]
         [string]
         $ModuleName,
 
@@ -1194,6 +1197,5 @@ function Assert-RunInProgress {
         throw "$CommandName can run only during Run, but not during Discovery."
     }
 }
-
 
 

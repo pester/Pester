@@ -593,6 +593,25 @@ i -PassThru:$PassThru {
                 $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
                 $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
             }
+
+            t "can mock and count calls using FromModule alias" {
+                $sb = {
+                    Describe "a" {
+                        It "it" {
+                            Mock -FromModule Source -CommandName Private -MockWith { "mock" }
+                            Public2 | Should -Be 'mock'
+
+                            Should -Invoke Private -FromModule Source
+                        }
+                    }
+                }
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run = @{ ScriptBlock = $sb; PassThru = $true }
+                    })
+
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            }
         }
         finally {
             Get-Module Source, Target | Remove-Module -Force -ErrorAction Ignore
