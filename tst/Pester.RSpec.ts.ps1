@@ -3250,4 +3250,47 @@ i -PassThru:$PassThru {
             $r.Containers[0].Result | Verify-Equal 'Passed'
         }
     }
+
+    b 'Stray output during the run does not crash Pester (#2655)' {
+        t 'Split-RSpecResult keeps containers and collects stray output separately' {
+            # Get a real [Pester.Container] to mix with stray output
+            $real = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+            $container = $real.Containers[0]
+
+            $split = & (Get-Module Pester) {
+                param($c)
+                # Native command output that leaks into the run pipeline (e.g. an unredirected
+                # winrm/net command in BeforeAll) arrives here as plain strings next to the container.
+                Split-RSpecResult -Result (@($c, 'WinRM service is already running on this machine.', $null))
+            } $container
+
+            $split.Containers.Count | Verify-Equal 1
+            ($split.Containers[0] -is [Pester.Container]) | Verify-True
+            $split.StrayOutput.Count | Verify-Equal 1
+            $split.StrayOutput[0] | Verify-Equal 'WinRM service is already running on this machine.'
+        }
+
+        t 'Run.Containers only receives containers after splitting, so the run does not crash' {
+            $real = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+            $container = $real.Containers[0]
+
+            # Adding stray output straight to the strongly-typed list is what used to throw
+            # "Cannot find an overload for Add" and fail the whole run.
+            $threw = $false
+            try { ([Pester.Run]::Create()).Containers.Add('stray native output') } catch { $threw = $true }
+            $threw | Verify-True
+
+            # After splitting, only the container is added and the run is built without error.
+            $run = [Pester.Run]::Create()
+            $split = & (Get-Module Pester) { param($c) Split-RSpecResult -Result (@($c, 'stray native output')) } $container
+            foreach ($i in $split.Containers) { $run.Containers.Add($i) }
+            $run.Containers.Count | Verify-Equal 1
+        }
+    }
 }

@@ -607,7 +607,19 @@ function Invoke-Pester {
 
             $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
 
-            foreach ($c in $r) {
+            # Invoke-Test should only return [Pester.Container] objects, but stray output produced during the
+            # run - most often a native command writing to the success stream in a setup block (e.g. BeforeAll)
+            # without being redirected to $null - can leak into the pipeline. Adding it to the strongly-typed
+            # Run.Containers list throws an opaque "Cannot find an overload for Add" error that fails the whole
+            # run. Separate it out and warn instead of crashing. (#2655)
+            $rspecResult = Split-RSpecResult -Result $r
+            $rspecContainers = $rspecResult.Containers
+            if (0 -lt $rspecResult.StrayOutput.Count) {
+                $strayDescription = @(foreach ($strayItem in $rspecResult.StrayOutput) { "'$strayItem'" }) -join ', '
+                & $SafeCommands['Write-Warning'] "Pester received unexpected output while running tests and ignored it: $strayDescription. This is usually caused by a native command writing to the success stream in a setup block such as BeforeAll. Redirect the output to `$null, for example: `$null = my-command 2>`&1."
+            }
+
+            foreach ($c in $rspecContainers) {
                 Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
             }
 
@@ -628,7 +640,7 @@ function Invoke-Pester {
             }
 
             $run.PSVersion = $PSVersionTable.PSVersion
-            foreach ($i in @($r)) {
+            foreach ($i in $rspecContainers) {
                 $run.Containers.Add($i)
             }
 
@@ -772,6 +784,32 @@ function Convert-PesterSimpleParameterSet ($BoundParameters) {
     }
 
     return $Configuration
+}
+
+function Split-RSpecResult {
+    # Invoke-Test should only return [Pester.Container] objects. Stray output produced during the run - most
+    # commonly a native command writing to the success stream in a setup block (e.g. BeforeAll) that was not
+    # redirected to $null - can leak into the pipeline. Adding it to the strongly-typed Run.Containers list
+    # throws an opaque "Cannot find an overload for Add" error and fails the whole run. Separate the containers
+    # from any stray output so the caller can keep the results and warn instead of crashing. (#2655)
+    param ($Result)
+
+    $containers = [System.Collections.Generic.List[Pester.Container]]@()
+    $strayOutput = [System.Collections.Generic.List[object]]@()
+
+    foreach ($i in $Result) {
+        if ($i -is [Pester.Container]) {
+            $containers.Add($i)
+        }
+        elseif ($null -ne $i) {
+            $strayOutput.Add($i)
+        }
+    }
+
+    return [PSCustomObject]@{
+        Containers  = $containers
+        StrayOutput = $strayOutput
+    }
 }
 
 function Resolve-AutoEnabledConfiguration {
