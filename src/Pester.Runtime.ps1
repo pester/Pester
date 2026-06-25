@@ -247,7 +247,10 @@ function New-Block {
             Write-PesterDebugMessage -Scope DiscoveryCore "Discovering in body of block $Name"
         }
 
-        if ($null -ne $block.Data) {
+        # Bind the data even when it is $null, as long as this is a data-driven block
+        # (it has a GroupId); otherwise -ForEach @($null) would leave $_ at the parent
+        # value instead of $null (#2320).
+        if ($null -ne $block.Data -or -not [string]::IsNullOrEmpty($block.GroupId)) {
             $context = @{}
             Add-DataToContext -Destination $context -Data $block.Data
 
@@ -370,7 +373,10 @@ function Invoke-Block ($previousBlock) {
                         ____Pester                           = $State
                     }
 
-                    if ($null -ne $block.Data) {
+                    # Bind the data even when it is $null, as long as this is a data-driven block
+                    # (it has a GroupId); otherwise -ForEach @($null) would leave $_ at the parent
+                    # value instead of $null (#2320).
+                    if ($null -ne $block.Data -or -not [string]::IsNullOrEmpty($block.GroupId)) {
                         Add-DataToContext -Destination $context -Data $block.Data
                     }
 
@@ -606,7 +612,10 @@ function Invoke-TestItem {
                     ____Pester = $State
                 }
 
-                if ($null -ne $test.Data) {
+                # Bind the data even when it is $null, as long as this is a data-driven test
+                # (it has a GroupId); otherwise -ForEach @($null) would leave $_ at the parent
+                # value instead of $null (#2320).
+                if ($null -ne $test.Data -or -not [string]::IsNullOrEmpty($test.GroupId)) {
                     Add-DataToContext -Destination $context -Data $test.Data
                 }
 

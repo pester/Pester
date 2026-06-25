@@ -2114,6 +2114,62 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
         }
 
+        t "It -ForEach @(`$null) sets `$_ to `$null and does not render the parent data in the name (#2320)" {
+            $sb = {
+                Describe 'd' {
+                    It 'i <_>' -ForEach @($null) {
+                        # $_ must be the $null item from -ForEach, not the parent block's data
+                        Test-Path variable:_ | Should -BeTrue
+                        $null -eq $_ | Should -BeTrue
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+            # <_> expands $null to an empty string, not to 'System.Collections.Hashtable'
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i '
+        }
+
+        t "Describe and Context -ForEach @(`$null) set `$_ to `$null (#2320)" {
+            $sb = {
+                Describe 'd <_>' -ForEach @($null) {
+                    It 'i' { $null -eq $_ | Should -BeTrue }
+                }
+                Context 'c <_>' -ForEach @($null) {
+                    It 'i' { $null -eq $_ | Should -BeTrue }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd '
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal 'Passed'
+            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'c '
+        }
+
+        t "a `$null entry in -ForEach generates its own test with `$_ set to `$null (#2320)" {
+            $sb = {
+                Describe 'd' {
+                    It 'i <_>' -ForEach @(1, $null, 3) {
+                        if ($null -eq $_) { 'null' | Should -Be 'null' } else { $_ | Should -BeIn 1, 3 }
+                    }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            @($tests).Count | Verify-Equal 3
+            $tests[0].Result | Verify-Equal 'Passed'
+            $tests[1].Result | Verify-Equal 'Passed'
+            $tests[2].Result | Verify-Equal 'Passed'
+            # the middle entry is the $null one and renders as empty
+            $tests[1].ExpandedName | Verify-Equal 'i '
+        }
+
         t "ExpandedPath is expanded for parent blocks when block setup fails" {
             $sb = {
                 Describe 'd <_>' {
