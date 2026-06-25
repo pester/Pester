@@ -147,6 +147,19 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
     Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty
 }
 
+function Format-NicelyForTemplate ($Value) {
+    # Used to render a <> template value into an expanded test or block name (#2744). Everything
+    # goes through Format-Nicely2 so $null, booleans, arrays and hashtables read nicely (e.g.
+    # '$null', '@(1, 2, 3)', "@{Name='x'}") instead of PowerShell's bare interpolation. A top-level
+    # string is passed through unquoted though, so the common '<user.name>' case stays clean ('Jakub'
+    # rather than "'Jakub'"). Nested strings still get their quotes from Format-Nicely2.
+    if ($Value -is [string]) {
+        return $Value
+    }
+
+    Format-Nicely2 -Value $Value
+}
+
 function Get-DisplayProperty2 ([Type]$Type) {
     # rename to Get-DisplayProperty?
 
