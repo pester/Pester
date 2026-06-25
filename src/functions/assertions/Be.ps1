@@ -45,8 +45,23 @@ function Should-BeAssertion ($ActualValue, $ExpectedValue, [switch] $Negate, [st
         }
     }
 }
-
 function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
+    # Two collections of different lengths can still render the same once single-element
+    # arrays are unrolled (e.g. ',$a | Should -Be $a' wraps the array), which makes the
+    # plain "Expected @(1, 2, 3), but got @(1, 2, 3)." message look nonsensical. Spell out
+    # the lengths instead so the difference is visible. (#1154)
+    $actualIsCollection = $ActualValue -is [System.Collections.IEnumerable] -and $ActualValue -isnot [string]
+    $expectedIsCollection = $ExpectedValue -is [System.Collections.IEnumerable] -and $ExpectedValue -isnot [string]
+
+    if ($actualIsCollection -and $expectedIsCollection) {
+        $actualLength = @($ActualValue).Count
+        $expectedLength = @($ExpectedValue).Count
+
+        if ($actualLength -ne $expectedLength) {
+            return "Expected a collection $(Format-Nicely $ExpectedValue) with length $expectedLength,$(if ($null -ne $Because) { Format-Because $Because }) but got a collection $(Format-Nicely $ActualValue) with length $actualLength."
+        }
+    }
+
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
@@ -63,6 +78,7 @@ function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     #>
     (Get-CompareStringMessage -Expected $ExpectedValue -Actual $ActualValue -Because $Because) -join "`n"
 }
+
 
 function NotShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
     return "Expected $(Format-Nicely $ExpectedValue) to be different from the actual value,$(if ($null -ne $Because) { Format-Because $Because }) but got the same value."

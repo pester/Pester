@@ -138,6 +138,18 @@ InPesterModuleScope {
             ShouldBeFailureMessage 2 1 -Because 'reason' | Verify-Equal "Expected 1, because reason, but got 2."
         }
 
+        It "Outputs the collection length when arrays differ only in wrapping or length (#1154)" {
+            ShouldBeFailureMessage (, (1, 2, 3)) (1, 2, 3) | Verify-Equal "Expected a collection @(1, 2, 3) with length 3, but got a collection @(@(1, 2, 3)) with length 1."
+        }
+
+        It "Outputs the collection length when arrays differ only in wrapping or length, with reason (#1154)" {
+            ShouldBeFailureMessage (, (1, 2, 3)) (1, 2, 3) -Because 'reason' | Verify-Equal "Expected a collection @(1, 2, 3) with length 3, because reason, but got a collection @(@(1, 2, 3)) with length 1."
+        }
+
+        It "Keeps the plain message for collections of equal length" {
+            ShouldBeFailureMessage (1, 2, 3) (1, 2, 4) | Verify-Equal "Expected @(1, 2, 4), but got @(1, 2, 3)."
+        }
+
         It "Outputs verbose message for two strings of different length" {
             ShouldBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they were different.`nExpected length: 8`nActual length:   6`nStrings differ at index 0.`nExpected: 'expected'`nBut was:  'actual'`n           ^"
         }
