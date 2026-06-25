@@ -2266,6 +2266,64 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
         }
+
+        t 'literal backticks in a name are kept and do not break expansion (#2044)' {
+            $sb = {
+                Describe 'd <user.name> `tick`' {
+                    It 'i <user.name> `tick`' { }
+                } -ForEach @(@{User = @{ Name = "Jakub" } })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i Jakub `tick`'
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd Jakub `tick`'
+        }
+
+        t 'a template name cannot inject code through backticks (#2044)' {
+            $global:____pesterInjected = $false
+            try {
+                $sb = {
+                    Describe 'd' {
+                        It 'i <x> `$($global:____pesterInjected = $true)`' -ForEach @(@{ x = 1 }) { }
+                    }
+                }
+
+                $container = New-PesterContainer -ScriptBlock $sb
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+                $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i 1 `$($global:____pesterInjected = $true)`'
+                $global:____pesterInjected | Verify-Equal $false
+            }
+            finally {
+                Remove-Variable -Scope Global -Name ____pesterInjected -ErrorAction Ignore
+            }
+        }
+
+        t 'template-expansion locals do not leak into child scopes (#2044)' {
+            # The name-expansion builder locals are $private: so user code that opens a child
+            # scope (a called function, & { }, a script block) does not inherit Pester internals.
+            # Without $private: the child scope below would see them and throw, failing the test.
+            $sb = {
+                Describe 'd <user.name>' {
+                    It 'i <user.name>' {
+                        & {
+                            foreach ($n in '____PesterExpandedName', '____PesterExpandedPos', '____PesterExpandedMatch') {
+                                if (Get-Variable -Name $n -ErrorAction SilentlyContinue) {
+                                    throw "Pester internal '$n' leaked into a child scope"
+                                }
+                            }
+                        }
+                    }
+                } -ForEach @(@{ User = @{ Name = 'Jakub' } })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
+        }
     }
 
     b "Running Pester in Pester" {
