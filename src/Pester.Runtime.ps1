@@ -79,6 +79,13 @@ function New-PesterState {
         FrameworkStopWatch  = [Diagnostics.Stopwatch]::StartNew()
 
         Stack               = [Collections.Stack]@()
+
+        # Captured here so the <> template expansion (which runs in the user's session state) can
+        # invoke it via "& $____Pester.FormatNicelyForTemplate" while the function itself stays bound
+        # to the Pester module session state, where Format-Nicely2 is available (#2744).
+        # Format-NicelyForTemplate lives in Format2.ps1, which is not loaded when the runtime is
+        # tested in isolation (Pester.Runtime.ts.ps1); fall back to plain interpolation there.
+        FormatNicelyForTemplate = $(if ($null -ne ${function:Format-NicelyForTemplate}) { ${function:Format-NicelyForTemplate} } else { { param($____PesterFallbackValue) "$($____PesterFallbackValue)" } })
     }
 
     $o.TotalStopWatch.Restart()
@@ -399,7 +406,7 @@ function Invoke-Block ($previousBlock) {
                                         $private:____PesterExpandedPos = 0
                                         foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                             $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
                                             elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                             else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                             $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
@@ -677,7 +684,7 @@ function Invoke-TestItem {
                                 $private:____PesterExpandedPos = 0
                                 foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                     $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
                                     elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                     else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                     $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
