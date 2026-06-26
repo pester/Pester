@@ -151,7 +151,7 @@ InPesterModuleScope {
         }
 
         It "Outputs the differing index for collections of equal length" {
-            ShouldBeFailureMessage (1, 2, 3) (1, 2, 4) | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 3.`nCollections differ at index 2.`nExpected: 4`nBut was:  3"
+            ShouldBeFailureMessage (1, 2, 3) (1, 2, 4) | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 3.`nCollections differ at index 2.`nExpected: @(1, 2, 4)`nBut was:  @(1, 2, 3)"
         }
 
         It "Outputs verbose message for two strings of different length" {
@@ -215,7 +215,7 @@ InPesterModuleScope {
         }
 
         It "Outputs the differing index for collections of equal length" {
-            ShouldBeExactlyFailureMessage ('a', 'b') ('a', 'B') | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 2.`nCollections differ at index 1.`nExpected: 'B'`nBut was:  'b'"
+            ShouldBeExactlyFailureMessage ('a', 'b') ('a', 'B') | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 2.`nCollections differ at index 1.`nExpected: @('a', 'B')`nBut was:  @('a', 'b')"
         }
     }
 }

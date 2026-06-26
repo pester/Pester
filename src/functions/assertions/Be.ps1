@@ -304,8 +304,8 @@ function Get-CompareCollectionMessage {
     "Expected collections to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they were different."
     "Collection lengths are both $($ExpectedValue.Count)."
     "Collections differ at index $DifferenceIndex."
-    "Expected: $(Format-Nicely $ExpectedValue[$DifferenceIndex])"
-    "But was:  $(Format-Nicely $ActualValue[$DifferenceIndex])"
+    "Expected: $(Format-Nicely $ExpectedValue)"
+    "But was:  $(Format-Nicely $ActualValue)"
 }
 
 function Format-AsExcerpt {
