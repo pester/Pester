@@ -124,4 +124,22 @@ InPesterModuleScope {
             Get-Command Should -Syntax | Should -Not -BeNullOrEmpty
         }
     }
+
+    Describe 'Providing the actual value by parameter instead of the pipeline (#2314)' {
+        It 'compares an array given via -ActualValue / splatting the same as via the pipeline' {
+            # https://github.com/pester/Pester/issues/2314
+            # SupportsArrayInput assertions used to wrap a by-parameter value one level too deep.
+            Should -ActualValue @(1, 2, 3) -Be -ExpectedValue @(1, 2, 3)
+
+            $splat = @{ ActualValue = @(1, 2, 3); Be = $true; ExpectedValue = @(1, 2, 3) }
+            Should @splat
+
+            { Should -ActualValue @(1, 2, 3) -Be -ExpectedValue @(1, 2, 4) } | Verify-AssertionFailed
+        }
+
+        It 'counts an array given via -ActualValue with -HaveCount' {
+            Should -ActualValue @(1, 2, 3) -HaveCount 3
+            { Should -ActualValue @(1, 2, 3) -HaveCount 2 } | Verify-AssertionFailed
+        }
+    }
 }
