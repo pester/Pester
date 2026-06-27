@@ -169,6 +169,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
         -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' ```
+        -MockPSCmdlet `$MyInvocation.MyCommand.Mock.PSCmdlet ```
         -Hook `$MyInvocation.MyCommand.Mock.Hook #INPUT#
 "@
     $newContent = $mockPrototype
@@ -452,14 +453,15 @@ function Should-InvokeInternal {
     foreach ($historyEntry in $callHistory) {
 
         $params = @{
-            ScriptBlock     = $filter
-            BoundParameters = $historyEntry.BoundParams
-            ArgumentList    = $historyEntry.Args
-            Metadata        = $ContextInfo.Hook.Metadata
+            ScriptBlock         = $filter
+            BoundParameters     = $historyEntry.BoundParams
+            ArgumentList        = $historyEntry.Args
+            Metadata            = $ContextInfo.Hook.Metadata
             # do not use the caller session state from the hook, the parameter filter
             # on Should -Invoke can come from a different session state if inModuleScope is used to
             # wrap it. Use the caller session state to which the scriptblock is bound
-            SessionState    = $SessionState
+            SessionState        = $SessionState
+            DynamicParamAliases = $historyEntry.DynamicParamAliases
         }
 
         # if ($null -ne $ContextInfo.Hook.Metadata -and $null -ne $params.ScriptBlock) {
@@ -797,6 +799,8 @@ function Invoke-MockInternal {
 
         [object] $InputObject,
 
+        [object] $MockPSCmdlet,
+
         [Parameter(Mandatory)]
         $Behaviors,
 
@@ -813,6 +817,11 @@ function Invoke-MockInternal {
             $MockCallState['InputObjects'] = [System.Collections.Generic.List[object]]@()
             $MockCallState['MatchedNoBehavior'] = $false
             $MockCallState['BeginBoundParameters'] = $BoundParameters.Clone()
+            # Capture the aliases of dynamic parameters now, while the mocked command's runtime
+            # metadata is still reachable via its $PSCmdlet. Dynamic parameters are not part of the
+            # static command metadata, so without this the parameter filter cannot match on their
+            # aliases (#1275).
+            $MockCallState['DynamicParamAliases'] = Get-DynamicParameterAlias -Cmdlet $MockPSCmdlet
             # argument list must not be null, if the bootstrap functions has no parameters
             # we get null and need to replace it with empty array to make the splatting work
             # later on.
@@ -829,14 +838,15 @@ function Invoke-MockInternal {
             $SessionState = if ($CallerSessionState) { $CallerSessionState } else { $Hook.SessionState }
 
             # the @() are needed for powerShell3 otherwise it throws CheckAutomationNullInCommandArgumentArray (unless there is any breakpoint defined anywhere, then it works just fine :DDD)
-            $behavior, $failedFilterInvocations = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook
+            $behavior, $failedFilterInvocations = FindMatchingBehavior -Behaviors @($Behaviors) -BoundParameters $BoundParameters -ArgumentList @($ArgumentList) -SessionState $SessionState -Hook $Hook -DynamicParamAliases $MockCallState['DynamicParamAliases']
 
             if ($null -ne $behavior) {
                 $call = @{
-                    BoundParams = $BoundParameters
-                    Args        = $ArgumentList
-                    Hook        = $Hook
-                    Behavior    = $behavior
+                    BoundParams         = $BoundParameters
+                    Args                = $ArgumentList
+                    Hook                = $Hook
+                    Behavior            = $behavior
+                    DynamicParamAliases = $MockCallState['DynamicParamAliases']
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
@@ -939,7 +949,8 @@ function FindMatchingBehavior {
         [object[]] $ArgumentList = @(),
         [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState,
-        $Hook
+        $Hook,
+        [hashtable] $DynamicParamAliases = @{ }
     )
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -959,11 +970,12 @@ function FindMatchingBehavior {
 
         if (-not $b.IsDefault) {
             $params = @{
-                ScriptBlock     = $b.Filter
-                BoundParameters = $BoundParameters
-                ArgumentList    = $ArgumentList
-                Metadata        = $Hook.Metadata
-                SessionState    = $Hook.CallerSessionState
+                ScriptBlock         = $b.Filter
+                BoundParameters     = $BoundParameters
+                ArgumentList        = $ArgumentList
+                Metadata            = $Hook.Metadata
+                SessionState        = $Hook.CallerSessionState
+                DynamicParamAliases = $DynamicParamAliases
             }
 
             $filterResult = Test-ParameterFilter @params
@@ -1152,7 +1164,10 @@ function Test-ParameterFilter {
 
         [Parameter(Mandatory)]
         [Management.Automation.SessionState]
-        $SessionState
+        $SessionState,
+
+        [System.Collections.IDictionary]
+        $DynamicParamAliases
     )
 
     if ($null -eq $BoundParameters) {
@@ -1165,7 +1180,7 @@ function Test-ParameterFilter {
         $arguments = @()
     }
 
-    $context = Get-ContextToDefine -BoundParameters $BoundParameters -Metadata $Metadata
+    $context = Get-ContextToDefine -BoundParameters $BoundParameters -Metadata $Metadata -DynamicParamAliases $DynamicParamAliases
 
     $wrapper = {
         param ($private:______mock_parameters)
@@ -1256,10 +1271,39 @@ function Test-ParameterFilter {
     , @($passed, $parameterFilterInvocations)
 }
 
+function Get-DynamicParameterAlias {
+    param (
+        [object] $Cmdlet
+    )
+
+    # Build a map of dynamic-parameter name -> aliases from the mocked command's runtime metadata.
+    # Only dynamic parameters are included; aliases of static parameters are already resolved from
+    # the static command metadata in Get-ContextToDefine (#1275).
+    $aliases = @{ }
+    if ($null -eq $Cmdlet) {
+        return $aliases
+    }
+
+    $parameters = $Cmdlet.MyInvocation.MyCommand.Parameters
+    if ($null -eq $parameters) {
+        return $aliases
+    }
+
+    foreach ($parameter in $parameters.GetEnumerator()) {
+        $parameterMetadata = $parameter.Value
+        if ($parameterMetadata.IsDynamic -and $null -ne $parameterMetadata.Aliases -and 0 -lt @($parameterMetadata.Aliases).Count) {
+            $aliases[$parameter.Key] = @($parameterMetadata.Aliases)
+        }
+    }
+
+    $aliases
+}
+
 function Get-ContextToDefine {
     param (
         [System.Collections.IDictionary] $BoundParameters,
-        [System.Management.Automation.CommandMetadata] $Metadata
+        [System.Management.Automation.CommandMetadata] $Metadata,
+        [System.Collections.IDictionary] $DynamicParamAliases
     )
 
     $conflictingParameterNames = Get-ConflictingParameterNames
@@ -1354,6 +1398,27 @@ function Get-ContextToDefine {
 
             if (-not $r.ContainsKey($param.Key)) {
                 $r.Add($param.Key, $param.Value)
+            }
+
+            # dynamic parameters are not part of the static command metadata, so their aliases
+            # were captured separately at call time. Define them as well, so the parameter filter
+            # can match on a dynamic parameter's alias and not just its name (#1275).
+            if ($null -ne $DynamicParamAliases -and $DynamicParamAliases.Contains($param.Key)) {
+                foreach ($a in $DynamicParamAliases[$param.Key]) {
+                    $name = if ($a -in $conflictingParameterNames) {
+                        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                            Write-PesterDebugMessage -Scope Mock -Message "! Variable `$$($a) is a built-in variable, rewriting it to `$_$($a). Use the version with _ in your -ParameterFilter."
+                        }
+                        "_$($a)"
+                    }
+                    else {
+                        $a
+                    }
+
+                    if (-not $r.ContainsKey($name)) {
+                        $r.Add($name, $param.Value)
+                    }
+                }
             }
         }
     }
