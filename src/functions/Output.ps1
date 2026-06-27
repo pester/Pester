@@ -497,7 +497,19 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        if ($PesterPreference.Run.SkipRun.Value) {
+            # Discovery-only mode (e.g. populating an IDE Test Explorer); we are not
+            # going to run anything, so announce discovery instead of the run.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        }
+        else {
+            # A single banner for the whole run. In the interleaved run model the rest of
+            # the discovery/run framing ("Discovery found ...", "Running tests.") is kept
+            # off the screen; the matching plugin events still fire so IDE adapters keep
+            # the full contract. The parent sets Parallel on the context for a parallel run.
+            $parallelSuffix = if ($Context.Parallel) { ' in parallel' } else { '' }
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from $(@($Context.BlockContainers).Length) files$parallelSuffix."
+        }
     }
 
     $p.ContainerDiscoveryEnd = {
@@ -526,7 +538,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
+
+        if ($PesterPreference.Run.SkipRun.Value) {
+            # Only announce the discovery result on screen when we are not going to run
+            # the tests. During a normal run this is collapsed into the run banner and
+            # the final summary to keep the output quiet; the DiscoveryEnd event still
+            # fires for plugins/IDE adapters.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
+        }
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
@@ -550,10 +569,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-
-    $p.RunStart = {
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "Running tests."
-    }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.ContainerRunStart = {
