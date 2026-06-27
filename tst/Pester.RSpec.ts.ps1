@@ -3373,4 +3373,93 @@ i -PassThru:$PassThru {
             $run.Containers.Count | Verify-Equal 1
         }
     }
+
+    # Migrated from the removed Pester v4 suite TestsRunningInCleanRunspace.Tests.ps1,
+    # which used Start-Job to run Pester in a clean runspace. Pester 6 isolates each run,
+    # so these scenarios can be exercised in-process via Invoke-Pester.
+    b "Invoke-Pester swallows pipeline output from the system under test" {
+        t "with -PassThru it returns only the result object, not leaked output" {
+            $sb = {
+                # System under test writes to the pipeline while the container runs.
+                Write-Output 'leaked system-under-test output'
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $output = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            # Only the single Run object comes back; the stray string is swallowed.
+            @($output).Count | Verify-Equal 1
+            ($output -is [Pester.Run]) | Verify-True
+            $output.TotalCount | Verify-Equal 1
+        }
+
+        t "without -PassThru it returns nothing" {
+            $sb = {
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $output = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $false }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $output | Verify-Null
+        }
+    }
+
+    b "Invalid test definitions fail the run gracefully" {
+        t "It without a ScriptBlock fails the run" {
+            $sb = {
+                Describe 'It without ScriptBlock' {
+                    It 'has no scriptblock'
+                    It 'would pass if it ran' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "a test file with a syntax error fails the run without throwing" {
+            try {
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/Broken.Tests.ps1"
+                # Deliberately missing the closing brace to trigger a parse error.
+                Set-Content -Path $file -Value @'
+Describe "Something" {
+    It "Works" {
+        $true | Should -Be $true
+    }
+# missing closing brace
+'@
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{ Path = $file; PassThru = $true }
+                        Output = @{ Verbosity = 'None' }
+                    })
+
+                # The unparseable file fails the run instead of throwing out of Invoke-Pester.
+                $r.Result | Verify-Equal 'Failed'
+                $r.Containers[0].Result | Verify-Equal 'Failed'
+            }
+            finally {
+                if ($null -ne $tmp -and (Test-Path $tmp)) {
+                    Remove-Item $tmp -Recurse -Force
+                }
+            }
+        }
+    }
 }
