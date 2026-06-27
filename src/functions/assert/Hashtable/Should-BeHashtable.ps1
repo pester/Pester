@@ -109,7 +109,7 @@
 
         $missingKeys = @(foreach ($k in $Key) { if (-not $dictionary.Contains($k)) { $k } })
         if ($missingKeys.Count -gt 0) {
-            $missingFormatted = ($missingKeys | & $SafeCommands['ForEach-Object'] { Format-Nicely2 -Value $_ }) -join ', '
+            $missingFormatted = @(foreach ($k in $missingKeys) { Format-Nicely2 -Value $k }) -join ', '
             $keyWord = if ($missingKeys.Count -eq 1) { 'key' } else { 'keys' }
             $Message = Get-AssertionMessage -Expected $Key -Actual $Actual -Because $Because -DefaultMessage "Expected hashtable <actual> to contain $keyWord $missingFormatted,<because> but it does not."
             Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
@@ -134,8 +134,8 @@
             }
 
             if (-not $inOrder) {
-                $keysFormatted = ($Key | & $SafeCommands['ForEach-Object'] { Format-Nicely2 -Value $_ }) -join ', '
-                $actualOrderFormatted = ($actualKeys | & $SafeCommands['ForEach-Object'] { Format-Nicely2 -Value $_ }) -join ', '
+                $keysFormatted = @(foreach ($k in $Key) { Format-Nicely2 -Value $k }) -join ', '
+                $actualOrderFormatted = @(foreach ($k in $actualKeys) { Format-Nicely2 -Value $k }) -join ', '
                 $Message = Get-AssertionMessage -Expected $Key -Actual $Actual -Because $Because -DefaultMessage "Expected keys $keysFormatted to appear in this order in hashtable <actual>,<because> but the actual key order is $actualOrderFormatted."
                 Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
             }
