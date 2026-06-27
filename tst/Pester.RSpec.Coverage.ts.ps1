@@ -376,5 +376,33 @@ i -PassThru:$PassThru {
                 if (Test-Path $dir) { Remove-Item $dir -Force -Recurse }
             }
         }
+
+        t 'Writes the report in CodeCoverage.OutputEncoding and matches the xml encoding-declaration (#2450)' {
+            $sb = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+            $dir = Join-Path ([IO.Path]::GetTempPath()) ("cc_" + [Guid]::NewGuid())
+
+            $c = New-PesterConfiguration
+            $c.Run.Container = New-PesterContainer -ScriptBlock $sb
+            $c.Run.PassThru = $true
+            $c.Output.Verbosity = 'None'
+            $c.CodeCoverage.Enabled = $true
+            $c.CodeCoverage.Path = "$PSScriptRoot/CoverageTestFile.ps1"
+            $c.CodeCoverage.OutputPath = "$dir/coverage.xml"
+            $c.CodeCoverage.OutputEncoding = 'utf-16'
+
+            try {
+                $null = Invoke-Pester -Configuration $c 3> $null
+
+                $bytes = [IO.File]::ReadAllBytes("$dir/coverage.xml")
+                # utf-16 LE BOM
+                $bytes[0] | Verify-Equal 0xFF
+                $bytes[1] | Verify-Equal 0xFE
+                # the declaration must match the bytes, not the hard-coded utf-8 from the report template
+                ([Text.Encoding]::Unicode.GetString($bytes)) -match 'encoding="utf-16"' | Verify-True
+            }
+            finally {
+                if (Test-Path $dir) { Remove-Item $dir -Force -Recurse }
+            }
+        }
     }
 }

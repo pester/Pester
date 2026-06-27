@@ -151,21 +151,38 @@
             default { throw "CodeCoverage.CoverageFormat '$($configuration.OutputFormat)' is not valid, please review your configuration." }
         }
 
+        $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+        if (-not (& $SafeCommands['Test-Path'] $resolvedPath)) {
+            $dir = & $SafeCommands['Split-Path'] $resolvedPath
+            $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
+        }
+
+        # Write the report straight to the file using the configured encoding, and make the xml
+        # encoding-declaration match it. The report templates hard-code encoding="UTF-8", so without this the
+        # declaration does not reflect CodeCoverage.OutputEncoding nor the bytes actually on disk (#2450).
+        # Get-OutputEncodingFromName falls back to utf8 and warns for an invalid encoding, so an unusable value
+        # no longer throws at the very end of the run (#2451).
+        $encoding = Get-OutputEncodingFromName -Encoding $PesterPreference.CodeCoverage.OutputEncoding.Value -OptionName 'CodeCoverage.OutputEncoding'
+        if ($coverageXmlReport.FirstChild -is [System.Xml.XmlDeclaration]) {
+            $coverageXmlReport.FirstChild.Encoding = $encoding.WebName
+        }
+
         $settings = [Xml.XmlWriterSettings] @{
             Indent              = $true
             NewLineOnAttributes = $false
+            Encoding            = $encoding
         }
 
-        $stringWriter = $null
+        $xmlFile = $null
         $xmlWriter = $null
         try {
-            $stringWriter = [Pester.Factory]::CreateStringWriter()
-            $xmlWriter = [Xml.XmlWriter]::Create($stringWriter, $settings)
+            $xmlFile = [IO.File]::Create($resolvedPath)
+            $xmlWriter = [Xml.XmlWriter]::Create($xmlFile, $settings)
 
             $coverageXmlReport.WriteContentTo($xmlWriter)
 
             $xmlWriter.Flush()
-            $stringWriter.Flush()
+            $xmlFile.Flush()
         }
         finally {
             if ($null -ne $xmlWriter) {
@@ -175,30 +192,13 @@
                 catch {
                 }
             }
-            if ($null -ne $stringWriter) {
+            if ($null -ne $xmlFile) {
                 try {
-                    $stringWriter.Close()
+                    $xmlFile.Close()
                 }
                 catch {
                 }
             }
-        }
-
-        $resolvedPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
-        if (-not (& $SafeCommands['Test-Path'] $resolvedPath)) {
-            $dir = & $SafeCommands['Split-Path'] $resolvedPath
-            $null = & $SafeCommands['New-Item'] $dir -Force -ItemType Container
-        }
-
-        $outputEncoding = $PesterPreference.CodeCoverage.OutputEncoding.Value
-        try {
-            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding $outputEncoding -Force -ErrorAction Stop
-        }
-        catch {
-            # An invalid CodeCoverage.OutputEncoding would otherwise throw here, at the very end of the
-            # run, discarding the results and breaking -PassThru. Fall back to utf8 and warn instead (#2451).
-            & $SafeCommands['Write-Warning'] "Could not write the code coverage report using CodeCoverage.OutputEncoding '$outputEncoding', falling back to 'utf8'. $($_.Exception.Message)"
-            $stringWriter.ToString() | & $SafeCommands['Out-File'] $resolvedPath -Encoding 'utf8' -Force
         }
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
