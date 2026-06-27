@@ -45,6 +45,39 @@ There are two kinds of tests:
 - `*.ts.ps1` — P tests (unit tests for the runtime and acceptance tests for Pester).
 - `*.tests.ps1` — Pester tests for the module's functions.
 
+## Performance and the build analyzer
+
+Pester ships custom PSScriptAnalyzer rules in `Pester.BuildAnalyzerRules/`. These rules
+are **not** run by `build.ps1` or `test.ps1`; they only run in the `Code analysis`
+workflow (`.github/workflows/code-analysis.yml`) on push and pull requests to `main`.
+A green `test.ps1` run therefore does **not** mean the analyzer is happy — check it
+locally before pushing:
+
+```powershell
+Install-Module PSScriptAnalyzer -Scope CurrentUser   # once
+Invoke-ScriptAnalyzer -Path ./src -Recurse -Settings ./.github/workflows/PSScriptAnalyzerSettings.psd1
+```
+
+Two custom rules come up most often:
+
+- **`Measure-ObjectCmdlets` — avoid the slow `*-Object` cmdlets in `src/`.** Do not use
+  `Foreach-Object`, `Where-Object`, `Select-Object` or `New-Object`; they are slow
+  compared to the language and .NET alternatives. Wrapping them as
+  `& $SafeCommands['Foreach-Object']` does **not** satisfy the rule — it still fires.
+  Use instead:
+  - `foreach ($x in $items) { ... }` or a `for` loop instead of `... | Foreach-Object`.
+  - the `.Where({ ... })` / `.ForEach({ ... })` array methods, or a `foreach` with `if`,
+    instead of `... | Where-Object`.
+  - direct member access (`$items.Name`) instead of `... | Select-Object -ExpandProperty`.
+  - `[Type]::new(...)` instead of `New-Object Type`.
+- **`Measure-SafeCommands` — call external commands through `$SafeCommands`.** Inside the
+  module call `& $SafeCommands['Command-Name'] ...` instead of the bare command, so a
+  user-defined function or alias cannot shadow it.
+
+When a violation is truly unavoidable, suppress it explicitly next to the code with
+`[Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\<RuleName>', '<id>', Justification = '...')]`,
+matching the existing suppressions in `src/`.
+
 ## Documentation
 
 - Documentation is written in Markdown; update it when behavior changes.
