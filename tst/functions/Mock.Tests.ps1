@@ -1710,6 +1710,58 @@ Describe 'Mocking functions with dynamic parameters' {
             Get-ThingWithFailingDynamicParam | Should -Be 'mocked'
         }
     }
+
+    Context 'When a dynamic parameter has an alias (#1275)' {
+        BeforeAll {
+            function Get-DynamicAliasThing {
+                [CmdletBinding()]
+                param ()
+
+                DynamicParam {
+                    $Attributes = New-Object Management.Automation.ParameterAttribute
+                    $Attributes.ParameterSetName = '__AllParameterSets'
+                    $Attributes.Mandatory = $false
+
+                    $AliasAttribute = New-Object System.Management.Automation.AliasAttribute('Location')
+
+                    $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+                    $AttributeCollection.Add($Attributes)
+                    $AttributeCollection.Add($AliasAttribute)
+
+                    $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Path', [string], $AttributeCollection)
+
+                    $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+                    $ParamDictionary.Add('Path', $Dynamic)
+                    $ParamDictionary
+                }
+
+                end { 'real' }
+            }
+        }
+
+        It 'matches the parameter filter using the alias of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Location -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here' | Should -Be 'mocked'
+        }
+
+        It 'matches the parameter filter using the name of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Path -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here' | Should -Be 'mocked'
+        }
+
+        It 'uses the dynamic-parameter alias to choose between behaviors' {
+            Mock Get-DynamicAliasThing { 'default' }
+            Mock Get-DynamicAliasThing { 'matched' } -ParameterFilter { $Location -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here'  | Should -Be 'matched'
+            Get-DynamicAliasThing -Location 'There' | Should -Be 'default'
+        }
+
+        It 'matches Should -Invoke -ParameterFilter using the alias of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' }
+            $null = Get-DynamicAliasThing -Location 'Here'
+            Should -Invoke Get-DynamicAliasThing -Times 1 -Exactly -ParameterFilter { $Location -eq 'Here' }
+        }
+    }
 }
 
 

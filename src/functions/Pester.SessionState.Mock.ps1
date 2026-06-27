@@ -994,6 +994,8 @@ function Invoke-Mock {
 
         [object] $InputObject,
 
+        [object] $MockPSCmdlet,
+
         $Hook
     )
 
