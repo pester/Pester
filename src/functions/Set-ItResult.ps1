@@ -35,8 +35,8 @@
 
     ```
     Describing Example
-      [?] Inconclusive test is inconclusive, because we want it to be inconclusive 35ms (32ms|3ms)
-      [!] Skipped test is skipped, because we want it to be skipped 3ms (2ms|1ms)
+      [?] Inconclusive test is inconclusive, because we want it to be inconclusive 35ms
+      [!] Skipped test is skipped, because we want it to be skipped 3ms
     Tests completed in 78ms
     Tests Passed: 0, Failed: 0, Skipped: 1, Inconclusive: 1, NotRun: 0
     ```
