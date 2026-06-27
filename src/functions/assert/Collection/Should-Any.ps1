@@ -54,9 +54,20 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
+    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
+    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
+    $pipelineBuffer = $local:Input
+    $isPipelineInput = $collectedInput.IsPipelineInput
+    $reportFailure = {
+        param($Message)
+        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting CollectionItems
+        if ($hint) { $Message = "$Message`n`nHint: $hint" }
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    }
+
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        & $reportFailure $Message
     }
 
     $failReasons = $null
@@ -100,7 +111,7 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        & $reportFailure $Message
     }
     Set-AssertionPassResult
 }

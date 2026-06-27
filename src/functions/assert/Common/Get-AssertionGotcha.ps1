@@ -15,12 +15,19 @@ function Get-AssertionGotcha {
         $CollectedActual,
         # $collectedInput.IsPipelineInput.
         [bool] $IsPipelineInput,
-        # What the failing assertion wanted the input to be.
-        [ValidateSet('Collection')]
+        # What the failing assertion wanted the input to be. This selects the wording, because the
+        # same wrong shape is a problem for different reasons depending on the assertion:
+        #   Collection      - the whole input is compared as one collection (e.g. Should-BeCollection).
+        #                     A lone scalar, $null, or dictionary is the wrong container, so all three
+        #                     are worth a hint.
+        #   CollectionItems - the input is iterated or searched item by item (e.g. Should-All,
+        #                     Should-Any, Should-ContainCollection, Should-NotContainCollection). A
+        #                     lone scalar or $null is a perfectly valid one-item collection here, so
+        #                     only a dictionary -- which PowerShell silently passes through as a
+        #                     single, non-iterated object -- is a genuine gotcha.
+        [ValidateSet('Collection', 'CollectionItems')]
         [string] $Expecting = 'Collection'
     )
-
-    if ($Expecting -ne 'Collection') { return $null }
 
     try {
         if ($IsPipelineInput) {
@@ -41,18 +48,38 @@ function Get-AssertionGotcha {
             $piped = $false
         }
 
+        # Classify the wrong shape once, then pick wording that fits the failing assertion.
         if ($null -eq $value) {
-            $what = '$null'
-            $detail = 'It is treated as a single $null item, not an empty collection. Use @() to represent an empty collection.'
+            $shape = 'null'
         }
         elseif ($value -is [System.Collections.IDictionary]) {
-            $what = 'a single ' + (Get-ShortType2 -Value $value)
-            $detail = 'PowerShell treats a dictionary as a single object, not a collection. To check the number of entries use $actual.Count, or compare contents with Should-BeEquivalent.'
+            $shape = 'dictionary'
         }
         else {
-            $what = 'a single ' + (Get-ShortType2 -Value $value)
-            $detail = 'It is treated as a single item. To assert on a one-item collection wrap it as ,$actual, or use Should-Be for a scalar value.'
+            $shape = 'scalar'
         }
+
+        $detail = switch ($Expecting) {
+            'Collection' {
+                switch ($shape) {
+                    'null' { 'It is treated as a single $null item, not an empty collection. Use @() to represent an empty collection.' }
+                    'dictionary' { 'PowerShell treats a dictionary as a single object, not a collection. To check the number of entries use $actual.Count, or compare contents with Should-BeEquivalent.' }
+                    'scalar' { 'It is treated as a single item. To assert on a one-item collection wrap it as ,$actual, or use Should-Be for a scalar value.' }
+                }
+            }
+            'CollectionItems' {
+                switch ($shape) {
+                    # A lone scalar or $null is a valid one-item collection for an item-wise
+                    # assertion, so there is nothing surprising to point out. Only a dictionary is.
+                    'dictionary' { 'PowerShell treats a dictionary as a single object, so it is passed through as one item instead of being iterated. Enumerate it first, e.g. with $actual.GetEnumerator(), or its .Keys or .Values.' }
+                    default { $null }
+                }
+            }
+        }
+
+        if (-not $detail) { return $null }
+
+        $what = if ($shape -eq 'null') { '$null' } else { 'a single ' + (Get-ShortType2 -Value $value) }
 
         if ($piped) {
             "You piped $what into a collection assertion. $detail"

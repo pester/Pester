@@ -25,3 +25,21 @@ InPesterModuleScope {
         }
     }
 }
+
+Describe "Should-NotContainCollection input hint" {
+    It 'Hints when a single hashtable is piped and found by reference' {
+        $h = @{ Name = 'Jakub' }
+        $err = { $h | Should-NotContainCollection $h } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*GetEnumerator*'
+    }
+
+    It 'Does not hint for a genuine collection that contains the item' {
+        $err = { @(1, 2, 3) | Should-NotContainCollection 1 } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for a piped scalar, which is a valid one-item collection' {
+        $err = { 5 | Should-NotContainCollection 5 } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}
