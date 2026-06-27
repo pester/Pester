@@ -94,6 +94,9 @@
         'Should-BeSame'
         'Should-HaveType'
 
+        # hashtable
+        'Should-BeHashtable'
+
         # string
         'Should-BeString'
         'Should-NotBeString'

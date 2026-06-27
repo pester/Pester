@@ -51,7 +51,7 @@ Describe "Should-BeCollection" {
 Describe "Should-BeCollection input hint" {
     It 'Hints when a single hashtable is piped' {
         $err = { @{ Name = 'Jakub' } | Should-BeCollection -Count 2 } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*$actual.Count*'
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*Should-BeHashtable*'
     }
 
     It 'Hints when a single hashtable is piped against an expected collection' {

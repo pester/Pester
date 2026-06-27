@@ -63,7 +63,7 @@ function Get-AssertionGotcha {
             'Collection' {
                 switch ($shape) {
                     'null' { 'It is treated as a single $null item, not an empty collection. Use @() to represent an empty collection.' }
-                    'dictionary' { 'PowerShell treats a dictionary as a single object, not a collection. To check the number of entries use $actual.Count, or compare contents with Should-BeEquivalent.' }
+                    'dictionary' { 'PowerShell treats a dictionary as a single object, not a collection. To assert on it as a hashtable use Should-BeHashtable, or compare its contents with Should-BeEquivalent.' }
                     'scalar' { 'It is treated as a single item. To assert on a one-item collection wrap it as ,$actual, or use Should-Be for a scalar value.' }
                 }
             }
@@ -71,7 +71,7 @@ function Get-AssertionGotcha {
                 switch ($shape) {
                     # A lone scalar or $null is a valid one-item collection for an item-wise
                     # assertion, so there is nothing surprising to point out. Only a dictionary is.
-                    'dictionary' { 'PowerShell treats a dictionary as a single object, so it is passed through as one item instead of being iterated. Enumerate it first, e.g. with $actual.GetEnumerator(), or its .Keys or .Values.' }
+                    'dictionary' { 'PowerShell treats a dictionary as a single object, so it is passed through as one item instead of being iterated. Enumerate it first, e.g. with $actual.GetEnumerator(), or its .Keys or .Values, or assert on it directly with Should-BeHashtable.' }
                     default { $null }
                 }
             }
