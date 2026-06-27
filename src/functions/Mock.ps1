@@ -89,8 +89,19 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
 
+        # Repair-ConflictingParameters above strips validation from the static parameters, but it skips
+        # dynamic parameters because they are not part of the static param block. To make
+        # -RemoveParameterValidation reach a dynamic parameter (e.g. a dynamic -Name with a ValidateSet)
+        # we forward the names to Get-MockDynamicParameter, which removes the validation attributes from
+        # the dynamic parameters as they are produced for each call. (#1557)
+        $removeValidationArg = ''
+        if ($RemoveParameterValidation) {
+            $escapedValidationNames = foreach ($n in $RemoveParameterValidation) { "'$(EscapeSingleQuotedStringContent $n)'" }
+            $removeValidationArg = " -RemoveParameterValidation @($($escapedValidationNames -join ','))"
+        }
+
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
-            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters }"
+            $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -CmdletName '$($contextInfo.Command.Name)' -Parameters `$PSBoundParameters$removeValidationArg }"
         }
         else {
             $dynamicParamStatements = Get-DynamicParamBlock -ScriptBlock $contextInfo.Command.ScriptBlock
@@ -108,7 +119,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
                 else {
                     ''
                 }
-                $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet -DynamicParamScriptBlock `$MyInvocation.MyCommand.Mock.Hook.DynamicParamScriptBlock }"
+                $dynamicParamBlock = "dynamicparam { & `$MyInvocation.MyCommand.Mock.Get_MockDynamicParameter -ModuleName '$moduleName' -FunctionName '$commandName' -Parameters `$PSBoundParameters -Cmdlet `$PSCmdlet -DynamicParamScriptBlock `$MyInvocation.MyCommand.Mock.Hook.DynamicParamScriptBlock$removeValidationArg }"
 
                 $code = @"
                     $cmdletBinding
@@ -1436,7 +1447,9 @@ function Get-MockDynamicParameter {
         [object] $Cmdlet,
 
         [Parameter(ParameterSetName = "Function")]
-        $DynamicParamScriptBlock
+        $DynamicParamScriptBlock,
+
+        [string[]] $RemoveParameterValidation
     )
 
     switch ($PSCmdlet.ParameterSetName) {
@@ -1453,7 +1466,47 @@ function Get-MockDynamicParameter {
         return
     }
 
+    if ($RemoveParameterValidation) {
+        Remove-DynamicParameterValidation -DynamicParams $dynamicParams -ParameterName $RemoveParameterValidation
+    }
+
     Repair-ConflictingDynamicParameters -DynamicParams $dynamicParams
+}
+
+function Remove-DynamicParameterValidation {
+    [OutputType([void])]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.RuntimeDefinedParameterDictionary]
+        $DynamicParams,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]
+        $ParameterName
+    )
+
+    # Mirror the static-parameter handling in Repair-ConflictingParameters: a validation attribute is any
+    # ValidateArgumentsAttribute (ValidateSet, ValidateRange, ValidatePattern, ValidateScript, ...), so
+    # removing those from the dynamic parameter disables the validation while keeping the parameter itself.
+    foreach ($name in $ParameterName) {
+        if (-not $DynamicParams.ContainsKey($name)) {
+            continue
+        }
+
+        $dynamicParam = $DynamicParams[$name]
+        $attrIndexesToRemove = [System.Collections.Generic.List[int]]@()
+        for ($i = 0; $i -lt $dynamicParam.Attributes.Count; $i++) {
+            if ($dynamicParam.Attributes[$i] -is [System.Management.Automation.ValidateArgumentsAttribute]) {
+                $null = $attrIndexesToRemove.Add($i)
+            }
+        }
+
+        # remove attributes in reverse order to avoid index shifting
+        $attrIndexesToRemove.Reverse()
+        foreach ($index in $attrIndexesToRemove) {
+            $null = $dynamicParam.Attributes.RemoveAt($index)
+        }
+    }
 }
 
 function Repair-ConflictingDynamicParameters {

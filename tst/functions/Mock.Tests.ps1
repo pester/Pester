@@ -2763,6 +2763,49 @@ Describe 'RemoveParameterValidation' {
 
         Test-Validation -Count -1 | Should -Be "mock"
     }
+
+    Context 'When the validated parameter is a dynamic parameter (#1557)' {
+        BeforeAll {
+            # Mimics commands such as Get-AzContext, whose -Name parameter is a dynamic parameter
+            # carrying a (dynamic) ValidateSet. Repair-ConflictingParameters skips dynamic parameters,
+            # so -RemoveParameterValidation has to reach them through Get-MockDynamicParameter.
+            function Test-DynamicValidation {
+                [CmdletBinding()]
+                param ()
+
+                dynamicparam {
+                    $dictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+
+                    foreach ($paramName in 'Name', 'Color') {
+                        $attributes = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+                        $attributes.Add([System.Management.Automation.ParameterAttribute]::new())
+                        $attributes.Add([System.Management.Automation.ValidateSetAttribute]::new(@('a', 'b')))
+                        $dictionary.Add($paramName, [System.Management.Automation.RuntimeDefinedParameter]::new($paramName, [string], $attributes))
+                    }
+
+                    $dictionary
+                }
+
+                end { 'real' }
+            }
+        }
+
+        It 'still validates the dynamic parameter when validation is not removed' {
+            Mock Test-DynamicValidation { 'mock' }
+            { Test-DynamicValidation -Name 'zzz' } | Should -Throw -ErrorId '*ParameterArgumentValidationError*'
+        }
+
+        It 'passes when mock removes the validation from the dynamic parameter' {
+            Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
+            Test-DynamicValidation -Name 'zzz' | Should -Be 'mock'
+        }
+
+        It 'only removes validation from the named dynamic parameter' {
+            Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
+            Test-DynamicValidation -Name 'zzz' | Should -Be 'mock'
+            { Test-DynamicValidation -Color 'zzz' } | Should -Throw -ErrorId '*ParameterArgumentValidationError*'
+        }
+    }
 }
 
 Describe 'Removing multiple attributes for same parameter' {
