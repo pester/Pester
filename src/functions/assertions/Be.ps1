@@ -60,6 +60,11 @@ function ShouldBeFailureMessage($ActualValue, $ExpectedValue, $Because) {
         if ($actualLength -ne $expectedLength) {
             return "Expected a collection $(Format-Nicely $ExpectedValue) with length $expectedLength,$(if ($null -ne $Because) { Format-Because $Because }) but got a collection $(Format-Nicely $ActualValue) with length $actualLength."
         }
+
+        $differenceIndex = Get-CollectionDifferenceIndex -ActualValue @($ActualValue) -ExpectedValue @($ExpectedValue)
+        if ($null -ne $differenceIndex) {
+            return (Get-CompareCollectionMessage -ActualValue @($ActualValue) -ExpectedValue @($ExpectedValue) -DifferenceIndex $differenceIndex -Because $Because) -join "`n"
+        }
     }
 
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
@@ -141,6 +146,21 @@ function Should-BeAssertionExactly($ActualValue, $ExpectedValue, $Because) {
 }
 
 function ShouldBeExactlyFailureMessage($ActualValue, $ExpectedValue, $Because) {
+    $actualIsCollection = $ActualValue -is [System.Collections.IEnumerable] -and $ActualValue -isnot [string]
+    $expectedIsCollection = $ExpectedValue -is [System.Collections.IEnumerable] -and $ExpectedValue -isnot [string]
+
+    if ($actualIsCollection -and $expectedIsCollection) {
+        $actualLength = @($ActualValue).Count
+        $expectedLength = @($ExpectedValue).Count
+
+        if ($actualLength -eq $expectedLength) {
+            $differenceIndex = Get-CollectionDifferenceIndex -ActualValue @($ActualValue) -ExpectedValue @($ExpectedValue) -CaseSensitive
+            if ($null -ne $differenceIndex) {
+                return (Get-CompareCollectionMessage -ActualValue @($ActualValue) -ExpectedValue @($ExpectedValue) -DifferenceIndex $differenceIndex -Because $Because) -join "`n"
+            }
+        }
+    }
+
     # This looks odd; it's to unroll single-element arrays so the "-is [string]" expression works properly.
     $ActualValue = $($ActualValue)
     $ExpectedValue = $($ExpectedValue)
@@ -243,6 +263,49 @@ function Get-CompareStringMessage {
         "But was:  '{0}'" -f $actualExcerpt.Line
         " " * ($surroundLength - 1) + '-' * $actualExcerpt.DifferenceIndex + '^'
     }
+}
+
+function Get-CollectionDifferenceIndex {
+    param(
+        [object[]] $ActualValue,
+        [object[]] $ExpectedValue,
+        [switch] $CaseSensitive
+    )
+
+    for ($i = 0; $i -lt $ExpectedValue.Count; $i++) {
+        if ((IsArray $ActualValue[$i]) -or (IsArray $ExpectedValue[$i])) {
+            if (-not (ArraysAreEqual -First $ActualValue[$i] -Second $ExpectedValue[$i] -CaseSensitive:$CaseSensitive)) {
+                return $i
+            }
+        }
+        else {
+            if ($CaseSensitive) {
+                $comparer = { param($Actual, $Expected) $Expected -ceq $Actual }
+            }
+            else {
+                $comparer = { param($Actual, $Expected) $Expected -eq $Actual }
+            }
+
+            if (-not (& $comparer $ActualValue[$i] $ExpectedValue[$i])) {
+                return $i
+            }
+        }
+    }
+}
+
+function Get-CompareCollectionMessage {
+    param(
+        [object[]] $ExpectedValue,
+        [object[]] $ActualValue,
+        [int] $DifferenceIndex,
+        $Because
+    )
+
+    "Expected collections to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they were different."
+    "Collection lengths are both $($ExpectedValue.Count)."
+    "Collections differ at index $DifferenceIndex."
+    "Expected: $(Format-Nicely $ExpectedValue)"
+    "But was:  $(Format-Nicely $ActualValue)"
 }
 
 function Format-AsExcerpt {
