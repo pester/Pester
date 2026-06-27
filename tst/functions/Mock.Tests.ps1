@@ -3020,7 +3020,166 @@ Describe 'Mocking in manifest modules' {
     }
 }
 
-Describe 'Mocking with nested Pester runs' {
+Describe "Mocking using 'RootModule/NestedModule' slash notation" {
+    # Primary use-case: two simultaneously loaded root modules that each have a nested module
+    # with the same name (e.g. two REST clients both exposing a 'Repository' sub-module).
+    # Slash notation lets you target the correct one unambiguously.
+
+    BeforeAll {
+        $nestedName = 'SlashNotationNested'
+        $rootName = 'SlashNotationRoot'
+        $manifestPath = "TestDrive:/$rootName.psd1"
+        $nestedPath = "TestDrive:/$nestedName.psm1"
+
+        Set-Content -Path $nestedPath -Value {
+            function Get-InternalData {
+                'real'
+            }
+
+            function Get-PublicData {
+                Get-InternalData
+            }
+        }
+        New-ModuleManifest -Path $manifestPath -NestedModules ".\$nestedName.psm1" -FunctionsToExport 'Get-PublicData'
+        Import-Module $manifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $rootName -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'Should mock an internal command in the nested module using slash notation' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $result = Get-PublicData
+        $result | Should -Be 'mocked'
+    }
+
+    It 'Should-Invoke matches call history when using slash notation' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $null = Get-PublicData
+        Should -Invoke -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -Exactly -Times 1
+    }
+
+    It 'Should-NotInvoke passes when command was not called' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        Should -Not -Invoke -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName"
+    }
+
+    It 'Should-Invoke accepts plain nested module name after mock was set up with slash notation' {
+        # The mock was set up targeting the nested module; its TargetModule is the plain nested name.
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $null = Get-PublicData
+        Should -Invoke -CommandName 'Get-InternalData' -ModuleName $nestedName -Exactly -Times 1
+    }
+
+    It 'Mock cleanup removes the bootstrap function from the nested module session state' {
+        # After the It block completes the mock is torn down; calling the real function returns 'real'.
+        Get-PublicData | Should -Be 'real'
+    }
+}
+
+Describe "Mocking using deep module path notation 'Root/Mid/Leaf'" {
+    BeforeAll {
+        $rootName = 'DeepSlashRoot'
+        $midName = 'DeepSlashMid'
+        $leafName = 'DeepSlashLeaf'
+
+        $rootManifestPath = "TestDrive:/$rootName.psd1"
+        $midManifestPath = "TestDrive:/$midName.psd1"
+        $leafScriptPath = "TestDrive:/$leafName.psm1"
+
+        Set-Content -Path $leafScriptPath -Value {
+            function Get-DeepInternalData {
+                'real-deep'
+            }
+
+            function Get-DeepPublicData {
+                Get-DeepInternalData
+            }
+        }
+
+        New-ModuleManifest -Path $midManifestPath -NestedModules ".\$leafName.psm1"
+        New-ModuleManifest -Path $rootManifestPath -NestedModules ".\$midName.psd1"
+
+        Import-Module $rootManifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $rootName -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'Should mock an internal command in the deeply nested module using slash notation' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $result = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        $result | Should -Be 'mocked-deep'
+    }
+
+    It 'Should-Invoke matches call history when using deep slash notation' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $null = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        Should -Invoke -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -Exactly -Times 1
+    }
+
+    It 'Should-Invoke accepts plain leaf module name after deep-path mock setup' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $null = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        Should -Invoke -CommandName 'Get-DeepInternalData' -ModuleName $leafName -Exactly -Times 1
+    }
+}
+
+Describe "Disambiguating nested modules with the same name across two root modules using slash notation" {
+    # Scenario from PR #2412: ClientA and ClientB each have a nested module named 'Repository'
+    # (same name, loaded from different folders). With two same-named modules loaded a plain
+    # -ModuleName 'Repository' throws 'Multiple script or manifest modules named Repository';
+    # slash notation targets exactly one of them.
+
+    BeforeAll {
+        $sharedName = 'Repository'
+        $rootA = 'ClientA'
+        $rootB = 'ClientB'
+
+        # Same base name, different folders, so both load as 'Repository'.
+        $null = New-Item -ItemType Directory -Path "TestDrive:/A", "TestDrive:/B"
+        Set-Content -Path "TestDrive:/A/$sharedName.psm1" -Value {
+            function Get-Data { 'dataA' }
+            function Invoke-Api { Get-Data }
+        }
+        Set-Content -Path "TestDrive:/B/$sharedName.psm1" -Value {
+            function Get-Data { 'dataB' }
+            function Invoke-Api { Get-Data }
+        }
+
+        New-ModuleManifest -Path "TestDrive:/$rootA.psd1" -NestedModules ".\A\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        New-ModuleManifest -Path "TestDrive:/$rootB.psd1" -NestedModules ".\B\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        Import-Module "TestDrive:/$rootA.psd1" -Force
+        Import-Module "TestDrive:/$rootB.psd1" -Force
+    }
+
+    AfterAll {
+        Get-Module $rootA -ErrorAction SilentlyContinue | Remove-Module -Force
+        Get-Module $rootB -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'loads both nested modules under the same name, so a plain name is ambiguous' {
+        # Guard: confirms the scenario genuinely exercises disambiguation.
+        @(Get-Module $sharedName -All).Count | Should -BeGreaterThan 1
+    }
+
+    It 'mocks Get-Data in the ClientA copy, leaving the identically-named ClientB copy untouched' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Should -Be 'mockedA'
+        # the mock must not bleed into the same-named nested module under ClientB
+        InModuleScope "$rootB/$sharedName" { Invoke-Api } | Should -Be 'dataB'
+    }
+
+    It 'Should-Invoke uses slash notation to check the ClientA copy call history' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Out-Null
+        Should -Invoke 'Get-Data' -ModuleName "$rootA/$sharedName" -Exactly -Times 1
+    }
+}
+
+Describe 'Mocking in nested Invoke-Pester runs' {
     BeforeAll {
         Mock Get-Date { 1 }
 

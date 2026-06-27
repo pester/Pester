@@ -659,6 +659,11 @@ function Resolve-Command {
                 Write-PesterDebugMessage -Scope Mock "Found module $($module.Name) version $($module.Version)."
             }
 
+            # Normalize $ModuleName to the plain module name in case slash notation ('Root/Nested')
+            # was used. All downstream uses (TargetModule, mock-table keys, IsFromTargetModule) must
+            # use the plain name, not the slash string.
+            $ModuleName = $module.Name
+
             # this is the target session state in which we will insert the mock
             $SessionState = $module.SessionState
         }
