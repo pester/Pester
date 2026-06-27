@@ -309,4 +309,4 @@ Describe 'Duplicate setup and teardown blocks throw' {
 #     }
 #}
 
-#Testing if failing setup or teardown will fail 'It' is done in the TestsRunningInCleanRunspace.Tests.ps1 file
+#Testing if failing setup or teardown will fail 'It' is done in the Pester.Runtime.ts.ps1 file ("failing one time block test setups and teardowns")
