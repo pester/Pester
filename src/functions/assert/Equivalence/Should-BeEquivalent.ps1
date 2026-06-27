@@ -58,7 +58,9 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
     if (-not (Is-Collection -Value $Actual)) {
         Write-EquivalenceResult -Difference "`$Actual is not a collection it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Collection2 -Value $Expected
-        $expectedLength = $expected.Length
+        # Use .Count for collections (List, etc.) that don't expose a scalar .Length,
+        # otherwise .Length enumerates the items and yields a bogus value like "1 1 1".
+        $expectedLength = if ($Expected.Length -is [int]) { $Expected.Length } else { $Expected.Count }
         $actualFormatted = Format-Nicely2 -Value $actual
         return "Expected collection $expectedFormatted with length $expectedLength, but got $actualFormatted."
     }

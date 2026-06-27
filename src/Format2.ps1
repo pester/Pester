@@ -9,7 +9,10 @@
     $prettyLimit = 50
     if ($Pretty -and ($length + 3) -gt $prettyLimit) {
         # 3 is for the '@()'
-        "@(`n    $($o -join ",`n    ")`n)"
+        # Indent each item's own line breaks as well, so nested collections and
+        # objects are shown at increasing depth instead of all at one level.
+        $indented = foreach ($formatted in $o) { $formatted -replace "`n", "`n    " }
+        "@(`n    $($indented -join ",`n    ")`n)"
     }
     else {
         "@($($o -join ', '))"
@@ -36,7 +39,10 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
         $o = "$valueType{}"
     }
     elseif ($Pretty) {
-        $o = "$valueType{`n    $($items -join ";`n    ");`n}"
+        # Indent each item's own line breaks as well, so nested objects are shown at
+        # increasing depth instead of all at one level.
+        $indented = foreach ($i in $items) { $i -replace "`n", "`n    " }
+        $o = "$valueType{`n    $($indented -join ";`n    ");`n}"
     }
     else {
         $o = "$valueType{$($items -join '; ')}"

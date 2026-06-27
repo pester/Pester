@@ -166,6 +166,18 @@ InPesterModuleScope {
             Format-Nicely2 -Value $Value | Verify-Equal $Expected
         }
 
+        It "Indents nested objects by depth when -Pretty is used" {
+            $value = [PSCustomObject]@{ a = [PSCustomObject]@{ b = 1 } }
+            $expected = "PSObject{`n    a=PSObject{`n        b=1;`n    };`n}"
+            Format-Nicely2 -Value $value -Pretty | Verify-Equal $expected
+        }
+
+        It "Indents objects nested inside a collection by depth when -Pretty is used" {
+            $value = @(([PSCustomObject]@{ n = 'x'; v = 1 }), ([PSCustomObject]@{ n = 'y'; v = 2 }))
+            $expected = "@(`n    PSObject{`n        n='x';`n        v=1;`n    },`n    PSObject{`n        n='y';`n        v=2;`n    }`n)"
+            Format-Nicely2 -Value $value -Pretty | Verify-Equal $expected
+        }
+
         # Regression test for https://github.com/pester/Pester/issues/2474
         # DirectoryInfo has circular references (Root -> DirectoryInfo) that caused
         # infinite recursion. Verify formatting completes without hanging.
@@ -279,6 +291,22 @@ InPesterModuleScope {
             Format-String2 -Value "$([char]27)" | Verify-Equal "'␛'"
         }
 
+        It "Escapes DEL character to its control picture" {
+            # DEL (0x7F) sits just outside the C0 range; it maps to U+2421 SYMBOL FOR DELETE.
+            Format-String2 -Value "$([char]0x7F)" | Verify-Equal "'␡'"
+        }
+
+        It "Escapes C1 control '<char>' to a visible \u escape '<expected>'" -TestCases @(
+            # C1 controls (0x80..0x9F) have no control-picture glyph, so they are shown as \u00XX.
+            # NEL (0x85) and CSI (0x9B) are single-byte ANSI controls that are otherwise invisible.
+            @{ Char = [char]0x85; Expected = "'\u0085'" }
+            @{ Char = [char]0x9B; Expected = "'\u009B'" }
+            @{ Char = [char]0x80; Expected = "'\u0080'" }
+        ) {
+            param ($Char, $Expected)
+            Format-String2 -Value "$Char" | Verify-Equal $Expected
+        }
+
         It "Leaves normal strings unchanged" {
             Format-String2 -Value "hello" | Verify-Equal "'hello'"
         }
@@ -298,10 +326,11 @@ InPesterModuleScope {
 
         It "Escaped output contains no actual control characters" {
             # Round-trip: the escaped output should be a clean displayable string
-            $value = "`0`a`b`t`f`r`n$([char]27)"
+            $value = "`0`a`b`t`f`r`n$([char]27)$([char]0x7F)$([char]0x85)$([char]0x9B)"
             $result = Format-String2 -Value $value
             # The result should not contain any of the original control characters
-            $result | Should -Not -Match '[\x00-\x1F]'
+            # (C0 0x00-0x1F, DEL 0x7F, or C1 0x80-0x9F).
+            $result | Should -Not -Match '[\x00-\x1F\x7F-\x9F]'
         }
     }
 }
