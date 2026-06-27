@@ -81,8 +81,39 @@ InPesterModuleScope {
             $hashtable.Values | Should -Be $hashtable.Values
             $hashtable.Keys | Should -Not -Be @('One')
 
+            # [Dictionary`2].Keys/.Values are not IList either, and are a common thing to assert on.
+            $dictionary = [System.Collections.Generic.Dictionary[string, int]]::new()
+            $dictionary.Add('One', 1)
+            $dictionary.Add('Two', 2)
+            $dictionary.Keys | Should -Be $dictionary.Keys
+            $dictionary.Values | Should -Be $dictionary.Values
+
             $ordered = [ordered]@{ One = 1; Two = 2 }
             @('One', 'Two') | Should -Be $ordered.Keys
+        }
+
+        It 'Enumerates the non-IList collection <Description> the same way the pipeline does (#1200)' -TestCases @(
+            @{ Description = 'Queue'; Collection = ([System.Collections.Queue]@(1, 2, 3)); Expected = @(1, 2, 3) }
+            @{ Description = 'Stack'; Collection = ([System.Collections.Stack]@(1, 2, 3)); Expected = @(3, 2, 1) }
+            @{ Description = 'SortedSet'; Collection = ([System.Collections.Generic.SortedSet[int]]@(3, 1, 2)); Expected = @(1, 2, 3) }
+        ) {
+            # None of these implement IList, so passing them as the -Be argument used to wrap them as a
+            # single element (#1200). The collection has to be on the right to trigger the bug, because the
+            # piped (actual) side is always enumerated by the pipeline before it reaches the comparison.
+            $Collection -is [System.Collections.IList] | Should -BeFalse
+            $Expected | Should -Be $Collection
+            $Expected | Should -BeExactly $Collection
+            $Collection | Should -Be $Expected
+            @(1, 2) | Should -Not -Be $Collection
+        }
+
+        It 'Still compares IList collections that already worked, such as a generic list (#1200)' {
+            # Guards against regressing the path that bound fine before: arrays and other IList collections.
+            $list = [System.Collections.Generic.List[int]]@(1, 2, 3)
+            $list -is [System.Collections.IList] | Should -BeTrue
+            @(1, 2, 3) | Should -Be $list
+            @(1, 2, 3) | Should -BeExactly $list
+            @(1, 2) | Should -Not -Be $list
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
