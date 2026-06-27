@@ -586,7 +586,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            $humanTime = "$(Get-HumanTime ($Context.Result.Duration)) ($(Get-HumanTime $Context.Result.UserDuration)|$(Get-HumanTime $Context.Result.FrameworkDuration))"
+            # UserDuration and FrameworkDuration are kept on the result object for profiling,
+            # but we only show the combined Duration here to keep the output easy to read.
+            $humanTime = "$(Get-HumanTime ($Context.Result.Duration))"
 
             if ($Context.Result.Passed) {
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
@@ -654,7 +656,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
-        $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
+        # UserDuration and FrameworkDuration are kept on the result object for profiling,
+        # but we only show the combined Duration here to keep the output easy to read.
+        $humanTime = "$(Get-HumanTime ($_test.Duration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.StartLine)"
