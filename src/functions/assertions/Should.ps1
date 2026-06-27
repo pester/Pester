@@ -182,7 +182,17 @@ function Should {
             Invoke-Assertion @assertionParams -ValueToTest $null
         }
         elseif ($entry.SupportsArrayInput) {
-            Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+            if ($MyInvocation.ExpectingInput) {
+                # Pipeline input is collected item-by-item in the process block, so pass the collected array.
+                Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+            }
+            else {
+                # The value was supplied by parameter instead (Should -ActualValue @(1,2,3), which is also what
+                # splatting does). The process block ran once and $inputArray wrapped the whole value into a
+                # single element; enumerate the original $ActualValue with @() so it matches what the pipeline
+                # would have produced, rather than being wrapped one level too deep. (#2314)
+                Invoke-Assertion @assertionParams -ValueToTest @($ActualValue)
+            }
         }
         else {
             foreach ($object in $inputArray) {
