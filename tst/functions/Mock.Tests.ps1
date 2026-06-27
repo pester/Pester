@@ -1693,6 +1693,23 @@ Describe 'Mocking functions with dynamic parameters' {
             $hash.Result | Should -Be 'Mocked'
         }
     }
+
+    Context 'When the mocked command''s dynamicparam block cannot produce its dynamic parameters (#619)' {
+        It 'falls back to no dynamic parameters instead of failing the mock' {
+            # Mimics Set-PSRepository, whose -Location dynamic parameter is built (and validated) from the
+            # package provider and throws while resolving when the command is mocked.
+            function Get-ThingWithFailingDynamicParam {
+                [CmdletBinding()]
+                param ()
+                dynamicparam { throw 'dynamic parameters are not available here' }
+                process { 'real' }
+            }
+
+            Mock Get-ThingWithFailingDynamicParam { 'mocked' }
+            { Get-ThingWithFailingDynamicParam } | Should -Not -Throw
+            Get-ThingWithFailingDynamicParam | Should -Be 'mocked'
+        }
+    }
 }
 
 

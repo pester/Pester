@@ -1526,7 +1526,15 @@ function Get-DynamicParametersForCmdlet {
         $paramsArg = @($Parameters)
     }
 
-    $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
+    try {
+        $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
+    }
+    catch {
+        # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
+        # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
+        # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
+        return
+    }
     $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
 
     foreach ($param in $command.Parameters.Values) {
@@ -1559,7 +1567,15 @@ function Get-DynamicParametersForMockedFunction {
 
     if ($DynamicParamScriptBlock) {
         $splat = @{ 'P S Cmdlet' = $Cmdlet }
-        return & $DynamicParamScriptBlock @Parameters @splat
+        try {
+            return & $DynamicParamScriptBlock @Parameters @splat
+        }
+        catch {
+            # The mocked command's own dynamicparam block failed to produce its dynamic parameters - e.g. it
+            # validates against state that isn't available while it is being mocked. We only need the metadata
+            # to forward the call, so fall back to no dynamic parameters instead of failing the whole mock. (#619)
+            return
+        }
     }
 }
 
