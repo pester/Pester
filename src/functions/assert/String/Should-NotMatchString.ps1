@@ -35,17 +35,24 @@ function Should-NotMatchString {
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-NotMatchString "^world$"
+    'Hello Jakub, your order #4821 shipped.' | Should-NotMatchString '\{\{.*?\}\}'
     ```
 
-    This assertion will pass, because the actual value does not match the regular expression pattern.
+    This assertion passes, because the rendered text contains no leftover `{{ ... }}` template placeholders. This is a common check after expanding a template to make sure every token was replaced.
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-NotMatchString "h.*o" -CaseSensitive
+    'level=info msg="started"' | Should-NotMatchString 'password='
     ```
 
-    This assertion will fail, because the actual value case-sensitively matches the regular expression pattern.
+    This assertion passes, because the log line does not leak a `password=` value.
+
+    .EXAMPLE
+    ```powershell
+    'Build failed' | Should-NotMatchString 'failed' -CaseSensitive
+    ```
+
+    This assertion fails, because the actual value case-sensitively contains `failed`.
 
     .LINK
     https://pester.dev/docs/commands/Should-NotMatchString

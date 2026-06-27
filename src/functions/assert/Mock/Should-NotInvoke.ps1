@@ -55,74 +55,49 @@
     Makes sure that all verifiable mocks were called.
 
     .EXAMPLE
-    Mock Set-Content {}
-
-    {... Some Code ...}
-
-    Should-NotInvoke Set-Content
-
-    This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
-
-    .EXAMPLE
-    Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
-
-    {... Some Code ...}
-
-    Should-NotInvoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
-
-    This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
-
-    .EXAMPLE
-    Mock Set-Content {}
-
-    {... Some Code ...}
-
-    Should-NotInvoke Set-Content 0
-
-    This will throw an exception if some code calls Set-Content at all
-
-    .EXAMPLE
-    Mock Set-Content {}
-
-    {... Some Code ...}
-
-    Should-NotInvoke Set-Content -Exactly 2
-
-    This will throw an exception if some code does not call Set-Content Exactly two times.
-
-    .EXAMPLE
-    Describe 'Should-NotInvoke Scope behavior' {
-        Mock Set-Content { }
-
-        It 'Calls Set-Content at least once in the It block' {
-            {... Some Code ...}
-
-            Should-NotInvoke Set-Content -Exactly 0 -Scope It
-        }
+    ```powershell
+    function Remove-TempFile ($Path, [switch] $WhatIf) {
+        if (-not $WhatIf) { Remove-Item -Path $Path }
     }
 
-    Checks for calls only within the current It block.
+    Describe 'Remove-TempFile' {
+        It 'does not delete anything in -WhatIf mode' {
+            Mock Remove-Item
 
-    .EXAMPLE
-    Describe 'Describe' {
-        Mock -ModuleName SomeModule Set-Content { }
+            Remove-TempFile -Path 'temp.txt' -WhatIf
 
-        {... Some Code ...}
-
-        It 'Calls Set-Content at least once in the Describe block' {
-            Should-NotInvoke -ModuleName SomeModule Set-Content
+            Should-NotInvoke Remove-Item
         }
     }
+    ```
 
-    Checks for calls to the mock within the SomeModule module.  Note that both the Mock
-    and Should-NotInvoke commands use the same module name.
+    Because `-WhatIf` was passed, `Remove-TempFile` must not delete anything. The assertion passes when the mocked `Remove-Item` was never called, and throws (failing the test) if it was called.
 
     .EXAMPLE
-    Should-NotInvoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+    ```powershell
+    Mock Remove-Item
 
-    Checks to make sure that Get-ChildItem was called at least one time with
-    the -Path parameter set to 'C:\', and that it was not called at all with
-    the -Path parameter set to any other value.
+    Remove-TempFile -Path "$env:TEMP/old.log"
+
+    Should-NotInvoke Remove-Item -ParameterFilter { $Path -notlike "$env:TEMP*" }
+    ```
+
+    Only the calls whose `-Path` is outside the temp folder are counted. The assertion passes, because `Remove-TempFile` only ever deletes inside `$env:TEMP`.
+
+    .EXAMPLE
+    ```powershell
+    Describe 'Remove-TempFile' {
+        BeforeAll { Mock Remove-Item }
+
+        It 'is a no-op in -WhatIf mode' {
+            Remove-TempFile -Path 'temp.txt' -WhatIf
+
+            Should-NotInvoke Remove-Item -Scope It
+        }
+    }
+    ```
+
+    `-Scope It` limits the check to calls made in the current `It` block, even when the mock is shared across the whole `Describe`.
 
     .NOTES
     The parameter filter passed to Should-NotInvoke does not necessarily have to match the parameter filter

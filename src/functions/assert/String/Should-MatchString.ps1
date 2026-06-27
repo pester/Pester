@@ -35,17 +35,24 @@ function Should-MatchString {
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-MatchString "h.*o"
+    (New-Guid).Guid | Should-MatchString '^[0-9a-f-]{36}$'
     ```
 
-    This assertion will pass, because the actual value matches the regular expression pattern.
+    This assertion passes, because a GUID is made up of 36 lowercase hexadecimal and dash characters.
 
     .EXAMPLE
     ```powershell
-    "hello" | Should-MatchString "H.*O" -CaseSensitive
+    'user-4f2a' | Should-MatchString '^user-[0-9a-f]{4}$'
     ```
 
-    This assertion will fail, because the actual value does not case-sensitively match the regular expression pattern.
+    This assertion passes, because the generated id matches the expected `user-` prefix followed by four hexadecimal characters. This is handy for checking that a function returns ids, tokens or file names in the format you expect.
+
+    .EXAMPLE
+    ```powershell
+    'Pester 6.0.0' | Should-MatchString 'pester \d+\.\d+\.\d+' -CaseSensitive
+    ```
+
+    This assertion fails, because with `-CaseSensitive` the lowercase `pester` in the pattern does not match the capitalized `Pester` in the actual value.
 
     .LINK
     https://pester.dev/docs/commands/Should-MatchString
