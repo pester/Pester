@@ -47,3 +47,50 @@ Describe "Should-BeCollection" {
         }
     }
 }
+
+Describe "Should-BeCollection input hint" {
+    It 'Hints when a single hashtable is piped' {
+        $err = { @{ Name = 'Jakub' } | Should-BeCollection -Count 2 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*$actual.Count*'
+    }
+
+    It 'Hints when a single hashtable is piped against an expected collection' {
+        $err = { @{ Name = 'Jakub' } | Should-BeCollection @(1, 2) } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*'
+    }
+
+    It 'Hints when a hashtable is passed via -Actual' {
+        $err = { Should-BeCollection -Actual @{ Name = 'Jakub' } -Count 2 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: -Actual is a single*which is not a collection*Should-BeEquivalent*'
+    }
+
+    It 'Hints to wrap a scalar that was piped' {
+        $err = { 1 | Should-BeCollection -Count 2 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*wrap it as ,$actual*'
+    }
+
+    It 'Hints that piped $null is a single item, not an empty collection' {
+        $err = { $null | Should-BeCollection -Count 2 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped $null*Use @() to represent an empty collection*'
+    }
+
+    It 'Hints on size mismatch when $null is piped against @()' {
+        $err = { $null | Should-BeCollection @() } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped $null*Use @() to represent an empty collection*'
+    }
+
+    It 'Does not hint for a genuine collection of the wrong count' {
+        $err = { @(1, 2) | Should-BeCollection -Count 3 } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for an explicit one-item collection @($null)' {
+        $err = { @($null) | Should-BeCollection -Count 2 } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for a genuine collection with the wrong contents' {
+        $err = { @(1, 2, 3) | Should-BeCollection @(4, 5, 6) } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}

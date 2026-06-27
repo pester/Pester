@@ -58,15 +58,26 @@
     $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
     $Actual = $collectedInput.Actual
 
+    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
+    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
+    $pipelineBuffer = $local:Input
+    $isPipelineInput = $collectedInput.IsPipelineInput
+    $reportFailure = {
+        param($Message)
+        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting Collection
+        if ($hint) { $Message = "$Message`n`nHint: $hint" }
+        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    }
+
     if (-not (Is-Collection -Value $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Actual <actualType> <actual> is not a collection."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        & $reportFailure $Message
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'Count') {
         if ($Count -ne $Actual.Count) {
             $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items."
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            & $reportFailure $Message
         }
         Set-AssertionPassResult
         return
@@ -79,7 +90,7 @@
 
     if (-not (Is-CollectionSize -Expected $Expected -Actual $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        & $reportFailure $Message
     }
 
     if (-Not $InOrder) {
@@ -127,7 +138,7 @@
             $expectedDifference = $(for ($e = 0; $e -lt $actualLength; $e++) { if ($same -ne $expectedCopy[$e]) { "$(Format-Nicely2 $expectedCopy[$e]) (index $e)" } }) -join ", "
 
             $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -Data @{ expectedDifference = $expectedDifference; actualDifference = $actualDifference } -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>"
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            & $reportFailure $Message
         }
     }
     Set-AssertionPassResult
