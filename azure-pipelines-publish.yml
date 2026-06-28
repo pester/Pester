@@ -2,6 +2,7 @@ trigger: none
 
 variables:
   - group: signing
+  - group: publishing
 
 jobs:
   - job: build
@@ -19,3 +20,10 @@ jobs:
           scriptLocation: inlineScript
           inlineScript: |
             .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)'
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish built packages
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: '$(Build.SourcesDirectory)/tmp'
+          artifact: pester-packages
