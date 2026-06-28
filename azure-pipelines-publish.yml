@@ -20,27 +20,9 @@ jobs:
           inlineScript: |
             .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)'
 
-      - task: CopyFiles@2
-        displayName: Stage NuGet and Chocolatey package
-        condition: succeededOrFailed()
-        continueOnError: true
-        inputs:
-          sourceFolder: '$(Build.SourcesDirectory)/tmp/nuget'
-          contents: '*.nupkg'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/nuget'
-
-      - task: CopyFiles@2
-        displayName: Stage PSGallery module
-        condition: succeededOrFailed()
-        continueOnError: true
-        inputs:
-          sourceFolder: '$(Build.SourcesDirectory)/tmp/PSGallery'
-          contents: '**'
-          targetFolder: '$(Build.ArtifactStagingDirectory)/psgallery'
-
       - task: PublishPipelineArtifact@1
         displayName: Publish built packages
         condition: succeededOrFailed()
         inputs:
-          targetPath: '$(Build.ArtifactStagingDirectory)'
+          targetPath: '$(Build.SourcesDirectory)/tmp'
           artifact: pester-packages
