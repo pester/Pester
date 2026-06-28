@@ -1343,6 +1343,30 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
     }
 }
 
+Describe 'Mocking Cmdlets with typed provider dynamic parameters' {
+    # Copy-Item gets the ToSession and FromSession dynamic parameters from the FileSystem provider,
+    # and those only exist on Windows. Mocking Copy-Item used to drop them, so calling the mock with
+    # -ToSession / -FromSession failed with "A parameter cannot be found that matches parameter name".
+    # https://github.com/pester/Pester/issues/1137
+    if ((InPesterModuleScope { GetPesterOs }) -eq 'Windows') {
+        BeforeAll {
+            Mock Copy-Item { 'mocked' }
+        }
+
+        It 'Exposes the <Name> dynamic parameter on the mocked cmdlet' -ForEach @(
+            @{ Name = 'ToSession' }
+            @{ Name = 'FromSession' }
+        ) {
+            # Bind a value of the wrong type to the dynamic parameter. When the parameter is present on
+            # the mock we get a type-conversion binding error; when it is missing (the #1137 bug) we get
+            # a NamedParameterNotFound error instead. We assert the former to prove the parameter exists.
+            $splat = @{ Path = 'TestDrive:\a'; Destination = 'TestDrive:\b'; $Name = 'not-a-session' }
+            $err = { Copy-Item @splat } | Should -Throw -PassThru
+            $err.FullyQualifiedErrorId | Should -Not -BeLike 'NamedParameterNotFound*' -Because "the $Name dynamic parameter should be available on the mocked Copy-Item (#1137)"
+        }
+    }
+}
+
 Describe 'Mocking functions with dynamic parameters' {
     Context 'Dynamicparam block that uses the variables of static parameters in its logic' {
         # Get-Greeting sample function borrowed and modified from Bartek Bielawski's
