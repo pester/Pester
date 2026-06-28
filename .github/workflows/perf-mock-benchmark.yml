@@ -2,10 +2,14 @@ name: Mock perf benchmark
 
 # Temporary, manually-triggered benchmark to compare the mock hot path with and
 # without the perf changes on Windows PowerShell 5.1 and PowerShell 7.
-# Trigger with: gh workflow run "Mock perf benchmark" --ref <branch>
+# Runs automatically on every push to the benchmark branch (workflow_dispatch
+# does not work here because this file is not on the default branch).
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - nohwnd-perf-profiling-pester
 
 jobs:
   benchmark:
@@ -15,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # need HEAD~1 to revert to the clean source
+          fetch-depth: 10 # need history back to the clean base commit to revert the perf changes
 
       - name: Build Pester (with perf changes)
         shell: pwsh
@@ -29,11 +33,11 @@ jobs:
         shell: powershell
         run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CHANGES'
 
-      - name: Revert the perf changes (clean source)
+      - name: Revert the perf changes (clean source at the pre-fix base commit)
         shell: pwsh
         run: |
-          git checkout HEAD~1 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
-          git --no-pager diff --stat HEAD -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
+          git checkout 2f6ca66 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
+          git --no-pager diff --stat 2f6ca66 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
 
       - name: Rebuild Pester (clean source, PowerShell-only change)
         shell: pwsh
