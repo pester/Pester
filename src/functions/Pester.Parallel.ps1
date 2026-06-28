@@ -152,6 +152,7 @@ function Invoke-TestInParallel {
       parent from the merged result tree.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Get-Module/Import-Module run in a fresh ForEach-Object -Parallel runspace where the module-internal $SafeCommands table is unavailable.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-ObjectCmdlets', '', Justification = 'ForEach-Object -Parallel is the runspace-parallelism primitive with no language-keyword equivalent; the accompanying Where-Object/Sort-Object run once over the small per-run result set.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Recorder factory parameters are used inside the returned closure, which the rule does not follow.')]
     [CmdletBinding()]
     param(
