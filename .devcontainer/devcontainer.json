@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/vscode-remote/devcontainer.json
 {
 	"name": "Pester",
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0-jammy",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:2-8.0-noble",
 	"remoteUser": "vscode",
 	"customizations": {
 		"codespaces": {
