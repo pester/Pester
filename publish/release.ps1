@@ -7,7 +7,8 @@ param (
     [String] $TenantId,
     [String] $VaultUrl,
     [String] $CertificateName,
-    [Switch] $Force
+    [Switch] $Force,
+    [Switch] $SkipTests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,9 +45,14 @@ if (-not $isPreRelease -or $Force) {
     }
 }
 
-pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
-if ($LASTEXITCODE -ne 0) {
-    throw "test failed!"
+if ($SkipTests) {
+    Write-Host "Skipping tests because -SkipTests was specified."
+}
+else {
+    pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
+    if ($LASTEXITCODE -ne 0) {
+        throw "test failed!"
+    }
 }
 
 pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Inline"
