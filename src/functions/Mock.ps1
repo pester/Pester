@@ -74,7 +74,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $dynamicParams = foreach ($m in $metadata.Parameters.Values) { if ($m.IsDynamic) { $m } }
         if ($null -ne $dynamicParams) {
             foreach ($p in $dynamicParams) {
-                $null = $metadata.Parameters.Remove($d.name)
+                $null = $metadata.Parameters.Remove($p.Name)
             }
         }
         $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
