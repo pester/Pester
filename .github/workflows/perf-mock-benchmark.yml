@@ -1,0 +1,48 @@
+name: Mock perf benchmark
+
+# Temporary, manually-triggered benchmark to compare the mock hot path with and
+# without the perf changes on Windows PowerShell 5.1 and PowerShell 7.
+# Trigger with: gh workflow run "Mock perf benchmark" --ref <branch>
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: Mock perf (5.1 vs 7)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # need HEAD~1 to revert to the clean source
+
+      - name: Build Pester (with perf changes)
+        shell: pwsh
+        run: ./build.ps1 -Clean
+
+      - name: Benchmark WITH changes - PowerShell 7
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CHANGES'
+
+      - name: Benchmark WITH changes - Windows PowerShell 5.1
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CHANGES'
+
+      - name: Revert the perf changes (clean source)
+        shell: pwsh
+        run: |
+          git checkout HEAD~1 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
+          git --no-pager diff --stat HEAD -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
+
+      - name: Rebuild Pester (clean source, PowerShell-only change)
+        shell: pwsh
+        run: ./build.ps1
+
+      - name: Benchmark CLEAN baseline - PowerShell 7
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CLEAN'
+
+      - name: Benchmark CLEAN baseline - Windows PowerShell 5.1
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CLEAN'
