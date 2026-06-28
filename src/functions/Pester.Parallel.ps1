@@ -38,27 +38,27 @@ function Test-PesterFileIsNonParallel {
 function Resolve-PesterBeforeContainer {
     <#
     .SYNOPSIS
-    Returns the initialization code (as text) to run inside a parallel worker before a file runs.
+    Returns the initialization code (as text) to run before each test file is discovered and run.
 
     .DESCRIPTION
-    EXPERIMENTAL. Parallel workers start from a clean runspace, so any helper modules or
-    dot-sourced setup the parent session relied on are not present. This resolves what each
-    worker should run first:
+    EXPERIMENTAL. Setup the parent session normally provides - helper modules or dot-sourced
+    functions - is resolved here so it can run before every container, in both sequential and
+    parallel runs. Parallel workers especially start from a clean runspace and would otherwise be
+    missing it.
 
     - If Run.BeforeContainer is set, its scriptblocks win and apply to every container.
       ScriptBlocks cannot cross the runspace boundary, so they are returned as text and recreated
-      with [scriptblock]::Create inside the worker.
-    - Otherwise Pester walks up from the test file towards the repo root and dot-sources the first
-      'Pester.BeforeContainer.ps1' it finds, giving a zero-config per-repo bootstrap.
+      with [scriptblock]::Create where they run.
+    - Otherwise Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root
+      (Run.RepoRoot, which defaults to the nearest '.git' directory and can be overridden) and
+      dot-sources it, giving a zero-config per-repo bootstrap.
 
+    The result is the same for every container, so callers resolve it once per run.
     Returns $null when there is nothing to run.
     #>
     [OutputType([string])]
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
-        [string] $Path,
-
         [Parameter(Mandatory)]
         $Configuration
     )
@@ -69,27 +69,14 @@ function Resolve-PesterBeforeContainer {
     }
 
     $repoRoot = $Configuration.Run.RepoRoot.Value
-    if (-not [string]::IsNullOrEmpty($repoRoot)) {
-        $repoRoot = $repoRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+    if ([string]::IsNullOrEmpty($repoRoot)) {
+        return $null
     }
 
-    $dir = [System.IO.Path]::GetDirectoryName($Path)
-    while (-not [string]::IsNullOrEmpty($dir)) {
-        $candidate = & $SafeCommands['Join-Path'] $dir 'Pester.BeforeContainer.ps1'
-        if (& $SafeCommands['Test-Path'] -LiteralPath $candidate -PathType Leaf) {
-            $escaped = $candidate -replace "'", "''"
-            return ". '$escaped'"
-        }
-
-        # Stop once the repo root has been checked so discovery does not escape the repository.
-        $trimmed = $dir.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
-        if (-not [string]::IsNullOrEmpty($repoRoot) -and $trimmed -eq $repoRoot) {
-            break
-        }
-
-        $parent = [System.IO.Path]::GetDirectoryName($dir)
-        if ($parent -eq $dir) { break }
-        $dir = $parent
+    $candidate = & $SafeCommands['Join-Path'] $repoRoot 'Pester.BeforeContainer.ps1'
+    if (& $SafeCommands['Test-Path'] -LiteralPath $candidate -PathType Leaf) {
+        $escaped = $candidate -replace "'", "''"
+        return ". '$escaped'"
     }
 
     return $null
@@ -164,6 +151,8 @@ function Invoke-TestInParallel {
       merging coverage across workers is not handled yet. TestResult is produced once by the
       parent from the merged result tree.
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Get-Module/Import-Module run in a fresh ForEach-Object -Parallel runspace where the module-internal $SafeCommands table is unavailable.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Recorder factory parameters are used inside the returned closure, which the rule does not follow.')]
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -173,10 +162,13 @@ function Invoke-TestInParallel {
         $Configuration
     )
 
+    # The BeforeContainer initialization is the same for every file (resolved from
+    # Run.BeforeContainer or the repo-root convention file), so resolve it once and reuse it.
+    $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
                 Path = $c.Item.FullName
-                Init = (Resolve-PesterBeforeContainer -Path $c.Item.FullName -Configuration $Configuration)
+                Init = $beforeContainerInit
             }
         })
 
@@ -242,6 +234,11 @@ function Invoke-TestInParallel {
         $workerConfig.Run.Throw = $false
         $workerConfig.TestResult.Enabled = $false
         $workerConfig.CodeCoverage.Enabled = $false
+        # The BeforeContainer init already ran above (as $item.Init). Clear RepoRoot so the worker's
+        # own sequential run does not resolve and dot-source the repo-root Pester.BeforeContainer.ps1
+        # a second time; that would run the setup twice per file and diverge from a sequential run.
+        # RepoRoot is otherwise only used for CodeCoverage, which is disabled in workers.
+        $workerConfig.Run.RepoRoot = ''
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
 

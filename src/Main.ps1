@@ -654,6 +654,11 @@ function Invoke-Pester {
                 & $SafeCommands['Write-Warning'] "Run.Parallel does not support Run.SkipRemainingOnFailure = 'Run' because skipping after the first failure cannot span the isolated worker runspaces. Running the tests sequentially instead."
             }
 
+            # Resolve the BeforeContainer initialization once for the whole run. It is the same for
+            # every file (from Run.BeforeContainer or the repo-root Pester.BeforeContainer.ps1) and
+            # runs before each container in both the parallel and sequential paths below.
+            $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $PesterPreference
+
             # Engage the parallel path only when at least one file can actually run in parallel.
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
             # so fall through to the sequential path - which fires the framework's own global
@@ -761,7 +766,7 @@ function Invoke-Pester {
                         $runStartFired = $true
                     }
 
-                    $r = Invoke-Test -BlockContainer $nonParallelContainers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -SkipFrameworkGlobalSteps
+                    $r = Invoke-Test -BlockContainer $nonParallelContainers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit $beforeContainerInit -SkipFrameworkGlobalSteps
 
                     $rspecResult = Split-RSpecResult -Result $r
                     if (0 -lt $rspecResult.StrayOutput.Count) {
@@ -821,7 +826,7 @@ function Invoke-Pester {
                     })
             }
             else {
-                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference
+                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit $beforeContainerInit
 
                 # Invoke-Test should only return [Pester.Container] objects, but stray output produced during the
                 # run - most often a native command writing to the success stream in a setup block (e.g. BeforeAll)

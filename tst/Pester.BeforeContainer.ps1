@@ -1,8 +1,9 @@
-# Per-container initialization for Run.Parallel. Pester walks up from each test file and
-# dot-sources the first Pester.BeforeContainer.ps1 it finds inside every worker runspace,
-# before the file is discovered and run. The Pester self-tests rely on the TestHelpers module
-# and the Axiom assertion module that test.ps1 normally imports into the session, so we re-create
-# them here for the workers.
+# Per-container initialization for the Pester self-tests. When this file sits in the repository
+# root (Run.RepoRoot), Pester dot-sources it before each test file is discovered and run - in both
+# sequential and parallel runs, and inside every worker runspace when running in parallel. The
+# self-tests rely on the TestHelpers module and the Axiom assertion module that test.ps1 normally
+# imports into the session, so we re-create them here. This file lives under tst/, so it is picked
+# up when Run.RepoRoot points at tst (e.g. when running the self-tests in parallel).
 
 Import-Module $PSScriptRoot/axiom/Axiom.psm1 -DisableNameChecking
 

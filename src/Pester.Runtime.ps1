@@ -1955,7 +1955,11 @@ function Invoke-Test {
         # are not fired. The parallel orchestrator uses this so the parent fires those
         # global steps once for the whole run while this call handles only the
         # non-parallel containers' per-container/per-test steps.
-        [switch] $SkipFrameworkGlobalSteps
+        [switch] $SkipFrameworkGlobalSteps,
+        # Initialization text (resolved from Run.BeforeContainer or the repo-root
+        # Pester.BeforeContainer.ps1) dot-sourced into the run session state before each container
+        # is discovered and run, so the same setup is available in sequential and parallel runs.
+        [string] $BeforeContainerInit
     )
 
     # set the incoming value for all the child scopes
@@ -2027,8 +2031,25 @@ function Invoke-Test {
     $containerIndex = 0
     $discoveredBlocks = [System.Collections.Generic.List[object]]@()
 
+    # Prepare the BeforeContainer initialization once. It is dot-sourced into the run session
+    # state before each container so helper modules / functions the parent session would normally
+    # provide are available to both discovery and run. This is the same in sequential and parallel
+    # runs (in parallel each worker dot-sources the same text), so the two modes stay consistent.
+    $beforeContainerScriptBlock = $null
+    if (-not [string]::IsNullOrWhiteSpace($BeforeContainerInit)) {
+        $beforeContainerScriptBlock = [ScriptBlock]::Create($BeforeContainerInit)
+        $beforeContainerSessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($beforeContainerScriptBlock, $beforeContainerSessionStateInternal, $null)
+    }
+
     $executedContainers = foreach ($container in $BlockContainer) {
         $containerIndex++
+
+        if ($null -ne $beforeContainerScriptBlock) {
+            # Dot-source so definitions land at the run session-state scope, visible to both the
+            # discovery and the run of this container (and the containers after it).
+            . $beforeContainerScriptBlock
+        }
 
         # --- discover this container ---
         $state.Discovery = $true

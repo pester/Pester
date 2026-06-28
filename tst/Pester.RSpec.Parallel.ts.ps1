@@ -57,6 +57,28 @@ Describe 'D' {
     $folder
 }
 
+function New-BeforeContainerTestFolder {
+    # Creates a temp folder with a Pester.BeforeContainer.ps1 that defines a helper function and a
+    # test file whose only test calls that helper. Without BeforeContainer running first the test
+    # errors (command not found); with it, the test passes. Returns the folder path.
+    $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $null = New-Item -ItemType Directory -Path $folder -Force
+
+    Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
+function Get-BeforeContainerMarker { 'before-container-ran' }
+'@
+
+    Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
+Describe 'Marker' {
+    It 'can call the helper from Pester.BeforeContainer.ps1' {
+        Get-BeforeContainerMarker | Should -Be 'before-container-ran'
+    }
+}
+'@
+
+    $folder
+}
+
 i -PassThru:$PassThru {
     b "Run.Parallel configuration option" {
         t "exists and defaults to disabled" {
@@ -68,6 +90,65 @@ i -PassThru:$PassThru {
             $c = [PesterConfiguration]::Default
             $c.Run.Parallel = $true
             $c.Run.Parallel.Value | Verify-True
+        }
+    }
+
+    b "Run.BeforeContainer" {
+        t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
+            $folder = New-BeforeContainerTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "runs the repo-root Pester.BeforeContainer.ps1 inside each parallel worker" {
+            $folder = New-BeforeContainerTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "uses explicit Run.BeforeContainer scriptblocks instead of the convention file" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
+Describe 'Marker' {
+    It 'can call the helper defined by Run.BeforeContainer' {
+        Get-ExplicitMarker | Should -Be 'explicit'
+    }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $c.Run.BeforeContainer = { function Get-ExplicitMarker { 'explicit' } }
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
         }
     }
 
