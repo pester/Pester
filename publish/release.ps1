@@ -7,7 +7,8 @@ param (
     [String] $TenantId,
     [String] $VaultUrl,
     [String] $CertificateName,
-    [Switch] $Force
+    [Switch] $Force,
+    [Switch] $SkipTests
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,9 +45,14 @@ if (-not $isPreRelease -or $Force) {
     }
 }
 
-pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
-if ($LASTEXITCODE -ne 0) {
-    throw "test failed!"
+if ($SkipTests) {
+    Write-Host "Skipping tests because -SkipTests was specified."
+}
+else {
+    pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
+    if ($LASTEXITCODE -ne 0) {
+        throw "test failed!"
+    }
 }
 
 pwsh -noprofile -c "$PSScriptRoot/../build.ps1 -Inline"
@@ -130,6 +136,31 @@ if (0 -ne $LASTEXITCODE) {
 NuGetKeyVaultSignTool verify $nupkg
 if (0 -ne $LASTEXITCODE) {
     throw "Failed to verify nupkg"
+}
+
+# Pack the PowerShell Gallery module into a .nupkg under tmp/ so the exact package we publish
+# is captured as a build artifact. Publish-Module otherwise packs into a random system temp
+# folder and discards it, so a failed gallery push leaves us with no package to inspect or
+# publish manually. Do this before the gallery push, because that push aborts the script on
+# failure (ErrorActionPreference = 'Stop').
+$psGalleryPackageDir = "$PSScriptRoot/../tmp/PSGallery-package"
+if (Test-Path $psGalleryPackageDir) {
+    Remove-Item -Recurse -Force $psGalleryPackageDir
+}
+$null = New-Item -ItemType Directory -Path $psGalleryPackageDir
+
+$localRepository = 'PesterLocalPublish'
+try {
+    Get-PSRepository -Name $localRepository -ErrorAction SilentlyContinue | Unregister-PSRepository
+    Register-PSRepository -Name $localRepository -SourceLocation $psGalleryPackageDir -PublishLocation $psGalleryPackageDir -InstallationPolicy Trusted
+    Publish-Module -Path $psGalleryDir -Repository $localRepository -NuGetApiKey 'local' -Verbose -Force
+    Write-Host "Saved PowerShell Gallery package to $psGalleryPackageDir"
+}
+catch {
+    Write-Warning "Failed to capture local PowerShell Gallery package: $_"
+}
+finally {
+    Get-PSRepository -Name $localRepository -ErrorAction SilentlyContinue | Unregister-PSRepository
 }
 
 Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
