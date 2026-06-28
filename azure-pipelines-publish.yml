@@ -2,6 +2,7 @@ trigger: none
 
 variables:
   - group: signing
+  - group: publishing
 
 jobs:
   - job: build
