@@ -79,6 +79,16 @@ Describe 'Marker' {
     $folder
 }
 
+function Get-ExpectedParallelFallbackWarning {
+    # Windows PowerShell 5.1 has no 'ForEach-Object -Parallel', so every Run.Parallel run trips the
+    # PowerShell-version gate and falls back to sequential before any feature-specific check
+    # (ScriptBlock / CodeCoverage / SkipRemainingOnFailure) is reached. The run still produces
+    # identical results either way - only the warning text differs - so tests assert the
+    # feature-specific text on PowerShell 7+ and the version text on 5.1.
+    param ([Parameter(Mandatory)] [string] $Ps7Pattern)
+    if ($PSVersionTable.PSVersion.Major -ge 7) { $Ps7Pattern } else { '*requires PowerShell 7*' }
+}
+
 i -PassThru:$PassThru {
     b "Run.Parallel configuration option" {
         t "exists and defaults to disabled" {
@@ -272,7 +282,7 @@ Describe 'S' {
 
             $r.TotalCount | Verify-Equal 1
             $r.PassedCount | Verify-Equal 1
-            ($warnings -join "`n") | Verify-Like '*parallelizes only file-based runs*'
+            ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*parallelizes only file-based runs*')
         }
 
         t "falls back to sequential with a warning when CodeCoverage is enabled" {
@@ -305,7 +315,7 @@ Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
                 $r.TotalCount | Verify-Equal 2
                 $r.PassedCount | Verify-Equal 2
                 # Parallel cannot collect coverage yet, so it must warn and run sequentially...
-                ($warnings -join "`n") | Verify-Like '*does not support CodeCoverage*'
+                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*does not support CodeCoverage*')
                 # ...which means real coverage was collected (the parallel path collects none).
                 $r.CodeCoverage | Verify-NotNull
                 ($r.CodeCoverage.CommandsAnalyzedCount -gt 0) | Verify-True
@@ -363,7 +373,7 @@ Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
 
                 $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
 
-                ($warnings -join "`n") | Verify-Like "*does not support Run.SkipRemainingOnFailure*"
+                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning "*does not support Run.SkipRemainingOnFailure*")
                 $r.TotalCount | Verify-Equal 3
                 $r.FailedCount | Verify-Equal 1
                 # a2 and the whole of B are skipped once the first test fails.
