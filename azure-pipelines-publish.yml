@@ -19,3 +19,19 @@ jobs:
           scriptLocation: inlineScript
           inlineScript: |
             .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)'
+
+      - task: CopyFiles@2
+        displayName: Stage built package
+        condition: succeededOrFailed()
+        continueOnError: true
+        inputs:
+          sourceFolder: '$(Build.SourcesDirectory)/tmp/nuget'
+          contents: '*.nupkg'
+          targetFolder: '$(Build.ArtifactStagingDirectory)'
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish built package
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)'
+          artifact: pester-package
