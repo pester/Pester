@@ -8,38 +8,12 @@
 
     This test passes, because it expected three objects, and received three.
     This is like running `@(1,2,3).Count` in PowerShell.
-
-    .EXAMPLE
-    @{ Name = 'Jakub'; Age = 30 } | Should -HaveCount 2
-
-    This test passes. A hashtable (or any dictionary) passes through the pipeline as a
-    single object, so HaveCount looks inside it and counts its entries.
     #>
     if ($ExpectedValue -lt 0) {
         throw [ArgumentException]"Expected collection size must be greater than or equal to 0."
     }
     $count = if ($null -eq $ActualValue) {
         0
-    }
-    elseif ($ActualValue.Count -eq 1) {
-        # A single object reached us. The pipeline does not enumerate dictionaries
-        # and hashtables, so they arrive as one item - look inside and count their
-        # entries instead of reporting 1. A lone $null is treated as empty. Every
-        # other single object counts as 1.
-        #
-        # We must not read .Count off the inner item unless it is a real collection.
-        # PowerShell synthesizes .Count on scalars and $null, but that synthesized
-        # member is not available under Set-StrictMode and would throw.
-        $single = $ActualValue[0]
-        if ($null -eq $single) {
-            0
-        }
-        elseif ($single -is [System.Collections.IDictionary]) {
-            $single.Count
-        }
-        else {
-            1
-        }
     }
     else {
         $ActualValue.Count
