@@ -936,6 +936,233 @@ function Is-Discovery {
     $state.Discovery
 }
 
+function Invoke-ContainerDiscovery {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject] $Container,
+        $Filter,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    # Discovers the tests in a single container and returns its root block, ready to
+    # run. The caller is responsible for setting $state.Discovery = $true before
+    # calling. This fires the per-container ContainerDiscoveryStart/ContainerDiscoveryEnd
+    # steps and runs PostProcess-DiscoveredBlock; the global DiscoveryStart/DiscoveryEnd
+    # steps are fired by the caller (so they fire once for the whole run).
+    $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($Container.Item)"
+    }
+
+    # this is a block object that we add so we can capture
+    # OneTime* and Each* setups, and capture multiple blocks in a
+    # container
+    $root = [Pester.Block]::Create()
+    $root.ExpandedName = $root.Name = "Root"
+
+    $root.IsRoot = $true
+    $root.ExpandedPath = $root.Path = "Path"
+
+    $root.First = $true
+    $root.Last = $true
+
+    # set the data from the container to get them
+    # set correctly as if we provided -Data to New-Block
+    $root.Data = $Container.Data
+
+    Reset-PerContainerState -RootBlock $root
+
+    $steps = $state.Plugin.ContainerDiscoveryStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
+            BlockContainer = $Container
+            Configuration  = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    try {
+        $null = Invoke-BlockContainer -BlockContainer $Container -SessionState $SessionState
+    }
+    catch {
+        $root.Passed = $false
+        $root.Result = "Failed"
+        $root.ErrorRecord.Add($_)
+    }
+
+    $steps = $state.Plugin.ContainerDiscoveryEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
+            BlockContainer = $Container
+            Block          = $root
+            Duration       = $perContainerDiscoveryDuration.Elapsed
+            Configuration  = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds) ms" }
+        Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
+    }
+
+    # link children to parents, filter blocks and tests to determine which should
+    # run, etc. This takes non-trivial time, so measure it and add it to the discovery
+    # duration to get a more accurate total time.
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $Container -RootBlock $root
+    $root.DiscoveryDuration += $sw.Elapsed
+
+    $root
+}
+
+function Invoke-ContainerRun {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject] $RootBlock,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    # Runs a single, already-discovered container (root block) and returns the
+    # executed [Pester.Container]. The caller is responsible for setting
+    # $state.Discovery = $false before calling. This fires the per-container
+    # ContainerRunStart/ContainerRunEnd steps; the global RunStart/RunEnd steps are
+    # fired by the caller (so they fire once for the whole run).
+    $blockStartTime = $state.UserCodeStopWatch.Elapsed
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
+    Switch-Timer -Scope Framework
+
+    if (-not $RootBlock.ShouldRun) {
+        ConvertTo-ExecutedBlockContainer -Block $RootBlock
+        return
+    }
+    # this resets the timers so keep that before measuring the time
+    Reset-PerContainerState -RootBlock $RootBlock
+
+    $RootBlock.Executed = $true
+    $RootBlock.ExecutedAt = [DateTime]::now
+
+    $steps = $state.Plugin.ContainerRunStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+            Block         = $RootBlock
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    try {
+        # if ($null -ne $rootBlock.OneTimeBlockSetup) {
+        #    throw "One time block setup is not supported in root (directly in the block container)."
+        #}
+
+        # if ($null -ne $rootBlock.EachBlockSetup) {
+        #     throw "Each block setup is not supported in root (directly in the block container)."
+        # }
+
+        if ($null -ne $RootBlock.EachTestSetup) {
+            throw "Each test setup is not supported in root (directly in the block container)."
+        }
+
+        if (
+            $null -ne $RootBlock.EachTestTeardown
+            #-or $null -ne $rootBlock.OneTimeBlockTeardown `
+            #-or $null -ne $rootBlock.EachBlockTeardown `
+        ) {
+            throw "Each test Teardown is not supported in root (directly in the block container)."
+        }
+
+        # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
+        # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
+        # before all script, but it might be better to make this a plugin, because there we can pass data.
+        $setVariables = {
+            param($private:____parameters)
+
+            if ($null -eq $____parameters.Data) {
+                return
+            }
+
+            foreach ($private:____d in $____parameters.Data.GetEnumerator()) {
+                & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
+            }
+        }
+
+        $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
+
+        $setVariablesAndThenRunOneTimeSetupIfAny = & {
+            $action = $setVariables
+            $setup = $RootBlock.OneTimeTestSetup
+            $parameters = @{
+                Data         = $RootBlock.BlockContainer.Data
+                Set_Variable = $SafeCommands["Set-Variable"]
+            }
+
+            {
+                . $action $parameters
+                if ($null -ne $setup) {
+                    . $setup
+                }
+            }.GetNewClosure()
+        }
+
+        $RootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
+
+        $RootBlock.ScriptBlock = {}
+        $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($RootBlock.ScriptBlock, $SessionStateInternal, $null)
+
+        # we add one more artificial block so the root can run
+        # all of it's setups and teardowns
+        $Pester___parent = [Pester.Block]::Create()
+        $Pester___parent.Name = "ParentBlock"
+        $Pester___parent.Path = "Path"
+
+        $Pester___parent.First = $false
+        $Pester___parent.Last = $false
+
+        $Pester___parent.Order.Add($RootBlock)
+
+        $wrapper = {
+            $null = Invoke-Block -previousBlock $Pester___parent
+        }
+
+        Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
+    }
+    catch {
+        $RootBlock.ErrorRecord.Add($_)
+    }
+
+    PostProcess-ExecutedBlock -Block $RootBlock
+    $result = ConvertTo-ExecutedBlockContainer -Block $RootBlock
+    $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+    $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+
+    $steps = $state.Plugin.ContainerRunEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
+            Result        = $result
+            Block         = $RootBlock
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    # set this again so the plugins have some data but that we also include the plugin invocation to the
+    # overall time to keep the actual timing correct
+    $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+    $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
+        Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
+    }
+
+    $result
+}
+
+
 function Discover-Test {
     [CmdletBinding()]
     param (
@@ -961,121 +1188,15 @@ function Discover-Test {
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
-        $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
-
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Item)"
-        }
-
-        # this is a block object that we add so we can capture
-        # OneTime* and Each* setups, and capture multiple blocks in a
-        # container
-        $root = [Pester.Block]::Create()
-        $root.ExpandedName = $root.Name = "Root"
-
-        $root.IsRoot = $true
-        $root.ExpandedPath = $root.Path = "Path"
-
-        $root.First = $true
-        $root.Last = $true
-
-        # set the data from the container to get them
-        # set correctly as if we provided -Data to New-Block
-        $root.Data = $container.Data
-
-        Reset-PerContainerState -RootBlock $root
-
-        $steps = $state.Plugin.ContainerDiscoveryStart
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
-                BlockContainer = $container
-                Configuration  = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        try {
-            $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
-        }
-        catch {
-            $root.Passed = $false
-            $root.Result = "Failed"
-            $root.ErrorRecord.Add($_)
-        }
-
-        [PSCustomObject] @{
-            Container = $container
-            Block     = $root
-        }
-
-        $steps = $state.Plugin.ContainerDiscoveryEnd
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
-                BlockContainer = $container
-                Block          = $root
-                Duration       = $perContainerDiscoveryDuration.Elapsed
-                Configuration  = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds) ms" }
-            Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
-        }
-    }
-
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
-    }
-
-    # focusing is removed from the public api
-    # # if any tests / block in the suite have -Focus parameter then all filters are disregarded
-    # # and only those tests / blocks should run
-    # $focusedTests = [System.Collections.Generic.List[Object]]@()
-    # foreach ($f in $found) {
-    #     Fold-Container -Container $f.Block `
-    #         -OnTest {
-    #             # add all focused tests
-    #             param($t)
-    #             if ($t.Focus) {
-    #                 $focusedTests.Add("$(if($null -ne $t.ScriptBlock.File) { $t.ScriptBlock.File } else { $t.ScriptBlock.Id }):$($t.ScriptBlock.StartPosition.StartLine)")
-    #             }
-    #         } `
-    #         -OnBlock {
-    #             param($b) if ($b.Focus) {
-    #                 # add all tests in the current block, no matter if they are focused or not
-    #                 Fold-Block -Block $b -OnTest {
-    #                     param ($t)
-    #                     $focusedTests.Add("$(if($null -ne $t.ScriptBlock.File) { $t.ScriptBlock.File } else { $t.ScriptBlock.Id }):$($t.ScriptBlock.StartPosition.StartLine)")
-    #                 }
-    #             }
-    #         }
-    # }
-
-    # if ($focusedTests.Count -gt 0) {
-    #     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-    #         Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
-    #     }
-    #     $Filter =  New-FilterObject -Line $focusedTests
-    # }
-
-    foreach ($f in $found) {
-        # this takes non-trivial time, measure how long it takes and add it to the discovery
-        # so we get more accurate total time
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
-        $overhead = $sw.Elapsed
-        $f.Block.DiscoveryDuration += $overhead
-        # Write-Host "disc $($f.Block.DiscoveryDuration.totalmilliseconds) $($overhead.totalmilliseconds) ms" #TODO
-        $f.Block
+        Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState
     }
 
     $steps = $state.Plugin.DiscoveryEnd
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-            BlockContainers = $found.Block
-            AnyFocusedTests = $focusedTests.Count -gt 0
-            FocusedTests    = $focusedTests
+            BlockContainers = $found
+            AnyFocusedTests = $false
+            FocusedTests    = $null
             Duration        = $totalDiscoveryDuration.Elapsed
             Configuration   = $state.PluginConfiguration
             Filter          = $Filter
@@ -1085,6 +1206,8 @@ function Discover-Test {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
     }
+
+    $found
 }
 
 function Run-Test {
@@ -1107,134 +1230,7 @@ function Run-Test {
         } -ThrowOnFailure
     }
     foreach ($rootBlock in $Block) {
-        $blockStartTime = $state.UserCodeStopWatch.Elapsed
-        $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-        Switch-Timer -Scope Framework
-
-        if (-not $rootBlock.ShouldRun) {
-            ConvertTo-ExecutedBlockContainer -Block $rootBlock
-            continue
-        }
-        # this resets the timers so keep that before measuring the time
-        Reset-PerContainerState -RootBlock $rootBlock
-
-        $rootBlock.Executed = $true
-        $rootBlock.ExecutedAt = [DateTime]::now
-
-        $steps = $state.Plugin.ContainerRunStart
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
-                Block         = $rootBlock
-                Configuration = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        try {
-            # if ($null -ne $rootBlock.OneTimeBlockSetup) {
-            #    throw "One time block setup is not supported in root (directly in the block container)."
-            #}
-
-            # if ($null -ne $rootBlock.EachBlockSetup) {
-            #     throw "Each block setup is not supported in root (directly in the block container)."
-            # }
-
-            if ($null -ne $rootBlock.EachTestSetup) {
-                throw "Each test setup is not supported in root (directly in the block container)."
-            }
-
-            if (
-                $null -ne $rootBlock.EachTestTeardown
-                #-or $null -ne $rootBlock.OneTimeBlockTeardown `
-                #-or $null -ne $rootBlock.EachBlockTeardown `
-            ) {
-                throw "Each test Teardown is not supported in root (directly in the block container)."
-            }
-
-            # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
-            # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
-            # before all script, but it might be better to make this a plugin, because there we can pass data.
-            $setVariables = {
-                param($private:____parameters)
-
-                if ($null -eq $____parameters.Data) {
-                    return
-                }
-
-                foreach ($private:____d in $____parameters.Data.GetEnumerator()) {
-                    & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
-                }
-            }
-
-            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
-            $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
-
-            $setVariablesAndThenRunOneTimeSetupIfAny = & {
-                $action = $setVariables
-                $setup = $rootBlock.OneTimeTestSetup
-                $parameters = @{
-                    Data         = $rootBlock.BlockContainer.Data
-                    Set_Variable = $SafeCommands["Set-Variable"]
-                }
-
-                {
-                    . $action $parameters
-                    if ($null -ne $setup) {
-                        . $setup
-                    }
-                }.GetNewClosure()
-            }
-
-            $rootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
-
-            $rootBlock.ScriptBlock = {}
-            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
-            $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
-
-            # we add one more artificial block so the root can run
-            # all of it's setups and teardowns
-            $Pester___parent = [Pester.Block]::Create()
-            $Pester___parent.Name = "ParentBlock"
-            $Pester___parent.Path = "Path"
-
-            $Pester___parent.First = $false
-            $Pester___parent.Last = $false
-
-            $Pester___parent.Order.Add($rootBlock)
-
-            $wrapper = {
-                $null = Invoke-Block -previousBlock $Pester___parent
-            }
-
-            Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
-        }
-        catch {
-            $rootBlock.ErrorRecord.Add($_)
-        }
-
-        PostProcess-ExecutedBlock -Block $rootBlock
-        $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
-        $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-
-        $steps = $state.Plugin.ContainerRunEnd
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
-                Result        = $result
-                Block         = $rootBlock
-                Configuration = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        # set this again so the plugins have some data but that we also include the plugin invocation to the
-        # overall time to keep the actual timing correct
-        $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
-            Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
-        }
-
-        $result
+        Invoke-ContainerRun -RootBlock $rootBlock -SessionState $SessionState
     }
 
     $steps = $state.Plugin.RunEnd
@@ -1954,7 +1950,16 @@ function Invoke-Test {
         $Plugin,
         $PluginConfiguration,
         $PluginData,
-        $Configuration
+        $Configuration,
+        # When set, the global framework steps (DiscoveryStart/DiscoveryEnd/RunStart/RunEnd)
+        # are not fired. The parallel orchestrator uses this so the parent fires those
+        # global steps once for the whole run while this call handles only the
+        # non-parallel containers' per-container/per-test steps.
+        [switch] $SkipFrameworkGlobalSteps,
+        # Initialization text (resolved from Run.BeforeContainer or the repo-root
+        # Pester.BeforeContainer.ps1) dot-sourced into the run session state before each container
+        # is discovered and run, so the same setup is available in sequential and parallel runs.
+        [string] $BeforeContainerInit
     )
 
     # set the incoming value for all the child scopes
@@ -1986,45 +1991,118 @@ function Invoke-Test {
     # $originalLastError = $originalErrors[0]
     # $originalErrorCount = $originalErrors.Count
 
-    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
-
     if ($PesterPreference.Run.SkipRun.Value) {
+        # Discovery-only mode (e.g. populating the VS Code Test Explorer). Run a full
+        # batch discovery over all containers and return the discovered tree without
+        # executing anything.
+        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+
         foreach ($f in $found) {
             ConvertTo-DiscoveredBlockContainer -Block $f
         }
 
         return
     }
-    # $errs = $SessionState.PSVariable.Get("Error").Value
-    # $errsCount = $errs.Count
-    # if ($errsCount -lt $originalErrorCount) {
-    #     # it would be possible to detect that there are 0 errors, in the array and continue,
-    #     # but this still indicates the user code is running where it should not, so let's throw anyway
-    #     throw "Test discovery failed. The error count ($errsCount) after running discovery is lower than the error count before discovery ($originalErrorCount). Is some of your code running outside Pester controlled blocks and it clears the `$error array by calling `$error.Clear()?"
 
-    # }
+    # Interleaved discover -> run. Each container is discovered and then immediately
+    # run before moving on to the next one (instead of discovering all containers and
+    # only then running them). This is the single run model for both sequential and
+    # parallel runs; only the concurrency differs, so the emitted plugin events are
+    # identical in both modes. The global Discovery/Run steps still fire exactly once
+    # each, but at interleaved times:
+    #   DiscoveryStart - once, up front.
+    #   per container  - ContainerDiscoveryStart/End then ContainerRunStart/End.
+    #   RunStart       - once, right before the first container runs.
+    #   DiscoveryEnd   - once, right after the last container finishes discovery (this
+    #                    fires late compared to Pester v5, by which time the earlier
+    #                    containers have already run).
+    #   RunEnd         - once, at the very end.
+    $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
+    $steps = $state.Plugin.DiscoveryStart
+    if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
+            BlockContainers = $BlockContainer
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
-    # if ($originalErrorCount -lt $errsCount) {
-    #     # probably the most usual case,  there are more errors then there were before,
-    #     # so some were written to the screen, this also runs when the user cleared the
-    #     # array and wrote more errors than there originally were
-    #     $i = $errsCount - $originalErrorCount
-    # }
-    # else {
-    #     # there is equal amount of errors, the array was probably full and so the original
-    #     # error shifted towards the end of the array, we try to find it and see how many new
-    #     # errors are there
-    #     for ($i = 0 ; $i -lt $errsLength; $i++) {
-    #         if ([object]::referenceEquals($errs[$i], $lastError)) {
-    #             break
-    #         }
-    #     }
-    # }
-    # if (0 -ne $i) {
-    #     throw "Test discovery failed. There were $i non-terminating errors during test discovery. This indicates that some of your code is invoked outside of Pester controlled blocks and fails. No tests will be run."
-    # }
-    Run-Test -Block $found -SessionState $SessionState
+    $containerCount = @($BlockContainer).Count
+    $containerIndex = 0
+    $discoveredBlocks = [System.Collections.Generic.List[object]]@()
+
+    # Prepare the BeforeContainer initialization once. It is dot-sourced into the run session
+    # state before each container so helper modules / functions the parent session would normally
+    # provide are available to both discovery and run. This is the same in sequential and parallel
+    # runs (in parallel each worker dot-sources the same text), so the two modes stay consistent.
+    $beforeContainerScriptBlock = $null
+    if (-not [string]::IsNullOrWhiteSpace($BeforeContainerInit)) {
+        $beforeContainerScriptBlock = [ScriptBlock]::Create($BeforeContainerInit)
+        $beforeContainerSessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($beforeContainerScriptBlock, $beforeContainerSessionStateInternal, $null)
+    }
+
+    $executedContainers = foreach ($container in $BlockContainer) {
+        $containerIndex++
+
+        if ($null -ne $beforeContainerScriptBlock) {
+            # Dot-source so definitions land at the run session-state scope, visible to both the
+            # discovery and the run of this container (and the containers after it).
+            . $beforeContainerScriptBlock
+        }
+
+        # --- discover this container ---
+        $state.Discovery = $true
+        $rootBlock = Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState
+        $discoveredBlocks.Add($rootBlock)
+
+        if ($containerIndex -eq $containerCount) {
+            # the last container just finished discovery, so global discovery is now
+            # complete - fire the global DiscoveryEnd once.
+            $steps = $state.Plugin.DiscoveryEnd
+            if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
+                    BlockContainers = $discoveredBlocks
+                    AnyFocusedTests = $false
+                    FocusedTests    = $null
+                    Duration        = $totalDiscoveryDuration.Elapsed
+                    Configuration   = $state.PluginConfiguration
+                    Filter          = $Filter
+                } -ThrowOnFailure
+            }
+        }
+
+        if ($containerIndex -eq 1) {
+            # about to run the first container - fire the global RunStart once.
+            $steps = $state.Plugin.RunStart
+            if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
+                    Blocks                   = $discoveredBlocks
+                    Configuration            = $state.PluginConfiguration
+                    Data                     = $state.PluginData
+                    WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
+                } -ThrowOnFailure
+            }
+        }
+
+        # --- run this container ---
+        $state.Discovery = $false
+        Invoke-ContainerRun -RootBlock $rootBlock -SessionState $SessionState
+    }
+
+    $steps = $state.Plugin.RunEnd
+    if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step RunEnd -Context @{
+            Blocks                   = $discoveredBlocks
+            Configuration            = $state.PluginConfiguration
+            Data                     = $state.PluginData
+            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
+        } -ThrowOnFailure
+    }
+
+    $executedContainers
 }
 
 function PostProcess-DiscoveredBlock {

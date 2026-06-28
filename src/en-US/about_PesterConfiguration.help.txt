@@ -65,6 +65,18 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
+        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when CodeCoverage is enabled, or when Run.SkipRemainingOnFailure is set to 'Run'.
+        Type: bool
+        Default value: $false
+
+        BeforeContainer: EXPERIMENTAL: One or more ScriptBlocks run before each test file is discovered and run, in both sequential and parallel runs. Use it to import helper modules or dot-source setup that the parent session would normally provide, e.g. { . './setup.ps1' } - this is especially useful in parallel runs, where each worker starts from a clean runspace. One scriptblock is usually enough and can dot-source as many files as needed. When set, the convention file is ignored; when not set, Pester dot-sources a 'Pester.BeforeContainer.ps1' from the repository root (Run.RepoRoot) if one is present.
+        Type: scriptblock[]
+        Default value: @()
+
+        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.
+        Type: int
+        Default value: 0
+
         SkipRemainingOnFailure: Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.
         Type: string
         Default value: 'None'
