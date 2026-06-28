@@ -600,10 +600,12 @@ function Remove-MockHook {
 }
 
 function Resolve-Command {
+    # Simple (non-advanced) function on purpose: it is on the hot mock-resolution path and advanced
+    # functions are noticeably more expensive to invoke. SessionState is required and is always
+    # supplied by callers.
     param (
         [string] $CommandName,
         [string] $ModuleName,
-        [Parameter(Mandatory)]
         [Management.Automation.SessionState] $SessionState
     )
 
@@ -1147,9 +1149,10 @@ function Invoke-InMockScope {
 }
 
 function Test-ParameterFilter {
-    [CmdletBinding()]
+    # Simple (non-advanced) function on purpose: it runs on every mock parameter-filter evaluation
+    # and advanced functions are noticeably more expensive to invoke. ScriptBlock and SessionState
+    # are always supplied by callers.
     param (
-        [Parameter(Mandatory = $true)]
         [scriptblock]
         $ScriptBlock,
 
@@ -1162,7 +1165,6 @@ function Test-ParameterFilter {
         [System.Management.Automation.CommandMetadata]
         $Metadata,
 
-        [Parameter(Mandatory)]
         [Management.Automation.SessionState]
         $SessionState,
 
@@ -1231,18 +1233,18 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    # Save and restore the script-scoped flag with direct variable access instead of the much more
+    # expensive Get-Variable/Remove-Variable cmdlets. This runs on every mock parameter-filter
+    # evaluation, so the cmdlet call overhead is significant. Every reader of the script-scoped flag
+    # uses a plain truthy check, so leaving the variable defined with its previous value (possibly
+    # $null) when we are no longer in a filter is equivalent to removing it.
+    $previousIsInMockParameterFilter = $ExecutionContext.SessionState.PSVariable.GetValue('______isInMockParameterFilter', $null)
     $script:______isInMockParameterFilter = $true
     try {
         $result = & $wrapper $parameters
     }
     finally {
-        if ($null -eq $previousIsInMockParameterFilter) {
-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
-        }
-        else {
-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
-        }
+        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
     }
     $passed = [bool]$result
     if ($passed) {
@@ -1979,6 +1981,13 @@ function Repair-EnumParameters {
     # broken arguments (unquoted strings) will show as NamedArguments in ast, while valid arguments are PositionalArguments.
     # https://github.com/pester/Pester/issues/1496
     # https://github.com/PowerShell/PowerShell/issues/17546
+    # Fast path: parsing the param block and walking its AST is relatively expensive and runs for every
+    # mock. A broken ValidateRange attribute can only exist when the param block mentions ValidateRange at
+    # all, so skip the parse + AST walk entirely when it does not (the common case).
+    if ($ParamBlock -notmatch 'ValidateRange') {
+        return $ParamBlock
+    }
+
     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
     $brokenValidateRange = $ast.FindAll({
             param($node)

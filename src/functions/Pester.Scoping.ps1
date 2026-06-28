@@ -1,20 +1,21 @@
 ﻿function Set-ScriptBlockScope {
-    [CmdletBinding()]
+    # This is intentionally a simple (non-advanced) function. It is called very frequently
+    # (e.g. on every mock invocation), and advanced functions are noticeably more expensive to
+    # invoke because of the extra parameter-binding machinery. It originally used two parameter
+    # sets (FromSessionState / FromSessionStateInternal); when a SessionState is provided we
+    # resolve its internal session state, otherwise the caller passed the internal session state
+    # directly (which may be $null).
     param (
-        [Parameter(Mandatory = $true)]
         [scriptblock]
         $ScriptBlock,
 
-        [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionState')]
         [System.Management.Automation.SessionState]
         $SessionState,
 
-        [Parameter(Mandatory = $true, ParameterSetName = 'FromSessionStateInternal')]
-        [AllowNull()]
         $SessionStateInternal
     )
 
-    if ($PSCmdlet.ParameterSetName -eq 'FromSessionState') {
+    if ($PSBoundParameters.ContainsKey('SessionState')) {
         $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     }
 
