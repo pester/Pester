@@ -663,7 +663,8 @@ function Invoke-Pester {
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
             # so fall through to the sequential path - which fires the framework's own global
             # plugin steps at the correct interleaved points.
-            if ($useParallel -and $parallelSupported -and $allFileContainers -and -not $coverageEnabled -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count) {
+            $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $coverageEnabled -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
+            if ($ranInParallel) {
                 $foldedContainers = [System.Collections.Generic.List[object]]@()
                 $hasNonParallel = 0 -lt $nonParallelContainers.Count
 
@@ -845,6 +846,11 @@ function Invoke-Pester {
                 }
             }
 
+            # Wall-clock end of test execution, captured before building and post-processing the
+            # run object. For parallel runs this is used as Run.Duration, because summing the
+            # overlapping container durations would overstate the actual elapsed time. (#2794)
+            $end = [DateTime]::Now
+
             $run = [Pester.Run]::Create()
             $run.Executed = $true
             $run.ExecutedAt = $start
@@ -866,7 +872,7 @@ function Invoke-Pester {
                 $run.Containers.Add($i)
             }
 
-            PostProcess-RSpecTestRun -TestRun $run
+            PostProcess-RSpecTestRun -TestRun $run -Parallel:$ranInParallel -RunDuration ($end - $start)
 
             $steps = $Plugins.End
             if ($null -ne $steps -and 0 -lt @($steps).Count) {

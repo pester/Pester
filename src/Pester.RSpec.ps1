@@ -178,7 +178,7 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
     }
 }
 
-function PostProcess-RspecTestRun ($TestRun) {
+function PostProcess-RspecTestRun ($TestRun, [switch] $Parallel, [TimeSpan] $RunDuration) {
     $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     Fold-Run $Run -OnTest {
@@ -280,6 +280,19 @@ function PostProcess-RspecTestRun ($TestRun) {
         $TestRun.UserDuration += $b.UserDuration
         $TestRun.FrameworkDuration += $b.FrameworkDuration
         $TestRun.DiscoveryDuration += $b.DiscoveryDuration
+    }
+
+    if ($Parallel) {
+        # In a file-parallel run the containers overlap in wall-clock time, so the summed
+        # container durations above overstate the run. Use the orchestrator's measured
+        # wall-clock as the total instead, and blank the per-phase run totals - a single
+        # wall-clock figure for user, framework or discovery time is not meaningful once the
+        # files overlap. The per-phase breakdown is still available on each container, because
+        # parallelism is file-level. (#2794)
+        $TestRun.Duration = $RunDuration
+        $TestRun.UserDuration = [TimeSpan]::Zero
+        $TestRun.FrameworkDuration = [TimeSpan]::Zero
+        $TestRun.DiscoveryDuration = [TimeSpan]::Zero
     }
 
     $TestRun.PassedCount = $TestRun.Passed.Count
