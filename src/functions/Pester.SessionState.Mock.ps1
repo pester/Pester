@@ -930,7 +930,7 @@ function Should-InvokeAssertion {
     # no history.
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     if ($null -eq $contextInfo.Hook) {
-        throw "Should -Invoke: Could not find Mock for command $CommandName in $(if ([string]::IsNullOrEmpty($ModuleName)){ "script scope" } else { "module $ModuleName" }). Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?"
+        throw "Should-Invoke: Could not find Mock for command $CommandName in $(if ([string]::IsNullOrEmpty($ModuleName)){ "script scope" } else { "module $ModuleName" }). Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should-Invoke using the same -ModuleName?"
     }
     $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
