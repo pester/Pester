@@ -91,6 +91,8 @@
 
     if (-not (Is-Dictionary -Value $Actual)) {
         $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected a hashtable,<because> but got <actualType> <actual>."
+        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
+        if ($hint) { $Message = "$Message`n`nHint: $hint" }
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 

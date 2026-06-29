@@ -26,10 +26,18 @@ function Get-AssertionGotcha {
         #                     only a dictionary -- which PowerShell silently passes through as a
         #                     single, non-iterated object -- is a genuine gotcha.
         #   ExactType       - the input is checked as a single value against a type (e.g.
-        #                     Should-HaveType). Piping a collection unwraps it (one item becomes a
-        #                     scalar, several become [object[]]), so the original collection type is
-        #                     lost. Here a piped collection is the gotcha; a piped scalar is fine.
-        [ValidateSet('Collection', 'CollectionItems', 'ExactType')]
+        #                     Should-HaveType, Should-NotHaveType). Piping a collection unwraps it
+        #                     (one item becomes a scalar, several become [object[]]), so the original
+        #                     collection type is lost. Here a piped collection is the gotcha; a piped
+        #                     scalar is fine.
+        #   Scalar          - the input is inspected as a single value, but not for its type (e.g.
+        #                     Should-Be, the string/boolean/comparison/null/hashtable assertions).
+        #                     Piping a collection unwraps it the same way, so the assertion silently
+        #                     inspects the collapsed value instead of the collection. Unlike
+        #                     ExactType the wording is about the collection being flattened, not its
+        #                     type changing, so even an [object[]] that stays an [object[]] is worth
+        #                     pointing out.
+        [ValidateSet('Collection', 'CollectionItems', 'ExactType', 'Scalar')]
         [string] $Expecting = 'Collection'
     )
 
@@ -73,6 +81,31 @@ function Get-AssertionGotcha {
             return "You piped a $pipedType into a type assertion, but the pipeline streams a multi-item collection and re-collects it as $seenType, so the assertion saw $seenType, not the $pipedType you piped. $advice"
         }
 
+        if ($Expecting -eq 'Scalar') {
+            # Same gotcha as ExactType -- a piped collection is unwrapped before the assertion sees
+            # it -- but here the assertion does not care about the type, only the single value. So the
+            # story is "your collection was collapsed into one value and inspected as a whole", which
+            # is worth telling even when the collapsed value is still an [Object[]] (e.g. a piped
+            # [Object[]] re-collected as [Object[]]). That is why this branch has no "type did not
+            # change" guard, unlike ExactType.
+            if (-not $IsPipelineInput) { return $null }
+            $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
+            if ($info.Source -ne 'collection') { return $null }
+
+            # An empty collection sends no items through the pipeline, so there is nothing that was
+            # collapsed and nothing surprising to explain.
+            if ($info.Count -eq 0) { return $null }
+
+            $pipedType = Get-ShortType2 -Value $info.Value
+            $seenType = Get-ShortType2 -Value $CollectedActual
+            $advice = "To assert on a collection use Should-BeCollection or Should-BeEquivalent; to assert on a single value pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+
+            if ($info.Count -eq 1) {
+                return "You piped a $pipedType into a single-value assertion, but the pipeline unwraps a single-item collection to its one element, so the assertion inspected that single $seenType instead of the collection. $advice"
+            }
+
+            return "You piped a $pipedType into a single-value assertion, but the pipeline streams a multi-item collection and re-collects it into a single $seenType, so the whole collection was inspected as one value. $advice"
+        }
         if ($IsPipelineInput) {
             # Recover the original left-hand side, undoing the engine's single-item wrapping, so we
             # can tell "a single hashtable was piped" (scalar) from "a real 1-item collection".
