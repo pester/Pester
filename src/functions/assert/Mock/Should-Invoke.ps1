@@ -194,6 +194,7 @@
     $PSBoundParameters["ActualValue"] = $null
     $PSBoundParameters["Negate"] = $false
     $PSBoundParameters["CallerSessionState"] = $PSCmdlet.SessionState
+    $PSBoundParameters["CommandDisplayName"] = 'Should-Invoke'
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
     Test-AssertionResult $testResult

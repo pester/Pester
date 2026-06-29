@@ -182,6 +182,7 @@
     # possible to register as Should operator.
     $PSBoundParameters["ActualValue"] = $null
     $PSBoundParameters["CallerSessionState"] = $PSCmdlet.SessionState
+    $PSBoundParameters["CommandDisplayName"] = 'Should-NotInvoke'
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
     Test-AssertionResult $testResult
