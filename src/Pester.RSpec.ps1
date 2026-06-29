@@ -178,7 +178,7 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
     }
 }
 
-function PostProcess-RspecTestRun ($TestRun) {
+function PostProcess-RspecTestRun ($TestRun, [switch] $Parallel) {
     $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
     Fold-Run $Run -OnTest {
@@ -276,10 +276,20 @@ function PostProcess-RspecTestRun ($TestRun) {
             $TestRun.FailedContainers.Add($b)
         }
 
-        $TestRun.Duration += $b.Duration
-        $TestRun.UserDuration += $b.UserDuration
-        $TestRun.FrameworkDuration += $b.FrameworkDuration
-        $TestRun.DiscoveryDuration += $b.DiscoveryDuration
+        # Container durations are summed for a sequential run, where they don't overlap. In a
+        # parallel run the files execute simultaneously, so summing overstates the totals - the
+        # real wall-clock duration (RunEnd - RunStart) is used instead and the per-phase totals
+        # are left blank because they would require excluding overlapping time between containers.
+        if (-not $Parallel) {
+            $TestRun.Duration += $b.Duration
+            $TestRun.UserDuration += $b.UserDuration
+            $TestRun.FrameworkDuration += $b.FrameworkDuration
+            $TestRun.DiscoveryDuration += $b.DiscoveryDuration
+        }
+    }
+
+    if ($Parallel) {
+        $TestRun.Duration = [DateTime]::Now - $TestRun.ExecutedAt
     }
 
     $TestRun.PassedCount = $TestRun.Passed.Count
