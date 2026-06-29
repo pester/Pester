@@ -25,11 +25,26 @@ function Get-AssertionGotcha {
         #                     lone scalar or $null is a perfectly valid one-item collection here, so
         #                     only a dictionary -- which PowerShell silently passes through as a
         #                     single, non-iterated object -- is a genuine gotcha.
-        [ValidateSet('Collection', 'CollectionItems')]
+        #   ExactType       - the input is checked as a single value against a type (e.g.
+        #                     Should-HaveType). Piping a collection unwraps it (one item becomes a
+        #                     scalar, several become [object[]]), so the original collection type is
+        #                     lost. Here a piped collection is the gotcha; a piped scalar is fine.
+        [ValidateSet('Collection', 'CollectionItems', 'ExactType')]
         [string] $Expecting = 'Collection'
     )
 
     try {
+        if ($Expecting -eq 'ExactType') {
+            # A collection passed with -Actual keeps its type, so only piped input can be a gotcha,
+            # and only when the left-hand side really was a collection. A piped scalar keeps its type
+            # and asserts correctly, so it is left alone.
+            if (-not $IsPipelineInput) { return $null }
+            $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
+            if ($info.Source -ne 'collection') { return $null }
+            $shortType = Get-ShortType2 -Value $info.Value
+            return "You piped a $shortType into a type assertion. A collection is unwrapped when it goes through the pipeline, so the assertion no longer sees it as $shortType. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+        }
+
         if ($IsPipelineInput) {
             # Recover the original left-hand side, undoing the engine's single-item wrapping, so we
             # can tell "a single hashtable was piped" (scalar) from "a real 1-item collection".
