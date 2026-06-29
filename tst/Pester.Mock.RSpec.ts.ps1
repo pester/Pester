@@ -1033,37 +1033,58 @@ i -PassThru:$PassThru {
     }
 
     b "Mock not found throws" {
-        t "Resolving to function that is not a mock in Should -Invoke throws helpful message" {
+        t "Resolving to a command that is not a mock names the command the user called" {
             # https://github.com/pester/Pester/issues/1878
-            $sb = {
-                BeforeAll {
-                    Get-Module m | Remove-Module
-                    New-Module m -ScriptBlock { } | Import-Module
-                }
-
-                Describe "d" {
-                    It "i" {
-                        Mock Start-Job -ModuleName m
-
-                        # trying to assert on command that is not mocked in script scope
-                        Should -Invoke Start-Job
+            # Should-Invoke, Should-NotInvoke and the legacy Should -Invoke / Should -Not -Invoke
+            # operators all share one assertion. The not-found error must name the command the
+            # user actually called, not a single hard-coded name.
+            $cases = @(
+                @{
+                    Name = 'Should-Invoke'
+                    Sb   = {
+                        BeforeAll { Get-Module m | Remove-Module; New-Module m -ScriptBlock { } | Import-Module }
+                        Describe "d" { It "i" { Mock Start-Job -ModuleName m; Should-Invoke Start-Job } }
                     }
                 }
+                @{
+                    Name = 'Should-NotInvoke'
+                    Sb   = {
+                        BeforeAll { Get-Module m | Remove-Module; New-Module m -ScriptBlock { } | Import-Module }
+                        Describe "d" { It "i" { Mock Start-Job -ModuleName m; Should-NotInvoke Start-Job } }
+                    }
+                }
+                @{
+                    Name = 'Should -Invoke'
+                    Sb   = {
+                        BeforeAll { Get-Module m | Remove-Module; New-Module m -ScriptBlock { } | Import-Module }
+                        Describe "d" { It "i" { Mock Start-Job -ModuleName m; Should -Invoke Start-Job } }
+                    }
+                }
+                @{
+                    Name = 'Should -Not -Invoke'
+                    Sb   = {
+                        BeforeAll { Get-Module m | Remove-Module; New-Module m -ScriptBlock { } | Import-Module }
+                        Describe "d" { It "i" { Mock Start-Job -ModuleName m; Should -Not -Invoke Start-Job } }
+                    }
+                }
+            )
+
+            foreach ($case in $cases) {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{
+                            ScriptBlock = $case.Sb
+                            PassThru    = $true
+                        }
+                        Output = @{
+                            CIFormat = 'None'
+                        }
+                    })
+
+                $t = $r.Containers[0].Blocks[0].Tests[0]
+                $t.Result | Verify-Equal "Failed"
+                $expected = "$($case.Name): Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and $($case.Name) using the same -ModuleName?"
+                $t.ErrorRecord[0] | Verify-Equal $expected
             }
-
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run    = @{
-                        ScriptBlock = $sb
-                        PassThru    = $true
-                    }
-                    Output = @{
-                        CIFormat = 'None'
-                    }
-                })
-
-            $t = $r.Containers[0].Blocks[0].Tests[0]
-            $t.Result | Verify-Equal "Failed"
-            $t.ErrorRecord[0] | Verify-Equal 'Should -Invoke: Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?'
         }
     }
 

@@ -796,11 +796,25 @@ function Should-InvokeAssertion {
         [object] $ActualValue,
         [switch] $Negate,
         [string] $Because,
-        [Management.Automation.SessionState] $CallerSessionState
+        [Management.Automation.SessionState] $CallerSessionState,
+        # The Should-Invoke / Should-NotInvoke commands pass their own name here so the error
+        # messages name the command the user actually called. The legacy Should -Invoke operator
+        # does not set it, so we fall back to the operator syntax based on -Negate below.
+        [string] $CommandDisplayName
     )
 
+    $assertionName = if (-not [string]::IsNullOrEmpty($CommandDisplayName)) {
+        $CommandDisplayName
+    }
+    elseif ($Negate) {
+        'Should -Not -Invoke'
+    }
+    else {
+        'Should -Invoke'
+    }
+
     if ($null -ne $ActualValue) {
-        throw "Should -Invoke does not take pipeline input or ActualValue."
+        throw "$assertionName does not take pipeline input or ActualValue."
     }
 
     # Assert-DescribeInProgress -CommandName Should -Invoke
@@ -930,7 +944,7 @@ function Should-InvokeAssertion {
     # no history.
     $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
     if ($null -eq $contextInfo.Hook) {
-        throw "Should -Invoke: Could not find Mock for command $CommandName in $(if ([string]::IsNullOrEmpty($ModuleName)){ "script scope" } else { "module $ModuleName" }). Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?"
+        throw "${assertionName}: Could not find Mock for command $CommandName in $(if ([string]::IsNullOrEmpty($ModuleName)){ "script scope" } else { "module $ModuleName" }). Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and $assertionName using the same -ModuleName?"
     }
     $resolvedModule = $contextInfo.TargetModule
     $resolvedCommand = $contextInfo.Command.Name
@@ -951,6 +965,9 @@ function Should-InvokeAssertion {
     }
     if ($PSBoundParameters.ContainsKey('CallerSessionState')) {
         $PSBoundParameters.Remove('CallerSessionState')
+    }
+    if ($PSBoundParameters.ContainsKey('CommandDisplayName')) {
+        $PSBoundParameters.Remove('CommandDisplayName')
     }
 
     $result = Should-InvokeInternal @PSBoundParameters `
