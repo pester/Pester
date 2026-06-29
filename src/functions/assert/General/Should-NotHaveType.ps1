@@ -46,6 +46,8 @@
     $Actual = $collectedInput.Actual
     if ($Actual -is $Expected) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to be of different type than <expected>,<because> but got <actualType> <actual>."
+        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting ExactType
+        if ($hint) { $Message = "$Message`n`nHint: $hint" }
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult

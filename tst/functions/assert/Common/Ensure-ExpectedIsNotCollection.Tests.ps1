@@ -9,7 +9,7 @@ InPesterModuleScope {
 
         It "Given a collection it throws correct message" {
             $err = { Ensure-ExpectedIsNotCollection -InputObject @() } | Verify-Throw
-            $err.Exception.Message | Verify-Equal 'You provided a collection to the -Expected parameter. Using a collection on the -Expected side is not allowed by this assertion, because it leads to unexpected behavior. Please use Should-Any, Should-All or some other specialized collection assertion.'
+            $err.Exception.Message | Verify-Equal 'You provided a collection to the -Expected parameter. Using a collection on the -Expected side is not allowed by this assertion, because it leads to unexpected behavior. To compare collections use Should-BeCollection, or a more specialized collection assertion such as Should-Any or Should-All.'
         }
 
 

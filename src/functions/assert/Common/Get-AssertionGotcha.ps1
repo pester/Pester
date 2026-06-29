@@ -25,11 +25,87 @@ function Get-AssertionGotcha {
         #                     lone scalar or $null is a perfectly valid one-item collection here, so
         #                     only a dictionary -- which PowerShell silently passes through as a
         #                     single, non-iterated object -- is a genuine gotcha.
-        [ValidateSet('Collection', 'CollectionItems')]
+        #   ExactType       - the input is checked as a single value against a type (e.g.
+        #                     Should-HaveType, Should-NotHaveType). Piping a collection unwraps it
+        #                     (one item becomes a scalar, several become [object[]]), so the original
+        #                     collection type is lost. Here a piped collection is the gotcha; a piped
+        #                     scalar is fine.
+        #   Scalar          - the input is inspected as a single value, but not for its type (e.g.
+        #                     Should-Be, the string/boolean/comparison/null/hashtable assertions).
+        #                     Piping a collection unwraps it the same way, so the assertion silently
+        #                     inspects the collapsed value instead of the collection. Unlike
+        #                     ExactType the wording is about the collection being flattened, not its
+        #                     type changing, so even an [object[]] that stays an [object[]] is worth
+        #                     pointing out.
+        [ValidateSet('Collection', 'CollectionItems', 'ExactType', 'Scalar')]
         [string] $Expecting = 'Collection'
     )
 
     try {
+        if ($Expecting -eq 'ExactType') {
+            # Only piped input can be a gotcha here: a collection passed with -Actual keeps its real
+            # type and asserts correctly. The PipelineSource trick recovers the *original* left-hand
+            # side, so even though the assertion only ever sees the unwrapped remains we can tell:
+            #   scalar     - a genuine single value was piped; it keeps its type, so nothing to say.
+            #   collection - a real collection was piped and the pipeline unwrapped it (the gotcha).
+            #   range/etc. - nothing we can name with confidence, so stay quiet.
+            if (-not $IsPipelineInput) { return $null }
+            $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
+            if ($info.Source -ne 'collection') { return $null }
+
+            # An empty collection is sent through the pipeline as no items at all, so nothing was
+            # unwrapped in the #2801 sense -- there is no surprising type change to explain.
+            if ($info.Count -eq 0) { return $null }
+
+            # The trick recovers the genuine piped type (e.g. [string[]]) and item count, neither of
+            # which the failure message can show because the pipeline already unwrapped the value.
+            # $CollectedActual is what the assertion actually compared, i.e. what the collection was
+            # unwrapped into. The recovered count tells us which unwrapping happened:
+            #   one item   -> the pipeline yields that single element, so a scalar reaches the assertion.
+            #   many items -> the elements are streamed and re-collected into an [Object[]].
+            $pipedType = Get-ShortType2 -Value $info.Value
+            $seenType = Get-ShortType2 -Value $CollectedActual
+
+            # If the pipeline did not change the observable type (e.g. an [Object[]] is streamed and
+            # re-collected straight back into an [Object[]]), then the type was never lost and the
+            # failure is a genuine mismatch. Saying "saw [Object[]], not the [Object[]] you piped"
+            # would be nonsense, so there is nothing useful to hint.
+            if ($seenType -eq $pipedType) { return $null }
+
+            $advice = "To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+
+            if ($info.Count -eq 1) {
+                return "You piped a $pipedType into a type assertion, but the pipeline unwraps a single-item collection to its one element, so the assertion saw a single $seenType, not the $pipedType you piped. $advice"
+            }
+
+            return "You piped a $pipedType into a type assertion, but the pipeline streams a multi-item collection and re-collects it as $seenType, so the assertion saw $seenType, not the $pipedType you piped. $advice"
+        }
+
+        if ($Expecting -eq 'Scalar') {
+            # Same gotcha as ExactType -- a piped collection is unwrapped before the assertion sees
+            # it -- but here the assertion does not care about the type, only the single value. So the
+            # story is "your collection was collapsed into one value and inspected as a whole", which
+            # is worth telling even when the collapsed value is still an [Object[]] (e.g. a piped
+            # [Object[]] re-collected as [Object[]]). That is why this branch has no "type did not
+            # change" guard, unlike ExactType.
+            if (-not $IsPipelineInput) { return $null }
+            $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
+            if ($info.Source -ne 'collection') { return $null }
+
+            # An empty collection sends no items through the pipeline, so there is nothing that was
+            # collapsed and nothing surprising to explain.
+            if ($info.Count -eq 0) { return $null }
+
+            $pipedType = Get-ShortType2 -Value $info.Value
+            $seenType = Get-ShortType2 -Value $CollectedActual
+            $advice = "To assert on a collection use Should-BeCollection or Should-BeEquivalent; to assert on a single value pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+
+            if ($info.Count -eq 1) {
+                return "You piped a $pipedType into a single-value assertion, but the pipeline unwraps a single-item collection to its one element, so the assertion inspected that single $seenType instead of the collection. $advice"
+            }
+
+            return "You piped a $pipedType into a single-value assertion, but the pipeline streams a multi-item collection and re-collects it into a single $seenType, so the whole collection was inspected as one value. $advice"
+        }
         if ($IsPipelineInput) {
             # Recover the original left-hand side, undoing the engine's single-item wrapping, so we
             # can tell "a single hashtable was piped" (scalar) from "a real 1-item collection".

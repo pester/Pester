@@ -61,6 +61,8 @@
     $Actual = $collectedInput.Actual
     if (-not ([object]::ReferenceEquals($Expected, $Actual))) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> to be the same instance but it was not. Actual: <actualType> <actual>"
+        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
+        if ($hint) { $Message = "$Message`n`nHint: $hint" }
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
     Set-AssertionPassResult
