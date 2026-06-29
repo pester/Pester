@@ -35,14 +35,31 @@ function Get-AssertionGotcha {
 
     try {
         if ($Expecting -eq 'ExactType') {
-            # A collection passed with -Actual keeps its type, so only piped input can be a gotcha,
-            # and only when the left-hand side really was a collection. A piped scalar keeps its type
-            # and asserts correctly, so it is left alone.
+            # Only piped input can be a gotcha here: a collection passed with -Actual keeps its real
+            # type and asserts correctly. The PipelineSource trick recovers the *original* left-hand
+            # side, so even though the assertion only ever sees the unwrapped remains we can tell:
+            #   scalar     - a genuine single value was piped; it keeps its type, so nothing to say.
+            #   collection - a real collection was piped and the pipeline unwrapped it (the gotcha).
+            #   range/etc. - nothing we can name with confidence, so stay quiet.
             if (-not $IsPipelineInput) { return $null }
             $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
             if ($info.Source -ne 'collection') { return $null }
-            $shortType = Get-ShortType2 -Value $info.Value
-            return "You piped a $shortType into a type assertion. A collection is unwrapped when it goes through the pipeline, so the assertion no longer sees it as $shortType. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+
+            # The trick recovers the genuine piped type (e.g. [string[]]) and item count, neither of
+            # which the failure message can show because the pipeline already unwrapped the value.
+            # $CollectedActual is what the assertion actually compared, i.e. what the collection was
+            # unwrapped into. The recovered count tells us which unwrapping happened:
+            #   one item   -> the pipeline yields that single element, so a scalar reaches the assertion.
+            #   many items -> the elements are streamed and re-collected into an [Object[]].
+            $pipedType = Get-ShortType2 -Value $info.Value
+            $seenType = Get-ShortType2 -Value $CollectedActual
+            $advice = "To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
+
+            if ($info.Count -eq 1) {
+                return "You piped a $pipedType into a type assertion, but the pipeline unwraps a single-item collection to its one element, so the assertion saw a single $seenType, not the $pipedType you piped. $advice"
+            }
+
+            return "You piped a $pipedType into a type assertion, but the pipeline streams a multi-item collection and re-collects it as $seenType, so the assertion saw $seenType, not the $pipedType you piped. $advice"
         }
 
         if ($IsPipelineInput) {
