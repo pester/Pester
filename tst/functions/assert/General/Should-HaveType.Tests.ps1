@@ -57,6 +57,28 @@ Describe "Should-HaveType input hint" {
         ($err.Exception.Message -split "`n`n", 2)[-1] | Verify-Equal 'Hint: You piped a [int[]] into a type assertion, but the pipeline streams a multi-item collection and re-collects it as [Object[]], so the assertion saw [Object[]], not the [int[]] you piped. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual $value.'
     }
 
+    It "Hints a piped single-item collection even when its one element is `$null" {
+        # @($null) is a one-item [Object[]]; the pipeline still unwraps it to that single $null
+        # element, so the hint names the real piped [Object[]] and the [null] the assertion saw.
+        $err = { @($null) | Should-HaveType ([string]) } | Verify-AssertionFailed
+        ($err.Exception.Message -split "`n`n", 2)[-1] | Verify-Equal 'Hint: You piped a [Object[]] into a type assertion, but the pipeline unwraps a single-item collection to its one element, so the assertion saw a single [null], not the [Object[]] you piped. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual $value.'
+    }
+
+    It "Does not hint when the pipeline did not change the observable type of a piped <Description>" -ForEach @(
+        # Nothing is lost to unwrapping in these cases, so a hint would be misleading rather than
+        # helpful:
+        #   - an empty array sends no items through the pipeline at all;
+        #   - a multi-item [Object[]] is streamed and re-collected straight back into an [Object[]],
+        #     so the type the assertion sees is the very type that was piped.
+        @{ Description = 'empty array'; Value = @() }
+        @{ Description = 'empty typed array'; Value = [string[]]@() }
+        @{ Description = 'multi-item [Object[]] of $null'; Value = @($null, $null) }
+        @{ Description = 'multi-item [Object[]] of values'; Value = @(1, 2) }
+    ) {
+        $err = { $Value | Should-HaveType ([hashtable]) } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
     It "Tells a genuinely piped scalar apart from an unwrapped single-item collection" {
         # Both '1 | ...' and a piped [string[]]('a') reach the assertion as a single scalar, but only
         # the collection was unwrapped. The PipelineSource trick recovers the original left-hand side,

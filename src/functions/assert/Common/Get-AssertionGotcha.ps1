@@ -45,6 +45,10 @@ function Get-AssertionGotcha {
             $info = [Pester.PipelineSource]::Resolve($Cmdlet, @($Buffer))
             if ($info.Source -ne 'collection') { return $null }
 
+            # An empty collection is sent through the pipeline as no items at all, so nothing was
+            # unwrapped in the #2801 sense -- there is no surprising type change to explain.
+            if ($info.Count -eq 0) { return $null }
+
             # The trick recovers the genuine piped type (e.g. [string[]]) and item count, neither of
             # which the failure message can show because the pipeline already unwrapped the value.
             # $CollectedActual is what the assertion actually compared, i.e. what the collection was
@@ -53,6 +57,13 @@ function Get-AssertionGotcha {
             #   many items -> the elements are streamed and re-collected into an [Object[]].
             $pipedType = Get-ShortType2 -Value $info.Value
             $seenType = Get-ShortType2 -Value $CollectedActual
+
+            # If the pipeline did not change the observable type (e.g. an [Object[]] is streamed and
+            # re-collected straight back into an [Object[]]), then the type was never lost and the
+            # failure is a genuine mismatch. Saying "saw [Object[]], not the [Object[]] you piped"
+            # would be nonsense, so there is nothing useful to hint.
+            if ($seenType -eq $pipedType) { return $null }
+
             $advice = "To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual `$value."
 
             if ($info.Count -eq 1) {
