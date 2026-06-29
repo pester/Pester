@@ -139,6 +139,33 @@ Describe 'Slow2' { BeforeAll { Start-Sleep -Milliseconds 600 }; It 'p' { 1 | Sho
         }
     }
 
+    b "Run.Parallel data passing" {
+        t "passes container -Data to each parallel worker's param() block" {
+            # New-PesterContainer -Path ... -Data must bind the file's param() block under parallel
+            # the same way it does sequentially. (#2793)
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($n in 1..2) {
+                Set-Content -Path (Join-Path $folder "Data$n.Tests.ps1") -Value @'
+param([Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Module, $Data)
+Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -Be 42 } }
+'@
+            }
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Container = New-PesterContainer -Path $folder -Data @{ Module = 'hello'; Data = @{ k = 42 } }
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 2
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Run.BeforeContainer" {
         t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
             $folder = New-BeforeContainerTestFolder
