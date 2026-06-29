@@ -1829,6 +1829,8 @@ i -PassThru:$PassThru {
             $r.Result = 'Failed'
             $r.Containers[0].Result = 'Failed'
             $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[0].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
+            $r.Containers[0].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
             $r.Containers[1].Result = 'Failed'
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -1950,6 +1952,8 @@ i -PassThru:$PassThru {
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[2].Result = 'Failed'
             $r.Containers[2].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[2].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
+            $r.Containers[2].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
             $r.Containers[3].Result = 'Failed'
             $r.Containers[3].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
