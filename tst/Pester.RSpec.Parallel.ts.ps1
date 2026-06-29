@@ -103,6 +103,69 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Run.Parallel durations" {
+        t "uses wall-clock for the run total and blanks the per-phase run totals (#2794)" {
+            # Two files that each sleep ~1s would total ~2s if their container durations were summed.
+            # Running them in parallel overlaps that time, so the run's actual wall-clock is closer to
+            # a single file. Summing the container durations therefore overstates Run.Duration; the
+            # run total must instead be the orchestrator's measured wall-clock.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'Slow1.Tests.ps1') -Value @'
+Describe 'Slow1' {
+    BeforeAll { Start-Sleep -Milliseconds 1000 }
+    It 'passes' { 1 | Should -Be 1 }
+}
+'@
+            Set-Content -Path (Join-Path $folder 'Slow2.Tests.ps1') -Value @'
+Describe 'Slow2' {
+    BeforeAll { Start-Sleep -Milliseconds 1000 }
+    It 'passes' { 1 | Should -Be 1 }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+
+                $sw = [System.Diagnostics.Stopwatch]::StartNew()
+                $r = Invoke-Pester -Configuration $c
+                $sw.Stop()
+
+                if ($PSVersionTable.PSVersion.Major -ge 7) {
+                    # Naive sum of the overlapping container durations - the old (wrong) run total.
+                    $containerSum = [TimeSpan]::Zero
+                    foreach ($container in $r.Containers) { $containerSum += $container.Duration }
+
+                    # Run total is the measured wall-clock: positive, never larger than the elapsed
+                    # time around the whole call, and well below the naive sum because the files overlap.
+                    ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
+                    ($r.Duration -le $sw.Elapsed) | Verify-True
+                    ($r.Duration -lt $containerSum) | Verify-True
+
+                    # The per-phase run totals are blanked - a single wall-clock figure for user,
+                    # framework or discovery time is not meaningful once the files overlap.
+                    ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
+                    ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
+                    ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
+
+                    # Parallelism is file-level, so each container keeps its full duration breakdown.
+                    foreach ($container in $r.Containers) {
+                        ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
+                        ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
+                    }
+                    # Discovery is measured per container too (summed here only to avoid per-file flakiness).
+                    $discoverySum = [TimeSpan]::Zero
+                    foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
+                    ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
+                }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Run.Parallel data passing" {
         t "passes container -Data to each parallel worker's param() block" {
             # New-PesterContainer -Path ... -Data must bind the file's param() block under parallel
