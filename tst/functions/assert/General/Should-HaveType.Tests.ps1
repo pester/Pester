@@ -22,20 +22,32 @@ Describe "Should-HaveType" {
 }
 
 Describe "Should-HaveType input hint" {
-    It "Hints that a piped collection was unwrapped, so the type was lost" -ForEach @(
-        # The pipeline unwraps a multi-item collection into [object[]] and a one-item collection
-        # into a scalar, so in both cases it no longer looks like the original [string[]]. See #2801.
-        @{ Value = [string[]]('a', 'b') }
-        @{ Value = [string[]]('a') }
+    It "Hints that a piped <Description> was unwrapped to <Unwrapped>, losing its [string[]] type" -ForEach @(
+        # Piping unwraps the collection before the assertion sees it: a multi-item collection becomes
+        # [Object[]] and a one-item collection becomes a scalar. Either way the original [string[]] is
+        # gone, so the assertion fails and the hint is shown. See #2801.
+        @{ Description = 'multi-item collection'; Value = [string[]]('a', 'b'); Unwrapped = '[Object[]]' }
+        @{ Description = 'one-item collection';   Value = [string[]]('a');      Unwrapped = '[string]' }
     ) {
         $err = { $Value | Should-HaveType ([string[]]) } | Verify-AssertionFailed
-        $err.Exception.Message | Verify-Like '*Hint: You piped a *into a type assertion*unwrapped when it goes through the pipeline*pass it as the -Actual argument*'
+        $message = $err.Exception.Message
+
+        # The leading line reports the unwrapped value's type, proving the collection lost its type.
+        # This is the part that differs between the two cases; the trailing value text is left
+        # unasserted so the test does not break on value-formatting changes.
+        $message.StartsWith("Expected value to have type [string[]], but got $Unwrapped ") | Verify-True
+
+        # Everything after the blank line is the hint, identical for both cases because it reports the
+        # *original* piped type. Asserted in full so the exact message a user sees is visible here.
+        $hint = ($message -split "`n`n", 2)[-1]
+        $hint | Verify-Equal 'Hint: You piped a [string[]] into a type assertion. A collection is unwrapped when it goes through the pipeline, so the assertion no longer sees it as [string[]]. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual $value.'
     }
 
-    It "Names the original collection type in the hint" {
-        $value = [int[]](1, 2, 3)
-        $err = { $value | Should-HaveType ([string[]]) } | Verify-AssertionFailed
-        $err.Exception.Message.Contains('You piped a [int[]] into a type assertion') | Verify-True
+    It "Names the piped collection's element type in the hint, not a hard-coded one" {
+        # Same hint shape, but piping [int[]] proves the element type is taken from the real input.
+        $err = { [int[]](1, 2, 3) | Should-HaveType ([string[]]) } | Verify-AssertionFailed
+        $hint = ($err.Exception.Message -split "`n`n", 2)[-1]
+        $hint | Verify-Equal 'Hint: You piped a [int[]] into a type assertion. A collection is unwrapped when it goes through the pipeline, so the assertion no longer sees it as [int[]]. To assert the type of a collection, pass it as the -Actual argument instead of piping it, e.g. -Actual $value.'
     }
 
     It "Does not hint when a scalar of the wrong type is piped" {
