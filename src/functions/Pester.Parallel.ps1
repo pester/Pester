@@ -169,6 +169,7 @@ function Invoke-TestInParallel {
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
                 Path = $c.Item.FullName
+                Data = $c.Data
                 Init = $beforeContainerInit
             }
         })
@@ -228,7 +229,17 @@ function Invoke-TestInParallel {
         }
 
         $workerConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $baseConfig)
-        $workerConfig.Run.Path = $item.Path
+        # Pass the file together with its -Data so parametrized containers (New-PesterContainer
+        # -Path ... -Data @{ ... }) bind the file's param() block the same way they do sequentially.
+        # Run them by reference - ForEach-Object -Parallel uses runspaces in the same process, so the
+        # Data values (including live objects) cross unchanged. When there is no Data, point at the
+        # path directly, which behaves identically to a plain file run.
+        if (($item.Data -is [System.Collections.IDictionary]) -and 0 -lt $item.Data.Count) {
+            $workerConfig.Run.Container = New-PesterContainer -Path $item.Path -Data $item.Data
+        }
+        else {
+            $workerConfig.Run.Path = $item.Path
+        }
         $workerConfig.Run.Parallel = $false
         $workerConfig.Run.PassThru = $true
         $workerConfig.Run.Exit = $false
