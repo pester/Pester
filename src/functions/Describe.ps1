@@ -124,7 +124,7 @@
         if ($PSBoundParameters.ContainsKey('ForEach')) {
             if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
                 if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
-                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach on this Describe, or set the Run.FailOnNullOrEmptyForEach configuration option to $false to allow it for the whole run.', 'ForEach')
                 }
                 # @() or $null is provided and allowed, do nothing
                 return
