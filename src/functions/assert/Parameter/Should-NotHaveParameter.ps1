@@ -17,15 +17,21 @@
 
     .EXAMPLE
     ```powershell
-    Get-Command "Invoke-WebRequest" | Should -NotHaveParameter Uri
+    Get-Command Get-Date | Should-NotHaveParameter Uri
     ```
 
-    This test fails, because it expected the parameter URI to not exist.
+    This assertion passes, because `Get-Date` has no `-Uri` parameter.
 
-    .NOTES
-    The attribute [ArgumentCompleter] was added with PSv5. Previously this
-    assertion will not be able to use the -HasArgumentCompleter parameter
-    if the attribute does not exist.
+    .EXAMPLE
+    ```powershell
+    function Get-PublicReport {
+        param([string] $Name)
+    }
+
+    Get-Command Get-PublicReport | Should-NotHaveParameter Credential
+    ```
+
+    This assertion passes, because `Get-PublicReport` does not expose a `-Credential` parameter. This is useful for guarding against accidentally adding parameters you want to keep off a command's public surface.
 
     .LINK
     https://pester.dev/docs/commands/Should-NotHaveParameter
