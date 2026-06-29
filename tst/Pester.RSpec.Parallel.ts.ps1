@@ -103,6 +103,42 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Run duration in parallel mode" {
+        t "uses wall-clock duration and leaves per-phase totals blank instead of summing containers" {
+            # Two files that each sleep run sequentially would total ~1.2s; in parallel the wall-clock
+            # is closer to a single file, so summing container durations overstates the run. (#2794)
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'Slow1.Tests.ps1') -Value @'
+Describe 'Slow1' { BeforeAll { Start-Sleep -Milliseconds 600 }; It 'p' { 1 | Should -Be 1 } }
+'@
+            Set-Content -Path (Join-Path $folder 'Slow2.Tests.ps1') -Value @'
+Describe 'Slow2' { BeforeAll { Start-Sleep -Milliseconds 600 }; It 'p' { 1 | Should -Be 1 } }
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                if ($PSVersionTable.PSVersion.Major -ge 7) {
+                    $containerSum = [TimeSpan]::Zero
+                    foreach ($container in $r.Containers) { $containerSum += $container.Duration }
+                    # Wall-clock run duration is less than the naive sum of the two slow files.
+                    ($r.Duration -lt $containerSum) | Verify-True
+                    ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
+                    # Per-phase totals are left blank because containers overlap.
+                    $r.UserDuration | Verify-Equal ([TimeSpan]::Zero)
+                    $r.FrameworkDuration | Verify-Equal ([TimeSpan]::Zero)
+                    $r.DiscoveryDuration | Verify-Equal ([TimeSpan]::Zero)
+                }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Run.BeforeContainer" {
         t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
             $folder = New-BeforeContainerTestFolder

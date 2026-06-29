@@ -1046,7 +1046,7 @@ i -PassThru:$PassThru {
                         Mock Start-Job -ModuleName m
 
                         # trying to assert on command that is not mocked in script scope
-                        Should -Invoke Start-Job
+                        Should-Invoke Start-Job
                     }
                 }
             }
@@ -1063,7 +1063,7 @@ i -PassThru:$PassThru {
 
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Failed"
-            $t.ErrorRecord[0] | Verify-Equal 'Should -Invoke: Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should -Invoke using the same -ModuleName?'
+            $t.ErrorRecord[0] | Verify-Equal 'Should-Invoke: Could not find Mock for command Start-Job in script scope. Was the mock defined? Did you use the same -ModuleName as on the Mock? When using InModuleScope are InModuleScope, Mock and Should-Invoke using the same -ModuleName?'
         }
     }
 
