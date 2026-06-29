@@ -104,7 +104,7 @@ i -PassThru:$PassThru {
     }
 
     b "Run duration in parallel mode" {
-        t "uses wall-clock duration and leaves per-phase totals blank instead of summing containers" {
+        t "uses the measured wall-clock for the total and still sums the per-phase work" {
             # Two files that each sleep run sequentially would total ~1.2s; in parallel the wall-clock
             # is closer to a single file, so summing container durations overstates the run. (#2794)
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
@@ -126,13 +126,14 @@ Describe 'Slow2' { BeforeAll { Start-Sleep -Milliseconds 600 }; It 'p' { 1 | Sho
                 if ($PSVersionTable.PSVersion.Major -ge 7) {
                     $containerSum = [TimeSpan]::Zero
                     foreach ($container in $r.Containers) { $containerSum += $container.Duration }
-                    # Wall-clock run duration is less than the naive sum of the two slow files.
+                    # Wall-clock run duration is measured, so it is less than the naive sum of the
+                    # two slow files that overlap in parallel.
                     ($r.Duration -lt $containerSum) | Verify-True
                     ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
-                    # Per-phase totals are left blank because containers overlap.
-                    $r.UserDuration | Verify-Equal ([TimeSpan]::Zero)
-                    $r.FrameworkDuration | Verify-Equal ([TimeSpan]::Zero)
-                    $r.DiscoveryDuration | Verify-Equal ([TimeSpan]::Zero)
+                    # Per-phase totals are still measured (summed across the overlapping workers),
+                    # not blanked, so they add up to the total container work.
+                    ($r.UserDuration -gt [TimeSpan]::Zero) | Verify-True
+                    ($r.DiscoveryDuration + $r.UserDuration + $r.FrameworkDuration) | Verify-Equal $containerSum
                 }
             }
             finally { Remove-Item -Path $folder -Recurse -Force }

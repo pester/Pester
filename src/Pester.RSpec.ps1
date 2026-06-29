@@ -276,19 +276,20 @@ function PostProcess-RspecTestRun ($TestRun, [switch] $Parallel) {
             $TestRun.FailedContainers.Add($b)
         }
 
-        # Container durations are summed for a sequential run, where they don't overlap. In a
-        # parallel run the files execute simultaneously, so summing overstates the totals - the
-        # real wall-clock duration (RunEnd - RunStart) is used instead and the per-phase totals
-        # are left blank because they would require excluding overlapping time between containers.
-        if (-not $Parallel) {
-            $TestRun.Duration += $b.Duration
-            $TestRun.UserDuration += $b.UserDuration
-            $TestRun.FrameworkDuration += $b.FrameworkDuration
-            $TestRun.DiscoveryDuration += $b.DiscoveryDuration
-        }
+        # Sum the per-phase durations across containers. These are cumulative measurements of the
+        # time spent in user code, in the framework and in discovery, so they are valid in both
+        # sequential and parallel runs - in a parallel run they add up to the total work done
+        # across the overlapping workers.
+        $TestRun.Duration += $b.Duration
+        $TestRun.UserDuration += $b.UserDuration
+        $TestRun.FrameworkDuration += $b.FrameworkDuration
+        $TestRun.DiscoveryDuration += $b.DiscoveryDuration
     }
 
     if ($Parallel) {
+        # The summed container Duration is the total work done, which overstates a parallel run
+        # because the files overlap in time. Measure the actual elapsed wall-clock for the run
+        # total instead; the per-phase totals stay as the cumulative work across the workers.
         $TestRun.Duration = [DateTime]::Now - $TestRun.ExecutedAt
     }
 
