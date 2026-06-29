@@ -1,0 +1,18 @@
+diff --git a/src/functions/Mock.ps1 b/src/functions/Mock.ps1
+index a6876b2..c6510e8 100644
+--- a/src/functions/Mock.ps1
++++ b/src/functions/Mock.ps1
+@@ -1979,6 +1981,13 @@ function Repair-EnumParameters {
+     # broken arguments (unquoted strings) will show as NamedArguments in ast, while valid arguments are PositionalArguments.
+     # https://github.com/pester/Pester/issues/1496
+     # https://github.com/PowerShell/PowerShell/issues/17546
++    # Fast path: parsing the param block and walking its AST is relatively expensive and runs for every
++    # mock. A broken ValidateRange attribute can only exist when the param block mentions ValidateRange at
++    # all, so skip the parse + AST walk entirely when it does not (the common case).
++    if ($ParamBlock -notmatch 'ValidateRange') {
++        return $ParamBlock
++    }
++
+     $ast = [System.Management.Automation.Language.Parser]::ParseInput("param($ParamBlock)", [ref]$null, [ref]$null)
+     $brokenValidateRange = $ast.FindAll({
+             param($node)

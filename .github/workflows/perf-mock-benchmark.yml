@@ -1,9 +1,15 @@
 name: Mock perf benchmark
 
-# Temporary, manually-triggered benchmark to compare the mock hot path with and
-# without the perf changes on Windows PowerShell 5.1 and PowerShell 7.
-# Runs automatically on every push to the benchmark branch (workflow_dispatch
-# does not work here because this file is not on the default branch).
+# Temporary, push-triggered benchmark to break down the mock hot-path perf changes
+# fix-by-fix on Windows PowerShell 5.1 and PowerShell 7. The branch HEAD already
+# contains all five fixes; we revert the two changed source files to the clean
+# pre-fix base (2f6ca66) and then re-apply individual fix hunks cumulatively,
+# rebuilding and re-measuring between each step. This isolates each fix's effect.
+#
+# Fixes (see _perf/patches): 1=Repair-EnumParameters early-out, 2=Test-ParameterFilter
+# PSVariable save/restore, 3=Set-ScriptBlockScope simple, 4=Resolve-Command simple,
+# 5=Test-ParameterFilter simple. workflow_dispatch only works on the default branch,
+# so trigger on push to this feature branch instead.
 
 on:
   workflow_dispatch:
@@ -13,7 +19,7 @@ on:
 
 jobs:
   benchmark:
-    name: Mock perf (5.1 vs 7)
+    name: Mock perf breakdown (5.1 vs 7)
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -21,32 +27,72 @@ jobs:
         with:
           fetch-depth: 10 # need history back to the clean base commit to revert the perf changes
 
-      - name: Build Pester (with perf changes)
-        shell: pwsh
-        run: ./build.ps1 -Clean
-
-      - name: Benchmark WITH changes - PowerShell 7
-        shell: pwsh
-        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CHANGES'
-
-      - name: Benchmark WITH changes - Windows PowerShell 5.1
-        shell: powershell
-        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CHANGES'
-
-      - name: Revert the perf changes (clean source at the pre-fix base commit)
+      - name: Revert perf source to clean base (2f6ca66)
         shell: pwsh
         run: |
           git checkout 2f6ca66 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
           git --no-pager diff --stat 2f6ca66 -- src/functions/Mock.ps1 src/functions/Pester.Scoping.ps1
 
-      - name: Rebuild Pester (clean source, PowerShell-only change)
+      - name: Build CLEAN
         shell: pwsh
-        run: ./build.ps1
-
-      - name: Benchmark CLEAN baseline - PowerShell 7
+        run: ./build.ps1 -Clean
+      - name: CLEAN - PS7
         shell: pwsh
         run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CLEAN'
-
-      - name: Benchmark CLEAN baseline - Windows PowerShell 5.1
+      - name: CLEAN - 5.1
         shell: powershell
         run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'CLEAN'
+
+      - name: Apply Fix1
+        shell: pwsh
+        run: git apply --ignore-whitespace _perf/patches/fix1_repair.patch
+      - name: Build +FIX1
+        shell: pwsh
+        run: ./build.ps1
+      - name: '+FIX1 - PS7'
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1'
+      - name: '+FIX1 - 5.1'
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1'
+
+      - name: Apply Fix2
+        shell: pwsh
+        run: git apply --ignore-whitespace _perf/patches/fix2_psvar.patch
+      - name: Build +FIX1-2
+        shell: pwsh
+        run: ./build.ps1
+      - name: '+FIX1-2 - PS7'
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1-2'
+      - name: '+FIX1-2 - 5.1'
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1-2'
+
+      - name: Apply Fix3
+        shell: pwsh
+        run: git apply --ignore-whitespace _perf/patches/fix3_scoping.patch
+      - name: Build +FIX1-3
+        shell: pwsh
+        run: ./build.ps1
+      - name: '+FIX1-3 - PS7'
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1-3'
+      - name: '+FIX1-3 - 5.1'
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label '+FIX1-3'
+
+      - name: Apply Fix4 + Fix5 (all five)
+        shell: pwsh
+        run: |
+          git apply --ignore-whitespace _perf/patches/fix4_resolve.patch
+          git apply --ignore-whitespace _perf/patches/fix5_testfilter.patch
+      - name: Build ALL5
+        shell: pwsh
+        run: ./build.ps1
+      - name: ALL5 - PS7
+        shell: pwsh
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'ALL5'
+      - name: ALL5 - 5.1
+        shell: powershell
+        run: ./_perf/Measure-MockPerf.ps1 -Runs 9 -Label 'ALL5'

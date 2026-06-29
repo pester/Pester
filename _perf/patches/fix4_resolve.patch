@@ -1,0 +1,18 @@
+diff --git a/src/functions/Mock.ps1 b/src/functions/Mock.ps1
+index a6876b2..c6510e8 100644
+--- a/src/functions/Mock.ps1
++++ b/src/functions/Mock.ps1
+@@ -600,10 +600,12 @@ function Remove-MockHook {
+ }
+ 
+ function Resolve-Command {
++    # Simple (non-advanced) function on purpose: it is on the hot mock-resolution path and advanced
++    # functions are noticeably more expensive to invoke. SessionState is required and is always
++    # supplied by callers.
+     param (
+         [string] $CommandName,
+         [string] $ModuleName,
+-        [Parameter(Mandatory)]
+         [Management.Automation.SessionState] $SessionState
+     )
+ 

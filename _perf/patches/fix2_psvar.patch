@@ -1,0 +1,30 @@
+diff --git a/src/functions/Mock.ps1 b/src/functions/Mock.ps1
+index a6876b2..c6510e8 100644
+--- a/src/functions/Mock.ps1
++++ b/src/functions/Mock.ps1
+@@ -1231,18 +1233,18 @@ function Test-ParameterFilter {
+ 
+     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
+ 
+-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
++    # Save and restore the script-scoped flag with direct variable access instead of the much more
++    # expensive Get-Variable/Remove-Variable cmdlets. This runs on every mock parameter-filter
++    # evaluation, so the cmdlet call overhead is significant. Every reader of the script-scoped flag
++    # uses a plain truthy check, so leaving the variable defined with its previous value (possibly
++    # $null) when we are no longer in a filter is equivalent to removing it.
++    $previousIsInMockParameterFilter = $ExecutionContext.SessionState.PSVariable.GetValue('______isInMockParameterFilter', $null)
+     $script:______isInMockParameterFilter = $true
+     try {
+         $result = & $wrapper $parameters
+     }
+     finally {
+-        if ($null -eq $previousIsInMockParameterFilter) {
+-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
+-        }
+-        else {
+-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
+-        }
++        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
+     }
+     $passed = [bool]$result
+     if ($passed) {

@@ -1,0 +1,25 @@
+diff --git a/src/functions/Mock.ps1 b/src/functions/Mock.ps1
+index a6876b2..c6510e8 100644
+--- a/src/functions/Mock.ps1
++++ b/src/functions/Mock.ps1
+@@ -1147,9 +1149,10 @@ function Invoke-InMockScope {
+ }
+ 
+ function Test-ParameterFilter {
+-    [CmdletBinding()]
++    # Simple (non-advanced) function on purpose: it runs on every mock parameter-filter evaluation
++    # and advanced functions are noticeably more expensive to invoke. ScriptBlock and SessionState
++    # are always supplied by callers.
+     param (
+-        [Parameter(Mandatory = $true)]
+         [scriptblock]
+         $ScriptBlock,
+ 
+@@ -1162,7 +1165,6 @@ function Test-ParameterFilter {
+         [System.Management.Automation.CommandMetadata]
+         $Metadata,
+ 
+-        [Parameter(Mandatory)]
+         [Management.Automation.SessionState]
+         $SessionState,
+ 
