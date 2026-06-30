@@ -3336,6 +3336,40 @@ i -PassThru:$PassThru {
     }
 
     b 'Stray output during the run does not crash Pester (#2655)' {
+        t 'a real run with stray output finishes, keeps its results, and warns instead of crashing' {
+            # Reproduce the leak end-to-end the way it happens in the wild: something writes to the
+            # success stream while the run is in progress, so the stray value ends up in Invoke-Test's
+            # output next to the real [Pester.Container]. A BeforeContainer block is a reliable stand-in
+            # for the original trigger - an unredirected native command (winrm/net) in a setup block -
+            # which could not be reproduced deterministically. Before #2655 that stray object was added
+            # to the strongly-typed Run.Containers list and threw "Cannot find an overload for Add",
+            # taking down the whole run.
+            $sb = {
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{
+                        ScriptBlock     = $sb
+                        PassThru        = $true
+                        BeforeContainer = { 'WinRM service is already running on this machine.' }
+                    }
+                    Output = @{ Verbosity = 'None' }
+                }) -WarningVariable warnings 3> $null
+
+            # The run completed instead of crashing, and the real results came through untouched.
+            $r | Verify-NotNull
+            $r.Result | Verify-Equal 'Passed'
+            $r.Containers.Count | Verify-Equal 1
+            $r.PassedCount | Verify-Equal 1
+            $r.FailedCount | Verify-Equal 0
+
+            # The stray output was dropped with a warning that points at the likely cause.
+            ($warnings -join "`n") | Verify-Like "*unexpected output*WinRM service is already running on this machine.*"
+        }
+
         t 'Split-RSpecResult keeps containers and collects stray output separately' {
             # Get a real [Pester.Container] to mix with stray output
             $real = Invoke-Pester -Configuration ([PesterConfiguration]@{
@@ -3355,26 +3389,6 @@ i -PassThru:$PassThru {
             ($split.Containers[0] -is [Pester.Container]) | Verify-True
             $split.StrayOutput.Count | Verify-Equal 1
             $split.StrayOutput[0] | Verify-Equal 'WinRM service is already running on this machine.'
-        }
-
-        t 'Run.Containers only receives containers after splitting, so the run does not crash' {
-            $real = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run    = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
-                    Output = @{ Verbosity = 'None' }
-                })
-            $container = $real.Containers[0]
-
-            # Adding stray output straight to the strongly-typed list is what used to throw
-            # "Cannot find an overload for Add" and fail the whole run.
-            $threw = $false
-            try { ([Pester.Run]::Create()).Containers.Add('stray native output') } catch { $threw = $true }
-            $threw | Verify-True
-
-            # After splitting, only the container is added and the run is built without error.
-            $run = [Pester.Run]::Create()
-            $split = & (Get-Module Pester) { param($c) Split-RSpecResult -Result (@($c, 'stray native output')) } $container
-            foreach ($i in $split.Containers) { $run.Containers.Add($i) }
-            $run.Containers.Count | Verify-Equal 1
         }
     }
 
