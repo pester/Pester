@@ -317,10 +317,9 @@ function Write-NUnitTestCaseAttributes {
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
 
-            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
-            if ($TestResult.FailureMessage) {
+            if ($TestResult.Reason) {
                 $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $xmlWriter.WriteElementString('message', $TestResult.Reason)
                 $XmlWriter.WriteEndElement() # Close reason tag
             }
 
@@ -331,10 +330,9 @@ function Write-NUnitTestCaseAttributes {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
-            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
-            if ($TestResult.FailureMessage) {
+            if ($TestResult.Reason) {
                 $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
+                $xmlWriter.WriteElementString('message', $TestResult.Reason)
                 $XmlWriter.WriteEndElement() # Close reason tag
             }
 
