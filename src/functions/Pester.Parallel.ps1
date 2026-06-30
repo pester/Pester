@@ -175,7 +175,17 @@ function Invoke-TestInParallel {
         })
 
     # Path to the currently loaded Pester so each worker imports the exact same build.
-    $modulePath = $ExecutionContext.SessionState.Module.Path
+    # Use the module manifest (.psd1), not the root module (.psm1) that Module.Path points to:
+    # importing the bare .psm1 loads Pester without its manifest metadata, so its ModuleVersion
+    # becomes 0.0.0.0. That then fails to satisfy any module a test imports whose manifest lists
+    # Pester in RequiredModules (e.g. @{ ModuleName = 'Pester'; ModuleVersion = '5.7.1' }),
+    # because the loaded 0.0.0.0 is below the required version (#2816).
+    $pesterModuleInfo = $ExecutionContext.SessionState.Module
+    $modulePath = $pesterModuleInfo.Path
+    $manifestPath = & $SafeCommands['Join-Path'] $pesterModuleInfo.ModuleBase "$($pesterModuleInfo.Name).psd1"
+    if (& $SafeCommands['Test-Path'] -LiteralPath $manifestPath -PathType Leaf) {
+        $modulePath = $manifestPath
+    }
 
     # Cap concurrency at Run.ParallelThrottleLimit when set (> 0); otherwise use all processors.
     $requestedThrottle = [int]$Configuration.Run.ParallelThrottleLimit.Value

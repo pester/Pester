@@ -193,6 +193,60 @@ Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -
         }
     }
 
+    b "Run.Parallel module loading" {
+        t "imports a module that lists Pester in RequiredModules (#2816)" {
+            # Each parallel worker imports Pester so test bodies can use it. The worker must import
+            # Pester *via its manifest* so the loaded module keeps its real ModuleVersion. Importing
+            # the bare root module instead would load Pester as 0.0.0.0, and any module a test imports
+            # whose manifest lists Pester in RequiredModules (e.g. @{ ModuleName = 'Pester';
+            # ModuleVersion = '5.0.0' }) would then fail to resolve that requirement against the
+            # loaded 0.0.0.0 Pester - the bug reported in #2816.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $moduleDir = Join-Path $folder 'RequiresPester'
+                $null = New-Item -ItemType Directory -Path $moduleDir -Force
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psm1') -Value 'function Get-RequiresPester { ''ok'' }'
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psd1') -Value @'
+@{
+    RootModule        = 'RequiresPester.psm1'
+    ModuleVersion     = '1.0.0'
+    GUID              = 'b3c4d5e6-f7a8-4901-b2c3-d4e5f6a7b8c9'
+    RequiredModules   = @( @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' } )
+    FunctionsToExport = @('Get-RequiresPester')
+}
+'@
+                $manifest = Join-Path $moduleDir 'RequiresPester.psd1'
+                Set-Content -Path (Join-Path $folder 'Import.Tests.ps1') -Value @"
+Describe 'Module import' {
+    It 'imports a module that requires Pester' {
+        { Import-Module '$manifest' -Force -ErrorAction Stop } | Should -Not -Throw
+    }
+}
+"@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally {
+                # Import.Tests.ps1 imports RequiresPester, which takes a dependency on Pester. When
+                # Run.Parallel falls back to sequential (e.g. Windows PowerShell 5.1) that import runs
+                # in this process, so the module leaks into the shared P-test session and the next
+                # *.ts.ps1 file's `Remove-Module Pester` fails with "required by 'RequiresPester'".
+                # Unload it first - this also releases the lock on its .psm1 so the folder can be removed.
+                Get-Module RequiresPester | Remove-Module -Force
+                Remove-Item -Path $folder -Recurse -Force
+            }
+        }
+    }
+
     b "Run.BeforeContainer" {
         t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
             $folder = New-BeforeContainerTestFolder
