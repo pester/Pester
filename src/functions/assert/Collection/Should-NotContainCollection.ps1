@@ -1,36 +1,37 @@
 ﻿function Should-NotContainCollection {
     <#
     .SYNOPSIS
-    Compares collections to ensure that the expected collection is not present in the provided collection. It does not compare the types of the input collections.
+    Checks that the expected collection is not present in the actual collection as an ordered subsequence. It does not compare the types of the input collections.
 
     .DESCRIPTION
-    This assertion uses PowerShell containment to check that the actual collection does not contain the expected value. The comparison uses the contained value's own equality semantics.
+    Passes when the items of the expected collection do not appear in the actual collection in the same order. The subsequence is matched the same way as `Should-ContainCollection`: gaps between matched items are allowed, but each actual item is used at most once. A single value is treated as a one-item collection. Items are compared using PowerShell equality, the same as the `-contains` operator.
 
     .PARAMETER Expected
-    A collection of items.
+    One or more items to look for as an ordered subsequence. A single value is treated as a one-item collection.
 
     .PARAMETER Actual
-    A collection of items.
+    The collection to search in.
 
     .PARAMETER Because
     The reason why the input should be the expected value.
 
     .EXAMPLE
     ```powershell
-    1, 2, 3 | Should-ContainCollection @(3, 4)
-    1, 2, 3 | Should-ContainCollection @(3, 2, 1)
-    @(1) | Should-ContainCollection @(2)
+    1, 2, 3 | Should-NotContainCollection @(3, 4)
+    1, 2, 3 | Should-NotContainCollection @(3, 2, 1)
+    @(1) | Should-NotContainCollection @(2)
     ```
 
-    This assertion will pass, because the collections are different, or the items are not in the right order.
+    These assertions pass, because the expected items are not present as an ordered subsequence.
 
     .EXAMPLE
     ```powershell
     1, 2, 3 | Should-NotContainCollection @(1, 2)
+    1, 2, 3 | Should-NotContainCollection @(1, 3)
     @(1) | Should-NotContainCollection @(1)
     ```
 
-    This assertion will fail, because all items are present in the collection and are in the right order.
+    These assertions fail, because the expected items are present in the same order. Gaps between them, as in `@(1, 3)`, are allowed.
 
     .LINK
     https://pester.dev/docs/commands/Should-NotContainCollection
@@ -63,7 +64,7 @@
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
-    if ($Actual -contains $Expected) {
+    if (Is-CollectionSubsequence -Expected $Expected -Actual $Actual) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in <actualType> <actual>,<because> but it was there."
         & $reportFailure $Message
     }
