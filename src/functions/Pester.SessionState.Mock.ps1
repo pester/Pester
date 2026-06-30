@@ -48,6 +48,88 @@ function Get-MockPlugin () {
     }
 }
 
+# Tracks the modules we are currently executing inside of via InModuleScope, innermost last.
+# Used to tell an intentional in-module mock (InModuleScope M { Mock ... }) from a mock that
+# merely originates in a helper function that happens to live in a module (#2025).
+$script:PesterInModuleScopeStack = [System.Collections.Generic.Stack[string]]::new()
+
+function Push-InModuleScopeModule {
+    param([string] $ModuleName)
+    $script:PesterInModuleScopeStack.Push($ModuleName)
+}
+
+function Pop-InModuleScopeModule {
+    if ($script:PesterInModuleScopeStack.Count -gt 0) {
+        $null = $script:PesterInModuleScopeStack.Pop()
+    }
+}
+
+function Test-InModuleScopeModule {
+    # True when we are currently executing directly inside InModuleScope <ModuleName> { ... }.
+    param([string] $ModuleName)
+    return ($script:PesterInModuleScopeStack.Count -gt 0 -and $script:PesterInModuleScopeStack.Peek() -eq $ModuleName)
+}
+
+function Get-CurrentTestOrBlockSessionState {
+    # The session state in which the current test/block body was defined and runs. A Mock written
+    # directly in the test (not routed through a helper) resolves against exactly this scope, so it
+    # is the right place to define a mock that came in through a helper function (#2025).
+    $currentTest = Get-CurrentTest
+    $scriptBlock = if ($null -ne $currentTest) {
+        $currentTest.ScriptBlock
+    }
+    else {
+        $currentBlock = Get-CurrentBlock
+        if ($null -ne $currentBlock) { $currentBlock.ScriptBlock } else { $null }
+    }
+
+    if ($null -eq $scriptBlock) { return $null }
+    return $script:ScriptBlockSessionStateProperty.GetValue($scriptBlock, $null)
+}
+
+function Resolve-MockCallerScope {
+    # Decides the target ModuleName and session state for a Mock / Should-Invoke call that did not
+    # specify -ModuleName.
+    #
+    # Historically Pester inherited the caller's module whenever the call originated from a module
+    # session state. That is correct for InModuleScope (the user intentionally entered the module),
+    # but wrong when the call merely comes from a helper function that lives in a module - e.g. a
+    # reusable mock-injection helper called from a test - because the mock then silently lands in
+    # the helper's module instead of the test scope (#2025).
+    #
+    # We keep inheriting the module (the historical behavior) when the call is an intentional
+    # in-module mock, that is when either:
+    #   - we are directly inside InModuleScope <module> { ... }, or
+    #   - the current test/block was itself defined in <module> (InModuleScope wrapping a Describe,
+    #     or the InPesterModuleScope test helper).
+    # Otherwise the mock targets the test/script scope, exactly as a direct Mock in the test would.
+    param(
+        [Management.Automation.SessionState] $CallerSessionState
+    )
+
+    if ($null -eq $CallerSessionState -or $null -eq $CallerSessionState.Module) {
+        return [PSCustomObject]@{ ModuleName = $null; SessionState = $CallerSessionState }
+    }
+
+    $callerModule = $CallerSessionState.Module
+    $bodySessionState = Get-CurrentTestOrBlockSessionState
+    $bodyModule = if ($null -ne $bodySessionState) { $bodySessionState.Module } else { $null }
+
+    $intentional = (Test-InModuleScopeModule -ModuleName $callerModule.Name) -or
+        ($null -ne $bodyModule -and $bodyModule -eq $callerModule)
+
+    if ($intentional) {
+        return [PSCustomObject]@{ ModuleName = $callerModule.Name; SessionState = $CallerSessionState }
+    }
+
+    if ($null -ne $bodySessionState) {
+        return [PSCustomObject]@{ ModuleName = $null; SessionState = $bodySessionState }
+    }
+
+    # No running test/block to anchor to (Mock used at an unusual time); keep historical behavior.
+    return [PSCustomObject]@{ ModuleName = $callerModule.Name; SessionState = $CallerSessionState }
+}
+
 function Mock {
     <#
     .SYNOPSIS
@@ -236,9 +318,15 @@ function Mock {
 
     $SessionState = $PSCmdlet.SessionState
 
-    # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
-    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
-        $ModuleName = $SessionState.Module.Name
+    # Resolve where this mock should be defined when -ModuleName was not given. Inside InModuleScope
+    # (or a test/block defined in a module) we inherit the caller's module, so the mock targets that
+    # module - the historical behavior. When the call instead comes from a helper function that
+    # merely lives in a module, we target the test/script scope so the mock is not silently scoped
+    # to that helper module (#2025).
+    if (-not $PSBoundParameters.ContainsKey('ModuleName')) {
+        $resolvedScope = Resolve-MockCallerScope -CallerSessionState $SessionState
+        $ModuleName = $resolvedScope.ModuleName
+        $SessionState = $resolvedScope.SessionState
     }
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -823,9 +911,13 @@ function Should-InvokeAssertion {
     }
 
     if (-not $PSBoundParameters.ContainsKey("ModuleName")) {
-        # user did not specify the target module, using the caller session state module name
-        # to ensure we bind to the current module when running in InModuleScope
-        $ModuleName = if ($CallerSessionState.Module) { $CallerSessionState.Module.Name } else { $null }
+        # Mirror Mock's resolution so Should -Invoke looks the mock up in the same place Mock put it:
+        # inherit the caller module only for intentional in-module calls (InModuleScope, or a
+        # test/block defined in a module); otherwise resolve against the test/script scope so it
+        # matches a mock defined there through a helper function (#2025).
+        $resolvedScope = Resolve-MockCallerScope -CallerSessionState $CallerSessionState
+        $ModuleName = $resolvedScope.ModuleName
+        $CallerSessionState = $resolvedScope.SessionState
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {

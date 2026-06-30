@@ -3007,6 +3007,57 @@ Describe "Running Mock with ModuleName in test scope" {
     }
 }
 
+Describe "Mock from a module helper without -ModuleName targets the test scope (#2025)" {
+    BeforeAll {
+        Get-Module "MockTarget2025" -ErrorAction SilentlyContinue | Remove-Module
+        Get-Module "MockHelper2025" -ErrorAction SilentlyContinue | Remove-Module
+
+        # The module whose exported command we want to mock from the test.
+        New-Module -Name "MockTarget2025" -ScriptBlock {
+            function Invoke-Target { 'REAL' }
+            Export-ModuleMember -Function Invoke-Target
+        } -PassThru | Import-Module
+
+        # A helper module that injects a reusable mock by calling Mock/Should -Invoke from inside a
+        # function, without specifying -ModuleName. The mock must land in the caller's (test) scope,
+        # not silently in this helper module.
+        New-Module -Name "MockHelper2025" -ScriptBlock {
+            function Set-TargetMock { Mock Invoke-Target { 'MOCKED' } }
+            function Assert-TargetMock { Should -Invoke Invoke-Target -Times 1 -Exactly }
+            Export-ModuleMember -Function Set-TargetMock, Assert-TargetMock
+        } -PassThru | Import-Module
+    }
+
+    AfterAll {
+        Get-Module "MockTarget2025" -ErrorAction SilentlyContinue | Remove-Module
+        Get-Module "MockHelper2025" -ErrorAction SilentlyContinue | Remove-Module
+    }
+
+    It "applies the mock defined by the helper to a call in the test" {
+        Set-TargetMock
+        Invoke-Target | Should -Be 'MOCKED'
+    }
+
+    It "is counted by Should -Invoke called from the test scope" {
+        Set-TargetMock
+        $null = Invoke-Target
+        Should -Invoke Invoke-Target -Times 1 -Exactly
+    }
+
+    It "is counted by Should -Invoke called from a helper in the same module" {
+        Set-TargetMock
+        $null = Invoke-Target
+        Assert-TargetMock
+    }
+
+    It "InModuleScope without -ModuleName still targets the module, not the test scope" {
+        InModuleScope MockTarget2025 {
+            Mock Invoke-Target { 'INMODULE' }
+            Invoke-Target | Should -Be 'INMODULE'
+        }
+    }
+}
+
 Describe "Mocks can be defined outside of BeforeAll" {
 
     BeforeAll {
