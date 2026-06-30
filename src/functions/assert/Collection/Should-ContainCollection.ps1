@@ -1,16 +1,16 @@
 ﻿function Should-ContainCollection {
     <#
     .SYNOPSIS
-    Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.
+    Checks that the expected collection is present in the actual collection as an ordered subsequence. It does not compare the types of the input collections.
 
     .DESCRIPTION
-    This assertion uses PowerShell containment to check whether the actual collection contains the expected value. The comparison uses the contained value's own equality semantics.
+    The items of the expected collection must appear in the actual collection in the same order. Gaps between the matched items are allowed, but each actual item is used at most once, so repeated expected items need at least as many matching items in the actual collection. A single value is treated as a one-item collection. Items are compared using PowerShell equality, the same as the `-contains` operator.
 
     .PARAMETER Expected
-    A collection of items.
+    One or more items to look for as an ordered subsequence. A single value is treated as a one-item collection.
 
     .PARAMETER Actual
-    A collection of items.
+    The collection to search in.
 
     .PARAMETER Because
     The reason why the input should be the expected value.
@@ -18,19 +18,22 @@
     .EXAMPLE
     ```powershell
     1, 2, 3 | Should-ContainCollection @(1, 2)
+    1, 2, 3 | Should-ContainCollection @(1, 3)
     @(1) | Should-ContainCollection @(1)
+    1, 2, 3 | Should-ContainCollection 2
     ```
 
-    This assertion will pass, because all items are present in the collection, in the right order.
+    These assertions pass, because the expected items are present in the same order. Gaps between them, as in `@(1, 3)`, are allowed, and a single value is treated as a one-item collection.
 
     .EXAMPLE
     ```powershell
     1, 2, 3 | Should-ContainCollection @(3, 4)
     1, 2, 3 | Should-ContainCollection @(3, 2, 1)
+    1, 2 | Should-ContainCollection @(1, 1)
     @(1) | Should-ContainCollection @(2)
     ```
 
-    This assertion will fail, because not all items are present in the collection, or are not in the right order.
+    These assertions fail, because an expected item is missing (`@(3, 4)`), the items are not in the right order (`@(3, 2, 1)`), or the actual collection does not have enough matching items (`@(1, 1)` needs two 1s).
 
     .LINK
     https://pester.dev/docs/commands/Should-ContainCollection
@@ -63,7 +66,7 @@
         Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
 
-    if ($Actual -notcontains $Expected) {
+    if (-not (Is-CollectionSubsequence -Expected $Expected -Actual $Actual)) {
         $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but it was not there."
         & $reportFailure $Message
     }
