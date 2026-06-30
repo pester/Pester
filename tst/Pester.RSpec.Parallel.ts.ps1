@@ -235,7 +235,15 @@ Describe 'Module import' {
                 $r.PassedCount | Verify-Equal 1
                 $r.FailedCount | Verify-Equal 0
             }
-            finally { Remove-Item -Path $folder -Recurse -Force }
+            finally {
+                # Import.Tests.ps1 imports RequiresPester, which takes a dependency on Pester. When
+                # Run.Parallel falls back to sequential (e.g. Windows PowerShell 5.1) that import runs
+                # in this process, so the module leaks into the shared P-test session and the next
+                # *.ts.ps1 file's `Remove-Module Pester` fails with "required by 'RequiresPester'".
+                # Unload it first - this also releases the lock on its .psm1 so the folder can be removed.
+                Get-Module RequiresPester | Remove-Module -Force
+                Remove-Item -Path $folder -Recurse -Force
+            }
         }
     }
 
