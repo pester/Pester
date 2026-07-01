@@ -208,6 +208,24 @@ Describe 'Style rules' -Tag StyleRules {
     }
 }
 
+Describe 'Module packaging' -Tag StyleRules {
+    # Issue #2826: PSResourceGet decides a package is a script by looking for a
+    # '<ModuleName>.ps1' file in the package root (i.e. Pester.ps1). When that file is
+    # present it prints a spurious installation-path warning on Install-PSResource Pester.
+    # The script-scope helper is therefore shipped as Pester.ScriptScope.ps1 instead.
+    BeforeAll {
+        $pesterRoot = (Get-Module Pester).ModuleBase
+    }
+
+    It 'does not ship a Pester.ps1 that PSResourceGet would treat as a script' {
+        (Join-Path $pesterRoot 'Pester.ps1') | Should -Not -Exist
+    }
+
+    It 'ships the script-scope helper as Pester.ScriptScope.ps1' {
+        (Join-Path $pesterRoot 'Pester.ScriptScope.ps1') | Should -Exist
+    }
+}
+
 InPesterModuleScope {
     Describe 'Find-File' {
         BeforeAll {
