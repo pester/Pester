@@ -19,6 +19,17 @@ Describe "Should-HaveType" {
     ) {
         Should-HaveType -Actual $Value -Expected ([string[]])
     }
+
+    # Regression test for https://github.com/pester/Pester/issues/2828
+    # Formatting a self-referential actual value for the failure message used to recurse until
+    # PowerShell threw "The script failed due to call depth overflow", hiding the real result.
+    It "Reports a normal assertion failure for a self-referential value instead of overflowing" {
+        $o = [PSCustomObject]@{ Name = 'x' }
+        $o | Add-Member -NotePropertyName Self -NotePropertyValue $o
+
+        $err = { Should-HaveType -Actual $o -Expected ([string]) } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected value to have type*'
+    }
 }
 
 Describe "Should-HaveType input hint" {
