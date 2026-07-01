@@ -2693,7 +2693,8 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     # correct session state, and then invoke the file. We can also pass a script block tied
     # to the current module to invoke internal function in the newly pushed script scope.
 
-    $Path = "$PSScriptRoot/Pester.ps1"
+    # Invoked as a standalone script file (not Pester.ps1; see Pester.ScriptScope.ps1 for why).
+    $Path = "$PSScriptRoot/Pester.ScriptScope.ps1"
     $Data = @{ ScriptBlock = $ScriptBlock }
 
     $wrapper = {
