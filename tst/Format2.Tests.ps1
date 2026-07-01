@@ -193,6 +193,30 @@ InPesterModuleScope {
             $job | Remove-Job -Force
             $result | Should -Not -BeNullOrEmpty
         }
+
+        # Regression test for https://github.com/pester/Pester/issues/2828
+        # A self-referential object (Self points back at the same instance, like SMO stubs or
+        # DirectoryInfo.Parent/Root) used to recurse until PowerShell threw a call depth overflow.
+        It "Stops expanding a self-referential object instead of overflowing the call stack" {
+            $o = [PSCustomObject]@{ Name = 'x' }
+            $o | Add-Member -NotePropertyName Self -NotePropertyValue $o
+
+            # Formatting completes at all (no ScriptCallDepthException) and the back-reference is
+            # cut off with a type-only marker once the max depth is reached, not expanded forever.
+            $formatted = Format-Nicely2 -Value $o
+            $formatted.Contains('Self=[PSObject]') | Verify-True
+        }
+
+        It "Truncates values nested past the max depth to their type" {
+            # Build a chain deeper than the max depth. The leaf sits below the cut-off, so it must
+            # never be reached, and the deepest shown value is a type-only marker instead.
+            $node = [PSCustomObject]@{ Leaf = 'bottom' }
+            foreach ($i in 1..20) { $node = [PSCustomObject]@{ Child = $node } }
+
+            $formatted = Format-Nicely2 -Value $node
+            $formatted.Contains("'bottom'") | Verify-False
+            $formatted.Contains('[PSObject]') | Verify-True
+        }
     }
 
     Describe "Get-DisplayProperty2" {
