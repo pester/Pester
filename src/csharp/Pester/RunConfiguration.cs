@@ -38,6 +38,7 @@ namespace Pester
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
         private StringOption _repoRoot;
+        private ScriptBlockArrayOption _beforeInvoke;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -64,6 +65,7 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RepoRoot), v => RepoRoot = v);
+                configuration.AssignArrayIfNotNull<ScriptBlock>(nameof(BeforeInvoke), v => BeforeInvoke = v);
             }
         }
 
@@ -84,6 +86,7 @@ namespace Pester
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
             RepoRoot = new StringOption("Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.", FindRepoRoot());
+            BeforeInvoke = new ScriptBlockArrayOption("ScriptBlocks to run in the caller's scope as soon as Invoke-Pester starts, before the caller's $PesterPreference is read. Use it to import dependencies and provide configuration. In addition to these scriptblocks, the first Pester.BeforeInvoke.ps1 file found when walking up from each Run.Path to Run.RepoRoot is dot-sourced.", new ScriptBlock[0]);
         }
 
         public StringArrayOption Path
@@ -322,6 +325,22 @@ namespace Pester
                 else
                 {
                     _repoRoot = new StringOption(_repoRoot, value?.Value);
+                }
+            }
+        }
+
+        public ScriptBlockArrayOption BeforeInvoke
+        {
+            get { return _beforeInvoke; }
+            set
+            {
+                if (_beforeInvoke == null)
+                {
+                    _beforeInvoke = value;
+                }
+                else
+                {
+                    _beforeInvoke = new ScriptBlockArrayOption(_beforeInvoke, value?.Value);
                 }
             }
         }

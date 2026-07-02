@@ -89,6 +89,10 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: '<path of .git>'
 
+        BeforeInvoke: ScriptBlocks to run in the caller's scope as soon as Invoke-Pester starts, before the caller's $PesterPreference is read. Use it to import dependencies and provide configuration. In addition to these scriptblocks, the first Pester.BeforeInvoke.ps1 file found when walking up from each Run.Path to Run.RepoRoot is dot-sourced.
+        Type: scriptblock[]
+        Default value: @()
+
     Filter:
         Tag: Tags of Describe, Context or It to be run.
         Type: string[]
