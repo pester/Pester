@@ -100,11 +100,14 @@ function Write-NUnitTestSuiteElements {
 
     $XmlWriter.WriteStartElement('results')
 
+    $hasRunnableChildBlocks = $false
     foreach ($action in $Node.Blocks) {
         if (-not $action.ShouldRun) {
             # skip blocks that were discovered but did not run
             continue
         }
+
+        $hasRunnableChildBlocks = $true
         Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $action.ExpandedPath
     }
 
@@ -113,6 +116,9 @@ function Write-NUnitTestSuiteElements {
         # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
         $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
+
+    $hasParameterizedTestSuites = 0 -lt @($suites | & $SafeCommands['Where-Object'] { $_.Name }).Count
+    $requiresTestCaseWrapper = $hasRunnableChildBlocks -or $hasParameterizedTestSuites
 
     foreach ($suite in $suites) {
         # When group has name it is a parameterized tests (data-generated using -ForEach/TestCases) so we want extra level of nesting for them
@@ -133,8 +139,21 @@ function Write-NUnitTestSuiteElements {
                 continue
             }
 
+            if (-not $testGroupId -and $requiresTestCaseWrapper) {
+                $testCaseSuiteInfo = Get-TestSuiteInfoForTestResult -TestResult $testCase
+
+                $XmlWriter.WriteStartElement('test-suite')
+                Write-NUnitTestSuiteAttributes -TestSuiteInfo $testCaseSuiteInfo -XmlWriter $XmlWriter
+                $XmlWriter.WriteStartElement('results')
+            }
+
             $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { '' }
             Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.') -ParameterizedSuiteName $suiteName
+
+            if (-not $testGroupId -and $requiresTestCaseWrapper) {
+                $XmlWriter.WriteEndElement()
+                $XmlWriter.WriteEndElement()
+            }
         }
 
         if ($testGroupId) {
@@ -184,6 +203,25 @@ function Get-ParameterizedTestSuiteInfo {
     }
 
     return Get-TestSuiteInfo -TestSuite $node -Path $node.Path
+}
+
+function Get-TestSuiteInfoForTestResult {
+    param($TestResult)
+
+    $node = [PSCustomObject] @{
+        Duration          = $TestResult.Duration
+        FailedCount       = 0
+        SkippedCount      = 0
+        InconclusiveCount = 0
+    }
+
+    switch ($TestResult.Result) {
+        Failed { $node.FailedCount = 1; break }
+        Skipped { $node.SkippedCount = 1; break }
+        Inconclusive { $node.InconclusiveCount = 1; break }
+    }
+
+    return Get-TestSuiteInfo -TestSuite $node -Path $TestResult.Path
 }
 
 function Get-TestSuiteInfo {
