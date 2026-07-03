@@ -90,11 +90,11 @@ SECTIONS AND OPTIONS
         Default value: '<path of .git>'
 
     Filter:
-        Tag: Tags of Describe, Context or It to be run.
+        Tag: Tags of Describe, Context or It to be run. Use 'None' to run only tests that have no tags.
         Type: string[]
         Default value: @()
 
-        ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
+        ExcludeTag: Tags of Describe, Context or It to be excluded from the run. Use 'None' to exclude tests that have no tags.
         Type: string[]
         Default value: @()
 
