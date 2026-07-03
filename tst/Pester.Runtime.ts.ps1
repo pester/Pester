@@ -64,7 +64,6 @@ i -PassThru:$PassThru {
             [System.Collections.IDictionary] $Data,
             [ScriptBlock] $ScriptBlock,
             [int] $StartLine,
-            [Switch] $Focus,
             [Switch] $Skip
         )
 
@@ -74,7 +73,6 @@ i -PassThru:$PassThru {
         $t.Path = $Path
         $t.Tag = $Tag
         $t.StartLine = $StartLine
-        $t.Focus = [Bool]$Focus
         $t.Skip = [Bool]$Skip
         $t.Data = $Data
 
@@ -1896,58 +1894,6 @@ i -PassThru:$PassThru {
         }
     }
 
-    # focus is removed and will be replaced by pins
-    # b "focus" {
-    #     t "focusing one test in group will run only it" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-
-    #                     New-Test "test 1" { }
-
-    #                     New-Block -Name "block2" {
-    #                         New-Test "test 2" { }
-    #                     }
-    #                 }
-
-    #                 New-Block -Name "block3" {
-    #                     New-Test -Focus "test 3" { }
-    #                 }
-    #             }
-    #         )
-
-    #         $testsToRun = @($actual | View-Flat | where { $_.ShouldRun })
-    #         $testsToRun.Count | Verify-Equal 1
-    #         $testsToRun[0].Name | Verify-Equal "test 3"
-    #     }
-
-    #     t "focusing one block in group will run only tests in it" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Focus -Name "block1" {
-
-    #                     New-Test "test 1" { }
-
-    #                     New-Block -Name "block2" {
-    #                         New-Test "test 2" { }
-    #                     }
-    #                 }
-
-    #                 New-Block -Name "block3" {
-    #                     New-Test  "test 3" { }
-    #                 }
-    #             }
-    #         )
-
-    #         $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
-    #         $testsToRun.Count | Verify-Equal 2
-    #         $testsToRun[0].Name | Verify-Equal "test 1"
-    #         $testsToRun[1].Name | Verify-Equal "test 2"
-    #     }
-    # }
-
     b "expandable variables in names" {
         t "can run tests that have expandable variable in their name" {
             # this should cause no problems, the test name is the same during
@@ -2080,8 +2026,8 @@ i -PassThru:$PassThru {
             Write-Host Total difference $totalDifference.TotalMilliseconds
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
@@ -2143,8 +2089,8 @@ i -PassThru:$PassThru {
             Write-Host Total difference $totalDifference.TotalMilliseconds
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
@@ -2200,8 +2146,8 @@ i -PassThru:$PassThru {
 
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
 

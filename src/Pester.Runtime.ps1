@@ -171,7 +171,6 @@ function New-ParametrizedBlock {
         [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
-        [Switch] $Focus,
         [Switch] $Skip,
         $Data
     )
@@ -183,7 +182,7 @@ function New-ParametrizedBlock {
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
+        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Skip:$Skip -Data $d
     }
 }
 
@@ -198,7 +197,6 @@ function New-Block {
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
-        [Switch] $Focus,
         [String] $GroupId,
         [Switch] $Skip,
         $Data
@@ -236,7 +234,6 @@ function New-Block {
     $block.ScriptBlock = $ScriptBlock
     $block.StartLine = $StartLine
     $block.FrameworkData = $FrameworkData
-    $block.Focus = $Focus
     $block.GroupId = $GroupId
     $block.Skip = $Skip
     $block.Data = $Data
@@ -503,7 +500,6 @@ function New-Test {
         [String[]] $Tag = @(),
         $Data,
         [String] $GroupId,
-        [Switch] $Focus,
         [Switch] $Skip
     )
 
@@ -536,7 +532,6 @@ function New-Test {
     $test.ExpandedPath = $path -join '.'
     $test.StartLine = $StartLine
     $test.Tag = $Tag
-    $test.Focus = $Focus
     $test.Skip = $Skip
     $test.Data = $Data
     $test.FrameworkData.Runtime.Phase = 'Discovery'
@@ -1195,8 +1190,6 @@ function Discover-Test {
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
             BlockContainers = $found
-            AnyFocusedTests = $false
-            FocusedTests    = $null
             Duration        = $totalDiscoveryDuration.Elapsed
             Configuration   = $state.PluginConfiguration
             Filter          = $Filter
@@ -2063,8 +2056,6 @@ function Invoke-Test {
             if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
                 Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
                     BlockContainers = $discoveredBlocks
-                    AnyFocusedTests = $false
-                    FocusedTests    = $null
                     Duration        = $totalDiscoveryDuration.Elapsed
                     Configuration   = $state.PluginConfiguration
                     Filter          = $Filter
@@ -2675,7 +2666,6 @@ function New-ParametrizedTest () {
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [object[]] $Data,
-        [Switch] $Focus,
         [Switch] $Skip
     )
 
@@ -2683,7 +2673,7 @@ function New-ParametrizedTest () {
     # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
     $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
-        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Skip:$Skip
     }
 }
 
