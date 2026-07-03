@@ -137,11 +137,7 @@
 
         # [Parameter(ParameterSetName = 'Skip')]
         # [String] $SkipBecause,
-
-        # [Switch]$Focus
     )
-
-    $Focus = $false
 
     if ($null -eq $Test) {
         if ($Name.Contains("`n")) {
@@ -163,9 +159,9 @@
             return
         }
 
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip
     }
 }

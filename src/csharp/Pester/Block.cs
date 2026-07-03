@@ -44,7 +44,6 @@ namespace Pester
         public string Id { get => GroupId; }
         public string GroupId { get; set; }
         public List<string> Tag { get; set; }
-        public bool Focus { get; set; }
         public bool Skip { get; set; }
 
         public string ItemType { get; } = "Block";

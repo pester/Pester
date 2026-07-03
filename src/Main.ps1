@@ -727,8 +727,6 @@ function Invoke-Pester {
                         if ((-not $hasNonParallel) -and (-not $discoveryEndFired) -and ($pri -eq ($parallelResults.Count - 1))) {
                             Invoke-PluginStep -Plugins $reportingPlugins -Step DiscoveryEnd -Context @{
                                 BlockContainers = $foldedContainers
-                                AnyFocusedTests = $false
-                                FocusedTests    = $null
                                 Duration        = $totalDiscoveryWatch.Elapsed
                                 Configuration   = $pluginConfiguration
                                 Filter          = $filter
@@ -786,8 +784,6 @@ function Invoke-Pester {
                 if (-not $discoveryEndFired) {
                     Invoke-PluginStep -Plugins $reportingPlugins -Step DiscoveryEnd -Context @{
                         BlockContainers = $foldedContainers
-                        AnyFocusedTests = $false
-                        FocusedTests    = $null
                         Duration        = $totalDiscoveryWatch.Elapsed
                         Configuration   = $pluginConfiguration
                         Filter          = $filter
