@@ -1732,6 +1732,29 @@ function Switch-Timer {
     }
 }
 
+function Test-HasNoEffectiveTag {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Item
+    )
+
+    # An item has no effective tag when neither the item itself nor any of its
+    # parent blocks has a tag. Tags inherit downwards in Pester (a tag on a block
+    # applies to everything inside it), so we walk from the item up to the root
+    # block and stop as soon as we find any tag.
+    $node = $Item
+    while ($null -ne $node -and -not $node.IsRoot) {
+        if ($null -ne $node.Tag -and 0 -ne $node.Tag.Count) {
+            return $false
+        }
+
+        $node = if ('Test' -eq $node.ItemType) { $node.Block } else { $node.Parent }
+    }
+
+    return $true
+}
+
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
@@ -1778,6 +1801,17 @@ function Test-ShouldRun {
     # item is excluded when any of the exclude tags match
     $tagFilter = $Filter.ExcludeTag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
+        # the special 'None' filter excludes tests that have no tags on themselves
+        # or on any of their parent blocks. It only applies to tests (leaf items),
+        # so that a tagged test inside an otherwise untagged block is kept.
+        if (('Test' -eq $Item.ItemType) -and ($tagFilter -contains 'None') -and (Test-HasNoEffectiveTag -Item $Item)) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it has no tags and the exclude tag filter contains 'None'."
+            }
+            $result.Exclude = $true
+            return $result
+        }
+
         foreach ($f in $tagFilter) {
             foreach ($t in $Item.Tag) {
                 if ($t -like $f) {
@@ -1845,11 +1879,25 @@ function Test-ShouldRun {
         return $result
     }
 
-    # test is included when it has tags and the any of the tags match
+    # test is included when it has tags and any of the tags match,
+    # or when the filter contains the special 'None' value and the test has no
+    # tags on itself or on any of its parent blocks
     $tagFilter = $Filter.Tag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         $anyIncludeFilters = $true
-        if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
+
+        # the special 'None' filter includes tests that have no tags on themselves
+        # or on any of their parent blocks. It only applies to tests (leaf items),
+        # so that an untagged block does not force-include its tagged children.
+        if (('Test' -eq $Item.ItemType) -and ($tagFilter -contains 'None') -and (Test-HasNoEffectiveTag -Item $Item)) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it has no tags and the tag filter contains 'None'."
+            }
+            $result.Include = $true
+            return $result
+        }
+
+        if ($null -eq $Item.Tag -or 0 -eq $Item.Tag.Count) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
             }
