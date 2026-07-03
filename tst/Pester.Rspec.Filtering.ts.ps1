@@ -114,6 +114,155 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Filtering on the 'None' tag (tests without tags)" {
+        t "Including 'None' runs tests that have no tags and skips tagged tests" {
+            $sb = {
+                Describe "a" {
+                    It "untagged" { }
+                    It "tagged" -Tag "x" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
+        }
+
+        t "Including 'None' does not run an untagged test when a parent block is tagged" {
+            $sb = {
+                Describe "tagged block" -Tag "x" {
+                    It "no own tag" { }
+                }
+                Describe "untagged block" {
+                    It "no tag" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None" } })
+
+            # inherited tag from parent block counts, so this test is effectively tagged
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
+            $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Including 'None' runs untagged tests nested in untagged blocks" {
+            $sb = {
+                Describe "a" {
+                    Context "b" {
+                        It "t" { }
+                    }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None" } })
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Including 'None' does not force-run tagged siblings inside an untagged block" {
+            $sb = {
+                Describe "a" {
+                    It "untagged" { }
+                    It "fast" -Tag "Fast" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
+        }
+
+        t "Including 'None' also matches a test that is literally tagged 'None'" {
+            $sb = {
+                Describe "a" {
+                    It "literal none" -Tag "None" { }
+                    It "other" -Tag "x" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
+        }
+
+        t "Including 'None' is case-insensitive" {
+            $sb = {
+                Describe "a" {
+                    It "untagged" { }
+                    It "tagged" -Tag "x" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "nOnE" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
+        }
+
+        t "Combining 'None' with another tag runs untagged tests and tests with that tag" {
+            $sb = {
+                Describe "a" {
+                    It "untagged" { }
+                    It "fast" -Tag "Fast" { }
+                    It "slow" -Tag "Slow" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ Tag = "None", "Fast" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[2].Result | Verify-Equal "NotRun"
+        }
+
+        t "Excluding 'None' skips untagged tests and runs tagged tests" {
+            $sb = {
+                Describe "a" {
+                    It "untagged" { }
+                    It "tagged" -Tag "x" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
+        }
+
+        t "Excluding 'None' keeps a tagged test inside an untagged block" {
+            $sb = {
+                Describe "a" {
+                    It "fast" -Tag "Fast" { }
+                    It "untagged" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "NotRun"
+        }
+
+        t "Excluding 'None' keeps an untagged test when a parent block is tagged" {
+            $sb = {
+                Describe "tagged block" -Tag "x" {
+                    It "no own tag" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "None" } })
+
+            # inherited tag from parent block counts, so this test is not excluded
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "Excluding 'None' also excludes a test that is literally tagged 'None'" {
+            $sb = {
+                Describe "a" {
+                    It "literal none" -Tag "None" { }
+                    It "other" -Tag "x" { }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Filter = @{ ExcludeTag = "None" } })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "NotRun"
+            $r.Containers[0].Blocks[0].Tests[1].Result | Verify-Equal "Passed"
+        }
+    }
+
     b "Running skipped tests explicitly" {
         t "Having a skipped test will skip it" {
             $sb = {
