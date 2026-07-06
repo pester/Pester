@@ -1,5 +1,12 @@
 ## 5.x.x
 
+As of **5.9.0** (July 2026), Pester 5 is in maintenance mode following the release of Pester 6.
+It receives critical bug and security fixes only, and is tested on the PowerShell versions Microsoft
+still supports — Windows PowerShell 5.1 and PowerShell 7.4 (LTS) and above. CI coverage for Windows
+PowerShell 3.0/4.0 and PowerShell 6.2 was removed in 5.9.0. The module manifest keeps its existing
+minimum version rather than requiring 5.1, so Pester should still load on older PowerShell versions,
+but those versions are no longer tested — running Pester 5 there is unsupported and at your own risk.
+
 Newer releases are tracked only in [GitHub releases](https://github.com/pester/Pester/releases).
 
 ## 4.10.1 (February 7, 2020)
