@@ -9,6 +9,8 @@
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
 > There is also [contributor's guide](https://pester.dev/docs/contributing/introduction) that will hopefully help you.
 
+> 🛠️ **Pester 5 is in maintenance mode** as of v5.9.0 (July 2026), following the release of Pester 6. It receives critical bug and security fixes only, and is tested on the PowerShell versions Microsoft currently supports — Windows PowerShell 5.1 and PowerShell 7.4+. Older PowerShell versions are no longer tested; the module manifest does not raise its minimum version, so Pester should still load there, but if you run it on an older version you are responsible for testing it yourself. New development happens in Pester 6 — see [pester.dev](https://pester.dev).
+
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
