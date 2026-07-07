@@ -192,8 +192,8 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 Pester is sponsored by:
 
 
-<a href="https://chocolatey.org/"><img src="https://chocolatey.org/assets/images/global-shared/logo-square.svg" height="64" /></a>
-<a href="https://www.lambdatest.com/" target="_blank"><img src="https://www.lambdatest.com/blue-logo.png" height="64" /></a>
+<a href="https://chocolatey.org/"><img src="images/readme/chocolatey-logo.png" height="64" /></a>
+<a href="https://www.testmu.ai/" target="_blank"><img src="images/readme/testmu-logo.png" height="64" /></a>
 <a href="https://www.dotcom-monitor.com/" target="_blank"><img src="images/readme/dotcom-monitor-logo.png" width="255" /></a>
 <a href="https://www.loadview-testing.com/" target="_blank"><img src="images/readme/loadview-logo.png" height="64" /></a>
 
