@@ -56,13 +56,9 @@
 
     $null = Ensure-ExpectedIsNotCollection $Expected
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
     if ([object]::ReferenceEquals($Expected, $Actual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, to not be the same instance,<because> but they were the same instance."
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected <expectedType> <expected>, to not be the same instance,<because> but they were the same instance.", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

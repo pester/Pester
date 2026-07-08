@@ -73,8 +73,8 @@
         [Switch]$AllowNonTerminatingError
     )
 
-    $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $ScriptBlock = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $ScriptBlock -Buffer $local:Input
+    $ScriptBlock = $assert.Actual()
 
     Assert-BoundScriptBlockInput -ScriptBlock $ScriptBlock
 
@@ -134,14 +134,10 @@
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
         $but = Join-And $buts
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
-
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
-            -DefaultMessage $defaultMessage
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail($defaultMessage, @{ Because = $Because })
     }
 
     $err.ErrorRecord
-    Set-AssertionPassResult
 }
 
 function Get-ErrorObject ($ErrorRecord) {

@@ -46,14 +46,10 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
-    if ((Ensure-ExpectedIsNotCollection $Expected) -ne $Actual) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> but got <actualType> <actual>."
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    if ($assert.EnsureScalar($Expected) -ne $Actual) {
+        $assert.Fail("Expected <expectedType> <expected>,<because> but got <actualType> <actual>.", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

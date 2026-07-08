@@ -95,22 +95,18 @@ function Should-BeString {
         [switch]$TrimWhitespace
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
     if (-not ($stringsAreEqual)) {
         if ($Actual -is [string]) {
-            $Message = Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because
+            $assert.Fail((Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because))
         }
         else {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
+            $assert.Fail("Expected <expectedType> <expected>, but got <actualType> <actual>.", @{ Expected = $Expected; Because = $Because })
         }
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
-    Set-AssertionPassResult
 }
 
 function Get-StringDifferenceMessage {

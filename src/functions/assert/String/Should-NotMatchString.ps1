@@ -76,8 +76,8 @@ function Should-NotMatchString {
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -isnot [string]) {
         throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -match operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
@@ -94,9 +94,6 @@ function Should-NotMatchString {
             $caseSensitiveMessage = " case sensitively"
         }
 
-        $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected the string '$Actual' to$caseSensitiveMessage not match pattern '$Expected',<because> but it matched it."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected the string '$Actual' to$caseSensitiveMessage not match pattern '$Expected',<because> but it matched it.", @{ Because = $Because })
     }
-
-    if ($script:______isInMockParameterFilter) { return $true }
 }

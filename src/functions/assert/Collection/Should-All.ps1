@@ -56,23 +56,11 @@
     Assert-BoundScriptBlockInput -ScriptBlock $FilterScript
 
     $Expected = $FilterScript
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
-
-    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
-    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
-    $pipelineBuffer = $local:Input
-    $isPipelineInput = $collectedInput.IsPipelineInput
-    $reportFailure = {
-        param($Message)
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting CollectionItems
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
-    }
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
+    $Actual = $assert.Actual()
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        & $reportFailure $Message
+        $assert.Fail("Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare.", @{ Expected = $Expected; Because = $Because })
     }
 
     $failReasons = $null
@@ -114,9 +102,11 @@
         $data = @{
             actualFiltered      = if (1 -eq $actualFiltered.Count) { $actualFiltered[0] } else { $actualFiltered }
             actualFilteredCount = $actualFiltered.Count
+            Expected            = $Expected
+            Because             = $Because
         }
 
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
+        $Message = "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
         if ($null -ne $failReasons) {
             $failReasons = $failReasons -join "`n"
             if ($appendMore) {
@@ -124,7 +114,6 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        & $reportFailure $Message
+        $assert.Fail($Message, $data)
     }
-    Set-AssertionPassResult
 }

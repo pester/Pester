@@ -45,19 +45,10 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
-
-    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
-    # the failure branch, so there is no cost on the passing path.
-    $pipelineBuffer = $local:Input
-    $isPipelineInput = $collectedInput.IsPipelineInput
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'ExactType'
+    $Actual = $assert.Actual()
 
     if ($Actual -isnot $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected value to have type <expected>,<because> but got <actualType> <actual>."
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting ExactType
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected value to have type <expected>,<because> but got <actualType> <actual>.", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }
