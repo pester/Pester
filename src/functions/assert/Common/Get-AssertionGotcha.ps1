@@ -37,11 +37,17 @@ function Get-AssertionGotcha {
         #                     ExactType the wording is about the collection being flattened, not its
         #                     type changing, so even an [object[]] that stays an [object[]] is worth
         #                     pointing out.
-        [ValidateSet('Collection', 'CollectionItems', 'ExactType', 'Scalar')]
+        #   None            - the assertion compares the whole input structurally regardless of its
+        #                     shape (e.g. Should-BeEquivalent), so no input-shape gotcha applies and
+        #                     no hint is ever produced.
+        [ValidateSet('Collection', 'CollectionItems', 'ExactType', 'Scalar', 'None')]
         [string] $Expecting = 'Collection'
     )
 
     try {
+        if ($Expecting -eq 'None') {
+            return $null
+        }
         if ($Expecting -eq 'ExactType') {
             # Only piped input can be a gotcha here: a collection passed with -Actual keeps its real
             # type and asserts correctly. The PipelineSource trick recovers the *original* left-hand

@@ -56,8 +56,8 @@
         $Expected = Get-TimeSpanFromStringWithUnit -Value $Expected
     }
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -is [scriptblock]) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -65,20 +65,15 @@
         $sw.Stop()
 
         if ($sw.Elapsed -ge $Expected) {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -Because $Because -Data @{ scriptblock = $Actual } -DefaultMessage "Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
         }
-        Set-AssertionPassResult
         return
     }
 
     if ($Actual -is [timespan]) {
         if ($Actual -ge $Expected) {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "The provided [timespan] should be shorter than <expectedType> <expected>,<because> but it was longer: <actual>"
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            $assert.Fail("The provided [timespan] should be shorter than <expectedType> <expected>,<because> but it was longer: <actual>", @{ Expected = $Expected; Actual = $Actual; Because = $Because })
         }
-        Set-AssertionPassResult
         return
     }
-    Set-AssertionPassResult
 }

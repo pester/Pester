@@ -45,9 +45,9 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
-    $expectedValue = Ensure-ExpectedIsNotCollection $Expected
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
+    $expectedValue = $assert.EnsureScalar($Expected)
     # The comparison operators throw a native conversion error when $Actual is not a comparable
     # scalar, which is exactly what happens when a collection is piped in and unwrapped to [object[]].
     # Catch it so we can show the input hint instead of a cryptic "Could not compare" error. When it
@@ -61,11 +61,7 @@
         $comparisonError = $_
     }
     if ($comparisonError -or $failed) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be less than <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($comparisonError -and -not $hint) { throw $comparisonError }
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        if ($comparisonError -and -not $assert.Hint()) { throw $comparisonError }
+        $assert.Fail("Expected the actual value to be less than <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

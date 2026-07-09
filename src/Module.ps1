@@ -107,6 +107,9 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
     'ConvertTo-JUnitReport'
     'ConvertTo-Pester4Result'
 
+    # custom assertions
+    'New-ShouldAssertion'
+
     # helpers
     'New-MockObject'
     'New-Fixture'

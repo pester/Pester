@@ -126,6 +126,9 @@
         'New-MockObject'
         'New-Fixture'
         'Set-ItResult'
+
+        # custom assertions
+        'New-ShouldAssertion'
     )
 
     # # Cmdlets to export from this module

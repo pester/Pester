@@ -149,11 +149,14 @@
 
     $PSBoundParameters["Negate"] = $true
 
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Buffer $local:Input
+
     if ($PSBoundParameters.ContainsKey('Verifiable')) {
         $PSBoundParameters.Remove('Verifiable')
         $testResult = Should-InvokeVerifiable @PSBoundParameters
-        Test-AssertionResult $testResult
-        Set-AssertionPassResult
+        if (-not $testResult.Succeeded) {
+            $assert.Fail($testResult.FailureMessage)
+        }
         return
     }
 
@@ -164,6 +167,7 @@
     $PSBoundParameters["CommandDisplayName"] = 'Should-NotInvoke'
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
-    Test-AssertionResult $testResult
-    Set-AssertionPassResult
+    if (-not $testResult.Succeeded) {
+        $assert.Fail($testResult.FailureMessage)
+    }
 }

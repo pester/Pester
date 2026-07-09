@@ -55,8 +55,8 @@
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     $PSBoundParameters["ActualValue"] = $Actual
     $PSBoundParameters.Remove("Actual")
@@ -64,6 +64,7 @@
 
     $testResult = Should-HaveParameterAssertion @PSBoundParameters
 
-    Test-AssertionResult $testResult
-    Set-AssertionPassResult
+    if (-not $testResult.Succeeded) {
+        $assert.Fail($testResult.FailureMessage)
+    }
 }

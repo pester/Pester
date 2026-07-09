@@ -55,23 +55,10 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
-
-    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
-    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
-    $pipelineBuffer = $local:Input
-    $isPipelineInput = $collectedInput.IsPipelineInput
-    $reportFailure = {
-        param($Message)
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting CollectionItems
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
-    }
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
+    $Actual = $assert.Actual()
 
     if (Is-CollectionSubsequence -Expected $Expected -Actual $Actual) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to not be present in <actualType> <actual>,<because> but it was there."
-        & $reportFailure $Message
+        $assert.Fail("Expected <expectedType> <expected> to not be present in <actualType> <actual>,<because> but it was there.", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

@@ -60,42 +60,26 @@
         [int] $Count
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
-
-    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
-    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
-    $pipelineBuffer = $local:Input
-    $isPipelineInput = $collectedInput.IsPipelineInput
-    $reportFailure = {
-        param($Message)
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting Collection
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
-    }
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'Collection'
+    $Actual = $assert.Actual()
 
     if (-not (Is-Collection -Value $Actual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Actual <actualType> <actual> is not a collection."
-        & $reportFailure $Message
+        $assert.Fail("Actual <actualType> <actual> is not a collection.", @{ Expected = $Expected; Because = $Because })
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'Count') {
         if ($Count -ne $Actual.Count) {
-            $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items."
-            & $reportFailure $Message
+            $assert.Fail("Expected <expected> items in <actualType> <actual>,<because> but it has <actualCount> items.", @{ Expected = $Count; Because = $Because; actualCount = $Actual.Count })
         }
-        Set-AssertionPassResult
         return
     }
 
     if (-not (Is-Collection -Value $Expected)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> is not a collection."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected <expectedType> <expected> is not a collection.", @{ Expected = $Expected; Because = $Because })
     }
 
     if (-not (Is-CollectionSize -Expected $Expected -Actual $Actual)) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items."
-        & $reportFailure $Message
+        $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items.", @{ Expected = $Expected; Because = $Because })
     }
 
     if (-Not $InOrder) {
@@ -142,9 +126,7 @@
             $actualDifference = $(for ($a = 0; $a -lt $actualLength; $a++) { if ($same -ne $actualCopy[$a]) { "$(Format-Nicely2 $actualCopy[$a]) (index $a)" } }) -join ", "
             $expectedDifference = $(for ($e = 0; $e -lt $actualLength; $e++) { if ($same -ne $expectedCopy[$e]) { "$(Format-Nicely2 $expectedCopy[$e]) (index $e)" } }) -join ", "
 
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -Data @{ expectedDifference = $expectedDifference; actualDifference = $actualDifference } -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>"
-            & $reportFailure $Message
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>", @{ Expected = $Expected; Because = $Because; expectedDifference = $expectedDifference; actualDifference = $actualDifference })
         }
     }
-    Set-AssertionPassResult
 }

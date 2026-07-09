@@ -58,14 +58,10 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -isnot [string] -or [string]::IsNullOrWhiteSpace($Actual)) {
-        $formattedMessage = Get-AssertionMessage -Actual $Actual -Because $Because -DefaultMessage "Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>" -Pretty
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $formattedMessage = "$formattedMessage`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected a [string] that is not `$null, empty or whitespace,<because> but got <actualType>: <actual>", @{ Because = $Because }, $true)
     }
-    Set-AssertionPassResult
 }

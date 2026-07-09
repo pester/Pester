@@ -715,20 +715,21 @@ function Should-BeEquivalent {
 
     $options = Get-EquivalencyOption -ExcludePath:$ExcludePath -ExcludePathsNotOnExpected:$ExcludePathsNotOnExpected -Comparator:$Comparator
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'None'
+    $Actual = $assert.Actual()
 
     $areDifferent = Compare-Equivalent -Actual $Actual -Expected $Expected -Options $Options | & $SafeCommands['Out-String']
 
     if ($areDifferent) {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
-        # the parameter is -Option not -Options
-        $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
-        Invoke-AssertionFailed -Message $message -CallerCmdlet $PSCmdlet
+        $optionsText = $null
+        if ($null -ne $optionsFormatted -and $optionsFormatted.Length -gt 0) {
+            $optionsText = "Used options:$(foreach ($o in $optionsFormatted) { "`n$o" })."
+        }
+        $assert.Fail("Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n$optionsText", @{ Expected = $Expected }, $true)
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."
-    Set-AssertionPassResult
 }
 
 function Get-EquivalencyOption {
