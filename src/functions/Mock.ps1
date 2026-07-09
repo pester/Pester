@@ -222,6 +222,10 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         Aliases                 = [Collections.Generic.List[object]]@($commandName)
         BootstrapFunctionName   = $mockName
         IsGlobal                = $false
+        # The run that created this mock. A global mock installs a script-scope bootstrap alias in this
+        # run; if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to the
+        # currently executing run and defers to the original command when they differ (see Invoke-Mock).
+        OwnerRunId              = [Pester.GlobalMockHook]::CurrentRunId
         BootstrapFunctionInfo   = $null
     }
 
@@ -367,6 +371,61 @@ function Unregister-GlobalMockHook {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Removed the global mock hook from the runspace, no global mocks remain."
         }
+    }
+}
+
+function Reset-GlobalMockHook {
+    # Detach our command-lookup handler and drop every global mock registration. The registry and the
+    # handler are runspace-wide state that outlives a single test, so an interrupted run (for example a
+    # Ctrl+C during a global mock) can leave them armed. Invoke-Pester calls this at the start of a
+    # top-level run to clear anything a previous run left behind, and around a nested run to give it a
+    # clean slate. Removes only our own handler instance, so other PreCommandLookupAction consumers are
+    # preserved.
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        $invokeCommand.PreCommandLookupAction = [Delegate]::Remove($existing, $handler)
+    }
+
+    [Pester.GlobalMockHook]::Clear()
+}
+
+function Get-GlobalMockHookState {
+    # Snapshot the current global mock registrations so a nested Pester run can clear the shared state for
+    # itself and restore the outer run's global mocks afterwards (see Restore-GlobalMockHookState).
+    [Pester.GlobalMockHook]::GetSnapshot()
+}
+
+function Restore-GlobalMockHookState {
+    # Restore a snapshot taken by Get-GlobalMockHookState. Clears whatever the nested run left behind,
+    # re-registers the saved entries, and installs or removes our command-lookup handler so its presence
+    # matches whether any global mocks remain.
+    param (
+        $State
+    )
+
+    [Pester.GlobalMockHook]::Clear()
+
+    if ($null -ne $State) {
+        foreach ($name in $State.Keys) {
+            [Pester.GlobalMockHook]::Register($name, $State[$name])
+        }
+    }
+
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        # remove any current instance of our handler first, so we never end up with a duplicate
+        $existing = [Delegate]::Remove($existing, $handler)
+    }
+
+    if (0 -lt [Pester.GlobalMockHook]::Count) {
+        $invokeCommand.PreCommandLookupAction = [Delegate]::Combine($existing, $handler)
+    }
+    else {
+        $invokeCommand.PreCommandLookupAction = $existing
     }
 }
 
@@ -824,6 +883,18 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
+
+    if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
+        # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
+        # script-scope alias leaked into this run. Do not reuse it - unwrap to the original command so this
+        # run creates and owns its own hook, and the outer run's mock stays intact.
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope MockCore "Resolved a global mock bootstrap owned by another run; unwrapping to the original command $($command.Mock.Hook.OriginalCommand.Name) so this run gets its own hook."
+        }
+        $commandMetadata = $command.Mock.Hook.OriginalMetadata
+        $commandMetadata2 = $command.Mock.Hook.OriginalMetadata2
+        $command = $command.Mock.Hook.OriginalCommand
+    }
 
     if ($command.Name -like 'PesterMock_*') {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {

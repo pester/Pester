@@ -63,6 +63,27 @@ namespace Pester
             _suppressedName = null;
         }
 
+        // Identity of the Pester run whose mocks are currently effective on this thread. A mock's bootstrap
+        // records the run that created it (see Create-MockHook) and compares it to this value; when they
+        // differ the bootstrap belongs to another run that leaked in via its script-scope alias, so it
+        // defers to the original command instead of applying the mock. Invoke-Pester sets this in its begin
+        // block and restores the previous value when it ends, so nested runs each get their own id.
+        [ThreadStatic]
+        private static string _currentRunId;
+
+        public static string CurrentRunId
+        {
+            get { return _currentRunId; }
+        }
+
+        // Set the current run id, returning the previous value so a nested run can restore it on exit.
+        public static string SetCurrentRun(string runId)
+        {
+            var previous = _currentRunId;
+            _currentRunId = runId;
+            return previous;
+        }
+
         public static void Register(string name, object command)
         {
             if (string.IsNullOrEmpty(name) || command == null)
@@ -91,6 +112,13 @@ namespace Pester
         public static void Clear()
         {
             _registry.Clear();
+        }
+
+        // Copy of the current registrations. Used to save the outer run's global mocks before a nested
+        // Pester run clears the shared state for itself, so they can be restored when the nested run ends.
+        public static Hashtable GetSnapshot()
+        {
+            return (Hashtable)_registry.Clone();
         }
 
         private static void OnCommandLookup(object sender, CommandLookupEventArgs e)

@@ -1044,6 +1044,29 @@ function Invoke-Mock {
         $Hook
     )
 
+    # A global mock is registered runspace-wide but still installs its bootstrap alias in the run that
+    # created it. When a nested Invoke-Pester run resolves that leaked alias, this dispatcher runs with the
+    # outer run's hook even though the mock does not belong to the nested run. Detect that by comparing the
+    # run that created the mock with the run that is currently executing, and defer to the original command
+    # so a global mock has no effect outside its own run (full isolation between nested runs).
+    if ($Hook.IsGlobal -and $Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
+        if ('Process' -eq $FromBlock) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope MockCore "Global mock for $CommandName belongs to another Pester run (leaked into a nested run via its script-scope alias); calling the original command instead."
+            }
+            if ($null -ne $InputObject -and @($InputObject).Count -gt 0) {
+                # reproduce the original pipeline input; piping an empty collection would suppress the
+                # output of commands that do not take pipeline input (e.g. Get-Date), so only pipe when
+                # there is something to pipe.
+                $InputObject | & $Hook.OriginalCommand @BoundParameters @ArgumentList
+            }
+            else {
+                & $Hook.OriginalCommand @BoundParameters @ArgumentList
+            }
+        }
+        return
+    }
+
     if ('End' -eq $FromBlock) {
         if (-not $MockCallState.MatchedNoBehavior) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
