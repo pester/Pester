@@ -293,13 +293,13 @@ function Mock {
 
     $SessionState = $PSCmdlet.SessionState
 
-    # a global mock ignores ModuleName, it is defined in the caller scope and the engine-level hook
-    # routes calls from every module to it, so there is no single target module.
-    if ($isGlobalMock) {
-        $ModuleName = ''
-    }
-    # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
-    elseif (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+    # A global mock is not scoped to a single module, it is defined in the caller scope and the
+    # engine-level hook routes calls from every module to it. ModuleName is therefore not the
+    # destination of the mock. It is still used as a hint to resolve the command though (see the
+    # -Global path in Resolve-Command), so a module-private command can be found and mocked. So we
+    # keep whatever ModuleName the caller passed and let Resolve-Command use it only for lookup.
+    if (-not $isGlobalMock -and -not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+        # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
         $ModuleName = $SessionState.Module.Name
     }
 
@@ -317,7 +317,7 @@ function Mock {
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState -Global:$isGlobalMock
 
     if ($contextInfo.IsMockBootstrapFunction) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -895,6 +895,15 @@ function Should-InvokeAssertion {
         # user did not specify the target module, using the caller session state module name
         # to ensure we bind to the current module when running in InModuleScope
         $ModuleName = if ($CallerSessionState.Module) { $CallerSessionState.Module.Name } else { $null }
+    }
+
+    # A global mock is installed in the caller (script) scope and records its calls there, with no
+    # target module, no matter which module the call came from. So when a global mock exists for the
+    # command, ignore -ModuleName and resolve from the script scope, mirroring how the mock was set
+    # up. This lets `Should -Invoke -ModuleName X Command` still find the calls that a `Mock
+    # -ModuleName X Command` recorded as a global mock.
+    if ([Pester.GlobalMockHook]::IsRegistered($CommandName)) {
+        $ModuleName = ''
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {

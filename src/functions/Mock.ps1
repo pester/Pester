@@ -673,7 +673,8 @@ function Resolve-Command {
         [string] $CommandName,
         [string] $ModuleName,
         [Parameter(Mandatory)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        [switch] $Global
     )
 
     # saving the caller session state here, below the command is looked up and
@@ -722,7 +723,35 @@ function Resolve-Command {
         Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     }
 
-    if ($ModuleName) {
+    if ($Global) {
+        # Global mock: ModuleName is not the destination (the engine hook makes the mock effective
+        # everywhere), it is only a hint to find the command. Resolve from the caller/script scope
+        # first, which also finds the bootstrap of an existing global mock so re-mocking reuses its
+        # hook. If the command is not visible there (a module-private command), fall back to the
+        # module named by the hint to find and resolve it. Either way the mock is installed in the
+        # caller scope and has no target module.
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName for a global mock, searching the caller scope$(if ($ModuleName) { " and using module $ModuleName as a hint" })."
+        }
+
+        Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $callerSessionState
+        $command, $commandMetadata, $commandMetadata2 = & $findAndResolveCommand -Name $CommandName
+
+        if ($null -eq $command -and $ModuleName) {
+            $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction SilentlyContinue
+            if ($null -ne $module) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock "Command $CommandName not found in the caller scope, searching module $($module.Name) version $($module.Version)."
+                }
+                $command, $commandMetadata, $commandMetadata2 = & $module $findAndResolveCommand -Name $CommandName
+            }
+        }
+
+        # the mock is installed in the caller (script) scope and has no target module
+        $SessionState = $callerSessionState
+        $ModuleName = ''
+    }
+    elseif ($ModuleName) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
@@ -1696,36 +1725,46 @@ function Get-DynamicParametersForCmdlet {
         [System.Collections.IDictionary] $Parameters
     )
 
+    # When a global mock is active, its bootstrap function shadows $CmdletName in every scope via the
+    # engine command-lookup hook. Resolving the *original* cmdlet here (by name) to discover its
+    # dynamic parameters would be redirected back to the mock and the real dynamic parameters (e.g.
+    # Get-ChildItem -Hidden) would be lost. Suppress the redirect for this name while we resolve it.
+    [Pester.GlobalMockHook]::BeginSuppress($CmdletName)
     try {
-        $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+        try {
+            $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
 
-        if (@($command).Count -gt 1) {
-            throw "Name '$CmdletName' resolved to multiple Cmdlets"
+            if (@($command).Count -gt 1) {
+                throw "Name '$CmdletName' resolved to multiple Cmdlets"
+            }
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+
+        if ($null -eq $command.ImplementingType.GetInterface('IDynamicParameters', $true)) {
+            return
+        }
+
+        if ($null -eq $Parameters) {
+            $paramsArg = @()
+        }
+        else {
+            $paramsArg = @($Parameters)
+        }
+
+        try {
+            $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
+        }
+        catch {
+            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
+            # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
+            # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
+            return
         }
     }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-
-    if ($null -eq $command.ImplementingType.GetInterface('IDynamicParameters', $true)) {
-        return
-    }
-
-    if ($null -eq $Parameters) {
-        $paramsArg = @()
-    }
-    else {
-        $paramsArg = @($Parameters)
-    }
-
-    try {
-        $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
-    }
-    catch {
-        # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
-        # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
-        # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
-        return
+    finally {
+        [Pester.GlobalMockHook]::EndSuppress()
     }
     $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
 

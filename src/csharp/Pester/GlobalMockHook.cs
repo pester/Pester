@@ -28,6 +28,13 @@ namespace Pester
     {
         private static readonly Hashtable _registry = new Hashtable(StringComparer.OrdinalIgnoreCase);
 
+        // Name for which the redirect is temporarily suppressed on the current thread. Used while
+        // Pester resolves the *original* command to discover its dynamic parameters: that resolution
+        // looks the command up by name (InvokeCommand.GetCommand), which would otherwise be redirected
+        // back to the mock's bootstrap function and hide the real command's dynamic parameters.
+        [ThreadStatic]
+        private static string _suppressedName;
+
         private static readonly EventHandler<CommandLookupEventArgs> _handler =
             new EventHandler<CommandLookupEventArgs>(OnCommandLookup);
 
@@ -41,6 +48,19 @@ namespace Pester
         public static int Count
         {
             get { return _registry.Count; }
+        }
+
+        // Temporarily stop redirecting lookups of 'name' on the current thread. Pair with EndSuppress
+        // in a finally block. Only one name is suppressed at a time, which is all the dynamic-parameter
+        // resolution needs (it resolves a single command).
+        public static void BeginSuppress(string name)
+        {
+            _suppressedName = name;
+        }
+
+        public static void EndSuppress()
+        {
+            _suppressedName = null;
         }
 
         public static void Register(string name, object command)
@@ -75,6 +95,11 @@ namespace Pester
 
         private static void OnCommandLookup(object sender, CommandLookupEventArgs e)
         {
+            if (_suppressedName != null && string.Equals(_suppressedName, e.CommandName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             var command = _registry[e.CommandName];
             if (command == null)
             {
