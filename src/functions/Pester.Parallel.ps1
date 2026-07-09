@@ -269,7 +269,8 @@ function Invoke-TestInParallel {
         # FrameworkData.CommandUsed (Describe/Context) before the parent replays the tape, and the
         # reporting plugins would then fail to render the "Describing"/"Context" headers in
         # Detailed/Diagnostic output (#2824). The parent runs the same cleanup itself after folding
-        # the worker's containers into its own run, so the user still receives a cleaned result.
+        # the worker's containers into its own run (Remove-RSpecNonPublicProperties in Main.ps1,
+        # after the tape has been replayed), so the user still receives a cleaned result.
         $workerConfig.Debug.ReturnRawResultObject = $true
 
         $pesterModule = Get-Module -Name Pester
