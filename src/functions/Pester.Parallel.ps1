@@ -263,6 +263,14 @@ function Invoke-TestInParallel {
         $workerConfig.Run.RepoRoot = ''
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
+        # Keep the raw result object in the worker. At the end of a run Pester strips internal,
+        # non-public state - including each block's FrameworkData - off the result tree. The tape
+        # holds live references to those same Block/Test objects, so that cleanup would blank out
+        # FrameworkData.CommandUsed (Describe/Context) before the parent replays the tape, and the
+        # reporting plugins would then fail to render the "Describing"/"Context" headers in
+        # Detailed/Diagnostic output (#2824). The parent runs the same cleanup itself after folding
+        # the worker's containers into its own run, so the user still receives a cleaned result.
+        $workerConfig.Debug.ReturnRawResultObject = $true
 
         $pesterModule = Get-Module -Name Pester
 
