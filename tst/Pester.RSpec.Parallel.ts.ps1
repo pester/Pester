@@ -304,6 +304,79 @@ Describe 'Marker' {
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
+
+        t "exposes the current container to Run.BeforeContainer as `$Container" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' { It 'passes' { 1 | Should -Be 1 } }
+'@
+            $log = Join-Path $folder 'container.log'
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                # $Container is exposed to the setup; ToString() drops the closure, so bake the log
+                # path in and keep $Container as a runtime reference resolved where the setup runs.
+                $c.Run.BeforeContainer = [scriptblock]::Create("Add-Content -LiteralPath '$log' -Value `"`$(`$Container.Type)|`$(`$Container.Name)`"")
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                (Get-Content -LiteralPath $log) | Verify-Like 'File|*A.Tests.ps1'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "lets Run.BeforeContainer tailor setup per container via `$Container" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'Unit.Tests.ps1') -Value @'
+Describe 'Unit' { It 'has unit setup' { Get-Marker | Should -Be 'unit' } }
+'@
+            Set-Content -Path (Join-Path $folder 'Integration.Tests.ps1') -Value @'
+Describe 'Integration' { It 'has integration setup' { Get-Marker | Should -Be 'integration' } }
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $c.Run.BeforeContainer = {
+                    if ($Container.Name -like '*Integration.Tests.ps1') { function Get-Marker { 'integration' } }
+                    else { function Get-Marker { 'unit' } }
+                }
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 2
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "exposes the current container to Run.BeforeContainer as `$Container in a parallel run" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' { It 'passes' { 1 | Should -Be 1 } }
+'@
+            $log = Join-Path $folder 'container.log'
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $c.Run.BeforeContainer = [scriptblock]::Create("Add-Content -LiteralPath '$log' -Value `"`$(`$Container.Type)|`$(`$Container.Name)`"")
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                # On Windows PowerShell 5.1 the run falls back to sequential, but $Container is still
+                # exposed, so the assertion holds regardless of which path actually ran.
+                (Get-Content -LiteralPath $log) | Verify-Like 'File|*A.Tests.ps1'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
     }
 
     b "#pester:no-parallel directive parsing" {

@@ -168,9 +168,10 @@ function Invoke-TestInParallel {
     $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
-                Path = $c.Item.FullName
-                Data = $c.Data
-                Init = $beforeContainerInit
+                Path      = $c.Item.FullName
+                Data      = $c.Data
+                Init      = $beforeContainerInit
+                Container = $c
             }
         })
 
@@ -233,8 +234,11 @@ function Invoke-TestInParallel {
         }
 
         if (-not [string]::IsNullOrWhiteSpace($item.Init)) {
-            # Suppress the initialization's own host output (stream 6) so quiet setup does not
-            # garble the shared parent host while workers run concurrently.
+            # Expose the current container to the setup as $Container - the same variable the
+            # sequential path sets - so per-file setup and path anchoring work identically in
+            # parallel. Suppress the initialization's own host output (stream 6) so quiet setup
+            # does not garble the shared parent host while workers run concurrently.
+            $ExecutionContext.SessionState.PSVariable.Set('Container', $item.Container)
             . ([scriptblock]::Create($item.Init)) 6>$null
         }
 

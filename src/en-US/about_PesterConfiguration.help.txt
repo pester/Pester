@@ -69,7 +69,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        BeforeContainer: EXPERIMENTAL: One or more ScriptBlocks run before each test file is discovered and run, in both sequential and parallel runs. Use it to import helper modules or dot-source setup that the parent session would normally provide, e.g. { . './setup.ps1' } - this is especially useful in parallel runs, where each worker starts from a clean runspace. One scriptblock is usually enough and can dot-source as many files as needed. When set, the convention file is ignored; when not set, Pester dot-sources a 'Pester.BeforeContainer.ps1' from the repository root (Run.RepoRoot) if one is present.
+        BeforeContainer: EXPERIMENTAL: One or more ScriptBlocks run before each test file is discovered and run, in both sequential and parallel runs. Use it to import helper modules or dot-source setup that the parent session would normally provide, e.g. { . './setup.ps1' } - this is especially useful in parallel runs, where each worker starts from a clean runspace. One scriptblock is usually enough and can dot-source as many files as needed. The current container is exposed as $Container (a Pester.ContainerInfo) so setup can be tailored per file, e.g. via $Container.Name, or anchored to a stable path with $Container.Item.Directory for file containers. When set, the convention file is ignored; when not set, Pester dot-sources a 'Pester.BeforeContainer.ps1' from the repository root (Run.RepoRoot) if one is present.
         Type: scriptblock[]
         Default value: @()
 

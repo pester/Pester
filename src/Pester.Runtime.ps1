@@ -2087,6 +2087,12 @@ function Invoke-Test {
         $containerIndex++
 
         if ($null -ne $beforeContainerScriptBlock) {
+            # Expose the current container to the setup as $Container so it can tailor setup per
+            # file - e.g. `if ($Container.Name -like '*.Integration.Tests.ps1')` (#2839) - and
+            # resolve a stable path anchor via `$Container.Item.Directory` for file containers,
+            # instead of the unstable $pwd (#2838). Set it in the run session state so the
+            # dot-sourced setup, which runs at that scope, sees it.
+            $SessionState.PSVariable.Set('Container', $container)
             # Dot-source so definitions land at the run session-state scope, visible to both the
             # discovery and the run of this container (and the containers after it).
             . $beforeContainerScriptBlock
