@@ -24,8 +24,10 @@ InPesterModuleScope {
 }
 
 Describe "Should-BeFasterThan" {
+    # Use a generous threshold so scheduling jitter on a slow or paused CI agent can never push
+    # the measured time over it. A real script block is always well under 10s.
     It "Does not throw when actual is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "100ms" }
+        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "10s" }
     ) {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
@@ -36,8 +38,10 @@ Describe "Should-BeFasterThan" {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
 
+    # Measuring a script block always takes some time, so it can never be faster than 0ms. Using
+    # 0ms as the threshold makes this fail deterministically instead of racing a real duration on CI.
     It "Throws when scriptblock is slower than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "1ms" }
+        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "0ms" }
     ) {
         { $Actual | Should-BeFasterThan -Expected $Expected } | Verify-AssertionFailed
     }
