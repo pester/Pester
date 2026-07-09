@@ -109,7 +109,6 @@ $script:SafeCommands['Set-DynamicParameterVariable'] = $ExecutionContext.Session
 
     # custom assertions
     'New-ShouldAssertion'
-    'Enable-ShouldVerb'
 
     # helpers
     'New-MockObject'

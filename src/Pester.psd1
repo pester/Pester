@@ -129,7 +129,6 @@
 
         # custom assertions
         'New-ShouldAssertion'
-        'Enable-ShouldVerb'
     )
 
     # # Cmdlets to export from this module
