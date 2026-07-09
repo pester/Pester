@@ -97,19 +97,6 @@ class ShouldAssertion {
         return (Get-AssertionGotcha -Cmdlet $this.Caller -Buffer $this.Buffer -CollectedActual $this.Collected['Actual'] -IsPipelineInput $this.IsPipelineInput -Expecting $this.Expecting)
     }
 
-    # Success is implicit: an assertion "passes" simply by not calling Fail(). New-ShouldAssertion
-    # calls this right after building the object, so the author never has to signal a pass. It
-    # produces no output in a normal run; inside a mock parameter filter it emits $true (to the
-    # assertion's own output stream, via its $PSCmdlet) so the filter matches, exactly like the
-    # built-in assertions. Emitting up front is safe: if the assertion then calls Fail() the
-    # terminating error propagates out of the mock filter before its result is read (see
-    # Mock.ps1, `$result = & $wrapper`), discarding this value.
-    hidden [void] SignalImplicitPass() {
-        if (Set-AssertionPassResult) {
-            $this.Caller.WriteObject($true)
-        }
-    }
-
     # Formats a value the same way Pester does in assertion messages.
     [string] Format([object] $Value) {
         return (Format-Nicely2 -Value $Value)
@@ -286,6 +273,21 @@ function New-ShouldAssertion {
     $assertion.Collected = Collect-Input -ParameterInput $Actual -PipelineInput $assertion.Buffer -IsPipelineInput $assertion.IsPipelineInput -UnrollInput:$unroll
     $assertion.IsPipelineInput = $assertion.Collected['IsPipelineInput']
 
-    $assertion.SignalImplicitPass()
+    # Success is implicit: an assertion "passes" simply by not calling Fail(), so the author never
+    # has to signal a pass. In a normal run this produces no output; inside a mock -ParameterFilter
+    # it emits $true on the assertion's own pipeline (via its $PSCmdlet) so the filter matches,
+    # exactly like the built-in assertions.
+    #
+    # This is done here, in the function, and deliberately not in a class method. On Windows
+    # PowerShell 5.1 a class method whose object was built for a caller in another module does not
+    # run in the class's (Pester's) session state, so $Caller.WriteObject($true) does not reach the
+    # filter and an imported assertion never matches. New-ShouldAssertion always runs in Pester's
+    # module scope, and $Caller is the assertion's real $PSCmdlet, so the emit is reliable on every
+    # supported PowerShell. Emitting up front is safe: if the assertion then calls Fail() the
+    # terminating error propagates out of the mock filter before this value is read (see Mock.ps1,
+    # `$result = & $wrapper`), discarding it.
+    if (Set-AssertionPassResult) {
+        $Caller.WriteObject($true)
+    }
     $assertion
 }
