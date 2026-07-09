@@ -109,7 +109,26 @@ function Mock {
     Optional string specifying the name of the module where this command
     is to be mocked.  This should be a module that _calls_ the mocked
     command; it doesn't necessarily have to be the same module which
-    originally implemented the command.
+    originally implemented the command. This parameter is ignored when the
+    mock is global (see -Global and -Throw).
+
+    .PARAMETER Global
+    EXPERIMENTAL: Makes the mock global. A global mock is applied to calls of
+    the command from any module or script in the runspace, not just from the
+    scope where the mock is defined. This removes the need for -ModuleName, and
+    -ModuleName is ignored when this switch is used. The mock is removed when
+    the test or block where it was defined ends, like any other mock. You can
+    make every mock global without this switch by setting the experimental
+    configuration option Mock.Global to $true.
+
+    .PARAMETER Throw
+    EXPERIMENTAL: Defines a global mock (implies -Global) whose default behavior
+    is to throw when the command is called. Use it to make sure a command cannot
+    run from any code, for example to block Invoke-WebRequest or Remove-Item in a
+    test. The call is still recorded, so Should -Invoke works. Combine it with
+    -ParameterFilter to throw only for calls that match the filter and let the
+    rest fall through to the original command. -Throw and -MockWith cannot be used
+    together; use -Global with a throwing -MockWith if you need a custom message.
 
     .PARAMETER RemoveParameterType
     Optional list of parameter names that should use Object as the parameter
@@ -212,6 +231,27 @@ function Mock {
     This example shows how calls to commands made from inside a module can be
     mocked by using the -ModuleName parameter.
 
+    .EXAMPLE
+    Mock Invoke-WebRequest { '<html />' } -Global
+
+    Defines a global mock. Any code that calls Invoke-WebRequest, in the test
+    script or in any module it loads, gets the mock instead of the real command.
+    No -ModuleName is needed.
+
+    .EXAMPLE
+    Mock Invoke-WebRequest -Throw
+
+    Blocks Invoke-WebRequest everywhere for the duration of the test. Any call to
+    it, from any module or script, throws. The call is still recorded, so you can
+    assert it with Should -Invoke Invoke-WebRequest.
+
+    .EXAMPLE
+    Mock Remove-Item -Throw -ParameterFilter { $Path -notlike "$TestDrive*" }
+
+    Blocks Remove-Item for any path outside TestDrive, from any module or script.
+    Calls that target TestDrive are not matched by the filter and run the real
+    Remove-Item.
+
     .LINK
     https://pester.dev/docs/commands/Mock
 
@@ -226,7 +266,9 @@ function Mock {
         [ScriptBlock]$ParameterFilter,
         [string]$ModuleName,
         [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation
+        [string[]]$RemoveParameterValidation,
+        [switch]$Global,
+        [switch]$Throw
     )
     if (Is-Discovery) {
         # this is to allow mocks in between Describe and It which is discouraged but common
@@ -234,10 +276,30 @@ function Mock {
         return
     }
 
+    # -Throw defines a mock whose default behavior is to throw, and it is global by default so the
+    # command is blocked no matter which module or script calls it. It cannot be combined with a
+    # custom -MockWith, use -Global with a throwing -MockWith for that.
+    if ($Throw -and $PSBoundParameters.ContainsKey('MockWith')) {
+        throw [System.Management.Automation.ParameterBindingException] 'The -Throw and -MockWith parameters cannot be used together. Use -Global with a throwing -MockWith if you need a custom message.'
+    }
+
+    # a mock is global when -Global or -Throw is used, or when the experimental Mock.Global option is on.
+    $isGlobalMock = [bool]$Global -or [bool]$Throw -or $PesterPreference.Mock.Global.Value
+
+    if ($Throw) {
+        $safeCommandName = $CommandName -replace "'", "''"
+        $MockWith = [ScriptBlock]::Create("throw [System.InvalidOperationException] 'Command ''$safeCommandName'' is blocked by a global Pester mock that was defined with -Throw.'")
+    }
+
     $SessionState = $PSCmdlet.SessionState
 
+    # a global mock ignores ModuleName, it is defined in the caller scope and the engine-level hook
+    # routes calls from every module to it, so there is no single target module.
+    if ($isGlobalMock) {
+        $ModuleName = ''
+    }
     # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
-    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+    elseif (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
         $ModuleName = $SessionState.Module.Name
     }
 
@@ -269,6 +331,13 @@ function Mock {
         }
         $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
         $mockData.Hooks.Add($hook)
+    }
+
+    # register the hook with the runspace-wide command-lookup hook so calls from any module or script
+    # are routed to it. This is idempotent, so re-mocking a command that already has a global hook, or
+    # promoting an existing non-global hook to global, both work.
+    if ($isGlobalMock -and -not $hook.IsGlobal) {
+        Register-GlobalMockHook -Hook $hook
     }
 
     if ($mockData.Behaviors.ContainsKey($contextInfo.Command.Name)) {

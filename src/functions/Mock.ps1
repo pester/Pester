@@ -221,6 +221,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = [Collections.Generic.List[object]]@($commandName)
         BootstrapFunctionName   = $mockName
+        IsGlobal                = $false
+        BootstrapFunctionInfo   = $null
     }
 
     if ($mock.OriginalCommand.ModuleName) {
@@ -302,7 +304,70 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $definedFunction.psobject.properties.Add([Pester.Factory]::CreateNoteProperty('Mock', $functionLocalData))
 
+    # keep a reference to the bootstrap function so a global mock can register it with the
+    # engine-level command-lookup hook (see Register-GlobalMockHook). We store it on the hook
+    # instead of registering here, so both freshly created and reused hooks go through the same path.
+    $mock.BootstrapFunctionInfo = $definedFunction
+
     $mock
+}
+
+function Register-GlobalMockHook {
+    # Makes a mock global by pointing the runspace-wide command-lookup hook at the mock's bootstrap
+    # function. After this, a call to the mocked command from any module or script in the runspace is
+    # redirected to the mock, not just calls from the session state where the mock was defined.
+    param (
+        [Parameter(Mandatory)]
+        $Hook
+    )
+
+    $Hook.IsGlobal = $true
+
+    foreach ($alias in $Hook.Aliases) {
+        [Pester.GlobalMockHook]::Register($alias, $Hook.BootstrapFunctionInfo)
+    }
+
+    # Install our handler into the current runspace. This is idempotent: we remove any existing instance
+    # of our handler first, so repeated runs in the same process don't stack duplicates, and so the
+    # handler we later remove in teardown is the exact same delegate instance. Other consumers of
+    # PreCommandLookupAction are preserved via Delegate.Combine.
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        $existing = [Delegate]::Remove($existing, $handler)
+    }
+    $invokeCommand.PreCommandLookupAction = [Delegate]::Combine($existing, $handler)
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Mock -Message "Registered global mock hook for aliases $($Hook.Aliases -join ', ')."
+    }
+}
+
+function Unregister-GlobalMockHook {
+    # Undoes Register-GlobalMockHook for a single hook. When the last global mock is removed we also
+    # detach our handler from the runspace, so there is zero lookup overhead once no global mocks exist.
+    param (
+        [Parameter(Mandatory)]
+        $Hook
+    )
+
+    foreach ($alias in $Hook.Aliases) {
+        [Pester.GlobalMockHook]::Unregister($alias)
+    }
+
+    if (0 -eq [Pester.GlobalMockHook]::Count) {
+        $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+        $handler = [Pester.GlobalMockHook]::Handler
+        $existing = $invokeCommand.PreCommandLookupAction
+        if ($null -ne $existing) {
+            $invokeCommand.PreCommandLookupAction = [Delegate]::Remove($existing, $handler)
+        }
+
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock -Message "Removed the global mock hook from the runspace, no global mocks remain."
+        }
+    }
 }
 
 function Should-InvokeVerifiableInternal {
@@ -593,6 +658,10 @@ function Remove-MockHook {
     foreach ($h in $Hooks) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommandName)."
+        }
+
+        if ($h.IsGlobal) {
+            Unregister-GlobalMockHook -Hook $h
         }
 
         $null = Invoke-InMockScope -SessionState $h.SessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases, $Write_Debug_Enabled, $Write_Debug

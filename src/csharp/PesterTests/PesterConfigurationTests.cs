@@ -24,6 +24,7 @@ namespace PesterTests
             Assert.IsNotNull(config.Output);
             Assert.IsNotNull(config.TestDrive);
             Assert.IsNotNull(config.TestRegistry);
+            Assert.IsNotNull(config.Mock);
         }
 
         [TestMethod]
