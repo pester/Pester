@@ -209,6 +209,35 @@ function New-ShouldAssertion {
     Defines and uses a custom assertion. Because it goes through the shared failure path, it
     supports `-Because`, soft assertions via `-ErrorAction`, and mock parameter filters for free.
 
+    .EXAMPLE
+    ```powershell
+    # A shared helper backing several of your own assertions. Thread the calling assertion's own
+    # $PSCmdlet and $Input into New-ShouldAssertion so pipeline detection, the input hint and the
+    # soft/hard -ErrorAction decision all resolve against the real assertion -- no matter how many
+    # wrapper layers sit in between.
+    function Invoke-MyEquals {
+        param ([System.Management.Automation.PSCmdlet] $Cmdlet, $Actual, $Buffer, $Expected)
+
+        $assert = New-ShouldAssertion -Caller $Cmdlet -Actual $Actual -Buffer $Buffer
+        $value = $assert.Actual()
+        if ($value -ne $Expected) {
+            $assert.Fail('Expected <expected> but got <actual>.', @{ Expected = $Expected })
+        }
+    }
+
+    function Should-Equal {
+        [CmdletBinding()]
+        param ([Parameter(ValueFromPipeline)] $Actual, [Parameter(Position = 0)] $Expected)
+        end { Invoke-MyEquals -Cmdlet $PSCmdlet -Actual $Actual -Buffer $Input -Expected $Expected }
+    }
+    ```
+
+    Factors common assertion logic into one helper reused by several `Should-*` assertions. Nothing
+    keys off the assertion's *name*, so the helper does not need to know which assertion called it;
+    everything keys off the single `$PSCmdlet` you pass as `-Caller`. Passing the user-facing
+    assertion's `$PSCmdlet` and `$Input` down keeps the input hint, pipeline detection and
+    `-ErrorAction` behaviour identical to an unwrapped assertion, at any wrapping depth.
+
     .LINK
     https://pester.dev/docs/commands/New-ShouldAssertion
 
