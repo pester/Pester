@@ -24,8 +24,9 @@ InPesterModuleScope {
 }
 
 Describe "Should-BeFasterThan" {
-    # Use a generous threshold so scheduling jitter on a slow or paused CI agent can never push
-    # the measured time over it. A real script block is always well under 10s.
+    # These [scriptblock] tests exercise the measure-and-compare path, not timing precision, so they
+    # use the floor/ceiling of any measurement rather than a threshold near the real run time. 10s is
+    # a ceiling no real script block reaches, so nothing measured here can cross it.
     It "Does not throw when actual is faster than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "10s" }
     ) {
@@ -38,8 +39,12 @@ Describe "Should-BeFasterThan" {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
 
-    # Measuring a script block always takes some time, so it can never be faster than 0ms. Using
-    # 0ms as the threshold makes this fail deterministically instead of racing a real duration on CI.
+    # 0ms is the floor of any measurement: a script block always takes >= 0, so this fails
+    # deterministically. The old 1ms bound sat next to the real ~15ms run time and could be crossed
+    # the wrong way -- on the Windows CI agents Stopwatch (QueryPerformanceCounter) occasionally
+    # under-measures a single call, reporting a ~15ms sleep as <1ms (reproduced ~6/2000 on PS 5.1 /
+    # Server 2022, while the wall clock confirmed the full time really elapsed), so the assertion
+    # passed and this test flaked.
     It "Throws when scriptblock is slower than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "0ms" }
     ) {

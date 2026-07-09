@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 
 Describe "Should-BeSlowerThan" {
-    # Measuring a script block always takes some time (> 0), so it is always slower than 0ms. Using
-    # 0ms as the threshold makes this pass deterministically instead of racing a real duration on CI.
+    # 0ms is the floor of any measurement: a script block always takes >= 0, so it is always slower
+    # than 0ms and this passes deterministically, without racing the real run time against a nearby bound.
     It "Does not throw when actual is slower than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 100 }; Expected = "0ms" }
     ) {
@@ -15,9 +15,10 @@ Describe "Should-BeSlowerThan" {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
 
-    # Use a generous threshold so scheduling jitter on a slow or paused CI agent can never push
-    # the measured time over it. A real script block is always well under 10s, so it registers as
-    # "not slower" here deterministically.
+    # 10s is a ceiling no real script block reaches, so this always registers as "not slower" and
+    # fails deterministically -- the mirror of the Should-BeFasterThan flake, where a Windows CI
+    # Stopwatch (QueryPerformanceCounter) under-measures a real sleep and crosses a bound set near
+    # the actual run time. Keep the bound far from any duration a [scriptblock] can produce.
     It "Throws when scriptblock is faster than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "10s" }
     ) {
