@@ -527,4 +527,45 @@ Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
     }
+
+    b "Run.Parallel output" {
+        t "renders Describing/Context block headers in Detailed output" {
+            # In parallel each file runs in a silent worker whose result tree is replayed to the
+            # parent's reporting plugins. The worker's end-of-run cleanup used to strip every block's
+            # FrameworkData (which carries the Describe/Context command name), and because the replay
+            # tape holds live references to those same block objects the parent was then left without
+            # a CommandUsed to render - so the "Describing"/"Context" headers silently vanished from
+            # Detailed/Diagnostic output (#2824). Assert they are present in a parallel run.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'One.Tests.ps1') -Value @'
+Describe 'OuterOne' {
+    Context 'CtxA' { It 'a1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                Set-Content -Path (Join-Path $folder 'Two.Tests.ps1') -Value @'
+Describe 'OuterTwo' {
+    Context 'CtxB' { It 'b1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # Write-PesterHostMessage uses Write-Host, so console output lands on the
+                # information stream (6) and can be captured in-process.
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                $output | Verify-Like '*Describing OuterOne*'
+                $output | Verify-Like '*Context CtxA*'
+                $output | Verify-Like '*Describing OuterTwo*'
+                $output | Verify-Like '*Context CtxB*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
 }
