@@ -15,7 +15,7 @@ namespace Pester
 
         public MockConfiguration() : base("Mock configuration for Pester.")
         {
-            Global = new BoolOption("EXPERIMENTAL: Make every mock a global mock, so it is applied to calls from any module or script, and the ModuleName parameter is ignored. This is the same as passing -Global to every Mock. Use at your own risk!", false);
+            Global = new BoolOption("EXPERIMENTAL: Make every mock a global mock, so it is applied to calls of the command from any module or script in the runspace. ModuleName is then used only as a hint to resolve the command, not to scope where the mock applies. Use at your own risk!", false);
         }
 
         public MockConfiguration(IDictionary configuration) : this()
