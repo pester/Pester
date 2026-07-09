@@ -686,6 +686,14 @@ function Invoke-Pester {
                 $replaySegment = {
                     param($entries)
                     foreach ($entry in $entries) {
+                        # Host/debug output captured in the worker carries no Step - replay it to the
+                        # real host now, in tape order, so it lands interleaved with the per-test output
+                        # it belongs to instead of appearing up front, detached from its test (#2825).
+                        if ($null -eq $entry.Step) {
+                            $hostArgs = $entry.Host
+                            Write-PesterHostMessage @hostArgs
+                            continue
+                        }
                         if ($entry.Context -is [System.Collections.IDictionary] -and $entry.Context.Contains('Configuration')) {
                             $entry.Context['Configuration'] = $pluginConfiguration
                         }
