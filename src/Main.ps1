@@ -460,14 +460,34 @@ function Invoke-Pester {
         # this will inherit to child scopes and allow Describe / Context to run directly from a file or command line
         $invokedViaInvokePester = $true
 
+        # global mock hook state carried from begin to the finally in the end block (nested runs only)
+        $runningPesterInPester = $false
+        $savedGlobalMockState = $null
+
+        # Give this run a unique identity used to isolate global mocks between (possibly nested) runs. A
+        # mock's bootstrap records the run that created it; a leaked bootstrap whose id does not match the
+        # currently executing run defers to the original command instead of applying (see Invoke-Mock).
+        # The previous id is restored when this run ends so nested runs each get their own identity.
+        $pesterRunId = [Guid]::NewGuid().Guid
+        $previousPesterRunId = [Pester.GlobalMockHook]::SetCurrentRun($pesterRunId)
+
         if ($null -eq $state) {
             # Cleanup any leftover mocks from previous runs, but only if we are not running in a nested Pester-run
             # todo: move mock cleanup to BeforeAllBlockContainer when there is any?
             Remove-MockFunctionsAndAliases -SessionState $PSCmdlet.SessionState
+            # The global mock hook is runspace-wide state that a normal mock cleanup does not touch, so an
+            # interrupted previous run (e.g. Ctrl+C during a global mock) can leave it armed. Reset it here
+            # so a fresh top-level run always starts with no global mocks and no lookup handler installed.
+            Reset-GlobalMockHook
         }
         else {
             # this will inherit to child scopes and affect behavior of ex. TestDrive/TestRegistry
             $runningPesterInPester = $true
+            # This is a nested run. The global mock hook is shared across the whole runspace, so give this
+            # run its own clean slate and protect the outer run: snapshot the outer run's global mocks, then
+            # clear the shared state. It is restored once this run ends (see the finally in the end block).
+            $savedGlobalMockState = Get-GlobalMockHookState
+            Reset-GlobalMockHook
         }
 
         # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
@@ -906,6 +926,17 @@ function Invoke-Pester {
             if ($PesterPreference.Run.Exit.Value) {
                 exit -1
             }
+        }
+        finally {
+            # If this was a nested run, restore the outer run's global mocks that we snapshotted and
+            # cleared in the begin block. Runs on success and on failure so a nested run can never leave
+            # the outer run's global mock hook clobbered or detached.
+            if ($runningPesterInPester) {
+                Restore-GlobalMockHookState -State $savedGlobalMockState
+            }
+            # Restore the run id that was active before this run (null for a top-level run) so the nonce
+            # used to isolate global mocks is correct for whatever run resumes.
+            $null = [Pester.GlobalMockHook]::SetCurrentRun($previousPesterRunId)
         }
 
         # go back to original CWD

@@ -221,6 +221,12 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         DynamicParamScriptBlock = $dynamicParamScriptBlock
         Aliases                 = [Collections.Generic.List[object]]@($commandName)
         BootstrapFunctionName   = $mockName
+        IsGlobal                = $false
+        # The run that created this mock. A global mock installs a script-scope bootstrap alias in this
+        # run; if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to the
+        # currently executing run and defers to the original command when they differ (see Invoke-Mock).
+        OwnerRunId              = [Pester.GlobalMockHook]::CurrentRunId
+        BootstrapFunctionInfo   = $null
     }
 
     if ($mock.OriginalCommand.ModuleName) {
@@ -302,7 +308,125 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
 
     $definedFunction.psobject.properties.Add([Pester.Factory]::CreateNoteProperty('Mock', $functionLocalData))
 
+    # keep a reference to the bootstrap function so a global mock can register it with the
+    # engine-level command-lookup hook (see Register-GlobalMockHook). We store it on the hook
+    # instead of registering here, so both freshly created and reused hooks go through the same path.
+    $mock.BootstrapFunctionInfo = $definedFunction
+
     $mock
+}
+
+function Register-GlobalMockHook {
+    # Makes a mock global by pointing the runspace-wide command-lookup hook at the mock's bootstrap
+    # function. After this, a call to the mocked command from any module or script in the runspace is
+    # redirected to the mock, not just calls from the session state where the mock was defined.
+    param (
+        [Parameter(Mandatory)]
+        $Hook
+    )
+
+    $Hook.IsGlobal = $true
+
+    foreach ($alias in $Hook.Aliases) {
+        [Pester.GlobalMockHook]::Register($alias, $Hook.BootstrapFunctionInfo)
+    }
+
+    # Install our handler into the current runspace. This is idempotent: we remove any existing instance
+    # of our handler first, so repeated runs in the same process don't stack duplicates, and so the
+    # handler we later remove in teardown is the exact same delegate instance. Other consumers of
+    # PreCommandLookupAction are preserved via Delegate.Combine.
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        $existing = [Delegate]::Remove($existing, $handler)
+    }
+    $invokeCommand.PreCommandLookupAction = [Delegate]::Combine($existing, $handler)
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Mock -Message "Registered global mock hook for aliases $($Hook.Aliases -join ', ')."
+    }
+}
+
+function Unregister-GlobalMockHook {
+    # Undoes Register-GlobalMockHook for a single hook. When the last global mock is removed we also
+    # detach our handler from the runspace, so there is zero lookup overhead once no global mocks exist.
+    param (
+        [Parameter(Mandatory)]
+        $Hook
+    )
+
+    foreach ($alias in $Hook.Aliases) {
+        [Pester.GlobalMockHook]::Unregister($alias)
+    }
+
+    if (0 -eq [Pester.GlobalMockHook]::Count) {
+        $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+        $handler = [Pester.GlobalMockHook]::Handler
+        $existing = $invokeCommand.PreCommandLookupAction
+        if ($null -ne $existing) {
+            $invokeCommand.PreCommandLookupAction = [Delegate]::Remove($existing, $handler)
+        }
+
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock -Message "Removed the global mock hook from the runspace, no global mocks remain."
+        }
+    }
+}
+
+function Reset-GlobalMockHook {
+    # Detach our command-lookup handler and drop every global mock registration. The registry and the
+    # handler are runspace-wide state that outlives a single test, so an interrupted run (for example a
+    # Ctrl+C during a global mock) can leave them armed. Invoke-Pester calls this at the start of a
+    # top-level run to clear anything a previous run left behind, and around a nested run to give it a
+    # clean slate. Removes only our own handler instance, so other PreCommandLookupAction consumers are
+    # preserved.
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        $invokeCommand.PreCommandLookupAction = [Delegate]::Remove($existing, $handler)
+    }
+
+    [Pester.GlobalMockHook]::Clear()
+}
+
+function Get-GlobalMockHookState {
+    # Snapshot the current global mock registrations so a nested Pester run can clear the shared state for
+    # itself and restore the outer run's global mocks afterwards (see Restore-GlobalMockHookState).
+    [Pester.GlobalMockHook]::GetSnapshot()
+}
+
+function Restore-GlobalMockHookState {
+    # Restore a snapshot taken by Get-GlobalMockHookState. Clears whatever the nested run left behind,
+    # re-registers the saved entries, and installs or removes our command-lookup handler so its presence
+    # matches whether any global mocks remain.
+    param (
+        $State
+    )
+
+    [Pester.GlobalMockHook]::Clear()
+
+    if ($null -ne $State) {
+        foreach ($name in $State.Keys) {
+            [Pester.GlobalMockHook]::Register($name, $State[$name])
+        }
+    }
+
+    $invokeCommand = $ExecutionContext.SessionState.InvokeCommand
+    $handler = [Pester.GlobalMockHook]::Handler
+    $existing = $invokeCommand.PreCommandLookupAction
+    if ($null -ne $existing) {
+        # remove any current instance of our handler first, so we never end up with a duplicate
+        $existing = [Delegate]::Remove($existing, $handler)
+    }
+
+    if (0 -lt [Pester.GlobalMockHook]::Count) {
+        $invokeCommand.PreCommandLookupAction = [Delegate]::Combine($existing, $handler)
+    }
+    else {
+        $invokeCommand.PreCommandLookupAction = $existing
+    }
 }
 
 function Should-InvokeVerifiableInternal {
@@ -595,6 +719,10 @@ function Remove-MockHook {
             Write-PesterDebugMessage -Scope Mock -Message "Removing function $($h.BootstrapFunctionName)$(if($h.Aliases) { " and aliases $($h.Aliases -join ", ")" }) for$(if($h.ModuleName) { " $($h.ModuleName) -" }) $($h.CommandName)."
         }
 
+        if ($h.IsGlobal) {
+            Unregister-GlobalMockHook -Hook $h
+        }
+
         $null = Invoke-InMockScope -SessionState $h.SessionState -ScriptBlock $removeMockStub -Arguments $h.BootstrapFunctionName, $h.Aliases, $Write_Debug_Enabled, $Write_Debug
     }
 }
@@ -604,7 +732,8 @@ function Resolve-Command {
         [string] $CommandName,
         [string] $ModuleName,
         [Parameter(Mandatory)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        [switch] $Global
     )
 
     # saving the caller session state here, below the command is looked up and
@@ -653,7 +782,35 @@ function Resolve-Command {
         Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName."
     }
 
-    if ($ModuleName) {
+    if ($Global) {
+        # Global mock: ModuleName is not the destination (the engine hook makes the mock effective
+        # everywhere), it is only a hint to find the command. Resolve from the caller/script scope
+        # first, which also finds the bootstrap of an existing global mock so re-mocking reuses its
+        # hook. If the command is not visible there (a module-private command), fall back to the
+        # module named by the hint to find and resolve it. Either way the mock is installed in the
+        # caller scope and has no target module.
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock "Resolving command $CommandName for a global mock, searching the caller scope$(if ($ModuleName) { " and using module $ModuleName as a hint" })."
+        }
+
+        Set-ScriptBlockScope -ScriptBlock $findAndResolveCommand -SessionState $callerSessionState
+        $command, $commandMetadata, $commandMetadata2 = & $findAndResolveCommand -Name $CommandName
+
+        if ($null -eq $command -and $ModuleName) {
+            $module = Get-CompatibleModule -ModuleName $ModuleName -ErrorAction SilentlyContinue
+            if ($null -ne $module) {
+                if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                    Write-PesterDebugMessage -Scope Mock "Command $CommandName not found in the caller scope, searching module $($module.Name) version $($module.Version)."
+                }
+                $command, $commandMetadata, $commandMetadata2 = & $module $findAndResolveCommand -Name $CommandName
+            }
+        }
+
+        # the mock is installed in the caller (script) scope and has no target module
+        $SessionState = $callerSessionState
+        $ModuleName = ''
+    }
+    elseif ($ModuleName) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Mock "ModuleName was specified searching for the command in module $ModuleName."
         }
@@ -726,6 +883,18 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
+
+    if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
+        # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
+        # script-scope alias leaked into this run. Do not reuse it - unwrap to the original command so this
+        # run creates and owns its own hook, and the outer run's mock stays intact.
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope MockCore "Resolved a global mock bootstrap owned by another run; unwrapping to the original command $($command.Mock.Hook.OriginalCommand.Name) so this run gets its own hook."
+        }
+        $commandMetadata = $command.Mock.Hook.OriginalMetadata
+        $commandMetadata2 = $command.Mock.Hook.OriginalMetadata2
+        $command = $command.Mock.Hook.OriginalCommand
+    }
 
     if ($command.Name -like 'PesterMock_*') {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -1627,36 +1796,46 @@ function Get-DynamicParametersForCmdlet {
         [System.Collections.IDictionary] $Parameters
     )
 
+    # When a global mock is active, its bootstrap function shadows $CmdletName in every scope via the
+    # engine command-lookup hook. Resolving the *original* cmdlet here (by name) to discover its
+    # dynamic parameters would be redirected back to the mock and the real dynamic parameters (e.g.
+    # Get-ChildItem -Hidden) would be lost. Suppress the redirect for this name while we resolve it.
+    [Pester.GlobalMockHook]::BeginSuppress($CmdletName)
     try {
-        $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
+        try {
+            $command = & $SafeCommands['Get-Command'] -Name $CmdletName -CommandType Cmdlet -ErrorAction Stop
 
-        if (@($command).Count -gt 1) {
-            throw "Name '$CmdletName' resolved to multiple Cmdlets"
+            if (@($command).Count -gt 1) {
+                throw "Name '$CmdletName' resolved to multiple Cmdlets"
+            }
+        }
+        catch {
+            $PSCmdlet.ThrowTerminatingError($_)
+        }
+
+        if ($null -eq $command.ImplementingType.GetInterface('IDynamicParameters', $true)) {
+            return
+        }
+
+        if ($null -eq $Parameters) {
+            $paramsArg = @()
+        }
+        else {
+            $paramsArg = @($Parameters)
+        }
+
+        try {
+            $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
+        }
+        catch {
+            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
+            # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
+            # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
+            return
         }
     }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-
-    if ($null -eq $command.ImplementingType.GetInterface('IDynamicParameters', $true)) {
-        return
-    }
-
-    if ($null -eq $Parameters) {
-        $paramsArg = @()
-    }
-    else {
-        $paramsArg = @($Parameters)
-    }
-
-    try {
-        $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
-    }
-    catch {
-        # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
-        # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
-        # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
-        return
+    finally {
+        [Pester.GlobalMockHook]::EndSuppress()
     }
     $paramDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
 

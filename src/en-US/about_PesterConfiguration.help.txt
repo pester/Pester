@@ -241,6 +241,11 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $true
 
+    Mock:
+        Global: EXPERIMENTAL: Make every mock a global mock, so it is applied to calls of the command from any module or script in the runspace. ModuleName is then used only as a hint to resolve the command, not to scope where the mock applies. Use at your own risk!
+        Type: bool
+        Default value: $false
+
 SEE ALSO
     Pester website: https://pester.dev
     New-PesterConfiguration

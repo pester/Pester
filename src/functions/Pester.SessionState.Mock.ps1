@@ -109,7 +109,10 @@ function Mock {
     Optional string specifying the name of the module where this command
     is to be mocked.  This should be a module that _calls_ the mocked
     command; it doesn't necessarily have to be the same module which
-    originally implemented the command.
+    originally implemented the command. When the experimental Mock.Global
+    configuration option is enabled this parameter is used only as a hint to
+    resolve the command (for example to find a module-private command), not
+    to scope where the mock applies.
 
     .PARAMETER RemoveParameterType
     Optional list of parameter names that should use Object as the parameter
@@ -234,10 +237,19 @@ function Mock {
         return
     }
 
+    # a mock is global when the experimental Mock.Global option is on, which makes every mock reach
+    # calls of the command from any module or script in the runspace.
+    $isGlobalMock = [bool]$PesterPreference.Mock.Global.Value
+
     $SessionState = $PSCmdlet.SessionState
 
-    # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
-    if (-not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+    # A global mock is not scoped to a single module, it is defined in the caller scope and the
+    # engine-level hook routes calls from every module to it. ModuleName is therefore not the
+    # destination of the mock. It is still used as a hint to resolve the command though (see the
+    # -Global path in Resolve-Command), so a module-private command can be found and mocked. So we
+    # keep whatever ModuleName the caller passed and let Resolve-Command use it only for lookup.
+    if (-not $isGlobalMock -and -not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
+        # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module
         $ModuleName = $SessionState.Module.Name
     }
 
@@ -255,7 +267,7 @@ function Mock {
     $invokeMockCallBack = $ExecutionContext.SessionState.InvokeCommand.GetCommand('Invoke-Mock', 'function')
 
     $mockData = Get-MockDataForCurrentScope
-    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState
+    $contextInfo = Resolve-Command $CommandName $ModuleName -SessionState $SessionState -Global:$isGlobalMock
 
     if ($contextInfo.IsMockBootstrapFunction) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -269,6 +281,13 @@ function Mock {
         }
         $hook = Create-MockHook -ContextInfo $contextInfo -InvokeMockCallback $invokeMockCallBack
         $mockData.Hooks.Add($hook)
+    }
+
+    # register the hook with the runspace-wide command-lookup hook so calls from any module or script
+    # are routed to it. This is idempotent, so re-mocking a command that already has a global hook, or
+    # promoting an existing non-global hook to global, both work.
+    if ($isGlobalMock -and -not $hook.IsGlobal) {
+        Register-GlobalMockHook -Hook $hook
     }
 
     if ($mockData.Behaviors.ContainsKey($contextInfo.Command.Name)) {
@@ -828,6 +847,15 @@ function Should-InvokeAssertion {
         $ModuleName = if ($CallerSessionState.Module) { $CallerSessionState.Module.Name } else { $null }
     }
 
+    # A global mock is installed in the caller (script) scope and records its calls there, with no
+    # target module, no matter which module the call came from. So when a global mock exists for the
+    # command, ignore -ModuleName and resolve from the script scope, mirroring how the mock was set
+    # up. This lets `Should -Invoke -ModuleName X Command` still find the calls that a `Mock
+    # -ModuleName X Command` recorded as a global mock.
+    if ([Pester.GlobalMockHook]::IsRegistered($CommandName)) {
+        $ModuleName = ''
+    }
+
     if ($PSCmdlet.ParameterSetName -eq 'ExclusiveFilter' -and $Negate) {
         # Using -Not with -ExclusiveFilter makes for a very confusing expectation. For example, given the following mocked function:
         #
@@ -1015,6 +1043,29 @@ function Invoke-Mock {
 
         $Hook
     )
+
+    # A global mock is registered runspace-wide but still installs its bootstrap alias in the run that
+    # created it. When a nested Invoke-Pester run resolves that leaked alias, this dispatcher runs with the
+    # outer run's hook even though the mock does not belong to the nested run. Detect that by comparing the
+    # run that created the mock with the run that is currently executing, and defer to the original command
+    # so a global mock has no effect outside its own run (full isolation between nested runs).
+    if ($Hook.IsGlobal -and $Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
+        if ('Process' -eq $FromBlock) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope MockCore "Global mock for $CommandName belongs to another Pester run (leaked into a nested run via its script-scope alias); calling the original command instead."
+            }
+            if ($null -ne $InputObject -and @($InputObject).Count -gt 0) {
+                # reproduce the original pipeline input; piping an empty collection would suppress the
+                # output of commands that do not take pipeline input (e.g. Get-Date), so only pipe when
+                # there is something to pipe.
+                $InputObject | & $Hook.OriginalCommand @BoundParameters @ArgumentList
+            }
+            else {
+                & $Hook.OriginalCommand @BoundParameters @ArgumentList
+            }
+        }
+        return
+    }
 
     if ('End' -eq $FromBlock) {
         if (-not $MockCallState.MatchedNoBehavior) {

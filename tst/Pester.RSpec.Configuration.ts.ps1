@@ -171,6 +171,10 @@ i -PassThru:$PassThru {
         t "TestRegistry.Enabled is `$true" {
             [PesterConfiguration]::Default.TestRegistry.Enabled.Value | Verify-True
         }
+
+        t "Mock.Global is `$false" {
+            [PesterConfiguration]::Default.Mock.Global.Value | Verify-False
+        }
     }
 
     b "Assignment" {
