@@ -117,6 +117,14 @@ stages:
               script: |
                 & ./test.ps1 -CI -CC -PassThru -NoBuild
               workingDirectory: '$(Build.SourcesDirectory)'
+          - task: PowerShell@2
+            displayName: 'SLEEP DIAGNOSTIC'
+            condition: succeededOrFailed()
+            inputs:
+              targetType: filePath
+              filePath: '$(Build.SourcesDirectory)/diag-sleep.ps1'
+              pwsh: $(pwsh)
+              workingDirectory: '$(Build.SourcesDirectory)'
           - task: PublishCodeCoverageResults@2
             inputs:
               summaryFileLocation: 'coverage.xml'
