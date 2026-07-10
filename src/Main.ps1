@@ -675,7 +675,7 @@ function Invoke-Pester {
             }
 
             # Resolve the BeforeContainer initialization once for the whole run. It is the same for
-            # every file (from Run.BeforeContainer or the repo-root Pester.BeforeContainer.ps1) and
+            # every file (from the repo-root Pester.BeforeContainer.ps1 convention file) and
             # runs before each container in both the parallel and sequential paths below.
             $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $PesterPreference
 

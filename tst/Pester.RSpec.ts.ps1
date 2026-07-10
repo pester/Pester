@@ -3339,35 +3339,42 @@ i -PassThru:$PassThru {
         t 'a real run with stray output finishes, keeps its results, and warns instead of crashing' {
             # Reproduce the leak end-to-end the way it happens in the wild: something writes to the
             # success stream while the run is in progress, so the stray value ends up in Invoke-Test's
-            # output next to the real [Pester.Container]. A BeforeContainer block is a reliable stand-in
-            # for the original trigger - an unredirected native command (winrm/net) in a setup block -
-            # which could not be reproduced deterministically. Before #2655 that stray object was added
-            # to the strongly-typed Run.Containers list and threw "Cannot find an overload for Add",
-            # taking down the whole run.
+            # output next to the real [Pester.Container]. A repo-root Pester.BeforeContainer.ps1 that
+            # emits to the success stream is a reliable stand-in for the original trigger - an
+            # unredirected native command (winrm/net) in a setup block - which could not be reproduced
+            # deterministically. Before #2655 that stray object was added to the strongly-typed
+            # Run.Containers list and threw "Cannot find an overload for Add", taking down the whole run.
             $sb = {
                 Describe 'd' {
                     It 'passes' { $true | Should -Be $true }
                 }
             }
 
-            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
-                    Run    = @{
-                        ScriptBlock     = $sb
-                        PassThru        = $true
-                        BeforeContainer = { 'WinRM service is already running on this machine.' }
-                    }
-                    Output = @{ Verbosity = 'None' }
-                }) -WarningVariable warnings 3> $null
+            $repoRoot = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $repoRoot -Force
+            Set-Content -Path (Join-Path $repoRoot 'Pester.BeforeContainer.ps1') -Value "'WinRM service is already running on this machine.'"
 
-            # The run completed instead of crashing, and the real results came through untouched.
-            $r | Verify-NotNull
-            $r.Result | Verify-Equal 'Passed'
-            $r.Containers.Count | Verify-Equal 1
-            $r.PassedCount | Verify-Equal 1
-            $r.FailedCount | Verify-Equal 0
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{
+                            ScriptBlock = $sb
+                            PassThru    = $true
+                            RepoRoot    = $repoRoot
+                        }
+                        Output = @{ Verbosity = 'None' }
+                    }) -WarningVariable warnings 3> $null
 
-            # The stray output was dropped with a warning that points at the likely cause.
-            ($warnings -join "`n") | Verify-Like "*unexpected output*WinRM service is already running on this machine.*"
+                # The run completed instead of crashing, and the real results came through untouched.
+                $r | Verify-NotNull
+                $r.Result | Verify-Equal 'Passed'
+                $r.Containers.Count | Verify-Equal 1
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+
+                # The stray output was dropped with a warning that points at the likely cause.
+                ($warnings -join "`n") | Verify-Like "*unexpected output*WinRM service is already running on this machine.*"
+            }
+            finally { Remove-Item -Path $repoRoot -Recurse -Force }
         }
 
         t 'Split-RSpecResult keeps containers and collects stray output separately' {

@@ -46,12 +46,10 @@ function Resolve-PesterBeforeContainer {
     parallel runs. Parallel workers especially start from a clean runspace and would otherwise be
     missing it.
 
-    - If Run.BeforeContainer is set, its scriptblocks win and apply to every container.
-      ScriptBlocks cannot cross the runspace boundary, so they are returned as text and recreated
-      with [scriptblock]::Create where they run.
-    - Otherwise Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root
-      (Run.RepoRoot, which defaults to the nearest '.git' directory and can be overridden) and
-      dot-sources it, giving a zero-config per-repo bootstrap.
+    Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root (Run.RepoRoot,
+    which defaults to the nearest '.git' directory and can be overridden) and dot-sources it,
+    giving a zero-config per-repo bootstrap. Because it is a real file it always exposes a stable
+    '$PSScriptRoot' / '$PSCommandPath' to anchor relative paths against.
 
     The result is the same for every container, so callers resolve it once per run.
     Returns $null when there is nothing to run.
@@ -62,11 +60,6 @@ function Resolve-PesterBeforeContainer {
         [Parameter(Mandatory)]
         $Configuration
     )
-
-    $explicit = $Configuration.Run.BeforeContainer.Value
-    if ($explicit -and 0 -lt @($explicit).Count) {
-        return (@(foreach ($sb in $explicit) { $sb.ToString() }) -join [Environment]::NewLine)
-    }
 
     $repoRoot = $Configuration.Run.RepoRoot.Value
     if ([string]::IsNullOrEmpty($repoRoot)) {
@@ -163,8 +156,8 @@ function Invoke-TestInParallel {
         $Configuration
     )
 
-    # The BeforeContainer initialization is the same for every file (resolved from
-    # Run.BeforeContainer or the repo-root convention file), so resolve it once and reuse it.
+    # The BeforeContainer initialization is the same for every file (resolved from the repo-root
+    # Pester.BeforeContainer.ps1 convention file), so resolve it once and reuse it.
     $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
@@ -198,10 +191,9 @@ function Invoke-TestInParallel {
     if ($throttle -lt 1) { $throttle = 1 }
 
     # Sanitize the configuration handed to workers: strip the options that hold scriptblocks so
-    # nothing with runspace affinity is sent across the boundary. BeforeContainer is
+    # nothing with runspace affinity is sent across the boundary. The BeforeContainer setup is
     # already resolved to text per work item above; ScriptBlock/Container are unused for file runs.
     $baseConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
-    $baseConfig.Run.BeforeContainer = [scriptblock[]]@()
     $baseConfig.Run.ScriptBlock = [scriptblock[]]@()
     $baseConfig.Run.Container = @()
 
