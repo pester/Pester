@@ -16,9 +16,9 @@ Describe "Should-BeSlowerThan" {
     }
 
     # 10s is a ceiling no real script block reaches, so this always registers as "not slower" and
-    # fails deterministically -- the mirror of the Should-BeFasterThan flake, where a Windows CI
-    # Stopwatch (QueryPerformanceCounter) under-measures a real sleep and crosses a bound set near
-    # the actual run time. Keep the bound far from any duration a [scriptblock] can produce.
+    # fails deterministically -- the mirror of the Should-BeFasterThan flake, where a single timed
+    # Start-Sleep landed on the wrong side of a bound set close to its real run time. Keep the bound
+    # far from any duration a [scriptblock] can produce so a rare timing outlier cannot cross it.
     It "Throws when scriptblock is faster than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "10s" }
     ) {

@@ -40,11 +40,11 @@ Describe "Should-BeFasterThan" {
     }
 
     # 0ms is the floor of any measurement: a script block always takes >= 0, so this fails
-    # deterministically. The old 1ms bound sat next to the real ~15ms run time and could be crossed
-    # the wrong way -- on the Windows CI agents Stopwatch (QueryPerformanceCounter) occasionally
-    # under-measures a single call, reporting a ~15ms sleep as <1ms (reproduced ~6/2000 on PS 5.1 /
-    # Server 2022, while the wall clock confirmed the full time really elapsed), so the assertion
-    # passed and this test flaked.
+    # deterministically. The old 1ms bound sat just under the real ~10-15ms sleep and relied on a
+    # single Start-Sleep never being measured below it. On one CI run it was (the whole test ran in
+    # 8ms), so the assertion passed instead of failing. Re-testing the same Windows agents with tens
+    # of thousands of samples could not reproduce a sub-1ms measurement and confirmed Stopwatch/QPC
+    # is accurate there -- a rare transient outlier. Asserting against the 0ms floor removes the race.
     It "Throws when scriptblock is slower than expected" -ForEach @(
         @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "0ms" }
     ) {
