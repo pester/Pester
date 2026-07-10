@@ -629,6 +629,80 @@ function Merge-CommandCoverage {
     $c
 }
 
+function Merge-CoverageFromParallel {
+    <#
+    .SYNOPSIS
+    Merges the per-worker breakpoint coverage of a parallel run into a single CommandCoverage list.
+
+    .DESCRIPTION
+    EXPERIMENTAL. In a parallel run each file measures the same set of measurable locations
+    (CodeCoverage.Path is identical for every worker), so every worker returns a full projection of
+    those locations with its own per-location HitCount (see Invoke-TestInParallel). A location is
+    covered when at least one file hit it, so this collapses the projections by
+    "File:StartLine:StartColumn" and sums the HitCounts, keeping the first occurrence's discovery
+    order. Each merged entry is shaped like a breakpoint-based CommandCoverage item (a Breakpoint
+    with a HitCount) so Get-CoverageReport / Get-JaCoCoReportXml / Get-CoberturaReportXml consume it
+    unchanged.
+    #>
+    [CmdletBinding()]
+    param ([object[]] $CommandCoverage)
+
+    $merged = [System.Collections.Specialized.OrderedDictionary]::new()
+    foreach ($cc in $CommandCoverage) {
+        if ($null -eq $cc) { continue }
+        $key = "$($cc.File):$($cc.StartLine):$($cc.StartColumn)"
+        if ($merged.Contains($key)) {
+            $merged[$key].Breakpoint.HitCount += [int] $cc.HitCount
+        }
+        else {
+            $merged[$key] = [PSCustomObject] @{
+                File        = $cc.File
+                Class       = $cc.Class
+                Function    = $cc.Function
+                StartLine   = $cc.StartLine
+                EndLine     = $cc.EndLine
+                StartColumn = $cc.StartColumn
+                EndColumn   = $cc.EndColumn
+                Command     = $cc.Command
+                Breakpoint  = @{ HitCount = [int] $cc.HitCount }
+            }
+        }
+    }
+
+    @($merged.Values)
+}
+
+function Convert-CommandCoverageToProjection {
+    <#
+    .SYNOPSIS
+    Projects raw CommandCoverage breakpoint objects into the lightweight, HitCount-carrying shape
+    that Merge-CoverageFromParallel expects.
+
+    .DESCRIPTION
+    EXPERIMENTAL. Drops the heavy Ast / live Breakpoint references and flattens the breakpoint hit
+    count onto a HitCount property, so a batch of coverage measured in-process (e.g. the sequential
+    #pester:no-parallel files of a parallel run) can be merged with the projections returned by
+    parallel workers.
+    #>
+    [CmdletBinding()]
+    param ([object[]] $CommandCoverage)
+
+    foreach ($cc in $CommandCoverage) {
+        if ($null -eq $cc) { continue }
+        [PSCustomObject] @{
+            File        = $cc.File
+            Class       = $cc.Class
+            Function    = $cc.Function
+            StartLine   = $cc.StartLine
+            EndLine     = $cc.EndLine
+            StartColumn = $cc.StartColumn
+            EndColumn   = $cc.EndColumn
+            Command     = $cc.Command
+            HitCount    = [int] $cc.Breakpoint.HitCount
+        }
+    }
+}
+
 function Get-CoverageReport {
     # make sure this is an array, otherwise the counts start failing
     # on powershell 3

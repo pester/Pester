@@ -131,6 +131,14 @@
     $p.End = {
         param($Context)
 
+        # Parallel workers collect the raw breakpoint hits but must not produce the report or write
+        # the output file themselves - the parent merges every worker's CommandCoverage and generates
+        # the report once. The flag is set on the (per-runspace) module scope only inside a worker, so
+        # a normal run and the parent's own End step never see it. See Invoke-TestInParallel.
+        if (defined CodeCoverageSkipReport) {
+            return
+        }
+
         $run = $Context.TestRun
 
         if ($PesterPreference.Output.Verbosity.Value -ne "None") {
@@ -138,12 +146,16 @@
             Write-PesterHostMessage -ForegroundColor Magenta "Processing code coverage result."
         }
 
+        $configuration = $run.PluginConfiguration.Coverage
+
         $breakpoints = @($run.PluginData.Coverage.CommandCoverage)
-        $measure = if (-not $PesterPreference.CodeCoverage.UseBreakpoints.Value) { @($run.PluginData.Coverage.Tracer.Hits) }
+        # Read UseBreakpoints from the coverage plugin configuration captured at Start, not from the
+        # global $PesterPreference. A parallel run forces breakpoint-based coverage (the tracer uses a
+        # process-global static and is not concurrency-safe) by overriding it there, and the merged
+        # CommandCoverage already carries resolved HitCounts, so no tracer Measure is used.
+        $measure = if (-not $configuration.UseBreakpoints) { @($run.PluginData.Coverage.Tracer.Hits) }
         $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
         $totalMilliseconds = $run.Duration.TotalMilliseconds
-
-        $configuration = $run.PluginConfiguration.Coverage
 
         $coverageXmlReport = switch ($configuration.OutputFormat) {
             'JaCoCo' { [xml](Get-JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $totalMilliseconds -CoverageReport $coverageReport -ReportRoot (Get-ReportRoot)) }
