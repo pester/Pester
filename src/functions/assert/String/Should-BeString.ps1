@@ -69,6 +69,13 @@ function Should-BeString {
 
     This assertion will fail, because the actual value is not equal to the expected value.
 
+    .EXAMPLE
+    ```powershell
+    "" | Should-BeString ""
+    ```
+
+    This assertion will pass, because an empty string is allowed as the expected value.
+
     .NOTES
     The `Should-BeString` assertion is the opposite of the `Should-NotBeString` assertion.
 
@@ -88,6 +95,7 @@ function Should-BeString {
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Position = 0, Mandatory)]
+        [AllowEmptyString()]
         [String]$Expected,
         [String]$Because,
         [switch]$CaseSensitive,
