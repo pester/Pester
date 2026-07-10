@@ -256,6 +256,7 @@ i -PassThru:$PassThru {
                 $PesterPreference = [PesterConfiguration]::Default
                 $PesterPreference.Output.Verbosity = 'Detailed'
                 $PesterPreference.Output.RenderMode = 'ConsoleColor'
+                $PesterPreference.Output.CIFormat = 'None'
 
                 $container = New-PesterContainer -ScriptBlock {
                     BeforeAll {
