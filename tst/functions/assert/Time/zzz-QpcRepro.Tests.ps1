@@ -1,7 +1,7 @@
 Set-StrictMode -Version Latest
 
 Describe 'QPC anomaly diagnostic' {
-    It 'measures QueryPerformanceCounter against an independent tick clock across sleep durations' {
+    It 'measures QueryPerformanceCounter against an independent timer clock across sleep durations' {
         $src = @'
 // QpcAnomalyRepro
 // -----------------------------------------------------------------------------
@@ -13,10 +13,12 @@ Describe 'QPC anomaly diagnostic' {
 //   * QPC          - QueryPerformanceCounter (raw P/Invoke on Windows, the same
 //                    source System.Diagnostics.Stopwatch uses). This is the
 //                    suspected-buggy clock.
-//   * Tick counter - GetTickCount64 (Windows) / Environment.TickCount (other).
-//                    Driven by the periodic system timer interrupt, NOT by
-//                    TSC/QPC, so it is an independent witness that real time
-//                    actually elapsed.
+//   * Independent  - timeGetTime (Windows, ~1ms with timeBeginPeriod(1)) /
+//                    Environment.TickCount (other). Driven by the periodic
+//                    system timer interrupt, NOT by TSC/QPC, so it is an
+//                    independent witness that real time actually elapsed. Its
+//                    ~1ms quantization is far smaller than the multi-ms QPC
+//                    under-measurement it exposes.
 //
 // If a single bracketed measurement reports QPC < 1 ms while the independent
 // tick counter confirms the full sleep elapsed, the sleep did NOT return early:
@@ -54,6 +56,7 @@ public static class QpcAnomalyRepro
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessorNumber();
     [DllImport("kernel32.dll")] private static extern bool QueryPerformanceCounter(out long value);
     [DllImport("kernel32.dll")] private static extern bool QueryPerformanceFrequency(out long value);
+    [DllImport("winmm.dll")] private static extern uint timeGetTime();
     [DllImport("winmm.dll")] private static extern uint timeBeginPeriod(uint period);
     [DllImport("winmm.dll")] private static extern uint timeEndPeriod(uint period);
 
@@ -244,7 +247,7 @@ public static class QpcAnomalyRepro
 
     private static ulong ReadTick()
     {
-        if (_isWindows) return GetTickCount64();
+        if (_isWindows) return timeGetTime();
         return (ulong)(uint)Environment.TickCount;
     }
 
@@ -319,7 +322,9 @@ public static class QpcAnomalyRepro
         }
         try { Write-Host ("QPCDIAG:: HOST psVersion=" + $PSVersionTable.PSVersion.ToString() + " psEdition=" + $PSVersionTable.PSEdition) } catch { }
         try { Write-Host ("QPCDIAG:: HOST framework=" + [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription) } catch { Write-Host "QPCDIAG:: HOST framework=unknown" }
-        $argv = [string[]]@('--durations','10,20,50,100,200','--iters','100000','--budget-ms','25000','--load','4','--sub-ms','1.0')
+        # No background load: a lone Start-Sleep(10) really takes ~10-16ms, the danger zone where a
+        # bounded QPC under-measurement can drop the measured value below a small threshold.
+        $argv = [string[]]@('--durations','10,15,20,30,50,100','--iters','100000','--budget-ms','30000','--load','0','--sub-ms','1.0')
         [QpcAnomalyRepro]::Main($argv) | Out-Null
         $true | Should -Be $true
     }
