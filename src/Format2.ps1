@@ -177,7 +177,8 @@ function Format-NicelyForTemplate ($Value) {
         return $Value
     }
 
-    Format-Nicely2 -Value $Value
+    # Limit recursion to simple arrays and hashtable to avoid hangs and complex test names/paths.
+    Format-Nicely2 -Value $Value -MaxDepth 1
 }
 
 function Get-DisplayProperty2 ([Type]$Type) {
