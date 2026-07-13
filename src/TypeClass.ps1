@@ -21,7 +21,7 @@ function Is-IntegralNumber ($Value) {
 }
 
 function Is-DecimalNumber ($Value) {
-    $Value -is [float] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]
+    $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]
 }
 
 function Is-Hashtable ($Value) {
