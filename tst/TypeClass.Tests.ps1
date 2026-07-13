@@ -46,9 +46,9 @@ Describe "Is-Value" {
 #number
 
 Describe 'Is-IntegralNumber' {
-    It "Given a number of type '<Type>' it returns `$true" -TestCases @(
-        @{ Type = [short] },
-        @{ Type = [ushort] },
+    It "Given a number of type '<Type.Name>' it returns `$true" -TestCases @(
+        @{ Type = [int16] },  # [short} name not availble in PowerShell 5.1
+        @{ Type = [uint16] }, # [ushort} name not availble in PowerShell 5.1
         @{ Type = [int] },
         @{ Type = [uint] },
         @{ Type = [long] },
@@ -66,7 +66,7 @@ Describe 'Is-IntegralNumber' {
 
 
 Describe "Is-DecimalNumber" {
-    It "Given a number of type '<Type>' it returns `$true" -TestCases @(
+    It "Given a number of type '<Type.Name>' it returns `$true" -TestCases @(
         @{ Type = [double] },
         @{ Type = [float] }, # [single]
         @{ Type = [decimal] }

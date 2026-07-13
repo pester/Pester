@@ -17,7 +17,8 @@ function Is-ScriptBlock ($Value) {
 }
 
 function Is-IntegralNumber ($Value) {
-    $Value -is [int] -or $Value -is [long] -or $Value -is [short] -or $Value -is [byte] -or $Value -is [uint] -or $Value -is [ulong] -or $Value -is [ushort] -or $Value -is [sbyte]
+    # Note: Using int16/uint16 as short/ushort names doesn't exist in PS 5.1
+    $Value -is [int] -or $Value -is [long] -or $Value -is [int16] -or $Value -is [sbyte] -or $Value -is [uint] -or $Value -is [ulong] -or $Value -is [uint16] -or $Value -is [byte]
 }
 
 function Is-DecimalNumber ($Value) {
