@@ -508,6 +508,29 @@ function Invoke-Pester {
                 $Configuration = . Convert-PesterSimpleParameterSet -BoundParameters $PSBoundParameters
             }
 
+            # Run.BeforeInvoke: as soon as Invoke-Pester starts (top-level runs only), run optional
+            # bootstrap code in the caller's scope, before the caller's $PesterPreference is read
+            # below and before discovery. Use it to import dependencies and provide configuration by
+            # defining or modifying $PesterPreference, which is then picked up as the caller preference.
+            #
+            # A preliminary preference is resolved first so the bootstrap has somewhere to discover
+            # itself from (Run.Path/RepoRoot/BeforeInvoke) and so error reporting still works if the
+            # bootstrap throws. It is replaced with the final caller-merged preference right after.
+            if (-not $runningPesterInPester) {
+                $beforeInvokeCallerPreference = [PesterConfiguration] $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
+                [PesterConfiguration] $PesterPreference = if ($null -ne $beforeInvokeCallerPreference -and $null -ne $Configuration) {
+                    [PesterConfiguration]::Merge($beforeInvokeCallerPreference, $Configuration)
+                }
+                elseif ($null -ne $Configuration) {
+                    [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
+                }
+                else {
+                    [PesterConfiguration]::Default
+                }
+
+                Invoke-PesterBeforeInvoke -Configuration $PesterPreference -SessionState $PSCmdlet.SessionState
+            }
+
             # maybe -IgnorePesterPreference to avoid using $PesterPreference from the context
 
             $callerPreference = [PesterConfiguration] $PSCmdlet.SessionState.PSVariable.GetValue("PesterPreference")
