@@ -1,7 +1,11 @@
-﻿function Format-Collection2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
+﻿# Default recursion limit for formatting. A depth of 10 (default) is never useful in an assertion message
+# and is well below PowerShell's own call-depth limit, so it is fixed here rather than exposed as a configuration.
+$maximumFormatDepth = 10
+
+function Format-Collection2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
     $length = 0
     $o = foreach ($v in $Value) {
-        $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty -Depth ($Depth + 1)
+        $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty -MaxDepth ($MaxDepth - 1)
         $length += $formatted.Length + 1 # 1 is for the separator
         $formatted
     }
@@ -19,7 +23,7 @@
     }
 }
 
-function Format-Object2 ($Value, $Property, [switch]$Pretty, [int]$Depth = 0) {
+function Format-Object2 ($Value, $Property, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
     if ($null -eq $Property) {
         $Property = foreach ($p in $Value.PSObject.Properties) { $p.Name }
     }
@@ -31,7 +35,7 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty, [int]$Depth = 0) {
     $valueType = Get-ShortType $Value
     $items = foreach ($p in $orderedProperty) {
         $v = ([PSObject]$Value.$p)
-        $f = Format-Nicely2 -Value $v -Pretty:$Pretty -Depth ($Depth + 1)
+        $f = Format-Nicely2 -Value $v -Pretty:$Pretty -MaxDepth ($MaxDepth - 1)
         "$p=$f"
     }
 
@@ -81,31 +85,31 @@ function Format-Number2 ($Value) {
     [string]$Value
 }
 
-function Format-Hashtable2 ($Value, [int]$Depth = 0) {
+function Format-Hashtable2 ($Value, [int]$MaxDepth = $maximumFormatDepth) {
     $head = '@{'
     $tail = '}'
 
     $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object']) {
-        $formattedValue = Format-Nicely2 -Value $Value.$v -Depth ($Depth + 1)
+        $formattedValue = Format-Nicely2 -Value $Value.$v -MaxDepth ($MaxDepth - 1)
         "$v=$formattedValue"
     }
 
     $head + ( $entries -join '; ') + $tail
 }
 
-function Format-Dictionary2 ($Value, [int]$Depth = 0) {
+function Format-Dictionary2 ($Value, [int]$MaxDepth = $maximumFormatDepth) {
     $head = 'Dictionary{'
     $tail = '}'
 
     $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object'] ) {
-        $formattedValue = Format-Nicely2 -Value $Value.$v -Depth ($Depth + 1)
+        $formattedValue = Format-Nicely2 -Value $Value.$v -MaxDepth ($MaxDepth - 1)
         "$v=$formattedValue"
     }
 
     $head + ( $entries -join '; ') + $tail
 }
 
-function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
+function Format-Nicely2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
     if ($null -eq $Value) {
         return Format-Null2 -Value $Value
     }
@@ -136,14 +140,12 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
     # nesting depth stop expanding and just print the value's type, which is enough for a
     # diagnostic message and cannot recurse further. Scalars above are always fully formatted;
     # only the container/object branches below recurse, so the guard sits in front of them.
-    # A depth of 10 is never useful in an assertion message and is well below PowerShell's own
-    # call-depth limit, so it is fixed here rather than exposed as a configurable variable.
-    if ($Depth -ge 10) {
+    if ($MaxDepth -eq 0) {
         return Get-ShortType2 -Value $Value
     }
 
     if (Is-Collection -Value $Value) {
-        return Format-Collection2 -Value $Value -Pretty:$Pretty -Depth $Depth
+        return Format-Collection2 -Value $Value -Pretty:$Pretty -MaxDepth $MaxDepth
     }
 
     if (Is-Value -Value $Value) {
@@ -151,18 +153,18 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
     }
 
     if (Is-Hashtable -Value $Value) {
-        return Format-Hashtable2 -Value $Value -Depth $Depth
+        return Format-Hashtable2 -Value $Value -MaxDepth $MaxDepth
     }
 
     if (Is-Dictionary -Value $Value) {
-        return Format-Dictionary2 -Value $Value -Depth $Depth
+        return Format-Dictionary2 -Value $Value -MaxDepth $MaxDepth
     }
 
     if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {
         return Format-DataTable2 -Value $Value -Pretty:$Pretty
     }
 
-    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty -Depth $Depth
+    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty -MaxDepth $MaxDepth
 }
 
 function Format-NicelyForTemplate ($Value) {
