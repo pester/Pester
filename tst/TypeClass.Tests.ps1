@@ -45,6 +45,26 @@ Describe "Is-Value" {
 
 #number
 
+Describe 'Is-IntegralNumber' {
+    It "Given a number of type '<Type>' it returns `$true" -TestCases @(
+        @{ Type = [short]1 },
+        @{ Type = [ushort]1 },
+        @{ Type = [int]1 },
+        @{ Type = [uint]1 },
+        @{ Type = [long]1 },
+        @{ Type = [ulong]1 },
+        @{ Type = [byte]1 },
+        @{ Type = [sbyte]1 }
+    ) {
+        Is-IntegralNumber -Value (1 -as $Type) | Verify-True
+    }
+
+    It "Given a string it returns `$false" {
+        Is-IntegralNumber -Value 'abc' | Verify-False
+    }
+}
+
+
 Describe "Is-DecimalNumber" {
     It "Given a number it returns `$true" -TestCases @(
         @{ Value = 1.1; },

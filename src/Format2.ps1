@@ -126,7 +126,7 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumForma
         return Format-Type2 -Value $Value
     }
 
-    if (Is-DecimalNumber -Value $Value) {
+    if ((Is-IntegralNumber -Value $Value) -or (Is-DecimalNumber -Value $Value)) {
         return Format-Number2 -Value $Value
     }
 

@@ -16,6 +16,10 @@ function Is-ScriptBlock ($Value) {
     $Value -is [ScriptBlock]
 }
 
+function Is-IntegralNumber ($Value) {
+    $Value -is [int] -or $Value -is [long] -or $Value -is [short] -or $Value -is [byte] -or $Value -is [uint] -or $Value -is [ulong] -or $Value -is [ushort] -or $Value -is [sbyte]
+}
+
 function Is-DecimalNumber ($Value) {
     $Value -is [float] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]
 }

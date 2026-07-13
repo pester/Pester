@@ -117,7 +117,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return '[' + (Format-Type -Value $Value) + ']'
     }
 
-    if (Is-DecimalNumber -Value $Value) {
+    if ((Is-IntegralNumber -Value $Value) -or (Is-DecimalNumber -Value $Value)) {
         return Format-Number -Value $Value
     }
 
