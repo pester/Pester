@@ -17,12 +17,13 @@ function Is-ScriptBlock ($Value) {
 }
 
 function Is-IntegralNumber ($Value) {
-    # Note: Using int16/uint16 as short/ushort names doesn't exist in PS 5.1
-    $Value -is [int] -or $Value -is [long] -or $Value -is [int16] -or $Value -is [sbyte] -or $Value -is [uint] -or $Value -is [ulong] -or $Value -is [uint16] -or $Value -is [byte]
+    # Note: Using .NET type names for consistency because PowerShell 5.1 doesn't support short/ushort/uint/ulong
+    $Value -is [Int32] -or $Value -is [Int64] -or $Value -is [Int16] -or $Value -is [SByte] -or
+    $Value -is [UInt32] -or $Value -is [UInt64] -or $Value -is [UInt16] -or $Value -is [Byte]
 }
 
 function Is-DecimalNumber ($Value) {
-    $Value -is [float] -or $Value -is [double] -or $Value -is [decimal]
+    $Value -is [Single] -or $Value -is [Double] -or $Value -is [Decimal]
 }
 
 function Is-Hashtable ($Value) {
