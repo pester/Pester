@@ -422,6 +422,8 @@ i -PassThru:$PassThru {
 
         t "Paths are relative to repo root option when report root is not set" {
             $sb = {
+                # Set consistent console width to avoid line wrapping in the CC-report. Was broken in devcontainer.
+                & (Get-Module Pester) { $PSDefaultParameterValues['Out-String:Width'] = 120 }
                 $c = New-PesterConfiguration
                 $c.Run.Path = "tst/testProjectsForMissingCoverage/CoverageTestFile.Missing.Tests.ps1"
                 $c.Run.PassThru = $true
