@@ -247,7 +247,7 @@ Describe 'Module import' {
         }
     }
 
-    b "Run.BeforeContainer" {
+    b "Pester.BeforeContainer.ps1 convention" {
         t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
             $folder = New-BeforeContainerTestFolder
             try {
@@ -281,25 +281,48 @@ Describe 'Module import' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
-        t "uses explicit Run.BeforeContainer scriptblocks instead of the convention file" {
+        t "shares a single bootstrap across many files in parallel, anchored on the stable `$PSScriptRoot" {
+            # Compelling real-world case: instead of repeating an Import-Module + mock defaults setup
+            # in every test file, put it once in Pester.BeforeContainer.ps1. Because it is a real
+            # file, it always has a stable `$PSScriptRoot` to resolve the module relative to
+            # (unlike the removed Run.BeforeContainer scriptblock option, which only had the unstable
+            # `$pwd` - see #2838). Each parallel worker starts from a clean runspace and re-runs the
+            # bootstrap, so the shared helpers are available to every file without duplication.
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
-            Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
-Describe 'Marker' {
-    It 'can call the helper defined by Run.BeforeContainer' {
-        Get-ExplicitMarker | Should -Be 'explicit'
-    }
+
+            Set-Content -Path (Join-Path $folder 'Helpers.psm1') -Value @'
+function Get-Answer { 42 }
+'@
+
+            # Resolve the module relative to $PSScriptRoot (the folder of this bootstrap file), which
+            # is stable regardless of the working directory Invoke-Pester was called from.
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
+Import-Module -Name (Join-Path $PSScriptRoot 'Helpers.psm1') -Force
+'@
+
+            Set-Content -Path (Join-Path $folder 'First.Tests.ps1') -Value @'
+Describe 'First' {
+    It 'uses the shared helper' { Get-Answer | Should -Be 42 }
+}
+'@
+            Set-Content -Path (Join-Path $folder 'Second.Tests.ps1') -Value @'
+Describe 'Second' {
+    It 'uses the shared helper too' { Get-Answer | Should -Be 42 }
 }
 '@
             try {
                 $c = [PesterConfiguration]::Default
                 $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
                 $c.Run.PassThru = $true
                 $c.Output.Verbosity = 'None'
-                $c.Run.BeforeContainer = { function Get-ExplicitMarker { 'explicit' } }
-                $r = Invoke-Pester -Configuration $c
+                # Call from a different working directory to prove the bootstrap does not depend on $pwd.
+                Push-Location ([IO.Path]::GetTempPath())
+                try { $r = Invoke-Pester -Configuration $c } finally { Pop-Location }
 
-                $r.PassedCount | Verify-Equal 1
+                $r.PassedCount | Verify-Equal 2
                 $r.FailedCount | Verify-Equal 0
             }
             finally { Remove-Item -Path $folder -Recurse -Force }

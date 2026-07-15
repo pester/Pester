@@ -1997,8 +1997,8 @@ function Invoke-Test {
         # global steps once for the whole run while this call handles only the
         # non-parallel containers' per-container/per-test steps.
         [switch] $SkipFrameworkGlobalSteps,
-        # Initialization text (resolved from Run.BeforeContainer or the repo-root
-        # Pester.BeforeContainer.ps1) dot-sourced into the run session state before each container
+        # Initialization text (resolved from the repo-root Pester.BeforeContainer.ps1)
+        # dot-sourced into the run session state before each container
         # is discovered and run, so the same setup is available in sequential and parallel runs.
         [string] $BeforeContainerInit
     )

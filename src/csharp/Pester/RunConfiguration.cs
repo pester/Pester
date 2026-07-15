@@ -33,7 +33,6 @@ namespace Pester
         private BoolOption _passThru;
         private BoolOption _skipRun;
         private BoolOption _parallel;
-        private ScriptBlockArrayOption _beforeContainer;
         private IntOption _parallelThrottleLimit;
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
@@ -59,7 +58,6 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(Parallel), v => Parallel = v);
-                configuration.AssignArrayIfNotNull<ScriptBlock>(nameof(BeforeContainer), v => BeforeContainer = v);
                 configuration.AssignValueIfNotNull<int>(nameof(ParallelThrottleLimit), v => ParallelThrottleLimit = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
@@ -79,11 +77,10 @@ namespace Pester
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
             Parallel = new BoolOption("EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when CodeCoverage is enabled, or when Run.SkipRemainingOnFailure is set to 'Run'.", false);
-            BeforeContainer = new ScriptBlockArrayOption("EXPERIMENTAL: One or more ScriptBlocks run before each test file is discovered and run, in both sequential and parallel runs. Use it to import helper modules or dot-source setup that the parent session would normally provide, e.g. { . './setup.ps1' } - this is especially useful in parallel runs, where each worker starts from a clean runspace. One scriptblock is usually enough and can dot-source as many files as needed. When set, the convention file is ignored; when not set, Pester dot-sources a 'Pester.BeforeContainer.ps1' from the repository root (Run.RepoRoot) if one is present.", new ScriptBlock[0]);
             ParallelThrottleLimit = new IntOption("EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.", 0);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
-            RepoRoot = new StringOption("Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.", FindRepoRoot());
+            RepoRoot = new StringOption("EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.", FindRepoRoot());
         }
 
         public StringArrayOption Path
@@ -242,22 +239,6 @@ namespace Pester
                 else
                 {
                     _parallel = new BoolOption(_parallel, value.Value);
-                }
-            }
-        }
-
-        public ScriptBlockArrayOption BeforeContainer
-        {
-            get { return _beforeContainer; }
-            set
-            {
-                if (_beforeContainer == null)
-                {
-                    _beforeContainer = value;
-                }
-                else
-                {
-                    _beforeContainer = new ScriptBlockArrayOption(_beforeContainer, value?.Value);
                 }
             }
         }
