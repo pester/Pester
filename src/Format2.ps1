@@ -2,6 +2,16 @@
 # and is well below PowerShell's own call-depth limit, so it is fixed here rather than exposed as a configuration.
 $maximumFormatDepth = 10
 
+# Types that are too big, slow, or self-referential to expand in full, matched by base type so a single
+# entry covers every subtype. For these Get-DisplayProperty2 returns a short list of representative
+# properties, so Format-Nicely2 renders a compact summary (e.g. 'FunctionInfo{Name=Invoke-Pester}')
+# instead of walking the whole object. Ordered from the most concrete type to the least concrete.
+$script:representativePropertyByBaseType = @(
+    # A CommandInfo (function, cmdlet, alias, external script, ...) expands into an enormous, deeply
+    # nested tree that looks like a hang (#2865); its Name is the one useful thing to show.
+    @{ Type = [System.Management.Automation.CommandInfo]; Property = @('Name') }
+)
+
 function Format-Collection2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
     $length = 0
     $o = foreach ($v in $Value) {
@@ -164,7 +174,27 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumForma
         return Format-DataTable2 -Value $Value -Pretty:$Pretty
     }
 
-    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty -MaxDepth $MaxDepth
+    # Some types are too big, slow or self-referential to expand in full (e.g. CommandInfo fans out into
+    # a huge, deeply nested tree that is so slow to format it looks like a hang, #2865). For those the
+    # registry returns a short list of representative properties, so we render a compact summary like
+    # 'FunctionInfo{Name=Invoke-Pester}' that adds real information (the name) rather than a giant dump.
+    # This is bounded and cannot explode, so it is used at any depth and in both detailed assertion
+    # messages and shallow callers such as test-name templates.
+    $displayProperty = Get-DisplayProperty2 $Value.GetType()
+    if ($null -ne $displayProperty) {
+        return Format-Object2 -Value $Value -Property $displayProperty -Pretty:$Pretty -MaxDepth $MaxDepth
+    }
+
+    # Any other object is expanded property by property. Unlike scalars and containers such an object
+    # needs a whole extra level of budget to expand: with only one level left it collapses to just its
+    # type. That keeps detailed assertion messages (which start with the full budget) while letting
+    # shallow callers such as test-name templates render an unknown complex object as little text like
+    # '[SomeType]' instead of walking a giant, slow property tree.
+    if ($MaxDepth -le 1) {
+        return Get-ShortType2 -Value $Value
+    }
+
+    Format-Object2 -Value $Value -Pretty:$Pretty -MaxDepth $MaxDepth
 }
 
 function Format-NicelyForTemplate ($Value) {
@@ -177,25 +207,25 @@ function Format-NicelyForTemplate ($Value) {
         return $Value
     }
 
-    # Limit recursion to simple arrays and hashtable to avoid hangs and complex test names/paths.
+    # Limit recursion to keep test names short (#2865). Scalars, a single level of arrays and hashtables
+    # still render nicely, a registered type renders its compact representative summary (e.g. a
+    # CommandInfo referenced whole via '<cmd>' instead of '<cmd.Name>' becomes
+    # 'FunctionInfo{Name=Invoke-Pester}'), and any other complex object collapses to just its type.
     Format-Nicely2 -Value $Value -MaxDepth 1
 }
 
 function Get-DisplayProperty2 ([Type]$Type) {
     # rename to Get-DisplayProperty?
 
-    <# some objects are simply too big to show all of their properties,
-    so we can create a list of properties to show from an object
-    maybe the default info from Get-FormatData could be utilized here somehow
-    so we show only stuff that would normally show in format-table view
-    leveraging the work PS team already did #>
+    <# Some objects are simply too big, slow, or self-referential to show all of their properties, so we
+    keep a small registry of representative properties to show instead. This both keeps assertion
+    messages readable and stops complex objects that are referenced whole in a test-name template from
+    expanding into an enormous, slow property dump (#2865, #2474). To tame a new type, add one entry.
 
-    # this will become more advanced, basically something along the lines of:
-    # foreach type, try constructing the type, and if it exists then check if the
-    # incoming type is assignable to the current type, if so then return the properties,
-    # this way I can specify the map from the most concrete type to the least concrete type
-    # and for types that do not exist
+    maybe the default info from Get-FormatData could be utilized here somehow so we show only stuff that
+    would normally show in format-table view, leveraging the work the PS team already did. #>
 
+    # Exact type -> representative properties. Fast, and does not affect subtypes.
     $propertyMap = @{
         'System.Diagnostics.Process'  = 'Id', 'Name'
         # DirectoryInfo and FileInfo have circular references (Root, Directory) that cause infinite recursion
@@ -203,7 +233,19 @@ function Get-DisplayProperty2 ([Type]$Type) {
         'System.IO.FileInfo'          = 'Name', 'FullName', 'Length'
     }
 
-    $propertyMap[$Type.FullName]
+    $exact = $propertyMap[$Type.FullName]
+    if ($null -ne $exact) {
+        return $exact
+    }
+
+    # Base type -> representative properties, matched by assignability so a single entry covers every
+    # subtype (e.g. CommandInfo covers FunctionInfo, CmdletInfo, AliasInfo, ExternalScriptInfo, ...).
+    # Ordered from the most concrete type to the least concrete; the first assignable entry wins.
+    foreach ($entry in $script:representativePropertyByBaseType) {
+        if ($entry.Type.IsAssignableFrom($Type)) {
+            return $entry.Property
+        }
+    }
 }
 
 function Get-ShortType2 ($Value) {

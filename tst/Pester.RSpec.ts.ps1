@@ -2230,6 +2230,25 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Jakub"
         }
 
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # Referencing a whole complex object (e.g. a CommandInfo as <func> instead of <func.Name>)
+        # used to expand into an enormous property tree that took so long it looked like Pester hung.
+        # A CommandInfo is a registered type, so it must render a compact summary (its Name) and
+        # complete promptly.
+        t "a complex object like CommandInfo in the name renders a short summary instead of hanging" {
+            $sb = {
+                Describe 'd <func>' {
+                    It 'i <func>' { }
+                } -ForEach @(@{ func = (Get-Command -Name 'Invoke-Pester') })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+        }
+
         t "`$variable remains as literal text after expanding" {
             $sb = {
                 Describe "d `$abc" {
