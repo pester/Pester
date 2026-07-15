@@ -94,22 +94,29 @@ function Split-PesterEventTape {
     DiscoveryEnd/RunStart steps at the right moment, the parent needs the per-container steps
     grouped by phase: everything up to and including ContainerDiscoveryEnd is discovery, the
     rest (ContainerRunStart onward) is the run.
+
+    The tape may also carry host/debug output entries (Step = $null) captured while the file ran.
+    Splitting positionally at ContainerDiscoveryEnd - rather than by step name - keeps each of those
+    entries in the phase it was produced in, so debug written during discovery replays with discovery
+    and debug written during the run replays interleaved with the tests.
     #>
     [CmdletBinding()]
     param(
         [object[]] $Tape
     )
 
-    $discoverySteps = @('ContainerDiscoveryStart', 'BlockDiscoveryStart', 'TestDiscoveryStart', 'TestDiscoveryEnd', 'BlockDiscoveryEnd', 'ContainerDiscoveryEnd')
     $discovery = [System.Collections.Generic.List[object]]@()
     $run = [System.Collections.Generic.List[object]]@()
 
+    $inRun = $false
     foreach ($entry in $Tape) {
-        if ($discoverySteps -contains $entry.Step) {
-            $discovery.Add($entry)
-        }
-        else {
+        if ($inRun) {
             $run.Add($entry)
+            continue
+        }
+        $discovery.Add($entry)
+        if ('ContainerDiscoveryEnd' -eq $entry.Step) {
+            $inRun = $true
         }
     }
 
@@ -313,10 +320,16 @@ function Invoke-TestInParallel {
             New-PluginObject @h
         } $tape $recordedSteps
 
-        # Inject the recorder via the supported additional-plugins channel. When coverage is on, also
-        # tell the Coverage plugin's End step to skip report generation and the output-file write in
-        # this worker - the parent merges every worker's raw hits and emits the single report/file.
+        # Inject the recorder via the supported additional-plugins channel and point the module's
+        # parallel output tape at the same list, so both the recorded plugin steps and any host/debug
+        # output the run writes are appended to one ordered tape. Run, then clear both. The tape is
+        # wrapped in a hashtable when handed across the module boundary: passing the (still empty) list
+        # positionally coerces it to a fixed-size array, which then throws on .Add during the run.
+        # When coverage is on, also tell the Coverage plugin's End step to skip report generation and
+        # the output-file write in this worker - the parent merges every worker's raw hits and emits the
+        # single report/file.
         & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
+        & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }
         if ($collectCoverage) {
             & $pesterModule { $script:CodeCoverageSkipReport = $true }
         }
@@ -324,7 +337,7 @@ function Invoke-TestInParallel {
             $out = Invoke-Pester -Configuration $workerConfig
         }
         finally {
-            & $pesterModule { $script:additionalPlugins = $null }
+            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null }
             if ($collectCoverage) {
                 & $pesterModule { $script:CodeCoverageSkipReport = $null }
             }

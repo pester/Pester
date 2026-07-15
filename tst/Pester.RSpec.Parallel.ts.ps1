@@ -624,4 +624,83 @@ Describe 'OuterTwo' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
     }
+
+    b "Run.Parallel debug output" {
+        t "captures debug output and replays it interleaved with each file's tests" {
+            # Each worker runs silently and records its screen and debug output into the shared tape;
+            # the parent replays that tape in order. So debug output must come back interleaved with the
+            # per-test output of the file that produced it, not dumped up front detached from it (#2825).
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' { It 'a1 passes' { 1 | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Diagnostic'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # 6>&1 folds the host output (written as information records) into the pipeline so we can
+                # replay it exactly as it was rendered; the Pester.Run object comes out alongside it.
+                $out = Invoke-Pester -Configuration $c 3>$null 6>&1
+                $r = @($out).Where({ $_ -is [Pester.Run] })[0]
+
+                # The run still executes in parallel and produces correct results.
+                $r.PassedCount | Verify-Equal 2
+
+                # PowerShell 5.1 has no ForEach-Object -Parallel and falls back to a sequential run whose
+                # output differs, so only assert the exact parallel rendering on 7+.
+                if ($PSVersionTable.PSVersion.Major -ge 7) {
+                    # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
+                    # then blank out the volatile version, temp paths and timings so the snapshot is stable.
+                    $sb = [System.Text.StringBuilder]::new()
+                    foreach ($rec in @($out)) {
+                        if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
+                        $md = $rec.MessageData
+                        if ($md -is [System.Management.Automation.HostInformationMessage]) {
+                            $null = $sb.Append($md.Message)
+                            if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
+                        }
+                    }
+                    $normalized = $sb.ToString() `
+                        -replace 'Pester v\S+', 'Pester v<version>' `
+                        -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
+                        -replace '\d+ ms', '<time> ms' `
+                        -replace '\d+ms', '<time>ms'
+                    $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
+
+                    # Each file's discovery is immediately followed by that same file's run - A fully, then
+                    # B fully - instead of both discoveries being dumped up front, detached from the tests.
+                    $expected = @'
+Pester v<version>
+
+Running tests from 2 files in parallel.
+Discovery: Discovering tests in A.Tests.ps1
+Discovery: Found 1 tests in <time> ms
+
+Running tests from 'A.Tests.ps1'
+Describing A
+  [+] a1 passes <time>ms
+Discovery: Discovering tests in B.Tests.ps1
+Discovery: Found 1 tests in <time> ms
+
+Running tests from 'B.Tests.ps1'
+Describing B
+  [+] b1 passes <time>ms
+Tests completed in <time>ms
+Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
+'@ -replace "`r`n", "`n"
+
+                    $actual | Verify-Equal $expected
+                }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
 }

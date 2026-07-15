@@ -125,6 +125,23 @@ function Write-PesterHostMessage {
     }
 
     process {
+        # In a parallel worker the whole run is silenced (Output.Verbosity = 'None') and its output is
+        # captured into the shared event tape (see Invoke-TestInParallel) so the parent can replay it in
+        # order. Instead of writing to the host right away - which in a ForEach-Object -Parallel runspace
+        # surfaces live and detached from the test that produced it (#2825) - append the message to the
+        # tape. The worker runs one file synchronously, so append order already is the correct order, and
+        # host/debug entries land interleaved with the per-test steps the recorder captured around them.
+        # Read the tape via GetValue (not the 'defined' helper): 'defined' returns the value through a
+        # function output, which enumerates a collection and would hand back its first element instead of
+        # the list itself. GetValue returns the list object and tolerates the variable being unset ($null).
+        $parallelOutputTape = $ExecutionContext.SessionState.PSVariable.GetValue('parallelOutputTape')
+        if ($null -ne $parallelOutputTape) {
+            $captured = @{}
+            foreach ($k in $PSBoundParameters.Keys) { $captured[$k] = $PSBoundParameters[$k] }
+            $null = $parallelOutputTape.Add([PSCustomObject]@{ Step = $null; Host = $captured })
+            return
+        }
+
         if (-not $HostSupportsOutput) { return }
 
         if ($RenderMode -eq 'Ansi') {
