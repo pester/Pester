@@ -26,6 +26,7 @@ namespace Pester
         private StringOption _stackTraceVerbosity;
         private StringOption _ciFormat;
         private StringOption _ciLogLevel;
+        private StringOption _ciDebugOutput;
         private StringOption _renderMode;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
@@ -42,6 +43,7 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(StackTraceVerbosity), v => StackTraceVerbosity = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(CIFormat), v => CIFormat = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(CILogLevel), v => CILogLevel = v);
+                configuration.AssignObjectIfNotNull<string>(nameof(CIDebugOutput), v => CIDebugOutput = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RenderMode), v => RenderMode = v);
             }
         }
@@ -52,6 +54,7 @@ namespace Pester
             StackTraceVerbosity = new StringOption("The verbosity of stacktrace output, options are None, FirstLine, Filtered and Full.", "Filtered");
             CIFormat = new StringOption("The CI format of error output in build logs, options are None, Auto, AzureDevops and GithubActions.", "Auto");
             CILogLevel = new StringOption("The CI log level in build logs, options are Error and Warning.", "Error");
+            CIDebugOutput = new StringOption("Whether to automatically surface verbose and debug output when a CI system has its debug switch enabled (Azure DevOps 'System.Debug', GitHub Actions runner debug logging), options are None and Auto.", "Auto");
             RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.", "Auto");
         }
 
@@ -115,6 +118,22 @@ namespace Pester
                 else
                 {
                     _ciLogLevel = new StringOption(_ciLogLevel, value?.Value);
+                }
+            }
+        }
+
+        public StringOption CIDebugOutput
+        {
+            get { return _ciDebugOutput; }
+            set
+            {
+                if (_ciDebugOutput == null)
+                {
+                    _ciDebugOutput = value;
+                }
+                else
+                {
+                    _ciDebugOutput = new StringOption(_ciDebugOutput, value?.Value);
                 }
             }
         }

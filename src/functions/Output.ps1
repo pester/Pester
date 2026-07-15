@@ -1143,6 +1143,19 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
     }
 
+    $supportedCIDebugOutput = 'None', 'Auto'
+    if ($PesterPreference.Output.CIDebugOutput.Value -notin $supportedCIDebugOutput) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIDebugOutput' -SupportedValues $supportedCIDebugOutput -Value $PesterPreference.Output.CIDebugOutput.Value)
+    }
+    elseif ((-not $PesterPreference.Output.Verbosity.IsModified) -and (Test-CIDebugOutputEnabled -PesterPreference $PesterPreference)) {
+        # A CI system has its debug switch enabled and the user did not pick a verbosity explicitly.
+        # Raise the verbosity to Diagnostic so the run shows detailed output and Pester's debug messages,
+        # matching how e.g. Azure DevOps' System.Debug makes the rest of the pipeline verbose.
+        # The user's own Write-Verbose / Write-Debug in tests is surfaced separately during the run,
+        # see Invoke-ContainerRun in Pester.Runtime.ps1.
+        $PesterPreference.Output.Verbosity = 'Diagnostic'
+    }
+
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {
         # Enforce the default debug-output as a minimum. This is the key difference between Detailed and Diagnostic
         $PesterPreference.Debug.WriteDebugMessages = $true
