@@ -54,8 +54,8 @@ Describe 'Get-Planet' {
         $allPlanets = Get-Planet
 
         # We count how many planets we got. And validate it by using
-        # the Should-Be assertion.
-        $allPlanets.Count | Should-Be 8
+        # the Should-BeCollection assertion.
+        $allPlanets |  Should-BeCollection -Count 8
 
         # The assertion will do nothing if the count is 8,
         # and throw an exception if the count is something else.
@@ -117,7 +117,6 @@ Describe 'Get-Planet' {
         It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
             @{ Filter = 'm*'   ; Expected = 'Mercury', 'Mars' }
         ) {
-            param ($Filter, $Expected)
             $planets = Get-Planet -Name $Filter
             $planets.Name | Should-BeCollection $Expected
         }
