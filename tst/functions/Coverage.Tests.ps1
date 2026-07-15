@@ -1012,6 +1012,72 @@ InPesterModuleScope {
                 }
             }
         }
+
+        # https://github.com/pester/Pester/issues/1143
+        # The '& $wrappedCmd @PSBoundParameters' line inside a steppable-pipeline proxy
+        # function must not be reported as missed. PowerShell never fires the breakpoint on
+        # that scriptblock (the command runs through the steppable pipeline), so both the
+        # inner command and the scriptblock-literal wrapper it lives in are ignored.
+        Context 'Steppable-pipeline proxy function using <description>' -Foreach @(
+            @{ UseBreakpoints = $true; Description = "breakpoints" }
+            @{ UseBreakpoints = $false; Description = "Profiler based cc" }
+        ) {
+            BeforeAll {
+                $proxyScriptPath = Join-Path -Path $root -ChildPath TestScriptProxy.ps1
+                Set-Content -Path $proxyScriptPath -Value @'
+                function Test-Proxy {
+                    [CmdletBinding()]
+                    param(
+                        [Parameter(Position = 0, ValueFromPipeline, ValueFromRemainingArguments)]
+                        [object] $InputObject
+                    )
+                    begin {
+                        $wrappedCmd = $ExecutionContext.InvokeCommand.GetCommand('Microsoft.PowerShell.Utility\Write-Output', [System.Management.Automation.CommandTypes]::Cmdlet)
+                        $scriptCmd = { & $wrappedCmd @PSBoundParameters }
+                        $steppablePipeline = $scriptCmd.GetSteppablePipeline($myInvocation.CommandOrigin)
+                        $steppablePipeline.Begin($PSCmdlet)
+                    }
+                    process {
+                        $steppablePipeline.Process($_)
+                    }
+                    end {
+                        $steppablePipeline.End()
+                    }
+                }
+
+                Test-Proxy 'hello' | Out-Null
+'@
+
+                $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{ Path = $proxyScriptPath; Function = 'Test-Proxy' } -UseBreakpoints $UseBreakpoints
+
+                @($breakpoints).Count | Should -Be 5 -Because 'the & $wrappedCmd call and the scriptblock literal wrapping it are ignored'
+
+                if ($UseBreakpoints) {
+                    & $proxyScriptPath | Out-Null
+                }
+                else {
+                    $patched, $tracer = Start-TraceScript $breakpoints
+                    try { & $proxyScriptPath | Out-Null } finally { Stop-TraceScript -Patched $patched }
+                    $measure = $tracer.Hits
+                }
+
+                $coverageReport = Get-CoverageReport -CommandCoverage $breakpoints -Measure $measure
+            }
+
+            It 'Reports no missed commands for the steppable-pipeline proxy' {
+                $coverageReport.MissedCommands.Count | Should -Be 0
+            }
+
+            It 'Reports every analyzed command as executed' {
+                $coverageReport.NumberOfCommandsExecuted | Should -Be $coverageReport.NumberOfCommandsAnalyzed
+            }
+
+            AfterAll {
+                if ($UseBreakpoints) {
+                    Exit-CoverageAnalysis -CommandCoverage $breakpoints
+                }
+            }
+        }
     }
 
     Describe 'Path resolution for test files' {

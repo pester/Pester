@@ -425,7 +425,7 @@ function IsIgnoredCommand {
         return $true
     }
 
-    if ($Command.Extent.Text -match '^{?& \$wrappedCmd @PSBoundParameters ?}?$' -and
+    if ($Command.Extent.Text -match '^{? ?& \$wrappedCmd @PSBoundParameters ?}?$' -and
         (Get-AstTopParent -Ast $Command) -like '*$steppablePipeline.Begin($PSCmdlet)*$steppablePipeline.Process($_)*$steppablePipeline.End()*' ) {
         # Fix for proxy function wrapped pipeline command. PowerShell does not increment the hit count when
         # these functions are executed using the steppable pipeline; further, these checks are redundant, as
