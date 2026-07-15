@@ -195,7 +195,7 @@ InPesterModuleScope {
                 # Path deliberately duplicated to make sure the code doesn't produce multiple breakpoints for the same commands
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage $testScriptPath, $testScriptPath, $testScript2Path, $testScript3Path, $testScriptStatementsPath, $testScriptExitPath -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 40 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should-Be 40 -Because 'it has the proper number of breakpoints defined'
 
                 $sb = {
                     $null = & $testScriptPath
@@ -219,45 +219,45 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 34
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 34
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 40
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 40
             }
 
             It 'Reports the proper number of analyzed files' {
-                $coverageReport.NumberOfFilesAnalyzed | Should -Be 5
+                $coverageReport.NumberOfFilesAnalyzed | Should-Be 5
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 6
+                $coverageReport.MissedCommands.Count | Should-Be 6
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should -Be "'I cannot get called.'"
-                $coverageReport.MissedCommands[1].Command | Should -Be "'I am function two. I never get called.'"
-                $coverageReport.MissedCommands[2].Command | Should -Be "'I am method two. I never get called.'"
-                $coverageReport.MissedCommands[3].Command | Should -Be "'I was skipped because 2 called break in switch.'"
-                $coverageReport.MissedCommands[4].Command | Should -Be "'I was skipped by a labeled break.'"
-                $coverageReport.MissedCommands[5].Command | Should -Be "'I was skipped by a labeled contiune.'"
+                $coverageReport.MissedCommands[0].Command | Should-Be "'I cannot get called.'"
+                $coverageReport.MissedCommands[1].Command | Should-Be "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[2].Command | Should-Be "'I am method two. I never get called.'"
+                $coverageReport.MissedCommands[3].Command | Should-Be "'I was skipped because 2 called break in switch.'"
+                $coverageReport.MissedCommands[4].Command | Should-Be "'I was skipped by a labeled break.'"
+                $coverageReport.MissedCommands[5].Command | Should-Be "'I was skipped by a labeled contiune.'"
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 34
+                $coverageReport.HitCommands.Count | Should-Be 34
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should -Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
             }
 
             It 'Reports the correct class names' {
                 $coverageReport.HitCommands[0].Class | Should -BeNullOrEmpty
                 # Classes have been introduced in PowerShell 5.0
                 if ($PSVersionTable.PSVersion.Major -ge 5) {
-                    $coverageReport.HitCommands[9].Class | Should -Be 'MyBaseClass'
-                    $coverageReport.HitCommands[10].Class | Should -Be 'MyClass'
-                    $coverageReport.MissedCommands[2].Class | Should -Be 'MyClass'
+                    $coverageReport.HitCommands[9].Class | Should-Be 'MyBaseClass'
+                    $coverageReport.HitCommands[10].Class | Should-Be 'MyClass'
+                    $coverageReport.MissedCommands[2].Class | Should-Be 'MyClass'
                 }
                 else {
                     $coverageReport.HitCommands[9].Class | Should -BeNullOrEmpty
@@ -266,11 +266,11 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct function names' {
-                $coverageReport.HitCommands[0].Function | Should -Be 'NestedFunction'
-                $coverageReport.HitCommands[2].Function | Should -Be 'FunctionOne'
-                $coverageReport.HitCommands[9].Function | Should -Be 'MyBaseClass'
-                $coverageReport.HitCommands[10].Function | Should -Be 'MyClass'
-                $coverageReport.MissedCommands[2].Function | Should -Be 'MethodTwo'
+                $coverageReport.HitCommands[0].Function | Should-Be 'NestedFunction'
+                $coverageReport.HitCommands[2].Function | Should-Be 'FunctionOne'
+                $coverageReport.HitCommands[9].Function | Should-Be 'MyBaseClass'
+                $coverageReport.HitCommands[10].Function | Should-Be 'MyClass'
+                $coverageReport.MissedCommands[2].Function | Should-Be 'MethodTwo'
             }
 
             It 'JaCoCo report must be correct' {
@@ -281,7 +281,7 @@ InPesterModuleScope {
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$([System.Environment]::NewLine)", ''
                 $jaCoCoReportXml = $jaCoCoReportXml -replace "$(Split-Path -Path $root -Leaf)", 'CommonRoot'
                 $jaCoCoReportXml = $jaCoCoReportXml.Replace($root.Replace('\', '/'), '')
-                (Clear-WhiteSpace $jaCoCoReportXml) | Should -Be (Clear-WhiteSpace '
+                (Clear-WhiteSpace $jaCoCoReportXml) | Should-Be (Clear-WhiteSpace '
                 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
                 <!DOCTYPE report PUBLIC "-//JACOCO//DTD Report 1.1//EN" "report.dtd">
                 <report name="Pester (date)">
@@ -467,7 +467,7 @@ InPesterModuleScope {
                 $coberturaReportXml = $coberturaReportXml -replace "$([System.Environment]::NewLine)", ''
                 $coberturaReportXml = $coberturaReportXml.Replace($root, 'CommonRoot')
                 $coberturaReportXml = $coberturaReportXml.Replace($root.Replace('\', '/'), 'CommonRoot')
-                (Clear-WhiteSpace $coberturaReportXml) | Should -Be (Clear-WhiteSpace '
+                (Clear-WhiteSpace $coberturaReportXml) | Should-Be (Clear-WhiteSpace '
                 <?xml version="1.0" ?>
                 <!DOCTYPE coverage SYSTEM "coverage-loose.dtd">
                 <coverage lines-valid="35" lines-covered="30" line-rate="0.857142857142857" branches-valid="0"
@@ -598,26 +598,26 @@ InPesterModuleScope {
             It 'JaCoCo returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
                 [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -ReportRoot $TestDrive
-                $jaCoCoReportXml | Should -Not -Be $null
-                $jaCoCoReportXml | Should -Be ([String]::Empty)
+                $jaCoCoReportXml | Should-NotBe $null
+                $jaCoCoReportXml | Should-Be ([String]::Empty)
             }
 
             It 'Cobertura returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
                 [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000 -ReportRoot $TestDrive
-                $coberturaReportXml | Should -Not -Be $null
-                $coberturaReportXml | Should -Be ([String]::Empty)
+                $coberturaReportXml | Should-NotBe $null
+                $coberturaReportXml | Should-Be ([String]::Empty)
             }
 
             It 'Reports the right line numbers' {
-                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].Line | Should -Be 1
-                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].StartLine | Should -Be 1
-                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].EndLine | Should -Be 3
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].Line | Should-Be 1
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].StartLine | Should-Be 1
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].EndLine | Should-Be 3
             }
 
             It 'Reports the right column numbers' {
-                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].StartColumn | Should -Be 13
-                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].EndColumn | Should -Be 24
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].StartColumn | Should-Be 13
+                $coverageReport.HitCommands[$coverageReport.NumberOfCommandsExecuted - 1].EndColumn | Should-Be 24
             }
 
             AfterAll {
@@ -633,7 +633,7 @@ InPesterModuleScope {
         ) {
             BeforeAll {
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionTwo' } -UseBreakpoints $UseBreakpoints
-                @($breakpoints).Count | Should -Be 1 -Because "it has the proper number of breakpoints defined"
+                @($breakpoints).Count | Should-Be 1 -Because "it has the proper number of breakpoints defined"
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -648,23 +648,23 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 0
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 0
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 1
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 1
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 1
+                $coverageReport.MissedCommands.Count | Should-Be 1
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should -Be "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[0].Command | Should-Be "'I am function two. I never get called.'"
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 0
+                $coverageReport.HitCommands.Count | Should-Be 0
             }
 
             AfterAll {
@@ -682,7 +682,7 @@ InPesterModuleScope {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Function = 'FunctionOne' } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 9 -Because "it has the proper number of breakpoints defined"
+                @($breakpoints).Count | Should-Be 9 -Because "it has the proper number of breakpoints defined"
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -697,23 +697,23 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 8
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 8
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 9
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 9
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 1
+                $coverageReport.MissedCommands.Count | Should-Be 1
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 8
+                $coverageReport.HitCommands.Count | Should-Be 8
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should -Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
             }
 
             AfterAll {
@@ -731,7 +731,7 @@ InPesterModuleScope {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; StartLine = 11; EndLine = 12 } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 2 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should-Be 2 -Because 'it has the proper number of breakpoints defined'
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -746,23 +746,23 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 2
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 2
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 2
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 2
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 0
+                $coverageReport.MissedCommands.Count | Should-Be 0
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 2
+                $coverageReport.HitCommands.Count | Should-Be 2
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should -Be "'I am functionOne'"
+                $coverageReport.HitCommands[0].Command | Should-Be "'I am functionOne'"
             }
 
             AfterAll {
@@ -779,7 +779,7 @@ InPesterModuleScope {
             BeforeAll {
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = "$(Join-Path -Path $root -ChildPath *.ps1)"; Function = '*' } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 14 -Because 'it has the proper number of breakpoints defined'
+                @($breakpoints).Count | Should-Be 14 -Because 'it has the proper number of breakpoints defined'
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -794,32 +794,32 @@ InPesterModuleScope {
             }
 
             It 'Reports the proper number of executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 11
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 11
             }
 
             It 'Reports the proper number of analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 14
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 14
             }
 
             It 'Reports the proper number of analyzed files' {
-                $coverageReport.NumberOfFilesAnalyzed | Should -Be 1
+                $coverageReport.NumberOfFilesAnalyzed | Should-Be 1
             }
 
             It 'Reports the proper number of missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 3
+                $coverageReport.MissedCommands.Count | Should-Be 3
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should -Be "'I cannot get called.'"
-                $coverageReport.MissedCommands[1].Command | Should -Be "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[0].Command | Should-Be "'I cannot get called.'"
+                $coverageReport.MissedCommands[1].Command | Should-Be "'I am function two. I never get called.'"
             }
 
             It 'Reports the proper number of hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 11
+                $coverageReport.HitCommands.Count | Should-Be 11
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should -Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
             }
 
             AfterAll {
@@ -839,7 +839,7 @@ InPesterModuleScope {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass' } -UseBreakpoints $UseBreakpoints
 
-                    @($breakpoints).Count | Should -Be 3 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should-Be 3 -Because 'it has the proper number of breakpoints defined'
 
                     if ($UseBreakpoints) {
                         & $testScriptPath
@@ -854,19 +854,19 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of executed commands' {
-                    $coverageReport.NumberOfCommandsExecuted | Should -Be 2
+                    $coverageReport.NumberOfCommandsExecuted | Should-Be 2
                 }
 
                 It 'Reports the proper number of analyzed commands' {
-                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3
+                    $coverageReport.NumberOfCommandsAnalyzed | Should-Be 3
                 }
 
                 It 'Reports the proper number of missed commands' {
-                    $coverageReport.MissedCommands.Count | Should -Be 1
+                    $coverageReport.MissedCommands.Count | Should-Be 1
                 }
 
                 It 'Reports the proper number of hit commands' {
-                    $coverageReport.HitCommands.Count | Should -Be 2
+                    $coverageReport.HitCommands.Count | Should-Be 2
                 }
 
                 AfterAll {
@@ -884,7 +884,7 @@ InPesterModuleScope {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = '*' } -UseBreakpoints $UseBreakpoints
 
-                    @($breakpoints).Count | Should -Be 4 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should-Be 4 -Because 'it has the proper number of breakpoints defined'
 
                     if ($UseBreakpoints) {
                         & $testScriptPath
@@ -899,19 +899,19 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of executed commands' {
-                    $coverageReport.NumberOfCommandsExecuted | Should -Be 3
+                    $coverageReport.NumberOfCommandsExecuted | Should-Be 3
                 }
 
                 It 'Reports the proper number of analyzed commands' {
-                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 4
+                    $coverageReport.NumberOfCommandsAnalyzed | Should-Be 4
                 }
 
                 It 'Reports the proper number of missed commands' {
-                    $coverageReport.MissedCommands.Count | Should -Be 1
+                    $coverageReport.MissedCommands.Count | Should-Be 1
                 }
 
                 It 'Reports the proper number of hit commands' {
-                    $coverageReport.HitCommands.Count | Should -Be 3
+                    $coverageReport.HitCommands.Count | Should-Be 3
                 }
 
                 AfterAll {
@@ -929,7 +929,7 @@ InPesterModuleScope {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{Path = $testScriptPath; Class = 'MyClass'; Function = 'MethodTwo' } -UseBreakpoints $UseBreakpoints
 
-                    @($breakpoints).Count | Should -Be 1 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should-Be 1 -Because 'it has the proper number of breakpoints defined'
 
                     if ($UseBreakpoints) {
                         & $testScriptPath
@@ -944,19 +944,19 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of executed commands' {
-                    $coverageReport.NumberOfCommandsExecuted | Should -Be 0
+                    $coverageReport.NumberOfCommandsExecuted | Should-Be 0
                 }
 
                 It 'Reports the proper number of analyzed commands' {
-                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 1
+                    $coverageReport.NumberOfCommandsAnalyzed | Should-Be 1
                 }
 
                 It 'Reports the proper number of missed commands' {
-                    $coverageReport.MissedCommands.Count | Should -Be 1
+                    $coverageReport.MissedCommands.Count | Should-Be 1
                 }
 
                 It 'Reports the proper number of hit commands' {
-                    $coverageReport.HitCommands.Count | Should -Be 0
+                    $coverageReport.HitCommands.Count | Should-Be 0
                 }
 
                 AfterAll {
@@ -975,7 +975,7 @@ InPesterModuleScope {
 
                     $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{ Path = $testScriptPath; Class = 'MyClass' } -UseBreakpoints $UseBreakpoints
 
-                    @($breakpoints).Count | Should -Be 0 -Because 'it has the proper number of breakpoints defined'
+                    @($breakpoints).Count | Should-Be 0 -Because 'it has the proper number of breakpoints defined'
 
                     if ($UseBreakpoints) {
                         & $testScriptPath
@@ -990,19 +990,19 @@ InPesterModuleScope {
                 }
 
                 It 'Reports the proper number of executed commands' {
-                    $coverageReport.NumberOfCommandsExecuted | Should -Be 0
+                    $coverageReport.NumberOfCommandsExecuted | Should-Be 0
                 }
 
                 It 'Reports the proper number of analyzed commands' {
-                    $coverageReport.NumberOfCommandsAnalyzed | Should -Be 0
+                    $coverageReport.NumberOfCommandsAnalyzed | Should-Be 0
                 }
 
                 It 'Reports the proper number of missed commands' {
-                    $coverageReport.MissedCommands.Count | Should -Be 0
+                    $coverageReport.MissedCommands.Count | Should-Be 0
                 }
 
                 It 'Reports the proper number of hit commands' {
-                    $coverageReport.HitCommands.Count | Should -Be 0
+                    $coverageReport.HitCommands.Count | Should-Be 0
                 }
 
                 AfterAll {
@@ -1099,10 +1099,10 @@ InPesterModuleScope {
                 $PesterTests = @($coverageInfo |
                         Select-Object -ExpandProperty Path |
                         Where-Object { $_ -notmatch '\.tests.ps1$' })
-                $PesterTests.Count | Should -Be 3
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.psm1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
+                $PesterTests.Count | Should-Be 3
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.psm1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
             }
             It 'Excludes test files by default when using wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *)"
@@ -1116,15 +1116,15 @@ InPesterModuleScope {
                 $PesterTests = @($coverageInfo |
                         Select-Object -ExpandProperty Path |
                         Where-Object { $_ -match '\.tests.ps1$' })
-                $PesterTests.Count | Should -Be 2
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
+                $PesterTests.Count | Should-Be 2
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
             }
             It 'Includes test file when targeted directly using filepath' {
                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
                 $coverageInfo = Get-CoverageInfoFromUserInput $path
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should -Be $path
+                $PesterTests | Should-Be $path
             }
         }
         Context 'Using object-input' {
@@ -1142,18 +1142,18 @@ InPesterModuleScope {
                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = $path; IncludeTests = $true }
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should -Be $path
+                $PesterTests | Should-Be $path
             }
             It 'Includes test files when IncludeTests is true and using wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath *)"; IncludeTests = $true }
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests.Count | Should -Be 6
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.psm1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
-                $PesterTests | Should -Contain $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.tests.ps1)
+                $PesterTests.Count | Should-Be 6
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.psm1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript.tests.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $root -ChildPath TestScript2.tests.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.ps1)
+                $PesterTests | Should-ContainCollection $(Join-Path -Path $rootSubFolder -ChildPath TestScript3.tests.ps1)
             }
         }
     }
@@ -1195,7 +1195,7 @@ InPesterModuleScope {
                     $_.Expression.Value -eq "I am not included"
                 }
 
-                $excludedCommand.Count | Should -Be 0 -Because "Command in excluded script blocks should not be collected."
+                $excludedCommand.Count | Should-Be 0 -Because "Command in excluded script blocks should not be collected."
             }
 
             It 'Processes included script blocks' {
@@ -1204,7 +1204,7 @@ InPesterModuleScope {
                     $_.Expression.Value -eq "I am included"
                 }
 
-                $includedCommand.Count | Should -Be 1 -Because "Command in included script blocks should be collected."
+                $includedCommand.Count | Should-Be 1 -Because "Command in included script blocks should be collected."
             }
         }
 
@@ -1230,7 +1230,7 @@ InPesterModuleScope {
                 $visitor = [Pester.CoverageLocationVisitor]::new()
                 $ast.Visit($visitor)
 
-                $visitor.CoverageLocations.Count | Should -Be 7 -Because "Break, Continue, Throw, and Exit statements should be collected."
+                $visitor.CoverageLocations.Count | Should-Be 7 -Because "Break, Continue, Throw, and Exit statements should be collected."
             }
         }
 
@@ -1245,7 +1245,7 @@ InPesterModuleScope {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{ Path = $testScriptPath } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 3 -Because 'The correct number of breakpoints should be defined.'
+                @($breakpoints).Count | Should-Be 3 -Because 'The correct number of breakpoints should be defined.'
 
                 if ($UseBreakpoints) {
                     & $testScriptPath
@@ -1260,19 +1260,19 @@ InPesterModuleScope {
             }
 
             It 'Correctly reports executed commands' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be 3 -Because 'The executed commands count should match.'
+                $coverageReport.NumberOfCommandsExecuted | Should-Be 3 -Because 'The executed commands count should match.'
             }
 
             It 'Correctly reports analyzed commands' {
-                $coverageReport.NumberOfCommandsAnalyzed | Should -Be 3 -Because 'All commands should be analyzed.'
+                $coverageReport.NumberOfCommandsAnalyzed | Should-Be 3 -Because 'All commands should be analyzed.'
             }
 
             It 'Correctly reports missed commands' {
-                $coverageReport.MissedCommands.Count | Should -Be 0 -Because 'No command should be missed.'
+                $coverageReport.MissedCommands.Count | Should-Be 0 -Because 'No command should be missed.'
             }
 
             It 'Correctly reports hit commands' {
-                $coverageReport.HitCommands.Count | Should -Be 3 -Because 'Three commands should be hit.'
+                $coverageReport.HitCommands.Count | Should-Be 3 -Because 'Three commands should be hit.'
             }
 
             AfterAll {

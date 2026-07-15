@@ -96,7 +96,7 @@ InPesterModuleScope {
             $first | Remove-Item -Force
             $second | Remove-Item -Force
 
-            $first | Should -Not -Be $second
+            $first | Should-NotBe $second
 
         }
     }
@@ -195,11 +195,11 @@ Describe 'Repair missing TestDrive' {
     Context 'Broken' {
         It 'Removes TestDrive' {
             Should -Exist -ActualValue $tempFilePath
-            Get-Content -Path $tempFilePath | Should -Be 'Hello'
+            Get-Content -Path $tempFilePath | Should-Be 'Hello'
 
             # Remove PSDrive
             Remove-PSDrive -Name 'TestDrive'
-            { Get-PSDrive -Name 'TestDrive' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+            { Get-PSDrive -Name 'TestDrive' -ErrorAction Stop } | Should-Throw -ExceptionMessage 'Cannot find drive*'
 
             # Remove variable
             Set-Variable -Name TestDrive -Scope Global -Value $null
@@ -214,7 +214,7 @@ Describe 'Repair missing TestDrive' {
             Should -Exist -ActualValue $tempFilePath
 
             # Verify PSDrive
-            Get-Content -Path "TestDrive:/$tempFileName" | Should -Be 'Hello'
+            Get-Content -Path "TestDrive:/$tempFileName" | Should-Be 'Hello'
         }
     }
 }
@@ -228,7 +228,7 @@ Describe 'Running Pester in Pester' {
 
     It 'File exists before' {
         Should -Exist -ActualValue $tempFilePath
-        Get-Content -Path $tempFilePath | Should -Be 'Hello'
+        Get-Content -Path $tempFilePath | Should-Be 'Hello'
     }
 
     It 'Works in nested run' {
@@ -236,13 +236,13 @@ Describe 'Running Pester in Pester' {
             Describe 'Nested' {
                 It 'Files created in outer run are available using absolute path' {
                     Should -Exist -ActualValue $TempFilePath
-                    Get-Content -Path $TempFilePath | Should -Be 'Hello'
+                    Get-Content -Path $TempFilePath | Should-Be 'Hello'
                 }
 
                 It 'TestDrive PSDrive and $TestDrive points to clean location' {
                     # Variable should point to new drive
                     $outerTestDrive = Split-Path $tempFilePath
-                    $TestDrive | Should -Not -Be $outerTestDrive
+                    $TestDrive | Should-NotBe $outerTestDrive
 
                     # TestDrive should be clean in inner run
                     Get-ChildItem -Path 'TestDrive:/' | Should -BeNullOrEmpty
@@ -252,17 +252,17 @@ Describe 'Running Pester in Pester' {
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempFilePath = $tempFilePath }
         $innerRun = Invoke-Pester -Container $c -PassThru -Output None
-        $innerRun.Result | Should -Be 'Passed'
-        $innerRun.PassedCount | Should -Be 2
+        $innerRun.Result | Should-Be 'Passed'
+        $innerRun.PassedCount | Should-Be 2
     }
 
     It 'TestDrive PSDrive and $TestDrive point to original location' {
         $originalTestDrive = Split-Path $tempFilePath
-        $TestDrive | Should -Be $originalTestDrive
+        $TestDrive | Should-Be $originalTestDrive
 
         $tempFilePath2 = Join-Path -Path 'TestDrive:/' -ChildPath $tempFileName
         Should -Exist -ActualValue $tempFilePath2
-        Get-Content -Path $tempFilePath2 | Should -Be 'Hello'
+        Get-Content -Path $tempFilePath2 | Should-Be 'Hello'
     }
 }
 

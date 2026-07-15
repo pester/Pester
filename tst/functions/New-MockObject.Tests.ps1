@@ -4,15 +4,15 @@ Describe 'New-MockObject' {
 
     It 'instantiates an object from a class with no public constructors' {
         $type = 'Microsoft.PowerShell.Commands.Language'
-        New-MockObject -Type $type | Should -BeOfType $type
+        New-MockObject -Type $type | Should-HaveType $type
     }
 
     It 'Add a property to existing object' {
         $o = New-Object -TypeName 'System.Diagnostics.Process'
         $mockObject = New-MockObject -InputObject $o -Properties @{ Id = 123 }
 
-        $mockObject | Should -Be $o
-        $mockObject.Id | Should -Be 123
+        $mockObject | Should-Be $o
+        $mockObject.Id | Should-Be 123
     }
 
     It 'User scriptblock can use $this to reference to itself' {
@@ -25,9 +25,9 @@ Describe 'New-MockObject' {
             }
         }
 
-        $mockObject | Should -Be $o
-        $mockObject.Name | Should -Be 'Jakub'
-        $mockObject.GetName() | Should -Be 'Jakub'
+        $mockObject | Should-Be $o
+        $mockObject.Name | Should-Be 'Jakub'
+        $mockObject.GetName() | Should-Be 'Jakub'
     }
 
     It 'Default parameter set is Type for backwards compatibility' {
@@ -36,7 +36,7 @@ Describe 'New-MockObject' {
     }
 
     It 'Mock using type input' {
-        New-MockObject -Type ([System.Diagnostics.Process]) | Should -BeOfType ([System.Diagnostics.Process])
+        New-MockObject -Type ([System.Diagnostics.Process]) | Should-HaveType ([System.Diagnostics.Process])
     }
 
     if ($PSVersionTable.PSVersion.Major -ge 5) {
@@ -54,10 +54,10 @@ Describe 'New-MockObject' {
                 $obj
             }
 
-            { [MyInternalClass] } | Should -Throw -ErrorId 'TypeNotFound'
+            { [MyInternalClass] } | Should-Throw -FullyQualifiedErrorId 'TypeNotFound'
             $mock = New-MockObject -Type $someObj.GetType() -Properties @{ Name = 'Mocked' }
-            $mock.GetType().Name | Should -Be 'MyInternalClass'
-            $mock.GetName() | Should -Be 'Mocked'
+            $mock.GetType().Name | Should-Be 'MyInternalClass'
+            $mock.GetName() | Should-Be 'Mocked'
         }
     }
 
@@ -66,21 +66,21 @@ Describe 'New-MockObject' {
             $o = New-Object -TypeName 'System.Diagnostics.Process'
             $mockObject = New-MockObject -InputObject $o -Methods @{ Kill = { param() "killed" } }
 
-            $mockObject | Should -Be $o
-            $mockObject.Kill() | Should -Be "killed"
+            $mockObject | Should-Be $o
+            $mockObject.Kill() | Should-Be "killed"
         }
 
         It "Counts history of the invocation" {
             $o = New-Object -TypeName 'System.Diagnostics.Process'
             $mockObject = New-MockObject -InputObject $o -Methods @{ Kill = { param($entireProcessTree) "killed" } }
 
-            $mockObject | Should -Be $o
-            $mockObject.Kill() | Should -Be "killed"
-            $mockObject._Kill[-1].Call | Should -Be 1
-            $mockObject._Kill[-1].Arguments | Should -Be $null
-            $mockObject.Kill($true) | Should -Be "killed"
-            $mockObject._Kill[-1].Call | Should -Be 2
-            $mockObject._Kill[-1].Arguments | Should -Be $true
+            $mockObject | Should-Be $o
+            $mockObject.Kill() | Should-Be "killed"
+            $mockObject._Kill[-1].Call | Should-Be 1
+            $mockObject._Kill[-1].Arguments | Should-Be $null
+            $mockObject.Kill($true) | Should-Be "killed"
+            $mockObject._Kill[-1].Call | Should-Be 2
+            $mockObject._Kill[-1].Arguments | Should-Be $true
         }
 
         It "Adds 2 methods to the object" {
@@ -89,8 +89,8 @@ Describe 'New-MockObject' {
                 Close   = { param($Server, $Port)"close" }
             }
 
-            $mockObject.Connect() | Should -Be "connect"
-            $mockObject.Close() | Should -Be "close"
+            $mockObject.Connect() | Should-Be "connect"
+            $mockObject.Close() | Should-Be "close"
         }
     }
 
@@ -101,18 +101,18 @@ Describe 'New-MockObject' {
         it 'Fails with just a normal mock' {
             $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process'
 
-            { $mockedProcess.Id = 123 } | Should -Throw
+            { $mockedProcess.Id = 123 } | Should-Throw
         }
 
         it 'Works when you mock the property' {
             $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{ Id = 123 }
 
-            $mockedProcess.Id | Should -Be 123
+            $mockedProcess.Id | Should-Be 123
         }
 
         it 'Should preserve types' {
             $mockedProcess = New-MockObject -Type 'System.Diagnostics.Process' -Properties @{Id = 123 }
-            $mockedProcess.Id | Should -BeOfType ([int])
+            $mockedProcess.Id | Should-HaveType ([int])
         }
     }
 }

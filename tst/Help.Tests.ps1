@@ -12,15 +12,15 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
         }
 
         It 'Help is found' {
-            $help.Name | Should -Be $_.Name
-            $help.Category | Should -Be $_.CommandType
-            $help.ModuleName | Should -Be $moduleName
+            $help.Name | Should-Be $_.Name
+            $help.Category | Should-Be $_.CommandType
+            $help.ModuleName | Should-Be $moduleName
         }
 
         It 'Synopsis is defined' {
             $help.Synopsis | Should -Not -BeNullOrEmpty
             # Syntax is used as synopsis when none is defined in help.
-            $help.Synopsis | Should -Not -Match "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
+            $help.Synopsis | Should-NotMatchString "^\s*$($_.Name)((\s+\[+?-\w+)|$)"
         }
 
         It 'Description is defined' {
@@ -36,12 +36,12 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $helpName = if ($alias) { $alias.Name } else { $help.Name }
 
             $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
-            $firstUri | Should -Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
+            $firstUri | Should-Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
         }
 
         It 'Has at least one example' {
             $help.Examples | Should -Not -BeNullOrEmpty
-            $help.Examples.example | Where-Object { -not $_.Code.Trim() } | Foreach-Object { $_.title.Trim("- ") } | Should -Be @() -Because 'no examples should be empty'
+            $help.Examples.example | Where-Object { -not $_.Code.Trim() } | ForEach-Object { $_.title.Trim('- ') } | Should-BeCollection @() -Because 'no examples should be empty'
         }
 
         It 'All static parameters have description' {
@@ -53,7 +53,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
                         Where-Object { $_.psobject.properties.name -notcontains 'description' } |
                         ForEach-Object name)
 
-                $parametersMissingHelp | Should -Be @()
+                $parametersMissingHelp | Should-BeCollection @()
             }
             else {
                 Set-ItResult -Skipped -Because 'no static parameters to test'
@@ -74,7 +74,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
                     $null -eq $attr -or $attr.HelpMessage -eq $null
                 } | ForEach-Object Name)
 
-            $parametersMissingHelp | Should -Be @() -Because "it it's required for Should's online docs"
+            $parametersMissingHelp | Should-BeCollection @() -Because "it it's required for Should's online docs"
         }
     }
 }
