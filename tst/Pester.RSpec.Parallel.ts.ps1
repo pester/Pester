@@ -452,14 +452,18 @@ Describe 'S' {
             ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*parallelizes only file-based runs*')
         }
 
-        t "falls back to sequential with a warning when CodeCoverage is enabled" {
+        t "collects and merges code coverage across parallel workers" {
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
             try {
-                # A code file to measure coverage on, plus two parallelizable test files that use it.
+                # A shared code file to measure coverage on, plus two parallelizable test files that
+                # each exercise a different function in it. The parallel run must collect coverage
+                # from every worker and merge it into one report - matching a sequential run exactly.
                 Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
 function Get-One { 1 }
 function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
 '@
                 Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
 BeforeAll { . $PSScriptRoot/lib.ps1 }
@@ -469,6 +473,59 @@ Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
 BeforeAll { . $PSScriptRoot/lib.ps1 }
 Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
 '@
+                $newConfig = {
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.CodeCoverage.Enabled = $true
+                    $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
+                    $c
+                }
+
+                $sequential = & $newConfig
+                $sequential.Run.Parallel = $false
+                $seq = Invoke-Pester -Configuration $sequential
+
+                $parallel = & $newConfig
+                $parallel.Run.Parallel = $true
+                $par = Invoke-Pester -Configuration $parallel
+
+                # Two of the four functions are covered; parallel must match sequential exactly.
+                $par.PassedCount | Verify-Equal 2
+                $par.CodeCoverage | Verify-NotNull
+                $par.CodeCoverage.CommandsAnalyzedCount | Verify-Equal $seq.CodeCoverage.CommandsAnalyzedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal $seq.CodeCoverage.CommandsExecutedCount
+                $par.CodeCoverage.CommandsMissedCount | Verify-Equal $seq.CodeCoverage.CommandsMissedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "merges code coverage from a file marked #pester:no-parallel" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                # A,B run in parallel; C opts out and runs in the parent. Coverage from the in-parent
+                # (non-parallel) file must be merged with the worker coverage.
+                Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
+function Get-One { 1 }
+function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
+'@
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
+'@
+                Set-Content -Path (Join-Path $folder 'C.Tests.ps1') -Value @'
+#pester:no-parallel
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'C' { It 'c1 passes' { Get-Three | Should -Be 3 } }
+'@
                 $c = [PesterConfiguration]::Default
                 $c.Run.Path = $folder
                 $c.Run.Parallel = $true
@@ -476,16 +533,15 @@ Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
                 $c.CodeCoverage.Enabled = $true
                 $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
 
-                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
+                $r = Invoke-Pester -Configuration $c
 
-                # The tests still run and produce correct counts.
-                $r.TotalCount | Verify-Equal 2
-                $r.PassedCount | Verify-Equal 2
-                # Parallel cannot collect coverage yet, so it must warn and run sequentially...
-                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*does not support CodeCoverage*')
-                # ...which means real coverage was collected (the parallel path collects none).
+                $r.PassedCount | Verify-Equal 3
                 $r.CodeCoverage | Verify-NotNull
-                ($r.CodeCoverage.CommandsAnalyzedCount -gt 0) | Verify-True
+                # Get-One, Get-Two (workers) and Get-Three (#pester:no-parallel) were executed.
+                $r.CodeCoverage.CommandsExecutedCount | Verify-Equal 3
+                $r.CodeCoverage.CommandsMissedCount | Verify-Equal 1
+                $executedLines = $r.CodeCoverage.CommandsExecuted.StartLine
+                $executedLines -contains 3 | Verify-True
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
