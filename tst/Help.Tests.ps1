@@ -12,9 +12,9 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
         }
 
         It 'Help is found' {
-            $help.Name | Should-Be $_.Name
+            $help.Name | Should-BeString $_.Name
             $help.Category | Should-Be $_.CommandType
-            $help.ModuleName | Should-Be $moduleName
+            $help.ModuleName | Should-BeString $moduleName
         }
 
         It 'Synopsis is defined' {
@@ -37,7 +37,7 @@ Describe "Testing module help" -Tag 'Help' -ForEach @{ exportedFunctions = $expo
             $helpName = if ($alias) { $alias.Name } else { $help.Name }
 
             $firstUri = $help.relatedLinks.navigationLink | Where-Object uri | Select-Object -First 1 -ExpandProperty uri
-            $firstUri | Should-Be "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
+            $firstUri | Should-BeString "https://pester.dev/docs/commands/$helpName" -Because 'first uri-link should be to online version of this help topic'
         }
 
         It 'Has at least one example' {

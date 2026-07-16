@@ -9,7 +9,7 @@ Describe 'Mocking Global Functions - Part Two' {
         $functionName = '01c1a57716fe4005ac1a7bf216f38ad0'
         $globalFunctionExists = Test-Path Function:\global:$functionName
         $globalFunctionExists | Should-BeTrue
-        & $functionName | Should-Be 'Original Function'
+        & $functionName | Should-BeString 'Original Function'
     }
 
     AfterAll {

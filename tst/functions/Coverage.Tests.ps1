@@ -235,12 +235,12 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should-Be "'I cannot get called.'"
-                $coverageReport.MissedCommands[1].Command | Should-Be "'I am function two. I never get called.'"
-                $coverageReport.MissedCommands[2].Command | Should-Be "'I am method two. I never get called.'"
-                $coverageReport.MissedCommands[3].Command | Should-Be "'I was skipped because 2 called break in switch.'"
-                $coverageReport.MissedCommands[4].Command | Should-Be "'I was skipped by a labeled break.'"
-                $coverageReport.MissedCommands[5].Command | Should-Be "'I was skipped by a labeled contiune.'"
+                $coverageReport.MissedCommands[0].Command | Should-BeString "'I cannot get called.'"
+                $coverageReport.MissedCommands[1].Command | Should-BeString "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[2].Command | Should-BeString "'I am method two. I never get called.'"
+                $coverageReport.MissedCommands[3].Command | Should-BeString "'I was skipped because 2 called break in switch.'"
+                $coverageReport.MissedCommands[4].Command | Should-BeString "'I was skipped by a labeled break.'"
+                $coverageReport.MissedCommands[5].Command | Should-BeString "'I was skipped by a labeled contiune.'"
             }
 
             It 'Reports the proper number of hit commands' {
@@ -248,16 +248,16 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-BeString "'I am the nested function.'"
             }
 
             It 'Reports the correct class names' {
                 $coverageReport.HitCommands[0].Class | Should-BeEmptyString
                 # Classes have been introduced in PowerShell 5.0
                 if ($PSVersionTable.PSVersion.Major -ge 5) {
-                    $coverageReport.HitCommands[9].Class | Should-Be 'MyBaseClass'
-                    $coverageReport.HitCommands[10].Class | Should-Be 'MyClass'
-                    $coverageReport.MissedCommands[2].Class | Should-Be 'MyClass'
+                    $coverageReport.HitCommands[9].Class | Should-BeString 'MyBaseClass'
+                    $coverageReport.HitCommands[10].Class | Should-BeString 'MyClass'
+                    $coverageReport.MissedCommands[2].Class | Should-BeString 'MyClass'
                 }
                 else {
                     $coverageReport.HitCommands[9].Class | Should-BeNull
@@ -266,11 +266,11 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct function names' {
-                $coverageReport.HitCommands[0].Function | Should-Be 'NestedFunction'
-                $coverageReport.HitCommands[2].Function | Should-Be 'FunctionOne'
-                $coverageReport.HitCommands[9].Function | Should-Be 'MyBaseClass'
-                $coverageReport.HitCommands[10].Function | Should-Be 'MyClass'
-                $coverageReport.MissedCommands[2].Function | Should-Be 'MethodTwo'
+                $coverageReport.HitCommands[0].Function | Should-BeString 'NestedFunction'
+                $coverageReport.HitCommands[2].Function | Should-BeString 'FunctionOne'
+                $coverageReport.HitCommands[9].Function | Should-BeString 'MyBaseClass'
+                $coverageReport.HitCommands[10].Function | Should-BeString 'MyClass'
+                $coverageReport.MissedCommands[2].Function | Should-BeString 'MethodTwo'
             }
 
             It 'JaCoCo report must be correct' {
@@ -660,7 +660,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should-Be "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[0].Command | Should-BeString "'I am function two. I never get called.'"
             }
 
             It 'Reports the proper number of hit commands' {
@@ -713,7 +713,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-BeString "'I am the nested function.'"
             }
 
             AfterAll {
@@ -762,7 +762,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should-Be "'I am functionOne'"
+                $coverageReport.HitCommands[0].Command | Should-BeString "'I am functionOne'"
             }
 
             AfterAll {
@@ -810,8 +810,8 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct missed command' {
-                $coverageReport.MissedCommands[0].Command | Should-Be "'I cannot get called.'"
-                $coverageReport.MissedCommands[1].Command | Should-Be "'I am function two. I never get called.'"
+                $coverageReport.MissedCommands[0].Command | Should-BeString "'I cannot get called.'"
+                $coverageReport.MissedCommands[1].Command | Should-BeString "'I am function two. I never get called.'"
             }
 
             It 'Reports the proper number of hit commands' {
@@ -819,7 +819,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct hit command' {
-                $coverageReport.HitCommands[0].Command | Should-Be "'I am the nested function.'"
+                $coverageReport.HitCommands[0].Command | Should-BeString "'I am the nested function.'"
             }
 
             AfterAll {
@@ -1050,7 +1050,7 @@ InPesterModuleScope {
 
                 $breakpoints = Enter-CoverageAnalysis -CodeCoverage @{ Path = $proxyScriptPath; Function = 'Test-Proxy' } -UseBreakpoints $UseBreakpoints
 
-                @($breakpoints).Count | Should -Be 5 -Because 'the & $wrappedCmd call and the scriptblock literal wrapping it are ignored'
+                @($breakpoints).Count | Should-Be 5 -Because 'the & $wrappedCmd call and the scriptblock literal wrapping it are ignored'
 
                 if ($UseBreakpoints) {
                     & $proxyScriptPath | Out-Null
@@ -1065,11 +1065,11 @@ InPesterModuleScope {
             }
 
             It 'Reports no missed commands for the steppable-pipeline proxy' {
-                $coverageReport.MissedCommands.Count | Should -Be 0
+                $coverageReport.MissedCommands.Count | Should-Be 0
             }
 
             It 'Reports every analyzed command as executed' {
-                $coverageReport.NumberOfCommandsExecuted | Should -Be $coverageReport.NumberOfCommandsAnalyzed
+                $coverageReport.NumberOfCommandsExecuted | Should-Be $coverageReport.NumberOfCommandsAnalyzed
             }
 
             AfterAll {
@@ -1124,7 +1124,7 @@ InPesterModuleScope {
                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
                 $coverageInfo = Get-CoverageInfoFromUserInput $path
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should-Be $path
+                $PesterTests | Should-BeString $path
             }
         }
         Context 'Using object-input' {
@@ -1142,7 +1142,7 @@ InPesterModuleScope {
                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = $path; IncludeTests = $true }
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should-Be $path
+                $PesterTests | Should-BeString $path
             }
             It 'Includes test files when IncludeTests is true and using wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath *)"; IncludeTests = $true }

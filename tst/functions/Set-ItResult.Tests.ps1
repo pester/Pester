@@ -6,7 +6,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Inconclusive -Because "we are setting it to inconclusive"
         }
         catch {
-            $_.FullyQualifiedErrorID | Should-Be "PesterTestInconclusive"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestInconclusive"
         }
     }
 
@@ -15,7 +15,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped -Because "we are forcing it to skip"
         }
         catch {
-            $_.FullyQualifiedErrorID | Should-Be "PesterTestSkipped"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestSkipped"
         }
     }
 
@@ -24,7 +24,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped -Because "we are forcing it to skip"
         }
         catch {
-            $_.Exception.Message | Should-Be "is skipped, because we are forcing it to skip"
+            $_.Exception.Message | Should-BeString "is skipped, because we are forcing it to skip"
         }
     }
 
@@ -33,7 +33,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped
         }
         catch {
-            $_.FullyQualifiedErrorID | Should-Be "PesterTestSkipped"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestSkipped"
         }
     }
 

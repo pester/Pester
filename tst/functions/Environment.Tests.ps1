@@ -53,25 +53,25 @@ InModuleScope -ModuleName Pester {
             # Pester 6 supports Windows PowerShell 5.1 and PowerShell 7+. PowerShell 6 is
             # EOL and is treated as Windows-only, so any version below 7 reports 'Windows'.
             Invoke-WithFakedEnvironment -Version 5 -Test {
-                GetPesterOs | Should-Be 'Windows'
+                GetPesterOs | Should-BeString 'Windows'
             }
         }
 
         It "Returns 'Windows' when `$IsWindows is `$true on PowerShell 7+" {
             Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsWindows = $true } -Test {
-                GetPesterOs | Should-Be 'Windows'
+                GetPesterOs | Should-BeString 'Windows'
             }
         }
 
         It "Returns 'macOS' when `$IsMacOS is `$true on PowerShell 7+" {
             Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsMacOS = $true } -Test {
-                GetPesterOs | Should-Be 'macOS'
+                GetPesterOs | Should-BeString 'macOS'
             }
         }
 
         It "Returns 'Linux' when `$IsLinux is `$true on PowerShell 7+" {
             Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsLinux = $true } -Test {
-                GetPesterOs | Should-Be 'Linux'
+                GetPesterOs | Should-BeString 'Linux'
             }
         }
 
@@ -85,7 +85,7 @@ InModuleScope -ModuleName Pester {
     Describe 'Get-TempDirectory' {
         It "Returns '/private/tmp' on macOS" {
             Mock GetPesterOs { 'macOS' }
-            Get-TempDirectory | Should-Be '/private/tmp'
+            Get-TempDirectory | Should-BeString '/private/tmp'
         }
 
         It 'Returns the system temp path on Windows' {
@@ -102,7 +102,7 @@ InModuleScope -ModuleName Pester {
     Describe 'Get-TempRegistry' -Skip:((GetPesterOs) -ne 'Windows') {
         # Get-TempRegistry uses the Windows registry provider, which only exists on Windows.
         It 'Returns the Pester registry root path' {
-            Get-TempRegistry | Should-Be 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
+            Get-TempRegistry | Should-BeString 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
         }
     }
 }

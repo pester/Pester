@@ -105,7 +105,7 @@ Describe 'Running Pester in Invoke-Pester' {
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempKeyPath = $tempValue.PSPath; TempValueName = $tempValueName }
         $innerRun = Invoke-Pester -Container $c -PassThru -Output None
-        $innerRun.Result | Should-Be 'Passed'
+        $innerRun.Result | Should-BeString 'Passed'
         $innerRun.PassedCount | Should-Be 2
     }
 

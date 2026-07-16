@@ -29,7 +29,7 @@ InPesterModuleScope {
 
             #using the string formatter here to know how the string will be output to screen
             $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
-            $Result | Should-Be "3.5"
+            $Result | Should-BeString "3.5"
         }
         It "Time is measured in seconds with 0,1 millisecond as lowest value" {
             $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
@@ -85,7 +85,7 @@ InPesterModuleScope {
             $powershellPath = Get-Command -Name $CommandToTest | Select-Object -ExpandProperty 'Definition'
             $powershellPath | Should-NotBeEmptyString
 
-            GetFullPath $powershellPath | Should-Be $powershellPath
+            GetFullPath $powershellPath | Should-BeString $powershellPath
         }
 
         Pop-Location
@@ -125,8 +125,8 @@ InPesterModuleScope {
 
                 $result = Get-RunTimeEnvironment
 
-                $result['platform']   | Should-Be 'Unknown'
-                $result['os-version'] | Should-Be '0.0.0.0'
+                $result['platform']   | Should-BeString 'Unknown'
+                $result['os-version'] | Should-BeString '0.0.0.0'
             }
             finally {
                 $SafeCommands['Get-CimInstance'] = $originalCim

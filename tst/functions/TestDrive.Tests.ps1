@@ -195,7 +195,7 @@ Describe 'Repair missing TestDrive' {
     Context 'Broken' {
         It 'Removes TestDrive' {
             Should -Exist -ActualValue $tempFilePath
-            Get-Content -Path $tempFilePath | Should-Be 'Hello'
+            Get-Content -Path $tempFilePath | Should-BeString 'Hello'
 
             # Remove PSDrive
             Remove-PSDrive -Name 'TestDrive'
@@ -214,7 +214,7 @@ Describe 'Repair missing TestDrive' {
             Should -Exist -ActualValue $tempFilePath
 
             # Verify PSDrive
-            Get-Content -Path "TestDrive:/$tempFileName" | Should-Be 'Hello'
+            Get-Content -Path "TestDrive:/$tempFileName" | Should-BeString 'Hello'
         }
     }
 }
@@ -228,7 +228,7 @@ Describe 'Running Pester in Pester' {
 
     It 'File exists before' {
         Should -Exist -ActualValue $tempFilePath
-        Get-Content -Path $tempFilePath | Should-Be 'Hello'
+        Get-Content -Path $tempFilePath | Should-BeString 'Hello'
     }
 
     It 'Works in nested run' {
@@ -236,7 +236,7 @@ Describe 'Running Pester in Pester' {
             Describe 'Nested' {
                 It 'Files created in outer run are available using absolute path' {
                     Should -Exist -ActualValue $TempFilePath
-                    Get-Content -Path $TempFilePath | Should-Be 'Hello'
+                    Get-Content -Path $TempFilePath | Should-BeString 'Hello'
                 }
 
                 It 'TestDrive PSDrive and $TestDrive points to clean location' {
@@ -252,17 +252,17 @@ Describe 'Running Pester in Pester' {
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempFilePath = $tempFilePath }
         $innerRun = Invoke-Pester -Container $c -PassThru -Output None
-        $innerRun.Result | Should-Be 'Passed'
+        $innerRun.Result | Should-BeString 'Passed'
         $innerRun.PassedCount | Should-Be 2
     }
 
     It 'TestDrive PSDrive and $TestDrive point to original location' {
         $originalTestDrive = Split-Path $tempFilePath
-        $TestDrive | Should-Be $originalTestDrive
+        $TestDrive | Should-BeString $originalTestDrive
 
         $tempFilePath2 = Join-Path -Path 'TestDrive:/' -ChildPath $tempFileName
         Should -Exist -ActualValue $tempFilePath2
-        Get-Content -Path $tempFilePath2 | Should-Be 'Hello'
+        Get-Content -Path $tempFilePath2 | Should-BeString 'Hello'
     }
 }
 

@@ -65,7 +65,7 @@ Describe 'Mock.Global configuration option' {
                     Mock Get-Content { 'allowed-content' } -ParameterFilter { $Path -like '*allowed*' }
                     Mock Get-Content { throw 'blocked' } -ParameterFilter { $Path -notlike '*allowed*' }
 
-                    Read-Path -Path 'C:\allowed\file.txt' | Should-Be 'allowed-content'
+                    Read-Path -Path 'C:\allowed\file.txt' | Should-BeString 'allowed-content'
                     { Read-Path -Path 'C:\secret\file.txt' } | Should-Throw -ExceptionMessage '*blocked*'
                 }
 
@@ -73,7 +73,7 @@ Describe 'Mock.Global configuration option' {
                     # Get-ChildItem -Hidden relies on the FileSystem provider's dynamic parameters. The
                     # global hook must not hide them when resolving the command to build the mock.
                     Mock Get-ChildItem { 'mocked' }
-                    Get-HiddenItems | Should-Be 'mocked'
+                    Get-HiddenItems | Should-BeString 'mocked'
                 }
 
                 It 'does not affect commands Pester calls internally through SafeCommands' {
@@ -112,7 +112,7 @@ Describe 'Mock.Global configuration option' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should-Be 'Passed'
+        $result.Result | Should-BeString 'Passed'
         $result.FailedCount | Should-Be 0
         $result.PassedCount | Should-BeGreaterThan 0
     }
@@ -160,7 +160,7 @@ Describe 'Global mock hook lifecycle' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should-Be 'Passed'
+        $result.Result | Should-BeString 'Passed'
         $result.FailedCount | Should-Be 0
     }
 
@@ -205,7 +205,7 @@ Describe 'Global mock hook lifecycle' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should-Be 'Passed'
+        $result.Result | Should-BeString 'Passed'
         $result.FailedCount | Should-Be 0
     }
 

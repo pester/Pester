@@ -26,7 +26,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     }
 
     It "has a valid guid in the manifest" {
-        $script:manifest.Guid | Should-Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
+        $script:manifest.Guid | Should-BeString 'a699dea5-2c73-4616-a270-1f7abb777e71'
     }
 
     if ((Get-Command -Name git -ErrorAction SilentlyContinue) -and (Get-Item ".git" -ErrorAction Ignore)) {
@@ -44,7 +44,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
             }
 
             It "has valid release notes in the manifest" {
-                $script:manifest.PrivateData.PSData.ReleaseNotes | Should-Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+                $script:manifest.PrivateData.PSData.ReleaseNotes | Should-BeString "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
             }
 
             It "tag and changelog versions are the same" {
@@ -238,7 +238,7 @@ InPesterModuleScope {
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
             $result = @(Find-File 'TestDrive:\SomeOtherFile.ps1' -Extension ".Tests.ps1")
             $result.Count | Should-Be 1
-            $result[0].UnresolvedPath | Should-Be 'TestDrive:\SomeOtherFile.ps1'
+            $result[0].UnresolvedPath | Should-BeString 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {

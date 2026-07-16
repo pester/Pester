@@ -93,37 +93,37 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         if ((GetPesterOS) -ne 'Windows') {
 
             It "Writes path correctly when it is provided as string" {
-                Format-PesterPath -Path '/home/username/folder1' | Should-Be '/home/username/folder1'
+                Format-PesterPath -Path '/home/username/folder1' | Should-BeString '/home/username/folder1'
             }
 
             It "Writes path correctly when it is provided as string[]" {
-                Format-PesterPath -Path @('/home/username/folder1', '/home/username/folder2') -Delimiter ', ' | Should-Be '/home/username/folder1, /home/username/folder2'
+                Format-PesterPath -Path @('/home/username/folder1', '/home/username/folder2') -Delimiter ', ' | Should-BeString '/home/username/folder1, /home/username/folder2'
             }
 
             It "Writes path correctly when provided through hashtable" {
-                Format-PesterPath -Path @{ Path = '/home/username/folder1' } | Should-Be '/home/username/folder1'
+                Format-PesterPath -Path @{ Path = '/home/username/folder1' } | Should-BeString '/home/username/folder1'
             }
 
             It "Writes path correctly when provided through array of hashtable" {
-                Format-PesterPath -Path @{ Path = '/home/username/folder1' }, @{ Path = '/home/username/folder2' } -Delimiter ', ' | Should-Be '/home/username/folder1, /home/username/folder2'
+                Format-PesterPath -Path @{ Path = '/home/username/folder1' }, @{ Path = '/home/username/folder2' } -Delimiter ', ' | Should-BeString '/home/username/folder1, /home/username/folder2'
             }
         }
         else {
 
             It "Writes path correctly when it is provided as string" {
-                Format-PesterPath -Path 'C:\path' | Should-Be 'C:\path'
+                Format-PesterPath -Path 'C:\path' | Should-BeString 'C:\path'
             }
 
             It "Writes path correctly when it is provided as string[]" {
-                Format-PesterPath -Path @('C:\path1', 'C:\path2') -Delimiter ', ' | Should-Be 'C:\path1, C:\path2'
+                Format-PesterPath -Path @('C:\path1', 'C:\path2') -Delimiter ', ' | Should-BeString 'C:\path1, C:\path2'
             }
 
             It "Writes path correctly when provided through hashtable" {
-                Format-PesterPath -Path @{ Path = 'C:\path' } | Should-Be 'C:\path'
+                Format-PesterPath -Path @{ Path = 'C:\path' } | Should-BeString 'C:\path'
             }
 
             It "Writes path correctly when provided through array of hashtable" {
-                Format-PesterPath -Path @{ Path = 'C:\path1' }, @{ Path = 'C:\path2' } -Delimiter ', ' | Should-Be 'C:\path1, C:\path2'
+                Format-PesterPath -Path @{ Path = 'C:\path1' }, @{ Path = 'C:\path2' } -Delimiter ', ' | Should-BeString 'C:\path1, C:\path2'
             }
 
         }
@@ -160,7 +160,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should-Be 'RuntimeException: message'
+            $r.Message[0] | Should-BeString 'RuntimeException: message'
             $r.Message.Count | Should-Be 1
         }
 
@@ -174,12 +174,12 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should-Be 'Expected strings to be the same, but they were different.'
-            $r.message[1] | Should-Be 'String lengths are both 3.'
-            $r.message[2] | Should-Be 'Strings differ at index 0.'
-            $r.Message[3] | Should-Be "Expected: 'Two'"
-            $r.Message[4] | Should-Be "But was:  'One'"
-            $r.Message[5] | Should-Be '          ^'
+            $r.Message[0] | Should-BeString 'Expected strings to be the same, but they were different.'
+            $r.message[1] | Should-BeString 'String lengths are both 3.'
+            $r.message[2] | Should-BeString 'Strings differ at index 0.'
+            $r.Message[3] | Should-BeString "Expected: 'Two'"
+            $r.Message[4] | Should-BeString "But was:  'One'"
+            $r.Message[5] | Should-BeString '          ^'
             $r.Message.Count | Should-Be 6
 
             $r.Trace[0] | Should-MatchString "'One' | Should-BeString 'Two'"
@@ -252,16 +252,16 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'produces correct message lines.' {
-                $r.Message[0] | Should-Be 'RuntimeException: f1 message'
+                $r.Message[0] | Should-BeString 'RuntimeException: f1 message'
             }
 
             if ((GetPesterOS) -ne 'Windows') {
                 It 'produces correct trace lines.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should-Be "at f1, ${testPath}:2"
-                        $r.Trace[1] | Should-Be "at f2, ${testPath}:5"
-                        $r.Trace[2] | Should-Be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should-Be "at <ScriptBlock>, ${PSCommandPath}:244"
+                        $r.Trace[0] | Should-BeString "at f1, ${testPath}:2"
+                        $r.Trace[1] | Should-BeString "at f2, ${testPath}:5"
+                        $r.Trace[2] | Should-BeString "at <ScriptBlock>, ${testPath}:7"
+                        $r.Trace[3] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:244"
                         $r.Trace.Count | Should-Be 4
                     }
                 }
@@ -269,10 +269,10 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             else {
                 It 'produces correct trace lines.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should-Be "at f1, ${testPath}:2"
-                        $r.Trace[1] | Should-Be "at f2, ${testPath}:5"
-                        $r.Trace[2] | Should-Be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should-Be "at <ScriptBlock>, ${PSCommandPath}:244"
+                        $r.Trace[0] | Should-BeString "at f1, ${testPath}:2"
+                        $r.Trace[1] | Should-BeString "at f2, ${testPath}:5"
+                        $r.Trace[2] | Should-BeString "at <ScriptBlock>, ${testPath}:7"
+                        $r.Trace[3] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:244"
                         $r.Trace.Count | Should-Be 4
                     }
                 }
@@ -280,7 +280,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             It 'produces correct trace lines.' {
                 if (-not $hasStackTrace) {
-                    $r.Trace[0] | Should-Be "at line: 2 in $testPath"
+                    $r.Trace[0] | Should-BeString "at line: 2 in $testPath"
                     $r.Trace.Count | Should-Be 1
                 }
             }
@@ -319,21 +319,21 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             It 'produces correct message lines.' {
                 if (6 -ge $PSVersionTable.PSVersion.Major) {
-                    $r.Message[0] | Should-Be 'ArgumentException: inner message'
-                    $r.Message[1] | Should-Be 'Parameter name: param_name'
-                    $r.Message[2] | Should-Be 'FormatException: outer message'
+                    $r.Message[0] | Should-BeString 'ArgumentException: inner message'
+                    $r.Message[1] | Should-BeString 'Parameter name: param_name'
+                    $r.Message[2] | Should-BeString 'FormatException: outer message'
                 }
                 else {
-                    $r.Message[0] | Should-Be "ArgumentException: inner message (Parameter 'param_name')"
-                    $r.Message[1] | Should-Be 'FormatException: outer message'
+                    $r.Message[0] | Should-BeString "ArgumentException: inner message (Parameter 'param_name')"
+                    $r.Message[1] | Should-BeString 'FormatException: outer message'
                 }
             }
 
             if ((GetPesterOS) -ne 'Windows') {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should-Be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should-Be "at <ScriptBlock>, $PSCommandPath`:310"
+                        $r.Trace[0] | Should-BeString "at <ScriptBlock>, $testPath`:10"
+                        $r.Trace[1] | Should-BeString "at <ScriptBlock>, $PSCommandPath`:310"
                         $r.Trace.Count | Should-Be 2
                     }
                 }
@@ -341,15 +341,15 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             else {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should-Be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should-Be "at <ScriptBlock>, $PSCommandPath`:310"
+                        $r.Trace[0] | Should-BeString "at <ScriptBlock>, $testPath`:10"
+                        $r.Trace[1] | Should-BeString "at <ScriptBlock>, $PSCommandPath`:310"
                         $r.Trace.Count | Should-Be 2
                     }
                 }
             }
             It 'produces correct trace line.' {
                 if (-not $hasStackTrace) {
-                    $r.Trace[0] | Should-Be "at line: 10 in $testPath"
+                    $r.Trace[0] | Should-BeString "at line: 10 in $testPath"
                     $r.Trace.Count | Should-Be 1
                 }
             }

@@ -26,8 +26,8 @@ Describe 'New-MockObject' {
         }
 
         $mockObject | Should-Be $o
-        $mockObject.Name | Should-Be 'Jakub'
-        $mockObject.GetName() | Should-Be 'Jakub'
+        $mockObject.Name | Should-BeString 'Jakub'
+        $mockObject.GetName() | Should-BeString 'Jakub'
     }
 
     It 'Default parameter set is Type for backwards compatibility' {
@@ -56,8 +56,8 @@ Describe 'New-MockObject' {
 
             { [MyInternalClass] } | Should-Throw -FullyQualifiedErrorId 'TypeNotFound'
             $mock = New-MockObject -Type $someObj.GetType() -Properties @{ Name = 'Mocked' }
-            $mock.GetType().Name | Should-Be 'MyInternalClass'
-            $mock.GetName() | Should-Be 'Mocked'
+            $mock.GetType().Name | Should-BeString 'MyInternalClass'
+            $mock.GetName() | Should-BeString 'Mocked'
         }
     }
 
@@ -67,7 +67,7 @@ Describe 'New-MockObject' {
             $mockObject = New-MockObject -InputObject $o -Methods @{ Kill = { param() "killed" } }
 
             $mockObject | Should-Be $o
-            $mockObject.Kill() | Should-Be "killed"
+            $mockObject.Kill() | Should-BeString "killed"
         }
 
         It "Counts history of the invocation" {
@@ -75,10 +75,10 @@ Describe 'New-MockObject' {
             $mockObject = New-MockObject -InputObject $o -Methods @{ Kill = { param($entireProcessTree) "killed" } }
 
             $mockObject | Should-Be $o
-            $mockObject.Kill() | Should-Be "killed"
+            $mockObject.Kill() | Should-BeString "killed"
             $mockObject._Kill[-1].Call | Should-Be 1
             $mockObject._Kill[-1].Arguments | Should-BeNull
-            $mockObject.Kill($true) | Should-Be "killed"
+            $mockObject.Kill($true) | Should-BeString "killed"
             $mockObject._Kill[-1].Call | Should-Be 2
             $mockObject._Kill[-1].Arguments | Should-BeTrue
         }
@@ -89,8 +89,8 @@ Describe 'New-MockObject' {
                 Close   = { param($Server, $Port)"close" }
             }
 
-            $mockObject.Connect() | Should-Be "connect"
-            $mockObject.Close() | Should-Be "close"
+            $mockObject.Connect() | Should-BeString "connect"
+            $mockObject.Close() | Should-BeString "close"
         }
     }
 

@@ -66,7 +66,7 @@ Describe "When calling Mock on existing cmdlet" {
     }
 
     It "Should Invoke the mocked script" {
-        $result | Should-Be "I am not Get-Process"
+        $result | Should-BeString "I am not Get-Process"
     }
 
     It 'Should not resolve $args to the parent scope' {
@@ -100,7 +100,7 @@ Describe 'When calling Mock on an alias' {
     }
 
     It 'Should Invoke the mocked script' {
-        $result | Should-Be 'I am not dir'
+        $result | Should-BeString 'I am not dir'
     }
 
     AfterAll {
@@ -116,11 +116,11 @@ Describe 'When calling Mock on an alias that refers to a function Pester can''t 
         }
         New-Alias 'ali' orig
 
-        ali | Should-Be 'orig'
+        ali | Should-BeString 'orig'
 
         { mock ali { 'mck' } } | Should -Not -Throw
 
-        ali | Should-Be 'mck'
+        ali | Should-BeString 'mck'
     }
 }
 
@@ -131,7 +131,7 @@ Describe 'When calling Mock on a filter' {
     }
 
     It 'Should Invoke the mocked script' {
-        $result | Should-Be 'I am not FilterUnderTest'
+        $result | Should-BeString 'I am not FilterUnderTest'
     }
 }
 
@@ -167,7 +167,7 @@ Describe 'When calling Mock on an external script' {
     }
 
     It 'Should Invoke the mocked script using just the script name' {
-        $result | Should-Be 'I am not tempExternalScript.ps1'
+        $result | Should-BeString 'I am not tempExternalScript.ps1'
     }
 
 
@@ -175,13 +175,13 @@ Describe 'When calling Mock on an external script' {
         #the command invocation operator is (&). Moved this to comment because it breaks the continuous builds.
         #there is issue for this on GH
         $result = & tempExternalScript.ps1
-        $result | Should-Be 'I am not tempExternalScript.ps1'
+        $result | Should-BeString 'I am not tempExternalScript.ps1'
     }
 
 
     It 'Should Invoke the mocked script using dot source notation' {
         $result = . tempExternalScript.ps1
-        $result | Should-Be 'I am not tempExternalScript.ps1'
+        $result | Should-BeString 'I am not tempExternalScript.ps1'
     }
 
     <#
@@ -207,7 +207,7 @@ InModuleScope -ModuleName Pester {
             It 'Should Invoke the mocked script' {
                 Mock id { return "I am not 'id'" }
                 $result = id
-                $result | Should-Be "I am not 'id'"
+                $result | Should-BeString "I am not 'id'"
             }
 
         }
@@ -215,7 +215,7 @@ InModuleScope -ModuleName Pester {
             It 'Should Invoke the mocked script' {
                 Mock schtasks.exe { return 'I am not schtasks.exe' }
                 $result = schtasks.exe
-                $result | Should-Be 'I am not schtasks.exe'
+                $result | Should-BeString 'I am not schtasks.exe'
             }
         }
     }
@@ -225,7 +225,7 @@ Describe "When calling Mock in the Describe block" {
     It "Should mock Out-File successfully" {
         Mock Out-File { return "I am not Out-File" }
         $outfile = "test" | Out-File "TestDrive:\testfile.txt"
-        $outfile | Should-Be "I am not Out-File"
+        $outfile | Should-BeString "I am not Out-File"
     }
 }
 
@@ -243,7 +243,7 @@ Describe "When calling Mock on existing cmdlet to handle pipelined input" {
         $result = ''
         "a", "b" | Get-ChildItem | ForEach { $result += $_ }
 
-        $result | Should-Be "AABB"
+        $result | Should-BeString "AABB"
     }
 }
 
@@ -292,7 +292,7 @@ Describe "When calling Mock on non-existing function" {
         catch {
             $result = $_
         }
-        $result.Exception.Message | Should-Be "Could not find command NotFunctionUnderTest"
+        $result.Exception.Message | Should-BeString "Could not find command NotFunctionUnderTest"
     }
 }
 
@@ -329,7 +329,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 
     It 'Calls the mock properly' {
-        FunctionUnderTest $testValue | Should-Be 'I am the mock'
+        FunctionUnderTest $testValue | Should-BeString 'I am the mock'
     }
 
     It 'Properly asserts the mock was called when there is a variable in the parameter filter' {
@@ -348,7 +348,7 @@ Describe "When calling Mock on existing function with matching bound params" {
     It "Should return mocked result" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "badTest" }
         $result = FunctionUnderTest "badTest"
-        $result | Should-Be "fake results"
+        $result | Should-BeString "fake results"
     }
 }
 
@@ -363,7 +363,7 @@ Describe "When calling Mock on existing function with matching unbound arguments
     It "Should return mocked result" {
         Mock FunctionUnderTestWithoutParams { return "fake results" } -parameterFilter { $param1 -eq "badTest" -and $args[0] -eq 'arg0' }
         $result = FunctionUnderTestWithoutParams "badTest" "arg0"
-        $result | Should-Be "fake results"
+        $result | Should-BeString "fake results"
     }
 }
 
@@ -391,7 +391,7 @@ Describe "When calling Mock on cmdlet Used by Mock" {
         Mock Set-Item { return "I am not Set-Item" }
 
         $result = Set-Item "mypath" -value "value"
-        $result | Should-Be "I am not Set-Item"
+        $result | Should-BeString "I am not Set-Item"
     }
 }
 
@@ -405,10 +405,10 @@ Describe "When calling Mock on More than one command" {
     }
 
     It "Should Invoke the mocked script for the first Mock" {
-        $result | Should-Be "I am not Invoke-Command"
+        $result | Should-BeString "I am not Invoke-Command"
     }
     It "Should Invoke the mocked script for the second Mock" {
-        $result2 | Should-Be "I am the mock test"
+        $result2 | Should-BeString "I am the mock test"
     }
 }
 
@@ -474,7 +474,7 @@ Describe 'When calling Mock on a module-internal function.' {
     }
 
     It 'Should call the actual internal module function from the public function' {
-        TestModule\PublicFunction | Should-Be 'I am the internal function'
+        TestModule\PublicFunction | Should-BeString 'I am the internal function'
     }
 
     Context 'Using Mock -ModuleName "ModuleName" "CommandName" syntax' {
@@ -485,7 +485,7 @@ Describe 'When calling Mock on a module-internal function.' {
         }
 
         It 'Should call the mocked InternalFunction' {
-            TestModule\PublicFunction | Should-Be 'I am the mock test'
+            TestModule\PublicFunction | Should-BeString 'I am the mock test'
         }
 
         It 'Should be able to count the call to the InternalFunction' {
@@ -503,12 +503,12 @@ Describe 'When calling Mock on a module-internal function.' {
         }
 
         It 'Should only call mocks within the same module' {
-            TestModule2\PublicFunction | Should-Be 'I am the second module internal function'
+            TestModule2\PublicFunction | Should-BeString 'I am the second module internal function'
         }
 
         It 'Should work even if the function is weird and steps on the automatic $ExecutionContext variable.' {
-            TestModule2\FuncThatOverwritesExecutionContext | Should-Be 'I am the second module internal function'
-            TestModule\FuncThatOverwritesExecutionContext | Should-Be 'I am the mock test'
+            TestModule2\FuncThatOverwritesExecutionContext | Should-BeString 'I am the second module internal function'
+            TestModule\FuncThatOverwritesExecutionContext | Should-BeString 'I am the mock test'
         }
 
         It 'Does not trigger the mocked Get-Content from Pester internals' {
@@ -532,10 +532,10 @@ Describe "When Applying multiple Mocks on a single command" {
     }
 
     It "Should Invoke the mocked script for the first Mock" {
-        $result | Should-Be "I am the first mock test"
+        $result | Should-BeString "I am the first mock test"
     }
     It "Should Invoke the mocked script for the second Mock" {
-        $result2 | Should-Be "I am the Second mock test"
+        $result2 | Should-BeString "I am the Second mock test"
     }
 }
 
@@ -548,7 +548,7 @@ Describe "When Applying multiple Mocks with filters on a single command where bo
     }
 
     It "The last Mock should win" {
-        $result | Should-Be "I am the Second mock test"
+        $result | Should-BeString "I am the Second mock test"
     }
 }
 
@@ -563,11 +563,11 @@ Describe "When Applying multiple Mocks on a single command where one has no filt
     }
 
     It "The parameterless mock is evaluated last" {
-        $result | Should-Be "I am the first mock test"
+        $result | Should-BeString "I am the first mock test"
     }
 
     It "The parameterless mock will be applied if no other wins" {
-        $result2 | Should-Be "I am the paramless mock test"
+        $result2 | Should-BeString "I am the paramless mock test"
     }
 }
 
@@ -585,7 +585,7 @@ Describe "When Creating Verifiable Mock that is not called" {
                 $result = $_
             }
 
-            $result.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+            $result.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -610,7 +610,7 @@ Describe "When Creating Verifiable Mock that is not called" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command ModuleFunctionUnderTest from inside module TestModule with { `$param1 -eq `"one`" }"
+            $result.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command ModuleFunctionUnderTest from inside module TestModule with { `$param1 -eq `"one`" }"
         }
 
         AfterAll {
@@ -635,7 +635,7 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
     }
 
     It "Should throw and list all commands" {
-        $result.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
+        $result.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
 
     It 'Should include reason when -Because is used' {
@@ -645,7 +645,7 @@ Describe "When Creating multiple Verifiable Mocks that are not called" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, because of reasons, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
+        $failure.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected all verifiable mocks to be called, because of reasons, but these were not:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"two`" }"
     }
 }
 
@@ -675,7 +675,7 @@ Describe "When calling Should -Not -InvokeVerifiable" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+            $result.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
 
         It 'Should include reason when -Because is used' {
@@ -685,7 +685,7 @@ Describe "When calling Should -Not -InvokeVerifiable" {
             Catch {
                 $failure = $_
             }
-            $failure.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, because of reasons, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+            $failure.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, because of reasons, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -704,7 +704,7 @@ Describe "When calling Should -Not -InvokeVerifiable" {
         }
 
         It "Should throw" {
-            $result.Exception.Message | Should-Be "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
+            $result.Exception.Message | Should-BeString "$([System.Environment]::NewLine)Expected no verifiable mocks to be called, but these were:$([System.Environment]::NewLine) Command FunctionUnderTest with { `$param1 -eq `"one`" }"
         }
     }
 
@@ -1077,7 +1077,7 @@ Describe 'When Calling Should -Invoke with invalid -Scope' {
             }
         }
         It 'Should throw' {
-            $result.Exception.Message | Should-Be 'Assertion is placed outside of an It block, but -Scope It is specified.'
+            $result.Exception.Message | Should-BeString 'Assertion is placed outside of an It block, but -Scope It is specified.'
         }
     }
 
@@ -1132,19 +1132,19 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
 
     Context "When in the first context" {
         It "should mock Describe scoped paramless mock" {
-            FunctionUnderTest | Should-Be "I am the paramless mock test"
+            FunctionUnderTest | Should-BeString "I am the paramless mock test"
         }
         It "should mock Describe scoped single param mock" {
-            FunctionUnderTest "one" | Should-Be "I am the first mock test"
+            FunctionUnderTest "one" | Should-BeString "I am the first mock test"
         }
     }
 
     Context "When in the second context" {
         It "should mock Describe scoped paramless mock again" {
-            FunctionUnderTest | Should-Be "I am the paramless mock test"
+            FunctionUnderTest | Should-BeString "I am the paramless mock test"
         }
         It "should mock Describe scoped single param mock again" {
-            FunctionUnderTest "one" | Should-Be "I am the first mock test"
+            FunctionUnderTest "one" | Should-BeString "I am the first mock test"
         }
     }
 
@@ -1154,10 +1154,10 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         }
 
         It "should mock Describe scoped mock." {
-            FunctionUnderTest | Should-Be "I am the paramless mock test"
+            FunctionUnderTest | Should-BeString "I am the paramless mock test"
         }
         It "should mock Context scoped mock." {
-            FunctionUnderTestWithoutParams | Should-Be "I am the other function"
+            FunctionUnderTestWithoutParams | Should-BeString "I am the other function"
         }
     }
 
@@ -1168,20 +1168,20 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         }
 
         It "should use the context paramless mock" {
-            FunctionUnderTest | Should-Be "I am the context mock"
+            FunctionUnderTest | Should-BeString "I am the context mock"
         }
         It "should use the context parameterized mock" {
-            FunctionUnderTest "one" | Should-Be "I am the parameterized context mock"
+            FunctionUnderTest "one" | Should-BeString "I am the parameterized context mock"
         }
     }
 
     Context  "When context no longer hides a describe mock" {
         It "should use the describe mock" {
-            FunctionUnderTest | Should-Be "I am the paramless mock test"
+            FunctionUnderTest | Should-BeString "I am the paramless mock test"
         }
 
         It "should use the describe parameterized mock" {
-            FunctionUnderTest "one" | Should-Be "I am the first mock test"
+            FunctionUnderTest "one" | Should-BeString "I am the first mock test"
         }
     }
 
@@ -1195,7 +1195,7 @@ Describe "Using Pester Scopes (Describe,Context,It)" {
         }
 
         It 'Does not leave the mock active in the parent scope' {
-            FunctionUnderTest | Should-Be 'I am the context mock'
+            FunctionUnderTest | Should-BeString 'I am the context mock'
         }
     }
 }
@@ -1212,7 +1212,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Calls the describe mock' {
-            MockHistoryChecker | Should-Be 'I am the describe mock.'
+            MockHistoryChecker | Should-BeString 'I am the describe mock.'
         }
 
         It "Reports that zero calls have been made in an It block, after a context-scoped call" {
@@ -1244,7 +1244,7 @@ Describe 'Testing mock history behavior from each scope' {
         }
 
         It 'Calls the context mock' {
-            MockHistoryChecker | Should-Be 'I am the context mock.'
+            MockHistoryChecker | Should-BeString 'I am the context mock.'
         }
 
         It 'Reports one context-scoped call' {
@@ -1257,7 +1257,7 @@ Describe 'Testing mock history behavior from each scope' {
 
         It 'Calls an It-scoped mock' {
             Mock MockHistoryChecker { 'I am the It mock.' }
-            MockHistoryChecker | Should-Be 'I am the It mock.'
+            MockHistoryChecker | Should-BeString 'I am the It mock.'
         }
 
         It 'Reports 2 context-scoped calls' {
@@ -1285,7 +1285,7 @@ Describe "Using a single no param Describe" {
         }
 
         It "Should use the context mock" {
-            FunctionUnderTest | Should-Be "I am the context mock test"
+            FunctionUnderTest | Should-BeString "I am the context mock test"
         }
     }
 }
@@ -1549,7 +1549,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Should successfully call the mock and generate the dynamic parameters' {
             $scriptBlock | Should -Not -Throw
-            $hash.Result | Should-Be 'Mocked'
+            $hash.Result | Should-BeString 'Mocked'
         }
     }
 
@@ -1607,7 +1607,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Should successfully call the mock and generate the dynamic parameters' {
             $scriptBlock | Should -Not -Throw
-            $hash.Result | Should-Be 'Mocked'
+            $hash.Result | Should-BeString 'Mocked'
         }
     }
 
@@ -1659,7 +1659,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Should successfully call the mock and generate the dynamic parameters' {
             $scriptBlock | Should -Not -Throw
-            $hash.Result | Should-Be 'Mocked'
+            $hash.Result | Should-BeString 'Mocked'
         }
     }
 
@@ -1714,7 +1714,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'Should successfully call the mock and generate the dynamic parameters' {
             $scriptBlock | Should -Not -Throw
-            $hash.Result | Should-Be 'Mocked'
+            $hash.Result | Should-BeString 'Mocked'
         }
     }
 
@@ -1731,7 +1731,7 @@ Describe 'Mocking functions with dynamic parameters' {
 
             Mock Get-ThingWithFailingDynamicParam { 'mocked' }
             { Get-ThingWithFailingDynamicParam } | Should -Not -Throw
-            Get-ThingWithFailingDynamicParam | Should-Be 'mocked'
+            Get-ThingWithFailingDynamicParam | Should-BeString 'mocked'
         }
     }
 
@@ -1765,19 +1765,19 @@ Describe 'Mocking functions with dynamic parameters' {
 
         It 'matches the parameter filter using the alias of a dynamic parameter' {
             Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Location -eq 'Here' }
-            Get-DynamicAliasThing -Location 'Here' | Should-Be 'mocked'
+            Get-DynamicAliasThing -Location 'Here' | Should-BeString 'mocked'
         }
 
         It 'matches the parameter filter using the name of a dynamic parameter' {
             Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Path -eq 'Here' }
-            Get-DynamicAliasThing -Location 'Here' | Should-Be 'mocked'
+            Get-DynamicAliasThing -Location 'Here' | Should-BeString 'mocked'
         }
 
         It 'uses the dynamic-parameter alias to choose between behaviors' {
             Mock Get-DynamicAliasThing { 'default' }
             Mock Get-DynamicAliasThing { 'matched' } -ParameterFilter { $Location -eq 'Here' }
-            Get-DynamicAliasThing -Location 'Here'  | Should-Be 'matched'
-            Get-DynamicAliasThing -Location 'There' | Should-Be 'default'
+            Get-DynamicAliasThing -Location 'Here'  | Should-BeString 'matched'
+            Get-DynamicAliasThing -Location 'There' | Should-BeString 'default'
         }
 
         It 'matches Should -Invoke -ParameterFilter using the alias of a dynamic parameter' {
@@ -1930,7 +1930,7 @@ Describe 'DynamicParam blocks in other scopes' {
     }
 
     It 'Properly evaluates dynamic parameters when called from another scope' {
-        CallingFunction | Should-Be 'I am the mocked function'
+        CallingFunction | Should-BeString 'I am the mocked function'
     }
 
     It 'Properly evaluates dynamic parameters when called from another scope when the call is from a ValidateScript block' {
@@ -1992,7 +1992,7 @@ Describe 'When mocking a command with parameters that match internal variable na
 
     It 'Should execute the mocked command successfully' {
         { Test-Function } | Should -Not -Throw
-        Test-Function | Should-Be 'Mocked!'
+        Test-Function | Should-BeString 'Mocked!'
     }
 }
 
@@ -2037,7 +2037,7 @@ Describe 'When mocking a command that has an ArgumentList parameter with validat
         $scriptBlock = { $hash.Result = Start-Process -FilePath cmd.exe -ArgumentList '/c dir c:\' }
 
         $scriptBlock | Should -Not -Throw
-        $hash.Result | Should-Be 'mocked'
+        $hash.Result | Should-BeString 'mocked'
     }
 }
 
@@ -2134,8 +2134,8 @@ Describe 'Mocks with closures' {
     }
 
     It 'Resolves variables in the closure rather than Pester''s current scope' {
-        TestClosure | Should-Be 'Variable resolved from script'
-        TestClosure -Closure | Should-Be 'Variable resolved from closure'
+        TestClosure | Should-BeString 'Variable resolved from script'
+        TestClosure -Closure | Should-BeString 'Variable resolved from closure'
     }
 }
 
@@ -2212,7 +2212,7 @@ Describe 'Mocking advanced function' {
             return $MyParam1
         }
 
-        Get-Something -MyParam1 'SomeValue' | Should-Be 'SomeValue'
+        Get-Something -MyParam1 'SomeValue' | Should-BeString 'SomeValue'
     }
 }
 
@@ -2292,11 +2292,11 @@ Describe 'Mocking cmdlet without positional parameters' {
     }
 
     It 'Original cmdlet bind all to Remainings' {
-        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should-Be '; asd, fgh, jkl'
+        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should-BeString '; asd, fgh, jkl'
     }
     It 'Mock of cmdlet should bind all to Remainings' {
         Mock Invoke-CmdletWithValueFromRemainingArguments { -join ($Parameter, '; ', ($Remainings -join ', ')) }
-        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should-Be '; asd, fgh, jkl'
+        Invoke-CmdletWithValueFromRemainingArguments asd fgh jkl | Should-BeString '; asd, fgh, jkl'
     }
 
 }
@@ -2316,7 +2316,7 @@ Describe 'Nested Mock calls' {
     It 'Properly handles nested mocks' {
         $result = @(Get-Date)
         $result.Count | Should-Be 1
-        $result[0] | Should-Be '2012-06-13T00:00:00.0000000'
+        $result[0] | Should-BeString '2012-06-13T00:00:00.0000000'
     }
 }
 
@@ -2362,7 +2362,7 @@ Describe 'Naming conflicts in mocked functions' {
         }
 
         It 'Works with commands with parameter named Metadata' {
-            Wrapper | Should-Be 'mocked'
+            Wrapper | Should-BeString 'mocked'
         }
     }
     Context 'parameter named Keys' {
@@ -2379,7 +2379,7 @@ Describe 'Naming conflicts in mocked functions' {
 
         It 'Works with command with parameter named Keys' {
             $r = Wrapper
-            $r | Should-Be 'value'
+            $r | Should-BeString 'value'
         }
     }
 }
@@ -2453,7 +2453,7 @@ Describe "Restoring original commands when mock scopes exit" {
         }
 
         It "passes in first context" {
-            a | Should-Be "mock"
+            a | Should-BeString "mock"
         }
     }
 
@@ -2467,7 +2467,7 @@ Describe "Restoring original commands when mock scopes exit" {
         }
 
         It "passes in second context" {
-            a | Should-Be "mock"
+            a | Should-BeString "mock"
         }
     }
 }
@@ -2493,11 +2493,11 @@ Describe "Mocking functions with conflicting parameters" {
             }
 
             It 'executes the mock' {
-                Get-ExampleTest -ParamToAvoid "Hello" | Should-Be "World"
+                Get-ExampleTest -ParamToAvoid "Hello" | Should-BeString "World"
             }
 
             It 'falls back to the default mock when no parameter filter matches' {
-                Get-ExampleTest -ParamToAvoid "Bye" | Should-Be "default mock"
+                Get-ExampleTest -ParamToAvoid "Bye" | Should-BeString "default mock"
             }
 
             Context "Should -Invoke" {
@@ -2544,15 +2544,15 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 }
 
                 It "returns mock that matches parameter filter block when using alias in the call" {
-                    Get-Content -Path "c:\temp.txt" -Last 100 | Should-Be "aliased-parameter-name"
+                    Get-Content -Path "c:\temp.txt" -Last 100 | Should-BeString "aliased-parameter-name"
                 }
 
                 It "returns mock that matches parameter filter block when using the real parameter name in call" {
-                    Get-Content -Path "c:\temp.txt" -Tail 100 | Should-Be "aliased-parameter-name"
+                    Get-Content -Path "c:\temp.txt" -Tail 100 | Should-BeString "aliased-parameter-name"
                 }
 
                 It 'returns default mock' {
-                    Get-Content -Path "c:\temp.txt" | Should-Be "default-get-content"
+                    Get-Content -Path "c:\temp.txt" | Should-BeString "default-get-content"
                 }
             }
 
@@ -2561,7 +2561,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
                 It 'calls the mock' {
                     Mock New-Item { throw "default mock should not run" }
                     Mock New-Item { return "nic" } -ParameterFilter { $Type -ne $null -and $Type.StartsWith("nic") }
-                    New-Item -Path 'Hello' -Type "nic" | Should-Be "nic"
+                    New-Item -Path 'Hello' -Type "nic" | Should-BeString "nic"
                 }
             }
 
@@ -2611,7 +2611,7 @@ InPesterModuleScope {
             It 'mocks <Command> command' -TestCases $case {
                 Mock $Command { 'I am being mocked' }
 
-                & $Command | Should-Be 'I am being mocked'
+                & $Command | Should-BeString 'I am being mocked'
 
                 Should -Invoke $Command -Scope It -Exactly 1
             }
@@ -2622,7 +2622,7 @@ InPesterModuleScope {
                 It 'mocks notepad command with extension' {
                     Mock notepad.exe { 'I am being mocked' }
 
-                    notepad.exe | Should-Be 'I am being mocked'
+                    notepad.exe | Should-BeString 'I am being mocked'
 
                     Should -Invoke notepad.exe -Scope It -Exactly 1
                 }
@@ -2632,7 +2632,7 @@ InPesterModuleScope {
                 It 'mocks with extension and calls it without ext' {
                     Mock notepad.exe { 'I am being mocked' }
 
-                    notepad | Should-Be 'I am being mocked'
+                    notepad | Should-BeString 'I am being mocked'
 
                     Should -Invoke notepad.exe -Scope It -Exactly 1
                 }
@@ -2640,7 +2640,7 @@ InPesterModuleScope {
                 It 'mocks without extension and calls with extension' {
                     Mock notepad { 'I am being mocked' }
 
-                    notepad.exe | Should-Be 'I am being mocked'
+                    notepad.exe | Should-BeString 'I am being mocked'
                 }
 
                 It 'assert that alias to mock works' {
@@ -2648,7 +2648,7 @@ InPesterModuleScope {
 
                     Mock notepad.exe { 'I am being mocked' }
 
-                    notepad | Should-Be 'I am being mocked'
+                    notepad | Should-BeString 'I am being mocked'
 
                     Should -Invoke note -Scope It -Exactly 1
                 }
@@ -2676,9 +2676,9 @@ Describe 'Mocking using ParameterFilter' {
             }
 
             Mock Get-MockFilterValue { 'fallback' }
-            Mock Get-MockFilterValue { 'mocked' } -ParameterFilter { $Name | Should-Be 'foo' }
+            Mock Get-MockFilterValue { 'mocked' } -ParameterFilter { $Name | Should-BeString 'foo' }
 
-            Get-MockFilterValue -Name 'foo' | Should-Be 'mocked'
+            Get-MockFilterValue -Name 'foo' | Should-BeString 'mocked'
         }
 
         It 'matches a filter that uses Should-BeString' {
@@ -2691,7 +2691,7 @@ Describe 'Mocking using ParameterFilter' {
             Mock Get-MockFilterText { 'fallback' }
             Mock Get-MockFilterText { 'mocked' } -ParameterFilter { $Name | Should-BeString 'foo' }
 
-            Get-MockFilterText -Name 'foo' | Should-Be 'mocked'
+            Get-MockFilterText -Name 'foo' | Should-BeString 'mocked'
         }
     }
 
@@ -2791,7 +2791,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             [Diagnostics.Process] $currentProcess = Get-Process -id $pid
 
             $currentProcess -as [int] -eq $null | Should-BeTrue -Because "Process is not convertible to int"
-            f -Name 'Hello' -Count $currentProcess | Should-Be "result" -Because "we successfuly provided a process to parameter defined as int"
+            f -Name 'Hello' -Count $currentProcess | Should-BeString "result" -Because "we successfuly provided a process to parameter defined as int"
         }
 
         if ($PSVersionTable.PSVersion.Major -eq 5) {
@@ -2810,7 +2810,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             Context "Get-PhysicalDisk example" {
                 It "should return 'hello'" {
                     Mock Get-PhysicalDisk -RemoveParameterType Usage, HealthStatus { return "hello" }
-                    Get-PhysicalDisk | Should-Be "hello"
+                    Get-PhysicalDisk | Should-BeString "hello"
                 }
             }
         }
@@ -2837,7 +2837,7 @@ Describe 'RemoveParameterValidation' {
     It 'passes when mock removes the validation' {
         Mock Test-Validation -RemoveParameterValidation Count { "mock" }
 
-        Test-Validation -Count -1 | Should-Be "mock"
+        Test-Validation -Count -1 | Should-BeString "mock"
     }
 
     Context 'When the validated parameter is a dynamic parameter (#1557)' {
@@ -2873,12 +2873,12 @@ Describe 'RemoveParameterValidation' {
 
         It 'passes when mock removes the validation from the dynamic parameter' {
             Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
-            Test-DynamicValidation -Name 'zzz' | Should-Be 'mock'
+            Test-DynamicValidation -Name 'zzz' | Should-BeString 'mock'
         }
 
         It 'only removes validation from the named dynamic parameter' {
             Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
-            Test-DynamicValidation -Name 'zzz' | Should-Be 'mock'
+            Test-DynamicValidation -Name 'zzz' | Should-BeString 'mock'
             { Test-DynamicValidation -Color 'zzz' } | Should-Throw -FullyQualifiedErrorId '*ParameterArgumentValidationError*'
         }
     }
@@ -2941,7 +2941,7 @@ Describe 'Mocking command with ValidateRange-attributes' {
         Set-Item -Path 'function:Test-EnumValidation' -Value ('param ( {0}{1} )' -f $Attribute, $Parameter)
 
         Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
-        Test-EnumValidation | Should-Be 'mock'
+        Test-EnumValidation | Should-BeString 'mock'
     }
 
     if ($PSVersionTable.PSVersion.Major -ge '7') {
@@ -2954,7 +2954,7 @@ Describe 'Mocking command with ValidateRange-attributes' {
             Set-Item -Path 'function:Test-EnumValidation' -Value ('param ( {0}{1} )' -f $Attribute, $Parameter)
 
             Mock -CommandName 'Test-EnumValidation' -MockWith { 'mock' }
-            Test-EnumValidation | Should-Be 'mock'
+            Test-EnumValidation | Should-BeString 'mock'
         }
     }
 
@@ -2962,7 +2962,7 @@ Describe 'Mocking command with ValidateRange-attributes' {
     if ((Get-Module BitsTransfer -ErrorAction SilentlyContinue)) {
         It 'mocked cmdlet does not throw' {
             Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }
-            Start-BitsTransfer -Source "/nonexistingpath" | Should-Be 'mock'
+            Start-BitsTransfer -Source "/nonexistingpath" | Should-BeString 'mock'
         }
     }
 }
@@ -2985,7 +2985,7 @@ Describe "Running Mock with ModuleName in test scope" {
 
     It "can mock internal function of the module" {
         Mock -ModuleName test a { "mock" }
-        f | Should-Be "mock"
+        f | Should-BeString "mock"
     }
 
     It "runs the body in the current scope" {
@@ -3016,7 +3016,7 @@ Describe "Mocks can be defined outside of BeforeAll" {
     }
 
     It "Finds the mock" {
-        a | Should-Be "mock"
+        a | Should-BeString "mock"
     }
 }
 
@@ -3061,21 +3061,21 @@ Describe "When inherited variables conflicts with parameters" {
 
     It "parameterized mock should not be called due to inherited variable" {
         $param1 = 'abc'
-        FunctionUnderTest | Should-Be 'default'
+        FunctionUnderTest | Should-BeString 'default'
     }
 
     It "InvokeVerifiable should not pass due to test variable" {
         # Uses same logic as mock execution, so should not be tricked
         $param1 = 'abc'
-        FunctionUnderTest | Should-Be 'default'
+        FunctionUnderTest | Should-BeString 'default'
         { Should -InvokeVerifiable } | Should-Throw
     }
 
     It "Should Invoke ParameterFilter will count false positive for the first FunctionUnderTest call" {
         # https://github.com/pester/Pester/issues/1873
         # this will pass the parameter filter because we define a variable param1 with the same name and value as the expected parameter value
-        FunctionUnderTest | Should-Be 'default'
-        FunctionUnderTest -param1 'abc' | Should-Be 'filtered'
+        FunctionUnderTest | Should-BeString 'default'
+        FunctionUnderTest -param1 'abc' | Should-BeString 'filtered'
         $param1 = 'abc'
 
         # This should show warning about conflict when in Diagnostic output (Mock debug message)
@@ -3085,8 +3085,8 @@ Describe "When inherited variables conflicts with parameters" {
 
     It "Invoke ParameterFilter works as expected when PesterBoundParamters is used" {
         # Workaround mentioned in debug message warning mentioned in previous test
-        FunctionUnderTest | Should-Be 'default'
-        FunctionUnderTest -param1 'abc' | Should-Be 'filtered'
+        FunctionUnderTest | Should-BeString 'default'
+        FunctionUnderTest -param1 'abc' | Should-BeString 'filtered'
         $param1 = 'abc'
 
         # No warning will be shown in debug as there's no conflict
@@ -3094,7 +3094,7 @@ Describe "When inherited variables conflicts with parameters" {
     }
 
     It "Calling mock with parameter overrides inherited variable in filter" {
-        FunctionUnderTest -param1 '123' | Should-Be 'default'
+        FunctionUnderTest -param1 '123' | Should-BeString 'default'
         $param1 = 'abc'
 
         # This should show warning about conflict when in Diagnostic output (Mock debug message)
@@ -3128,13 +3128,13 @@ Describe 'Mocking in manifest modules' {
 
     It 'Should be able to mock public function' {
         Mock -CommandName 'myManifestPublicFunction' -MockWith { 'mocked public' }
-        myManifestPublicFunction | Should-Be 'mocked public'
+        myManifestPublicFunction | Should-BeString 'mocked public'
         Should -Invoke -CommandName 'myManifestPublicFunction' -Exactly -Times 1
     }
 
     It 'Should be able to mock private function' {
         Mock -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -MockWith { 'mocked private' }
-        myManifestPublicFunction | Should-Be 'mocked private'
+        myManifestPublicFunction | Should-BeString 'mocked private'
         Should -Invoke -CommandName 'myManifestPrivateFunction' -ModuleName $moduleName -Exactly -Times 1
     }
 }
@@ -3170,7 +3170,7 @@ Describe "Mocking using 'RootModule/NestedModule' slash notation" {
     It 'Should mock an internal command in the nested module using slash notation' {
         Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
         $result = Get-PublicData
-        $result | Should-Be 'mocked'
+        $result | Should-BeString 'mocked'
     }
 
     It 'Should-Invoke matches call history when using slash notation' {
@@ -3193,7 +3193,7 @@ Describe "Mocking using 'RootModule/NestedModule' slash notation" {
 
     It 'Mock cleanup removes the bootstrap function from the nested module session state' {
         # After the It block completes the mock is torn down; calling the real function returns 'real'.
-        Get-PublicData | Should-Be 'real'
+        Get-PublicData | Should-BeString 'real'
     }
 }
 
@@ -3230,7 +3230,7 @@ Describe "Mocking using deep module path notation 'Root/Mid/Leaf'" {
     It 'Should mock an internal command in the deeply nested module using slash notation' {
         Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
         $result = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
-        $result | Should-Be 'mocked-deep'
+        $result | Should-BeString 'mocked-deep'
     }
 
     It 'Should-Invoke matches call history when using deep slash notation' {
@@ -3286,9 +3286,9 @@ Describe "Disambiguating nested modules with the same name across two root modul
 
     It 'mocks Get-Data in the ClientA copy, leaving the identically-named ClientB copy untouched' {
         Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
-        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Should-Be 'mockedA'
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Should-BeString 'mockedA'
         # the mock must not bleed into the same-named nested module under ClientB
-        InModuleScope "$rootB/$sharedName" { Invoke-Api } | Should-Be 'dataB'
+        InModuleScope "$rootB/$sharedName" { Invoke-Api } | Should-BeString 'dataB'
     }
 
     It 'Should-Invoke uses slash notation to check the ClientA copy call history' {
@@ -3328,7 +3328,7 @@ Describe 'Mocking in nested Invoke-Pester runs' {
     }
 
     It 'Mocking works in nested run' {
-        $innerRun.Result | Should-Be 'Passed'
+        $innerRun.Result | Should-BeString 'Passed'
         $innerRun.PassedCount | Should-Be 2
     }
 
@@ -3385,7 +3385,7 @@ Describe 'Usage of Alias in DynamicParams' {
         It 'Mocks Test-DynamicParam with PSEdition set to Desktop' {
             Mock Test-DynamicParam { "World" } -ParameterFilter { $_PSEdition -eq 'Desktop' }
 
-            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should-Be 'World'
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should-BeString 'World'
         }
     }
 
@@ -3393,7 +3393,7 @@ Describe 'Usage of Alias in DynamicParams' {
         It 'Invokes Test-DynamicParam with correct parameters' {
             Mock Test-DynamicParam { "World" }
 
-            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should-Be 'World'
+            Test-DynamicParam -Name "Hello" -PSEdition 'Desktop' | Should-BeString 'World'
 
             Should -Invoke Test-DynamicParam -Exactly 1 -Scope It
         }

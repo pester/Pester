@@ -8,12 +8,12 @@ Describe 'Describe-Scoped Test Case setup' {
     $testVariable = 'Set in Describe'
 
     It 'Assigns the correct value in first test' {
-        $testVariable | Should-Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
         $testVariable = 'Set in It'
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should-Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
     }
 }
 
@@ -25,12 +25,12 @@ Describe 'Describe-Scoped Test Case setup using named ScriptBlock-parameter' {
     $testVariable = 'Set in Describe'
 
     It 'Assigns the correct value in first test' {
-        $testVariable | Should-Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
         $testVariable = 'Set in It'
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should-Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
     }
 }
 
@@ -44,12 +44,12 @@ Describe 'Context-scoped Test Case setup' {
         }
 
         It 'Assigns the correct value inside the context' {
-            $testVariable | Should-Be 'From BeforeEach'
+            $testVariable | Should-BeString 'From BeforeEach'
         }
     }
 
     It 'Reports the original value after the Context' {
-        $testVariable | Should-Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 }
 
@@ -64,7 +64,7 @@ Describe 'Multiple Test Case setup blocks' {
 
     Context 'The context' {
         It 'Executes Describe setup blocks first, then Context block' {
-            $testVariable | Should-Be 'Set in Context BeforeEach'
+            $testVariable | Should-BeString 'Set in Context BeforeEach'
         }
 
         BeforeEach {
@@ -73,7 +73,7 @@ Describe 'Multiple Test Case setup blocks' {
     }
 
     It 'Continues to execute Describe setup blocks after the Context' {
-        $testVariable | Should-Be 'Set in Describe BeforeEach'
+        $testVariable | Should-BeString 'Set in Describe BeforeEach'
     }
 }
 
@@ -87,11 +87,11 @@ Describe 'Describe-scoped Test Case teardown' {
     }
 
     It 'Does not modify the variable before the first test' {
-        $testVariable | Should-Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 
     It 'Keeps the describe variable after the first test' {
-        $testVariable | Should-Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 }
 
@@ -115,7 +115,7 @@ Describe 'Multiple Test Case teardown blocks' {
         It 'Performs a test in Context' { "some output" }
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
-            $container.Value | Should-Be 'Set in Describe AfterEach'
+            $container.Value | Should-BeString 'Set in Describe AfterEach'
         }
     }
 }

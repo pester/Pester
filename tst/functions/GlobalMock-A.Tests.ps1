@@ -27,6 +27,6 @@ Describe 'Mocking Global Functions - Part One' {
     }
 
     It 'Mocks the global function' {
-        & $functionName | Should-Be 'Mocked'
+        & $functionName | Should-BeString 'Mocked'
     }
 }

@@ -7,7 +7,7 @@ Describe "Module scope separation" {
         }
 
         It "does not hide user variables" {
-            $test | Should-Be 'This is a test.'
+            $test | Should-BeString 'This is a test.'
         }
     }
 
@@ -40,12 +40,12 @@ Describe "Executing test code inside a module" {
 
     InModuleScope TestModule {
         It "Can call module internal functions using InModuleScope" {
-            InternalFunction | Should-Be 'I am the internal function'
+            InternalFunction | Should-BeString 'I am the internal function'
         }
 
         It "Can mock functions inside the module without using Mock -ModuleName" {
             Mock InternalFunction { 'I am the mock function.' }
-            InternalFunction | Should-Be 'I am the mock function.'
+            InternalFunction | Should-BeString 'I am the mock function.'
         }
     }
 
@@ -74,7 +74,7 @@ Describe 'Get-CompatibleModule' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName Pester }
             $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
-            $moduleInfo.Name | Should-Be 'Pester'
+            $moduleInfo.Name | Should-BeString 'Pester'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
     }
@@ -96,7 +96,7 @@ Describe 'Get-CompatibleModule' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName testManifestModule }
             $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
-            $moduleInfo.Name | Should-Be 'testManifestModule'
+            $moduleInfo.Name | Should-BeString 'testManifestModule'
             $moduleInfo.ModuleType | Should-Be 'Manifest'
         }
     }
@@ -144,7 +144,7 @@ Describe 'Get-CompatibleModule' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule/NestedModule' }
             $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
-            $moduleInfo.Name | Should-Be 'NestedModule'
+            $moduleInfo.Name | Should-BeString 'NestedModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
@@ -152,7 +152,7 @@ Describe 'Get-CompatibleModule' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule\NestedModule' }
             $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
-            $moduleInfo.Name | Should-Be 'NestedModule'
+            $moduleInfo.Name | Should-BeString 'NestedModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
@@ -160,12 +160,12 @@ Describe 'Get-CompatibleModule' {
             $name = InModuleScope -ModuleName 'RootWithNestedModule/NestedModule' -ScriptBlock {
                 $ExecutionContext.SessionState.Module.Name
             }
-            $name | Should-Be 'NestedModule'
+            $name | Should-BeString 'NestedModule'
         }
 
         It 'should read a variable defined in the nested module' {
             InModuleScope -ModuleName 'RootWithNestedModule/NestedModule' -ScriptBlock {
-                $Script:NestedVar | Should-Be 'NestedValue'
+                $Script:NestedVar | Should-BeString 'NestedValue'
             }
         }
 
@@ -204,14 +204,14 @@ Describe 'Get-CompatibleModule' {
         It 'should resolve the leaf module via forward-slash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' }
             $moduleInfo | Should-NotBeNull
-            $moduleInfo.Name | Should-Be 'DeepLeafModule'
+            $moduleInfo.Name | Should-BeString 'DeepLeafModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should resolve the leaf module via mixed slash and backslash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule\DeepMidModule/DeepLeafModule' }
             $moduleInfo | Should-NotBeNull
-            $moduleInfo.Name | Should-Be 'DeepLeafModule'
+            $moduleInfo.Name | Should-BeString 'DeepLeafModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
@@ -219,12 +219,12 @@ Describe 'Get-CompatibleModule' {
             $name = InModuleScope -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' -ScriptBlock {
                 $ExecutionContext.SessionState.Module.Name
             }
-            $name | Should-Be 'DeepLeafModule'
+            $name | Should-BeString 'DeepLeafModule'
         }
 
         It 'should read a variable defined in the deeply nested module' {
             InModuleScope -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' -ScriptBlock {
-                $Script:DeepNestedVar | Should-Be 'DeepNestedValue'
+                $Script:DeepNestedVar | Should-BeString 'DeepNestedValue'
             }
         }
 
@@ -266,12 +266,12 @@ Describe 'Get-CompatibleModule' {
 
         It 'resolves to the ClientA copy via slash notation (verified by content)' {
             $repoId = InModuleScope -ModuleName "$rootA/$sharedNestedName" -ScriptBlock { $Script:RepoId }
-            $repoId | Should-Be 'RepoA'
+            $repoId | Should-BeString 'RepoA'
         }
 
         It 'resolves to the ClientB copy via slash notation (verified by content)' {
             $repoId = InModuleScope -ModuleName "$rootB/$sharedNestedName" -ScriptBlock { $Script:RepoId }
-            $repoId | Should-Be 'RepoB'
+            $repoId | Should-BeString 'RepoB'
         }
     }
 }
@@ -446,7 +446,7 @@ Describe "Using variables within module scope" {
         }
         InModuleScope -ModuleName TestModule2 -ScriptBlock $setup
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should-Be 'bar'
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should-BeString 'bar'
         InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should-BeNull
     }
 
@@ -487,6 +487,6 @@ Describe 'Working with manifest modules' {
 
     It 'Should be able to invoke private functions' {
         $res = InModuleScope -ModuleName $moduleName -ScriptBlock { myPrivateFunction }
-        $res | Should-Be 'real'
+        $res | Should-BeString 'real'
     }
 }
