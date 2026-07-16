@@ -223,6 +223,10 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: 'Error'
 
+        CIDebugOutput: Whether to automatically surface verbose and debug output when a CI system has its debug switch enabled (Azure DevOps 'System.Debug', GitHub Actions runner debug logging), options are None and Auto.
+        Type: string
+        Default value: 'Auto'
+
         RenderMode: The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.
         Type: string
         Default value: 'Auto'

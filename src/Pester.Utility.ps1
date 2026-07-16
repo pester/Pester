@@ -122,6 +122,25 @@ function notDefined {
 }
 
 
+function Get-CIDebugFlag {
+    # Returns $true when a known CI system has its debug/verbose logging switch enabled.
+    # Mirrors the CI detection used for Output.CIFormat so more CI systems can be added here later.
+    # - Azure DevOps: enabling the 'System.Debug' pipeline variable sets $env:SYSTEM_DEBUG to the
+    #   literal string 'true'.
+    # - GitHub Actions: enabling step debug logging (secret/variable ACTIONS_STEP_DEBUG=true) sets
+    #   $env:RUNNER_DEBUG to '1' inside a step. This is the same signal actions/toolkit core.isDebug() uses.
+    # -eq is case-insensitive in PowerShell, so 'True'/'TRUE'/'true' all match.
+    ('true' -eq $env:SYSTEM_DEBUG) -or ('1' -eq $env:RUNNER_DEBUG)
+}
+
+function Test-CIDebugOutputEnabled ([PesterConfiguration]$PesterPreference) {
+    # CI debug-output surfacing is enabled when the user has not opted out (Output.CIDebugOutput is
+    # not 'None') and a known CI system has its debug switch enabled. Lives here in Pester.Utility so it
+    # is available both to Resolve-OutputConfiguration and to the runtime (Invoke-ContainerRun).
+    ('None' -ne $PesterPreference.Output.CIDebugOutput.Value) -and (Get-CIDebugFlag)
+}
+
+
 function sum ($InputObject, $PropertyName, $Zero) {
     if (none $InputObject.Length) {
         return $Zero

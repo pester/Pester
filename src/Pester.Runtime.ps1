@@ -1073,8 +1073,20 @@ function Invoke-ContainerRun {
         # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
         # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
         # before all script, but it might be better to make this a plugin, because there we can pass data.
+
+        # When a CI system has its debug switch enabled (e.g. Azure DevOps System.Debug or GitHub Actions
+        # runner debug logging) and the user did not opt out, surface Write-Verbose / Write-Debug from
+        # tests and setup blocks by raising the preferences in the user's root scope below. This is scoped
+        # to the run and does not leak into the caller's session afterwards. See issue #1694.
+        $surfaceCIDebugOutput = Test-CIDebugOutputEnabled -PesterPreference $PesterPreference
+
         $setVariables = {
             param($private:____parameters)
+
+            if ($____parameters.SurfaceCIDebugOutput) {
+                $VerbosePreference = 'Continue'
+                $DebugPreference = 'Continue'
+            }
 
             if ($null -eq $____parameters.Data) {
                 return
@@ -1092,8 +1104,9 @@ function Invoke-ContainerRun {
             $action = $setVariables
             $setup = $RootBlock.OneTimeTestSetup
             $parameters = @{
-                Data         = $RootBlock.BlockContainer.Data
-                Set_Variable = $SafeCommands["Set-Variable"]
+                Data                 = $RootBlock.BlockContainer.Data
+                Set_Variable         = $SafeCommands["Set-Variable"]
+                SurfaceCIDebugOutput = $surfaceCIDebugOutput
             }
 
             {

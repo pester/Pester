@@ -82,6 +82,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.CILogLevel.Value | Verify-Equal 'Error'
         }
 
+        t "Output.CIDebugOutput is Auto" {
+            [PesterConfiguration]::Default.Output.CIDebugOutput.Value | Verify-Equal 'Auto'
+        }
+
         t "Output.RenderMode is Auto" {
             [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
         }
@@ -1306,6 +1310,183 @@ i -PassThru:$PassThru {
             }
 
             { Invoke-Pester -Configuration $c } | Verify-Throw
+        }
+    }
+
+    b "Output.CIDebugOutput" {
+        t "Each option can be set and updated" {
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            foreach ($option in "None", "Auto") {
+                $c.Output.CIDebugOutput = $option
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.CIDebugOutput.Value | Verify-Equal $option
+            }
+        }
+
+        t "Exception is thrown when incorrect option is set" {
+            $sb = {
+                Describe "a" {
+                    It "b" {}
+                }
+            }
+
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = $sb
+                    PassThru    = $true
+                    Throw       = $true
+                }
+                Output = @{
+                    CIDebugOutput = 'Something'
+                }
+            }
+
+            { Invoke-Pester -Configuration $c } | Verify-Throw
+        }
+
+        t "Raises Output.Verbosity to Diagnostic when a CI debug flag is set and Verbosity is not set" {
+            $c = [PesterConfiguration] @{
+                Run = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+            }
+
+            $previousSystemDebug = $env:SYSTEM_DEBUG
+            $previousRunnerDebug = $env:RUNNER_DEBUG
+            $env:SYSTEM_DEBUG = 'true'
+            $env:RUNNER_DEBUG = $null
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.Verbosity.Value | Verify-Equal 'Diagnostic'
+            }
+            finally {
+                $env:SYSTEM_DEBUG = $previousSystemDebug
+                $env:RUNNER_DEBUG = $previousRunnerDebug
+            }
+        }
+
+        t "Does not override an explicit Output.Verbosity when a CI debug flag is set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = { }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity = 'Detailed'
+                }
+            }
+
+            $previousSystemDebug = $env:SYSTEM_DEBUG
+            $previousRunnerDebug = $env:RUNNER_DEBUG
+            $env:SYSTEM_DEBUG = 'true'
+            $env:RUNNER_DEBUG = $null
+
+            try {
+                $r = Invoke-Pester -Configuration $c
+                $r.Configuration.Output.Verbosity.Value | Verify-Equal 'Detailed'
+            }
+            finally {
+                $env:SYSTEM_DEBUG = $previousSystemDebug
+                $env:RUNNER_DEBUG = $previousRunnerDebug
+            }
+        }
+
+        t "Surfaces Write-Verbose and Write-Debug from a test when a CI debug flag is set" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = {
+                        Describe "d" {
+                            It "i" {
+                                Write-Verbose "verbose-from-test-marker"
+                                Write-Debug "debug-from-test-marker"
+                                $true | Should -BeTrue
+                            }
+                        }
+                    }
+                    PassThru    = $true
+                }
+                # Keep Pester's own output quiet so we only observe the surfaced test output.
+                Output = @{
+                    Verbosity = 'None'
+                }
+            }
+
+            $previousSystemDebug = $env:SYSTEM_DEBUG
+            $previousRunnerDebug = $env:RUNNER_DEBUG
+            $env:SYSTEM_DEBUG = 'true'
+            $env:RUNNER_DEBUG = $null
+
+            try {
+                $output = Invoke-Pester -Configuration $c 5>&1 4>&1
+            }
+            finally {
+                $env:SYSTEM_DEBUG = $previousSystemDebug
+                $env:RUNNER_DEBUG = $previousRunnerDebug
+            }
+
+            $foundVerbose = $false
+            $foundDebug = $false
+            foreach ($item in @($output)) {
+                if ($item -is [System.Management.Automation.VerboseRecord] -and $item.Message -eq 'verbose-from-test-marker') {
+                    $foundVerbose = $true
+                }
+                if ($item -is [System.Management.Automation.DebugRecord] -and $item.Message -eq 'debug-from-test-marker') {
+                    $foundDebug = $true
+                }
+            }
+
+            $foundVerbose | Verify-True
+            $foundDebug | Verify-True
+        }
+
+        t "Does not surface Write-Verbose from a test when opted out with 'None'" {
+            $c = [PesterConfiguration] @{
+                Run    = @{
+                    ScriptBlock = {
+                        Describe "d" {
+                            It "i" {
+                                Write-Verbose "verbose-from-test-marker"
+                                $true | Should -BeTrue
+                            }
+                        }
+                    }
+                    PassThru    = $true
+                }
+                Output = @{
+                    Verbosity     = 'None'
+                    CIDebugOutput = 'None'
+                }
+            }
+
+            $previousSystemDebug = $env:SYSTEM_DEBUG
+            $previousRunnerDebug = $env:RUNNER_DEBUG
+            $env:SYSTEM_DEBUG = 'true'
+            $env:RUNNER_DEBUG = $null
+
+            try {
+                $output = Invoke-Pester -Configuration $c 5>&1 4>&1
+            }
+            finally {
+                $env:SYSTEM_DEBUG = $previousSystemDebug
+                $env:RUNNER_DEBUG = $previousRunnerDebug
+            }
+
+            $foundVerbose = $false
+            foreach ($item in @($output)) {
+                if ($item -is [System.Management.Automation.VerboseRecord] -and $item.Message -eq 'verbose-from-test-marker') {
+                    $foundVerbose = $true
+                }
+            }
+
+            $foundVerbose | Verify-False
         }
     }
 

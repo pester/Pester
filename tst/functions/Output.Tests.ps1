@@ -668,6 +668,139 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
         }
     }
+
+    Describe 'Get-CIDebugFlag' {
+        BeforeAll {
+            $script:originalSystemDebug = $env:SYSTEM_DEBUG
+            $script:originalRunnerDebug = $env:RUNNER_DEBUG
+        }
+        AfterAll {
+            $env:SYSTEM_DEBUG = $script:originalSystemDebug
+            $env:RUNNER_DEBUG = $script:originalRunnerDebug
+        }
+        BeforeEach {
+            $env:SYSTEM_DEBUG = $null
+            $env:RUNNER_DEBUG = $null
+        }
+
+        It 'returns $false when no CI debug flag is set' {
+            Get-CIDebugFlag | Should -BeFalse
+        }
+
+        It "returns `$true when Azure DevOps System.Debug is '<value>' (case-insensitive)" -TestCases @(
+            @{ Value = 'true' }
+            @{ Value = 'True' }
+            @{ Value = 'TRUE' }
+        ) {
+            $env:SYSTEM_DEBUG = $Value
+            Get-CIDebugFlag | Should -BeTrue
+        }
+
+        It "returns `$false when Azure DevOps System.Debug is 'false'" {
+            $env:SYSTEM_DEBUG = 'false'
+            Get-CIDebugFlag | Should -BeFalse
+        }
+
+        It "returns `$true when GitHub Actions RUNNER_DEBUG is '1'" {
+            $env:RUNNER_DEBUG = '1'
+            Get-CIDebugFlag | Should -BeTrue
+        }
+
+        It "returns `$false when GitHub Actions RUNNER_DEBUG is '0'" {
+            $env:RUNNER_DEBUG = '0'
+            Get-CIDebugFlag | Should -BeFalse
+        }
+    }
+
+    Describe 'Test-CIDebugOutputEnabled' {
+        BeforeAll {
+            $script:originalSystemDebug = $env:SYSTEM_DEBUG
+            $script:originalRunnerDebug = $env:RUNNER_DEBUG
+        }
+        AfterAll {
+            $env:SYSTEM_DEBUG = $script:originalSystemDebug
+            $env:RUNNER_DEBUG = $script:originalRunnerDebug
+        }
+        BeforeEach {
+            $env:SYSTEM_DEBUG = $null
+            $env:RUNNER_DEBUG = $null
+        }
+
+        It 'is $true when a CI debug flag is set and not opted out' {
+            $env:SYSTEM_DEBUG = 'true'
+            $c = [PesterConfiguration]::Default
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeTrue
+        }
+
+        It "is `$false when opted out via CIDebugOutput = 'None'" {
+            $env:SYSTEM_DEBUG = 'true'
+            $c = [PesterConfiguration]::Default
+            $c.Output.CIDebugOutput = 'None'
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+        }
+
+        It 'is $false when no CI debug flag is set' {
+            $c = [PesterConfiguration]::Default
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+        }
+    }
+
+    Describe 'Resolve-OutputConfiguration - CI debug output' {
+        BeforeAll {
+            $script:originalSystemDebug = $env:SYSTEM_DEBUG
+            $script:originalRunnerDebug = $env:RUNNER_DEBUG
+        }
+        AfterAll {
+            $env:SYSTEM_DEBUG = $script:originalSystemDebug
+            $env:RUNNER_DEBUG = $script:originalRunnerDebug
+        }
+        BeforeEach {
+            $env:SYSTEM_DEBUG = $null
+            $env:RUNNER_DEBUG = $null
+        }
+
+        It 'raises Verbosity to Diagnostic when Azure DevOps System.Debug is enabled and Verbosity is unset' {
+            $env:SYSTEM_DEBUG = 'true'
+            $c = [PesterConfiguration]::Default
+            Resolve-OutputConfiguration -PesterPreference $c
+            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+        }
+
+        It 'raises Verbosity to Diagnostic when GitHub Actions RUNNER_DEBUG is enabled and Verbosity is unset' {
+            $env:RUNNER_DEBUG = '1'
+            $c = [PesterConfiguration]::Default
+            Resolve-OutputConfiguration -PesterPreference $c
+            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+        }
+
+        It 'does not change Verbosity when no CI debug flag is set' {
+            $c = [PesterConfiguration]::Default
+            Resolve-OutputConfiguration -PesterPreference $c
+            $c.Output.Verbosity.Value | Should -Be 'Normal'
+        }
+
+        It 'does not override an explicit Verbosity choice' {
+            $env:SYSTEM_DEBUG = 'true'
+            $c = [PesterConfiguration]::Default
+            $c.Output.Verbosity = 'Detailed'
+            Resolve-OutputConfiguration -PesterPreference $c
+            $c.Output.Verbosity.Value | Should -Be 'Detailed'
+        }
+
+        It "does nothing when opted out via CIDebugOutput = 'None'" {
+            $env:SYSTEM_DEBUG = 'true'
+            $c = [PesterConfiguration]::Default
+            $c.Output.CIDebugOutput = 'None'
+            Resolve-OutputConfiguration -PesterPreference $c
+            $c.Output.Verbosity.Value | Should -Be 'Normal'
+        }
+
+        It 'throws for an unsupported CIDebugOutput value' {
+            $c = [PesterConfiguration]::Default
+            $c.Output.CIDebugOutput = 'Bogus'
+            { Resolve-OutputConfiguration -PesterPreference $c } | Should -Throw -ExpectedMessage '*Output.CIDebugOutput*'
+        }
+    }
 }
 
 # Can't run inside InModuleScope Pester { } because variables defined in BeforeDiscovery will be lost due to same module state as scriptblock = no testcases
