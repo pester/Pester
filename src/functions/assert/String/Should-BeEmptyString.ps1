@@ -29,7 +29,7 @@
     This test will fail, the input is not an empty string.
 
     .EXAMPLE
-    ```
+    ```powershell
     $null | Should-BeEmptyString
     @() | Should-BeEmptyString
     $() | Should-BeEmptyString

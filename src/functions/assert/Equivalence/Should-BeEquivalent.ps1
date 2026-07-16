@@ -650,7 +650,7 @@ function Should-BeEquivalent {
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
-    ```powereshell
+    ```powershell
     Should-BeEquivalent ... -ExcludePathsNotOnExpected
     ```
 
