@@ -252,7 +252,7 @@ InPesterModuleScope {
             }
 
             It 'Reports the correct class names' {
-                $coverageReport.HitCommands[0].Class | Should -BeNullOrEmpty
+                $coverageReport.HitCommands[0].Class | Should-BeEmptyString
                 # Classes have been introduced in PowerShell 5.0
                 if ($PSVersionTable.PSVersion.Major -ge 5) {
                     $coverageReport.HitCommands[9].Class | Should-Be 'MyBaseClass'
@@ -260,8 +260,8 @@ InPesterModuleScope {
                     $coverageReport.MissedCommands[2].Class | Should-Be 'MyClass'
                 }
                 else {
-                    $coverageReport.HitCommands[9].Class | Should -BeNullOrEmpty
-                    $coverageReport.MissedCommands[2].Class | Should -BeNullOrEmpty
+                    $coverageReport.HitCommands[9].Class | Should-BeNull
+                    $coverageReport.MissedCommands[2].Class | Should-BeNull
                 }
             }
 
@@ -599,14 +599,14 @@ InPesterModuleScope {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
                 [String]$jaCoCoReportXml = Get-JaCoCoReportXml -CommandCoverage @{} -TotalMilliseconds 10000 -CoverageReport $coverageReport -ReportRoot $TestDrive
                 $jaCoCoReportXml | Should-NotBe $null
-                $jaCoCoReportXml | Should-Be ([String]::Empty)
+                $jaCoCoReportXml | Should-BeEmptyString
             }
 
             It 'Cobertura returns empty string when there are 0 analyzed commands' {
                 $coverageReport = [PSCustomObject] @{ NumberOfCommandsAnalyzed = 0 }
                 [String]$coberturaReportXml = Get-CoberturaReportXml -CoverageReport $coverageReport -TotalMilliseconds 10000 -ReportRoot $TestDrive
                 $coberturaReportXml | Should-NotBe $null
-                $coberturaReportXml | Should-Be ([String]::Empty)
+                $coberturaReportXml | Should-BeEmptyString
             }
 
             It 'Reports the right line numbers' {
@@ -1109,7 +1109,7 @@ InPesterModuleScope {
                 $PesterTests = @($coverageInfo |
                         Select-Object -ExpandProperty Path |
                         Where-Object { $_ -match '\.tests.ps1$' })
-                $PesterTests | Should -BeNullOrEmpty
+                $PesterTests | Should-BeNull
             }
             It 'Includes test files when specified in wildcard path' {
                 $coverageInfo = Get-CoverageInfoFromUserInput "$(Join-Path -Path $root -ChildPath *.tests.ps1)"
@@ -1131,12 +1131,12 @@ InPesterModuleScope {
             It 'Excludes test files when IncludeTests is not specified' {
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)" }
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should -BeNullOrEmpty
+                $PesterTests | Should-BeNull
             }
             It 'Excludes test files when IncludeTests is false' {
                 $coverageInfo = Get-CoverageInfoFromUserInput @{ Path = "$(Join-Path -Path $root -ChildPath TestScript.tests.ps1)"; IncludeTests = $false }
                 $PesterTests = $coverageInfo | Select-Object -ExpandProperty Path
-                $PesterTests | Should -BeNullOrEmpty
+                $PesterTests | Should-BeNull
             }
             It 'Includes test files when IncludeTests is true' {
                 $path = Join-Path -Path $root -ChildPath TestScript.tests.ps1

@@ -12,7 +12,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
             $options = @($section.GetProperties() | Where-Object { $_.PropertyType.IsSubclassOf([Pester.Option]) })
         }
         It 'Has a single view defined of type ListControl' {
-            $formatData | Should -Not -BeNullOrEmpty
+            $formatData | Should-NotBeNull
             $formatData.FormatViewDefinition.Count | Should-Be 1
             $formatData.FormatViewDefinition[0].Name | Should-BeString $section.FullName -CaseSensitive
             $formatData.FormatViewDefinition[0].Control | Should-HaveType ([System.Management.Automation.ListControl])
@@ -32,7 +32,7 @@ Describe "PesterConfiguration.Format.ps1xml" {
             $options = [Pester.Option[bool]].GetProperties() | Where-Object Name -notin 'IsModified'
         }
         It 'Has a single view defined of type TableControl' {
-            $formatData | Should -Not -BeNullOrEmpty
+            $formatData | Should-NotBeNull
             $formatData.FormatViewDefinition.Count | Should-Be 1
             $formatData.FormatViewDefinition[0].Name | Should-BeString 'Pester.Option' -CaseSensitive
             $formatData.FormatViewDefinition[0].Control | Should-HaveType ([System.Management.Automation.TableControl])

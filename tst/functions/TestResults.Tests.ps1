@@ -83,7 +83,7 @@ InPesterModuleScope {
 
         It "Resolves full path correctly" {
             $powershellPath = Get-Command -Name $CommandToTest | Select-Object -ExpandProperty 'Definition'
-            $powershellPath | Should -Not -BeNullOrEmpty
+            $powershellPath | Should-NotBeEmptyString
 
             GetFullPath $powershellPath | Should-Be $powershellPath
         }
@@ -106,8 +106,8 @@ InPesterModuleScope {
             $result.Keys | Should-ContainCollection 'user'
             $result.Keys | Should-ContainCollection 'cwd'
             $result.Keys | Should-ContainCollection 'clr-version'
-            $result['os-version'] | Should -Not -BeNullOrEmpty
-            $result['platform']   | Should -Not -BeNullOrEmpty
+            $result['os-version'] | Should-NotBeEmptyString
+            $result['platform']   | Should-NotBeEmptyString
         }
 
         It "Falls back to Unknown OS info when Get-CimInstance returns null (access denied)" -Skip:(-not $IsWindows) {

@@ -325,7 +325,7 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 
     It 'Does not throw an error when testing the parameter filter' {
-        $result | Should-Be $null
+        $result | Should-BeNull
     }
 
     It 'Calls the mock properly' {
@@ -2051,7 +2051,7 @@ Describe 'Mocking New-Object' {
         Mock New-Object
 
         $result = New-Object -TypeName Object
-        $result | Should-Be $null
+        $result | Should-BeNull
         Should -Invoke New-Object
     }
 }
@@ -2069,7 +2069,7 @@ Describe 'Mocking module-qualified calls' {
     }
 
     It 'Mock alias should not exist before the mock is defined' {
-        $alias | Should-Be $null
+        $alias | Should-BeNull
     }
 
     It 'Creates the alias while the mock is in effect' {
@@ -2086,7 +2086,7 @@ Describe 'Mocking module-qualified calls' {
 Describe 'After a mock goes out of scope' {
     It 'Removes the alias after the mock goes out of scope' {
         $alias = Get-Alias -Name 'Microsoft.PowerShell.Management\Get-Content' -ErrorAction SilentlyContinue
-        $alias | Should-Be $null
+        $alias | Should-BeNull
     }
 }
 
@@ -2662,7 +2662,7 @@ Describe "Mock definition output" {
 
         function a () {}
         $output = Mock a { }
-        $output | Should-Be $null
+        $output | Should-BeNull
     }
 }
 
@@ -2994,7 +2994,7 @@ Describe "Running Mock with ModuleName in test scope" {
         }
         $actual = f
         $actual | Should-HaveType ([Management.Automation.SessionState])
-        $actual.Module | Should-Be $null -Because "we are not running inside of the 'test' module"
+        $actual.Module | Should-BeNull -Because "we are not running inside of the 'test' module"
     }
 
     It "runs the parameter filter in the current scope" {
@@ -3003,7 +3003,7 @@ Describe "Running Mock with ModuleName in test scope" {
 
         $null = f
         $script:ss | Should-HaveType ([Management.Automation.SessionState])
-        $script:ss.Module | Should-Be $null -Because "we are not running inside of the 'test' module"
+        $script:ss.Module | Should-BeNull -Because "we are not running inside of the 'test' module"
     }
 }
 

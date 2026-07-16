@@ -215,7 +215,7 @@ Describe 'Global mock hook lifecycle' {
         # be observed at the top level (a nested run snapshots/restores instead), so we use a child process:
         # arm the hook by hand, run a trivial top-level Pester run, and confirm the hook was cleared.
         $modulePath = (Get-Module -Name Pester | Select-Object -First 1).Path
-        $modulePath | Should -Not -BeNullOrEmpty
+        $modulePath | Should-NotBeEmptyString
 
         $childScript = {
             Import-Module $env:PESTER_MODULE_PATH_FOR_TEST -Force

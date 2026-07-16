@@ -166,7 +166,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
         It 'failed should produces correct message lines.' {
             try {
-                'One' | Should -Be 'Two' -ErrorAction Stop
+                'One' | Should-BeString 'Two' -ErrorAction Stop
             }
             catch {
                 $e = $_
@@ -179,10 +179,10 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             $r.message[2] | Should-Be 'Strings differ at index 0.'
             $r.Message[3] | Should-Be "Expected: 'Two'"
             $r.Message[4] | Should-Be "But was:  'One'"
-            $r.Message[5] | Should-Be '           ^'
+            $r.Message[5] | Should-Be '          ^'
             $r.Message.Count | Should-Be 6
 
-            $r.Trace[0] | Should-MatchString "'One' | Should -be 'Two'"
+            $r.Trace[0] | Should-MatchString "'One' | Should-BeString 'Two'"
             $r.Trace.Count | Should-Be 1
         }
         # TODO: should fails with a very weird error, probably has something to do with dynamic params...
@@ -684,9 +684,9 @@ Describe 'Write-PesterHostMessage' {
         }
         It 'Parameter <_.Name> is equal' -TestCases $WriteHostParam {
             $param = $_
-            $param.Name | Should -BeIn $WritePesterHostMessageParam.Keys
+            $WritePesterHostMessageParam.Keys | Should-ContainCollection $param.Name
             $WritePesterHostMessageParam[$param.Name].ParameterType | Should-Be $param.ParameterType
-            if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
+            if ($param.Aliases) { $WritePesterHostMessageParam[$param.Name].Aliases | Sort-Object | Should-ContainCollection ($param.Aliases | Sort-Object) }
         }
     }
 }

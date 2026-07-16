@@ -12,7 +12,7 @@ Describe 'Testing Describe' {
         $attribute = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
         $isMandatory = $null -ne $attribute -and $attribute.Mandatory
 
-        $isMandatory | Should-Be $false
+        $isMandatory | Should-BeFalse
 
         { Describe Bogus } | Should-Throw -ExceptionMessage 'No test fixture is provided. (Have you put the open curly brace on the next line?)'
     }
@@ -28,7 +28,7 @@ Describe 'Testing Describe' {
         $attribute = $parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
         $isMandatory = $null -ne $attribute -and $attribute.Mandatory
 
-        $isMandatory | Should-Be $false
+        $isMandatory | Should-BeFalse
 
         {
             Describe {

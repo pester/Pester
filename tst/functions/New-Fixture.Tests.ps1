@@ -2,7 +2,7 @@
 
 Describe "New-Fixture" {
     It "Name parameter is mandatory" {
-        (Get-Command New-Fixture).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should-Be $true
+        (Get-Command New-Fixture).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should-BeTrue
     }
 
     Context "Only Name parameter is specified" {

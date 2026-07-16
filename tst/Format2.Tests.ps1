@@ -191,7 +191,7 @@ InPesterModuleScope {
             } -ArgumentList (Get-Module Pester).Path, $TestDrive
             $result = $job | Wait-Job -Timeout 10 | Receive-Job
             $job | Remove-Job -Force
-            $result | Should -Not -BeNullOrEmpty
+            $result | Verify-NotNull
         }
 
         # Regression test for https://github.com/pester/Pester/issues/2828

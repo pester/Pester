@@ -203,7 +203,7 @@ Describe 'Repair missing TestDrive' {
 
             # Remove variable
             Set-Variable -Name TestDrive -Scope Global -Value $null
-            $TestDrive | Should -BeNullOrEmpty
+            $TestDrive | Should-BeNull
         }
     }
 
@@ -245,7 +245,7 @@ Describe 'Running Pester in Pester' {
                     $TestDrive | Should-NotBe $outerTestDrive
 
                     # TestDrive should be clean in inner run
-                    Get-ChildItem -Path 'TestDrive:/' | Should -BeNullOrEmpty
+                    Get-ChildItem -Path 'TestDrive:/' | Should-BeNull
                 }
             }
         }

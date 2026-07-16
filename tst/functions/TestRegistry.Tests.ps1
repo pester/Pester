@@ -98,7 +98,7 @@ Describe 'Running Pester in Invoke-Pester' {
                 }
 
                 It 'TestRegistry PSDrive points to clean location' {
-                    (Get-Item -Path 'TestRegistry:/').Property | Should -BeNullOrEmpty
+                    (Get-Item -Path 'TestRegistry:/').Property | Should-BeNull
                 }
             }
         }

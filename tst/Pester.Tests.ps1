@@ -39,8 +39,8 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
                     $script:tagVersionShort, $script:tagPrerelease = $script:tagVersion -split "-", 2
                 }
 
-                $script:tagVersion                  | Should -Not -BeNullOrEmpty
-                $script:tagVersionShort -as [Version]    | Should -Not -BeNullOrEmpty
+                $script:tagVersion                      | Should-NotBeNull
+                $script:tagVersionShort -as [Version]   | Should-NotBeNull
             }
 
             It "has valid release notes in the manifest" {
@@ -139,7 +139,7 @@ Describe 'Public API' {
             ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
             ? { -not $_.CmdletBinding } |
             % { $_.Name }
-        $r | Should -beNullOrEmpty
+        $r | Should-BeCollection @()
     }
 }
 

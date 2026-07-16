@@ -77,10 +77,10 @@ Describe 'New-MockObject' {
             $mockObject | Should-Be $o
             $mockObject.Kill() | Should-Be "killed"
             $mockObject._Kill[-1].Call | Should-Be 1
-            $mockObject._Kill[-1].Arguments | Should-Be $null
+            $mockObject._Kill[-1].Arguments | Should-BeNull
             $mockObject.Kill($true) | Should-Be "killed"
             $mockObject._Kill[-1].Call | Should-Be 2
-            $mockObject._Kill[-1].Arguments | Should-Be $true
+            $mockObject._Kill[-1].Arguments | Should-BeTrue
         }
 
         It "Adds 2 methods to the object" {

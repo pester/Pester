@@ -16,7 +16,7 @@ Describe "Module scope separation" {
         # TODO: : come up with a better way of verifying that only the desired commands from the Pester
         # module are visible to the SUT.
 
-        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should-Be $null
+        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should-BeNull
     }
 }
 
@@ -72,7 +72,7 @@ Describe 'Get-CompatibleModule' {
     Context 'when module name matches imported script module' {
         It 'should return a single ModuleInfo object' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName Pester }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
             $moduleInfo.Name | Should-Be 'Pester'
             $moduleInfo.ModuleType | Should-Be 'Script'
@@ -94,7 +94,7 @@ Describe 'Get-CompatibleModule' {
 
         It 'should return a single ModuleInfo object' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName testManifestModule }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
             $moduleInfo.Name | Should-Be 'testManifestModule'
             $moduleInfo.ModuleType | Should-Be 'Manifest'
@@ -142,7 +142,7 @@ Describe 'Get-CompatibleModule' {
 
         It 'should return the nested module via forward-slash delimiter' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule/NestedModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
             $moduleInfo.Name | Should-Be 'NestedModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
@@ -150,7 +150,7 @@ Describe 'Get-CompatibleModule' {
 
         It 'should return the nested module via backslash delimiter' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule\NestedModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             @($moduleInfo).Count | Should-Be 1
             $moduleInfo.Name | Should-Be 'NestedModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
@@ -203,14 +203,14 @@ Describe 'Get-CompatibleModule' {
 
         It 'should resolve the leaf module via forward-slash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             $moduleInfo.Name | Should-Be 'DeepLeafModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should resolve the leaf module via mixed slash and backslash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule\DeepMidModule/DeepLeafModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
+            $moduleInfo | Should-NotBeNull
             $moduleInfo.Name | Should-Be 'DeepLeafModule'
             $moduleInfo.ModuleType | Should-Be 'Script'
         }
@@ -425,7 +425,7 @@ Describe 'InModuleScope arguments and parameter binding' {
         }
 
         InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters $inModuleScopeParameters | Should-Be $inModuleScopeParameters.SomeParam2
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should -BeNullOrEmpty
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should-BeEmptyString
     }
 
     AfterAll {
@@ -447,7 +447,7 @@ Describe "Using variables within module scope" {
         InModuleScope -ModuleName TestModule2 -ScriptBlock $setup
 
         InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should-Be 'bar'
-        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should -BeNullOrEmpty
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should-BeNull
     }
 
     AfterAll {
