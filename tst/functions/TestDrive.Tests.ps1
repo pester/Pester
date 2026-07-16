@@ -258,7 +258,7 @@ Describe 'Running Pester in Pester' {
 
     It 'TestDrive PSDrive and $TestDrive point to original location' {
         $originalTestDrive = Split-Path $tempFilePath
-        $TestDrive | Should-BeString $originalTestDrive
+        $TestDrive.FullName | Should-BeString $originalTestDrive
 
         $tempFilePath2 = Join-Path -Path 'TestDrive:/' -ChildPath $tempFileName
         Should -Exist -ActualValue $tempFilePath2
