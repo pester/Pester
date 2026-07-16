@@ -679,7 +679,9 @@ Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
 
                 # PowerShell 5.1 has no ForEach-Object -Parallel and falls back to a sequential run whose
                 # output differs, so only assert the exact parallel rendering on 7+.
+                Write-Warning "TODO: REMOVE - PSVersion $($PSVersionTable.PSVersion) - $($PSVersionTable.PSVersion.Major) - $($PSVersionTable.PSVersion.Major -ge 7)"
                 if ($PSVersionTable.PSVersion.Major -ge 7) {
+                    Write-Warning "TODO: REMOVE - Running output test $($PSVersionTable.PSVersion.Major). Does this run in PS7_Windows_Server2022?"
                     # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
                     # then blank out the volatile version, temp paths and timings so the snapshot is stable.
                     $sb = [System.Text.StringBuilder]::new()
