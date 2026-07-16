@@ -1361,7 +1361,7 @@ Describe 'Mocking Cmdlets with typed provider dynamic parameters' {
             # the mock we get a type-conversion binding error; when it is missing (the #1137 bug) we get
             # a NamedParameterNotFound error instead. We assert the former to prove the parameter exists.
             $splat = @{ Path = 'TestDrive:\a'; Destination = 'TestDrive:\b'; $Name = 'not-a-session' }
-            $err = { Copy-Item @splat } | Should-Throw -PassThru
+            $err = { Copy-Item @splat } | Should-Throw
             $err.FullyQualifiedErrorId | Should-NotBeLikeString 'NamedParameterNotFound*' -Because "the $Name dynamic parameter should be available on the mocked Copy-Item (#1137)"
         }
     }
