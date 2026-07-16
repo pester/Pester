@@ -710,7 +710,7 @@ Running tests from 'A.Tests.ps1'
 Describing A
   [+] a1 passes <time>
 Discovery: Discovering tests in B.Tests.ps1
-Discovery: Found 1 tests in <time>ms
+Discovery: Found 1 tests in <time>
 
 Running tests from 'B.Tests.ps1'
 Describing B
