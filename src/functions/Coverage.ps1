@@ -28,7 +28,7 @@
     # not actual breakpoints
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
     if ($null -ne $logger) {
-        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds)ms."
     }
 
     if ($UseBreakpoints) {
@@ -76,7 +76,7 @@
         $sw.Stop()
 
         if ($null -ne $logger) {
-            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds)ms."
         }
     }
     else {
@@ -110,7 +110,7 @@ function Exit-CoverageAnalysis {
     }
 
     if ($null -ne $logger) {
-        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds)ms."
     }
 }
 
@@ -272,7 +272,7 @@ function Get-CoverageBreakpoints {
             }
         }
         if ($null -ne $Logger) {
-            & $Logger  "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage, in $($sw.ElapsedMilliseconds) ms"
+            & $Logger  "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage, in $($sw.ElapsedMilliseconds)ms"
         }
     }
 }

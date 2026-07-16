@@ -102,7 +102,7 @@
             })
 
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
+            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds)ms."
         }
     }
 
@@ -213,7 +213,7 @@
             }
         }
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds)ms."
         }
         $reportText = Write-CoverageReport $coverageReport
 
