@@ -22,7 +22,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     }
 
     It "has a valid name in the manifest" {
-        $script:manifest.Name | Should-Be Pester
+        $script:manifest.Name | Should-BeString 'Pester'
     }
 
     It "has a valid guid in the manifest" {
@@ -86,7 +86,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
         Context 'A Context' {
             It 'Performs a successful test' {
-                $true | Should-Be $true
+                $true | Should-BeTrue
             }
         }
 
@@ -127,7 +127,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
-                $missingSafeCommands | Should-Be $null
+                $missingSafeCommands | Should-BeNull
             }
         }
     }
@@ -247,8 +247,8 @@ InPesterModuleScope {
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
@@ -258,8 +258,8 @@ InPesterModuleScope {
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Deduplicates filepaths when the provided paths overlaps' {
