@@ -1343,6 +1343,7 @@ i -PassThru:$PassThru {
                     Throw       = $true
                 }
                 Output = @{
+                    CIFormat      = 'None'
                     CIDebugOutput = 'Something'
                 }
             }
