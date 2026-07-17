@@ -79,18 +79,15 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
         $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
+            if ($cmdletBinding -ne '[CmdletBinding()]') {
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
+            }
             # When the cmdlet has no explicit DefaultParameterSetName and its dynamic parameters
             # introduce multiple named parameter sets, PowerShell cannot resolve which set applies
             # when the mock is called without arguments. Injecting '__AllParameterSets' as the
             # default makes the no-argument call succeed, matching the real cmdlet's behaviour. (#1531)
             if ([string]::IsNullOrEmpty($metadata.DefaultParameterSetName)) {
-                if ($cmdletBinding -ne '[CmdletBinding()]') {
-                    $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
-                }
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, "DefaultParameterSetName='__AllParameterSets'")
-            }
-            if ($cmdletBinding -ne '[CmdletBinding()]') {
-                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
             }
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
