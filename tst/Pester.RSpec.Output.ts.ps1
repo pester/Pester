@@ -186,6 +186,99 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'Output for container test count in Normal mode' {
+        t 'Passing container line shows the total test count' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Normal'
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'Plaintext'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+
+                        It 'i2' {
+                            1 | Should -Be 1
+                        }
+
+                        It 'i3' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $passingLine = $output | Select-String -Pattern '^\[\+\].*\(3 tests\)\s*$'
+            @($passingLine).Count | Verify-Equal 1
+        }
+
+        t 'Passing container line uses singular test for a single test' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Normal'
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'Plaintext'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $passingLine = $output | Select-String -Pattern '^\[\+\].*\(1 test\)\s*$'
+            @($passingLine).Count | Verify-Equal 1
+        }
+
+        t 'Detailed mode passing test lines do not include the container test count' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'Plaintext'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+
+                        It 'i2' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            # Detailed shows per-test [+] lines; none of them should carry the "(N tests)" suffix
+            $countSuffix = $output | Select-String -Pattern '\(\d+ tests?\)\s*$'
+            @($countSuffix).Count | Verify-Equal 0
+        }
+    }
+
     b 'Output for container names' {
         t 'Script Block container names are output' {
             $sb = {

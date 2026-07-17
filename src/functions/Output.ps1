@@ -623,8 +623,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $humanTime = "$(Get-HumanTime ($Context.Result.Duration))"
 
             if ($Context.Result.Passed) {
+                $testCount = $Context.Result.TotalCount
+                $testCountText = if (1 -eq $testCount) { '1 test' } else { "$testCount tests" }
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " ($testCountText)"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
