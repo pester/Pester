@@ -88,6 +88,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
+        $paramBlock = Repair-OrderedType -ParamBlock $paramBlock -Metadata $metadata
 
         # Repair-ConflictingParameters above strips validation from the static parameters, but it skips
         # dynamic parameters because they are not part of the static param block. To make
@@ -2196,6 +2197,56 @@ function Repair-EnumParameters {
     }
 
     $sb.ToString()
+}
+
+function Repair-OrderedType {
+    param (
+        [string]
+        $ParamBlock,
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    # ProxyCommand.GetParamBlock serializes [System.Collections.Specialized.OrderedDictionary]
+    # parameters using the [ordered] type accelerator on PowerShell 7+ (Windows PowerShell 5.1 emits
+    # the full type name). That accelerator is only valid as a cast on a hash literal ([ordered]@{}),
+    # not as a parameter type constraint, so [scriptblock]::Create would throw a ParseException before
+    # the mock is ever invoked. Replace the accelerator with the full type name for each affected
+    # parameter. https://github.com/pester/Pester/issues/2370
+    if ($ParamBlock -notmatch '\[ordered(?:\[\])?\]') {
+        # No ordered accelerator present (e.g. Windows PowerShell). Return original string.
+        return $ParamBlock
+    }
+
+    $orderedType = [System.Collections.Specialized.OrderedDictionary]
+
+    foreach ($param in $Metadata.Parameters.Values) {
+        $type = $param.ParameterType
+        $isArray = $type.IsArray
+        $elementType = if ($isArray) { $type.GetElementType() } else { $type }
+        if ($elementType -ne $orderedType) { continue }
+
+        $accelerator = if ($isArray) { '[ordered[]]' } else { '[ordered]' }
+        $fullType = if ($isArray) { '[System.Collections.Specialized.OrderedDictionary[]]' } else { '[System.Collections.Specialized.OrderedDictionary]' }
+        $paramName = $param.Name
+
+        # Only rewrite the accelerator that is the type constraint for this specific parameter,
+        # i.e. the token immediately preceding ${ParameterName}. This avoids touching any legitimate
+        # [ordered]@{} cast that might appear elsewhere.
+        $pattern = "$([regex]::Escape($accelerator))(?<ws>\s*)$([regex]::Escape('${' + $paramName + '}'))"
+        $evaluator = {
+            param($match)
+            "$fullType$($match.Groups['ws'].Value)`${$paramName}"
+        }.GetNewClosure()
+
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Mock -Message "Fixed OrderedDictionary type accelerator for parameter '$paramName' from '$accelerator' to '$fullType'"
+        }
+
+        $ParamBlock = [regex]::Replace($ParamBlock, $pattern, $evaluator)
+    }
+
+    $ParamBlock
 }
 
 function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchingCalls) {
