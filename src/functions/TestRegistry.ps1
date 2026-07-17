@@ -70,23 +70,41 @@ function Get-TestRegistryChildItem ([string]$TestRegistryPath) {
         & $SafeCommands['Select-Object'] -ExpandProperty PSPath
 }
 
+function Invoke-TestRegistryWithRetry {
+    # Reading from and writing to the registry can intermittently throw
+    # 'IOException: No more data is available' when TestRegistry is used from parallel
+    # runspaces on Windows PowerShell (.NET Framework). This is a known .NET Framework bug
+    # that is fixed in .NET Core / PowerShell 7. Retry the operation once on that transient
+    # error, so both reads and writes are resilient. See
+    # https://github.com/pester/Pester/issues/2418
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock] $ScriptBlock
+    )
+
+    try {
+        & $ScriptBlock
+    }
+    catch [System.IO.IOException] {
+        # when running in parallel this occasionally triggers
+        # IOException: No more data is available
+        # let's just retry the operation
+        & $SafeCommands['Write-Warning'] "IO exception during a TestRegistry operation, retrying."
+        & $ScriptBlock
+    }
+}
+
 function New-RandomTempRegistry {
     do {
         $tempPath = Get-TempRegistry
         $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([IO.Path]::GetRandomFileName().Substring(0, 4))
-    } until (-not (& $SafeCommands['Test-Path'] -Path $Path -PathType Container))
+        # Test-Path is a read operation and can throw the same transient IOException as the
+        # New-Item write below, so retry it the same way.
+        $keyAlreadyExists = Invoke-TestRegistryWithRetry { & $SafeCommands['Test-Path'] -Path $Path -PathType Container }
+    } until (-not $keyAlreadyExists)
 
     try {
-        try {
-            & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
-        }
-        catch [System.IO.IOException] {
-            # when running in parallel this occasionally triggers
-            # IOException: No more data is available
-            # let's just retry the operation
-            & $SafeCommands['Write-Warning'] "IO exception during creating path $path"
-            & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop
-        }
+        Invoke-TestRegistryWithRetry { & $SafeCommands['New-Item'] -Path $Path -ErrorAction Stop }
     }
     catch [Exception] {
         throw ([Exception]"Was not able to registry key for TestRegistry at '$Path'", ($_.Exception))
