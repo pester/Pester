@@ -13,7 +13,7 @@ Describe "General" {
 
     It "is located in Pester key in HKCU" {
         $testRegistryPath = (Get-PSDrive TestRegistry).Root
-        $testRegistryPath | Should -BeLike "HKEY_CURRENT_USER\Software\Pester*"
+        $testRegistryPath | Should-BeLikeString "HKEY_CURRENT_USER\Software\Pester*"
     }
 }
 
@@ -67,15 +67,15 @@ Describe 'Repair missing TestRegistry' {
 
     Context 'Broken' {
         It 'Removes TestRegistry' {
-            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should-Be 1
             Remove-PSDrive -Name 'TestRegistry'
-            { Get-PSDrive -Name 'TestRegistry' -ErrorAction Stop } | Should -Throw -ExpectedMessage 'Cannot find drive*'
+            { Get-PSDrive -Name 'TestRegistry' -ErrorAction Stop } | Should-Throw -ExceptionMessage 'Cannot find drive*'
         }
     }
 
     Context 'Fixed' {
         It 'TestRegistry exists again' {
-            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+            (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should-Be 1
         }
     }
 }
@@ -87,29 +87,29 @@ Describe 'Running Pester in Invoke-Pester' {
     }
 
     It 'Value exists before' {
-        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should-Be 1
     }
 
     It 'Works in nested run' {
         $sb = {
             Describe 'Nested' {
                 It 'Value created in outer run are available using absolute path' {
-                    (Get-ItemProperty -Path $TempKeyPath -Name $TempValueName).$TempValueName | Should -Be 1
+                    (Get-ItemProperty -Path $TempKeyPath -Name $TempValueName).$TempValueName | Should-Be 1
                 }
 
                 It 'TestRegistry PSDrive points to clean location' {
-                    (Get-Item -Path 'TestRegistry:/').Property | Should -BeNullOrEmpty
+                    (Get-Item -Path 'TestRegistry:/').Property | Should-BeNull
                 }
             }
         }
 
         $c = New-PesterContainer -ScriptBlock $sb -Data @{ TempKeyPath = $tempValue.PSPath; TempValueName = $tempValueName }
         $innerRun = Invoke-Pester -Container $c -PassThru -Output None
-        $innerRun.Result | Should -Be 'Passed'
-        $innerRun.PassedCount | Should -Be 2
+        $innerRun.Result | Should-BeString 'Passed'
+        $innerRun.PassedCount | Should-Be 2
     }
 
     It 'Value still exists after nested run' {
-        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should -Be 1
+        (Get-ItemProperty -Path 'TestRegistry:/' -Name $tempValueName).$tempValueName | Should-Be 1
     }
 }

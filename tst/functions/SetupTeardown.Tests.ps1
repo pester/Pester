@@ -8,12 +8,12 @@ Describe 'Describe-Scoped Test Case setup' {
     $testVariable = 'Set in Describe'
 
     It 'Assigns the correct value in first test' {
-        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
         $testVariable = 'Set in It'
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
     }
 }
 
@@ -25,12 +25,12 @@ Describe 'Describe-Scoped Test Case setup using named ScriptBlock-parameter' {
     $testVariable = 'Set in Describe'
 
     It 'Assigns the correct value in first test' {
-        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
         $testVariable = 'Set in It'
     }
 
     It 'Assigns the correct value in subsequent tests' {
-        $testVariable | Should -Be 'From BeforeEach'
+        $testVariable | Should-BeString 'From BeforeEach'
     }
 }
 
@@ -44,12 +44,12 @@ Describe 'Context-scoped Test Case setup' {
         }
 
         It 'Assigns the correct value inside the context' {
-            $testVariable | Should -Be 'From BeforeEach'
+            $testVariable | Should-BeString 'From BeforeEach'
         }
     }
 
     It 'Reports the original value after the Context' {
-        $testVariable | Should -Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 }
 
@@ -64,7 +64,7 @@ Describe 'Multiple Test Case setup blocks' {
 
     Context 'The context' {
         It 'Executes Describe setup blocks first, then Context block' {
-            $testVariable | Should -Be 'Set in Context BeforeEach'
+            $testVariable | Should-BeString 'Set in Context BeforeEach'
         }
 
         BeforeEach {
@@ -73,7 +73,7 @@ Describe 'Multiple Test Case setup blocks' {
     }
 
     It 'Continues to execute Describe setup blocks after the Context' {
-        $testVariable | Should -Be 'Set in Describe BeforeEach'
+        $testVariable | Should-BeString 'Set in Describe BeforeEach'
     }
 }
 
@@ -87,11 +87,11 @@ Describe 'Describe-scoped Test Case teardown' {
     }
 
     It 'Does not modify the variable before the first test' {
-        $testVariable | Should -Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 
     It 'Keeps the describe variable after the first test' {
-        $testVariable | Should -Be 'Set in Describe'
+        $testVariable | Should-BeString 'Set in Describe'
     }
 }
 
@@ -115,7 +115,7 @@ Describe 'Multiple Test Case teardown blocks' {
         It 'Performs a test in Context' { "some output" }
 
         It 'Executes Describe teardown blocks after Context teardown blocks' {
-            $container.Value | Should -Be 'Set in Describe AfterEach'
+            $container.Value | Should-BeString 'Set in Describe AfterEach'
         }
     }
 }
@@ -131,13 +131,13 @@ BeforeAll {
 
 Describe 'Test Group Setup and Teardown' {
     It 'Executed the Describe BeforeAll regardless of definition order' {
-        $container.DescribeBeforeAllCounter | Should -Be 1
+        $container.DescribeBeforeAllCounter | Should-Be 1
     }
 
     It 'Did not execute any other block yet' {
-        $container.DescribeAfterAllCounter | Should -Be 0
-        $container.ContextBeforeAllCounter | Should -Be 0
-        $container.ContextAfterAllCounter  | Should -Be 0
+        $container.DescribeAfterAllCounter | Should-Be 0
+        $container.ContextBeforeAllCounter | Should-Be 0
+        $container.ContextAfterAllCounter  | Should-Be 0
     }
 
     BeforeAll {
@@ -158,27 +158,27 @@ Describe 'Test Group Setup and Teardown' {
         }
 
         It 'Executed the Context BeforeAll block' {
-            $container.ContextBeforeAllCounter | Should -Be 1
+            $container.ContextBeforeAllCounter | Should-Be 1
         }
 
         It 'Has not executed any other blocks yet' {
-            $container.DescribeBeforeAllCounter | Should -Be 1
-            $container.DescribeAfterAllCounter  | Should -Be 0
-            $container.ContextAfterAllCounter   | Should -Be 0
+            $container.DescribeBeforeAllCounter | Should-Be 1
+            $container.DescribeAfterAllCounter  | Should-Be 0
+            $container.ContextAfterAllCounter   | Should-Be 0
         }
     }
 
     It 'Executed the Context AfterAll block' {
-        $container.ContextAfterAllCounter | Should -Be 1
+        $container.ContextAfterAllCounter | Should-Be 1
     }
 }
 
 Describe 'Finishing TestGroup Setup and Teardown tests' {
     It 'Executed each Describe and Context group block once' {
-        $container.DescribeBeforeAllCounter | Should -Be 1
-        $container.DescribeAfterAllCounter  | Should -Be 1
-        $container.ContextBeforeAllCounter  | Should -Be 1
-        $container.ContextAfterAllCounter   | Should -Be 1
+        $container.DescribeBeforeAllCounter | Should-Be 1
+        $container.DescribeAfterAllCounter  | Should-Be 1
+        $container.ContextBeforeAllCounter  | Should-Be 1
+        $container.ContextAfterAllCounter   | Should-Be 1
     }
 }
 
@@ -189,16 +189,16 @@ Describe 'Unbound scriptsblocks as input' {
         $expectedMessage = 'Unbound scriptblock*'
     }
     It 'Throws when provided to BeforeAll' {
-        { BeforeAll -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+        { BeforeAll -Scriptblock $sb } | Should-Throw -ExceptionMessage $expectedMessage
     }
     It 'Throws when provided to AfterAll' {
-        { AfterAll -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+        { AfterAll -Scriptblock $sb } | Should-Throw -ExceptionMessage $expectedMessage
     }
     It 'Throws when provided to BeforeEach' {
-        { BeforeEach -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+        { BeforeEach -Scriptblock $sb } | Should-Throw -ExceptionMessage $expectedMessage
     }
     It 'Throws when provided to AfterEach' {
-        { AfterEach -Scriptblock $sb } | Should -Throw -ExpectedMessage $expectedMessage
+        { AfterEach -Scriptblock $sb } | Should-Throw -ExceptionMessage $expectedMessage
     }
 }
 
@@ -216,7 +216,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeAll is already defined*'
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should-BeLikeString '*BeforeAll is already defined*'
     }
 
     It 'Throws when two AfterAll are defined in the same block' {
@@ -232,7 +232,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterAll is already defined*'
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should-BeLikeString '*AfterAll is already defined*'
     }
 
     It 'Throws when two BeforeEach are defined in the same block' {
@@ -248,7 +248,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeEach is already defined*'
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should-BeLikeString '*BeforeEach is already defined*'
     }
 
     It 'Throws when two AfterEach are defined in the same block' {
@@ -264,7 +264,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterEach is already defined*'
+        $r.Containers[0].ErrorRecord[0].Exception.Message | Should-BeLikeString '*AfterEach is already defined*'
     }
 
     It 'Allows same hook type in different blocks' {
@@ -273,7 +273,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
                 BeforeAll { $script:x = 1 }
                 Context 'c' {
                     BeforeAll { $script:y = 2 }
-                    It 'i' { $script:x + $script:y | Should -Be 3 }
+                    It 'i' { $script:x + $script:y | Should-Be 3 }
                 }
             }
         }
@@ -282,7 +282,7 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.FailedCount | Should -Be 0
+        $r.FailedCount | Should-Be 0
     }
 }
 #     # TODO: this depends on the old pester internals it would be easier to test in P

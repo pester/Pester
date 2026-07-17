@@ -22,11 +22,11 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     }
 
     It "has a valid name in the manifest" {
-        $script:manifest.Name | Should -Be Pester
+        $script:manifest.Name | Should-BeString 'Pester'
     }
 
     It "has a valid guid in the manifest" {
-        $script:manifest.Guid | Should -Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
+        $script:manifest.Guid | Should-BeString 'a699dea5-2c73-4616-a270-1f7abb777e71'
     }
 
     if ((Get-Command -Name git -ErrorAction SilentlyContinue) -and (Get-Item ".git" -ErrorAction Ignore)) {
@@ -39,12 +39,12 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
                     $script:tagVersionShort, $script:tagPrerelease = $script:tagVersion -split "-", 2
                 }
 
-                $script:tagVersion                  | Should -Not -BeNullOrEmpty
-                $script:tagVersionShort -as [Version]    | Should -Not -BeNullOrEmpty
+                $script:tagVersion                      | Should-NotBeNull
+                $script:tagVersionShort -as [Version]   | Should-NotBeNull
             }
 
             It "has valid release notes in the manifest" {
-                $script:manifest.PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
+                $script:manifest.PrivateData.PSData.ReleaseNotes | Should-BeString "https://github.com/pester/Pester/releases/tag/$script:tagVersion"
             }
 
             It "tag and changelog versions are the same" {
@@ -57,17 +57,17 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
                     }
                 }
 
-                $script:changelogVersion      | Should -Be $script:tagVersion
-                $script:changelogVersionShort | Should -Be $script:tagVersionShort
+                $script:changelogVersion      | Should-Be $script:tagVersion
+                $script:changelogVersionShort | Should-Be $script:tagVersionShort
             }
 
             It "tag and changelog versions are the same" {
-                $script:changelogVersion | Should -Be $script:tagVersion
+                $script:changelogVersion | Should-Be $script:tagVersion
             }
 
             It "all short versions are the same" {
-                $script:changelogVersionShort -as [Version] | Should -Be ( $script:manifest.Version -as [Version] )
-                $script:manifest.Version -as [Version] | Should -Be ( $script:tagVersionShort -as [Version] )
+                $script:changelogVersionShort -as [Version] | Should-Be ( $script:manifest.Version -as [Version] )
+                $script:manifest.Version -as [Version] | Should-Be ( $script:tagVersionShort -as [Version] )
             }
         }
     }
@@ -75,7 +75,7 @@ Describe -Tags 'VersionChecks' "Pester manifest and changelog" {
     It "has valid pre-release suffix in manifest (empty for stable version)" {
         # might be empty or null, as well as the tagPrerelase. we need empty string to eq $null but not to eq any other value
         $prereleaseFromManifest = $script:manifest.PrivateData.PSData.Prerelease | where { $_ }
-        $prereleaseFromManifest | Should -Be $script:tagPrerelease
+        $prereleaseFromManifest | Should-Be $script:tagPrerelease
     }
 }
 
@@ -86,12 +86,12 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
         }
         Context 'A Context' {
             It 'Performs a successful test' {
-                $true | Should -Be $true
+                $true | Should-BeTrue
             }
         }
 
         It 'Did not add anything to the $error variable' {
-            $error.Count | Should -Be 0
+            $error.Count | Should-Be 0
         }
     }
 
@@ -127,7 +127,7 @@ if ($PSVersionTable.PSVersion.Major -ge 3) {
             }
 
             It 'The SafeCommands table contains all commands that are called from the module' {
-                $missingSafeCommands | Should -Be $null
+                $missingSafeCommands | Should-BeNull
             }
         }
     }
@@ -139,7 +139,7 @@ Describe 'Public API' {
             ? { $_.CommandType -ne 'Alias' } | # Get-Command outputs aliases in PowerShell 2
             ? { -not $_.CmdletBinding } |
             % { $_.Name }
-        $r | Should -beNullOrEmpty
+        $r | Should-BeCollection @()
     }
 }
 
@@ -237,34 +237,34 @@ InPesterModuleScope {
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
             $result = @(Find-File 'TestDrive:\SomeOtherFile.ps1' -Extension ".Tests.ps1")
-            $result.Count | Should -Be 1
-            $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeOtherFile.ps1'
+            $result.Count | Should-Be 1
+            $result[0].UnresolvedPath | Should-BeString 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
             $result = @(Find-File 'TestDrive:\*.ps1' -Extension ".Tests.ps1")
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
             $result = @(Find-File 'TestDrive:\' -Extension ".Tests.ps1")
 
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Deduplicates filepaths when the provided paths overlaps' {
             $result = @(Find-File 'TestDrive:\*.ps1','TestDrive:\*.ps1' -Extension '.Tests.ps1')
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
         }
 
         Context 'Hidden folders and VCS metadata' {
@@ -306,12 +306,12 @@ InPesterModuleScope {
 
             It 'discovers test files inside dot-prefixed (hidden) folders' {
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Contain 'InHidden.Tests.ps1'
+                $names | Should-ContainCollection 'InHidden.Tests.ps1'
             }
 
             It 'discovers test files in nested hidden folders' {
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Contain 'NestedHidden.Tests.ps1'
+                $names | Should-ContainCollection 'NestedHidden.Tests.ps1'
             }
 
             It 'does not descend into .git directories' {
@@ -319,8 +319,8 @@ InPesterModuleScope {
                 # appear in the result, proving the walker stops at .git without
                 # opening its contents.
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Not -Contain 'HeadLevel.Tests.ps1'
-                $names | Should -Not -Contain 'DeepInGit.Tests.ps1'
+                $names | Should-NotContainCollection 'HeadLevel.Tests.ps1'
+                $names | Should-NotContainCollection 'DeepInGit.Tests.ps1'
             }
 
             It 'returns the same set as Get-ChildItem -Recurse -Force minus VCS folders' {
@@ -331,7 +331,7 @@ InPesterModuleScope {
                         Select-Object -ExpandProperty FullName |
                         Sort-Object
                 )
-                $found | Should -Be $expected
+                $found | Should-BeCollection $expected
             }
         }
 
@@ -476,7 +476,7 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
         ) {
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
-                Should -BeFalse
+                Should-BeFalse
         }
 
         It 'Given a filter <filter> that matches one or more items in collection <collection> it returns $true' -TestCases @(
@@ -488,7 +488,7 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
         ) {
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
-                Should -BeTrue
+                Should-BeTrue
         }
     }
 }

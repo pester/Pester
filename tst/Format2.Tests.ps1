@@ -191,7 +191,7 @@ InPesterModuleScope {
             } -ArgumentList (Get-Module Pester).Path, $TestDrive
             $result = $job | Wait-Job -Timeout 10 | Receive-Job
             $job | Remove-Job -Force
-            $result | Should -Not -BeNullOrEmpty
+            $result | Verify-NotNull
         }
 
         # Regression test for https://github.com/pester/Pester/issues/2828
@@ -354,7 +354,7 @@ InPesterModuleScope {
             $result = Format-String2 -Value $value
             # The result should not contain any of the original control characters
             # (C0 0x00-0x1F, DEL 0x7F, or C1 0x80-0x9F).
-            $result | Should -Not -Match '[\x00-\x1F\x7F-\x9F]'
+            $result | Should-NotMatchString '[\x00-\x1F\x7F-\x9F]'
         }
     }
 }
