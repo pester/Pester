@@ -3522,5 +3522,113 @@ Describe "Something" {
                 }
             }
         }
+
+        t "an unmatched-label break escaping user code fails the test instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'unmatched break' {
+                    BeforeAll { function Invoke-StrayBreak { break outerLoop } }
+                    It 'first passes' { $true | Should -Be $true }
+                    It 'stray break fails' { Invoke-StrayBreak }
+                    It 'later test still runs' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            # The run completed with a result and summary instead of silently aborting.
+            $r.Result | Verify-Equal 'Failed'
+            $r.TotalCount | Verify-Equal 3
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Passed'
+            $tests[1].Result | Verify-Equal 'Failed'
+            # The sibling test after the offending one still ran.
+            $tests[2].Result | Verify-Equal 'Passed'
+            $tests[1].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+            $tests[1].ErrorRecord[0].Exception.Message | Verify-Like '*does not match any enclosing loop*'
+        }
+
+        t "an unmatched-label continue escaping user code fails the test instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'unmatched continue' {
+                    It 'stray continue fails' { continue outerLoop }
+                    It 'later test still runs' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.TotalCount | Verify-Equal 2
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Failed'
+            $tests[0].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+            $tests[1].Result | Verify-Equal 'Passed'
+        }
+
+        t "an unmatched-label break in a setup fails the block instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'stray break in setup' {
+                    BeforeEach { break outerLoop }
+                    It 'is failed by the setup break' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Failed'
+            $tests[0].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+        }
+
+        t "correctly labelled break and continue inside loops in user code are unaffected" {
+            $sb = {
+                Describe 'labelled loops still work' {
+                    It 'labelled break stays inside its loop' {
+                        $sum = 0
+                        :outer foreach ($i in 1..5) {
+                            foreach ($j in 1..5) {
+                                if ($j -eq 3) { break outer }
+                                $sum += 1
+                            }
+                        }
+                        $sum | Should -Be 2
+                    }
+                    It 'labelled continue stays inside its loop' {
+                        $collected = @()
+                        :top foreach ($i in 1..3) {
+                            foreach ($j in 1..3) {
+                                if ($j -eq 2) { continue top }
+                                $collected += "$i$j"
+                            }
+                        }
+                        ($collected -join ',') | Should -Be '11,21,31'
+                    }
+                    It 'a plain break exiting user code is still absorbed' {
+                        break
+                        # unreachable: the plain break exits the test body without failing it
+                        $false | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Passed'
+            $r.PassedCount | Verify-Equal 3
+            $r.FailedCount | Verify-Equal 0
+        }
     }
 }

@@ -1377,6 +1377,22 @@ function Assert-Success {
     }
 }
 
+function New-EscapedFlowControlErrorRecord {
+    # User code can run `break` / `continue` with a label that does not match any enclosing
+    # loop (usually a typo). PowerShell raises a flow-control exception (BreakException /
+    # ContinueException) that a normal try/catch cannot see and that unwinds past the whole
+    # Pester runner, silently aborting the run with no result (see #2669). Invoke-ScriptBlock
+    # detects that escape and calls this helper to build a normal terminating error so the
+    # current test or block fails with a clear message instead of the run being torn down.
+    # We cannot recover the label or tell break from continue at that point (the flow-control
+    # exception is not surfaced), so the message names both keywords.
+    $message = "A 'break' or 'continue' statement with a label that does not match any enclosing loop escaped from your code. " +
+    "This is usually a misspelled or undefined loop label. Left unhandled it silently aborts the whole Pester run with no result (see https://github.com/pester/Pester/issues/2669), so Pester failed this test or block instead."
+
+    $exception = [System.InvalidOperationException]::new($message)
+    [Management.Automation.ErrorRecord]::new($exception, 'PesterFlowControlStatementEscaped', [Management.Automation.ErrorCategory]::InvalidOperation, $null)
+}
+
 function Invoke-ScriptBlock {
     param(
         [ScriptBlock] $ScriptBlock,
@@ -1671,16 +1687,41 @@ function Invoke-ScriptBlock {
                 & $OnUserScopeTransition
             }
         }
-        do {
-            $standardOutput = if ($NoNewScope) {
-                . $wrapperScriptBlock $parameters
+        # User code can run `break` / `continue` with a label that does not match any enclosing
+        # loop (usually a typo). PowerShell raises a flow-control exception (BreakException /
+        # ContinueException) that a normal try/catch cannot see. Left unhandled it unwinds past
+        # the whole Pester runner and silently aborts the run with no result (see #2669).
+        #
+        # The do/while ($false) below already absorbs a plain, unlabelled break/continue, so
+        # those keep their current behaviour and simply end the scriptblock. A labelled
+        # break/continue whose label matches no enclosing loop escapes the do/while; when that
+        # happens for user code we rethrow it from the finally as a normal terminating error so
+        # the outer catch records it as a failure of the current test or block instead of
+        # letting it tear down the whole run. Correctly labelled break/continue inside loops in
+        # user code stays within that code and never reaches here, so it is unaffected. This
+        # only guards user code ($MoveBetweenScopes); framework invocations run unchanged.
+        $flowControlEscaped = $MoveBetweenScopes
+        try {
+            do {
+                $standardOutput = if ($NoNewScope) {
+                    . $wrapperScriptBlock $parameters
+                }
+                else {
+                    & $wrapperScriptBlock $parameters
+                }
+                # if the code reaches here we did not break
+                #$break = $false
+            } while ($false)
+
+            # Reached when the wrapper returned normally or a plain unlabelled break/continue
+            # was absorbed by the do/while above. A labelled escape skips this assignment.
+            $flowControlEscaped = $false
+        }
+        finally {
+            if ($flowControlEscaped) {
+                throw (New-EscapedFlowControlErrorRecord)
             }
-            else {
-                & $wrapperScriptBlock $parameters
-            }
-            # if the code reaches here we did not break
-            #$break = $false
-        } while ($false)
+        }
     }
     catch {
         $err = $_
