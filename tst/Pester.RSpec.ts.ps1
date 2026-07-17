@@ -280,6 +280,42 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Excluding directories from a run" {
+        try {
+            $path = $pwd
+            $c = 'Describe "d1" { It "i1" { $true } }'
+            $root = Join-Path ([IO.Path]::GetTempPath()) "excludepath-dir-$([Guid]::NewGuid().Guid)"
+            $includedDir = Join-Path $root "included"
+            $excludedDir = Join-Path $root "excluded"
+            New-Item -ItemType Directory -Path $includedDir -Force | Out-Null
+            New-Item -ItemType Directory -Path $excludedDir -Force | Out-Null
+
+            $includedFile = Join-Path $includedDir "included.Tests.ps1"
+            $excludedFile = Join-Path $excludedDir "excluded.Tests.ps1"
+            $c | Set-Content $includedFile
+            $c | Set-Content $excludedFile
+
+            t "Excluding a directory excludes the tests underneath it but keeps sibling tests" {
+                $result = Invoke-Pester -Path $root -ExcludePath $excludedDir -PassThru
+
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Item.FullName | Verify-Equal $includedFile
+            }
+
+            t "Excluding a directory with a trailing separator excludes the tests underneath it" {
+                $excludedWithSeparator = $excludedDir + [System.IO.Path]::DirectorySeparatorChar
+                $result = Invoke-Pester -Path $root -ExcludePath $excludedWithSeparator -PassThru
+
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Item.FullName | Verify-Equal $includedFile
+            }
+        }
+        finally {
+            cd $path
+            Remove-Item $root -Recurse -Force -Confirm:$false -ErrorAction Stop
+        }
+    }
+
     b "Terminating and non-terminating Should" {
         t "Non-terminating assertion fails the test after running to completion" {
             $sb = {
