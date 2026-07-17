@@ -2967,6 +2967,43 @@ Describe 'Mocking command with ValidateRange-attributes' {
     }
 }
 
+Describe 'Mocking command with OrderedDictionary-parameters' {
+    # https://github.com/pester/Pester/issues/2370
+    # Bug in PowerShell. ProxyCommand-generation serializes [System.Collections.Specialized.OrderedDictionary]
+    # parameters using the [ordered] type accelerator on PowerShell 7+, which is invalid as a parameter type
+    # constraint and makes the mock bootstrap function fail to compile. Needs Repair-OrderedType.
+
+    It 'mocked function does not throw when param is <Name>' -TestCases @(
+        @{
+            Name      = 'a scalar OrderedDictionary'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary]$Context'
+        },
+        @{
+            Name      = 'an OrderedDictionary with other params'
+            Parameter = '[string]$Name, [System.Collections.Specialized.OrderedDictionary]$Context, [int]$Count'
+        },
+        @{
+            Name      = 'an OrderedDictionary array'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary[]]$Contexts'
+        }
+    ) {
+        Set-Item -Path 'function:Test-OrderedParameter' -Value ('param ( {0} )' -f $Parameter)
+
+        Mock -CommandName 'Test-OrderedParameter' -MockWith { 'mock' }
+        Test-OrderedParameter | Should -Be 'mock'
+    }
+
+    It 'mocked function is invoked and captures the OrderedDictionary argument' {
+        function Get-OrderedThing { param([System.Collections.Specialized.OrderedDictionary]$Context) 'real' }
+        function Invoke-OrderedWrapper { Get-OrderedThing -Context ([ordered]@{ a = 1 }) }
+
+        Mock -CommandName 'Get-OrderedThing' -MockWith { 'mock' }
+
+        Invoke-OrderedWrapper | Should -Be 'mock'
+        Should -Invoke Get-OrderedThing -Times 1 -Exactly
+    }
+}
+
 Describe "Running Mock with ModuleName in test scope" {
     BeforeAll {
         Get-Module "test" -ErrorAction SilentlyContinue | Remove-Module
