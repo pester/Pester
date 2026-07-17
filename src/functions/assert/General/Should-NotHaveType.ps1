@@ -6,8 +6,10 @@
     .DESCRIPTION
     This assertion uses `-is` to verify that the actual value is not assignable to the expected type. Derived types and implemented interfaces still count as the expected type.
 
+    When the expected type is given as a name that does not resolve to a loaded .NET type, the assertion falls back to matching against the actual value's `PSTypeNames`, so PowerShell custom types are supported too.
+
     .PARAMETER Expected
-    The expected type.
+    The expected type. Provide a `[Type]`, a type name that resolves to a loaded .NET type, or a custom type name to match against the actual value's `PSTypeNames`.
 
     .PARAMETER Actual
     The actual value.
@@ -42,13 +44,29 @@
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Position = 0, Mandatory)]
-        [Type]$Expected,
+        $Expected,
         [String]$Because
     )
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'ExactType'
     $Actual = $assert.Actual()
-    if ($Actual -is $Expected) {
-        $assert.Fail("Expected value to be of different type than <expected>,<because> but got <actualType> <actual>.", @{ Expected = $Expected; Because = $Because })
+
+    # Resolve the expected type. A [Type], or a type name that resolves to a loaded .NET type,
+    # is matched with -is (inheritance and interfaces included). A name that does not resolve
+    # is matched against the actual value's PSTypeNames, so custom PowerShell types work too (#1315).
+    $expectedType = $Expected -as [Type]
+    $expectedName = $null
+    if ($null -eq $expectedType -and $Expected -is [string]) {
+        $expectedName = $Expected -replace '^\[(.*)\]$', '$1'
+        $expectedType = $expectedName -as [Type]
+    }
+
+    if ($null -ne $expectedType) {
+        if ($Actual -is $expectedType) {
+            $assert.Fail("Expected value to be of different type than <expected>,<because> but got <actualType> <actual>.", @{ Expected = $expectedType; Because = $Because })
+        }
+    }
+    elseif ($null -ne $Actual -and $Actual.PSTypeNames -contains $expectedName) {
+        $assert.Fail("Expected value to be of different type or PSTypeName than <expected>,<because> but got <actualType> <actual>.", @{ Expected = $expectedName; Because = $Because })
     }
 }
