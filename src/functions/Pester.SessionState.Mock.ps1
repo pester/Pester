@@ -92,7 +92,10 @@ function Mock {
     NOTE: Do not specify param or dynamicparam blocks in this script block.
     These will be injected automatically based on the signature of the command
     being mocked, and the MockWith script block can contain references to the
-    mocked commands parameter variables.
+    mocked commands parameter variables. The parameters bound on the mocked
+    command are also available as a hashtable in the $PesterBoundParameters
+    variable, which is convenient for forwarding them to another command. See
+    the examples for calling the original command from inside the mock.
 
     .PARAMETER Verifiable
     When this is set, the mock will be checked when Should -InvokeVerifiable is
@@ -214,6 +217,36 @@ function Mock {
 
     This example shows how calls to commands made from inside a module can be
     mocked by using the -ModuleName parameter.
+
+    .EXAMPLE
+    ```powershell
+    Describe "Get-Date wrapper" {
+        BeforeAll {
+            # Capture the original command before it is mocked, so it can be
+            # called from inside the mock. Use -CommandType Function, Cmdlet or
+            # Application to match how the original command is implemented.
+            $originalGetDate = Get-Command Get-Date -CommandType Cmdlet
+        }
+
+        It "prefixes the original date output" {
+            Mock Get-Date {
+                # Invoke the original command, forwarding the bound parameters
+                # that were passed to the mocked command.
+                $date = & $originalGetDate @PesterBoundParameters
+                "DATE: $date"
+            }
+
+            Get-Date -Date '2000-01-01' -Format 'yyyy-MM-dd' | Should -Be 'DATE: 2000-01-01'
+        }
+    }
+    ```
+
+    Sometimes you want to mock a command but still run the original
+    implementation, for example to wrap or inspect its output. Capture the
+    original command with Get-Command in a BeforeAll before the mock is defined,
+    then invoke it inside the MockWith script block using the call operator (&).
+    Forward the caller's arguments with @PesterBoundParameters, a hashtable of
+    the parameters that were bound on the mocked command.
 
     .LINK
     https://pester.dev/docs/commands/Mock
