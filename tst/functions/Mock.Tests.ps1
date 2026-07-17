@@ -2027,6 +2027,23 @@ Describe 'Mocking commands with potentially ambiguous parameter sets' {
     }
 }
 
+Describe 'Mocking a cmdlet with multiple non-default parameter sets and no DefaultParameterSetName (#1531)' {
+    # Get-PackageSource has two provider-specific parameter sets (NuGet and PowerShellGet) with no
+    # default, and its dynamic parameters introduce those sets. Without a DefaultParameterSetName in
+    # the generated bootstrap proxy, PowerShell cannot resolve the parameter set when the mock is
+    # called with no arguments, producing "Parameter set cannot be resolved". The fix injects
+    # DefaultParameterSetName='__AllParameterSets' into the proxy [CmdletBinding()] for any cmdlet
+    # whose metadata has an empty DefaultParameterSetName.
+
+    It 'Can mock Get-PackageSource and call it with no arguments' -Skip:($null -eq (Get-Command Get-PackageSource -ErrorAction SilentlyContinue)) {
+        Mock Get-PackageSource { [PSCustomObject]@{ Name = 'MockedSource'; ProviderName = 'NuGet' } }
+
+        $result = Get-PackageSource
+        $result.Name | Should -Be 'MockedSource'
+        Should -Invoke Get-PackageSource -Times 1
+    }
+}
+
 Describe 'When mocking a command that has an ArgumentList parameter with validation' {
     BeforeAll {
         Mock Start-Process { return 'mocked' }
