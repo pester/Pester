@@ -135,7 +135,7 @@
         # the output file themselves - the parent merges every worker's CommandCoverage and generates
         # the report once. The flag is set on the (per-runspace) module scope only inside a worker, so
         # a normal run and the parent's own End step never see it. See Invoke-TestInParallel.
-        if (defined CodeCoverageSkipReport) {
+        if (defined_ CodeCoverageSkipReport) {
             return
         }
 

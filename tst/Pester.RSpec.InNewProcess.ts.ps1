@@ -417,4 +417,43 @@ i -PassThru:$PassThru {
                 @($whatIfLines).Count | Verify-Equal 0
         }
     }
+
+    b 'User alias shadowing internal helper does not break Pester' {
+        # https://github.com/pester/Pester/issues/2113
+        # A user module (for example ListFunctions) can export an alias whose name
+        # collides with one of Pester's short internal helper functions (like 'any').
+        # PowerShell resolves aliases before functions and traverses the scope chain
+        # up to global, so such an alias shadowed Pester's internal helper and
+        # Invoke-Pester crashed with a ParameterBindingException before running any test.
+        t 'Invoke-Pester succeeds when a global alias shadows the internal any helper' {
+            $sb = {
+                # Mimic ListFunctions' Assert-AnyObject: a command with a mandatory
+                # [ScriptBlock] $Condition parameter, exposed through the alias 'any'.
+                function Assert-AnyObject {
+                    param([Parameter(Mandatory)][ScriptBlock] $Condition)
+                }
+                Set-Alias -Name any -Value Assert-AnyObject -Scope Global
+
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'None'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                $r = Invoke-Pester -Container $container -PassThru
+                if ($r.FailedCount -ne 0) { throw "Expected 0 failures, got $($r.FailedCount)" }
+                if ($r.PassedCount -ne 1) { throw "Expected 1 passed, got $($r.PassedCount)" }
+
+                # Reached only if Invoke-Pester ran to completion instead of crashing.
+                'REGRESSION-2113-OK'
+            }
+
+            $output = Invoke-InNewProcess $sb
+            $output | Select-String -SimpleMatch -Pattern 'REGRESSION-2113-OK' | Verify-NotNull
+        }
+    }
 }
