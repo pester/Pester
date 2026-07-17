@@ -483,6 +483,11 @@ function Should-InvokeVerifiableInternal {
     }
 }
 
+function Format-TimesCalled ([int] $Count) {
+    # Format a call count with the grammatically correct noun, e.g. "1 time" or "2 times".
+    if ($Count -eq 1) { "$Count time" } else { "$Count times" }
+}
+
 function Should-InvokeInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     [OutputType([Pester.ShouldResult])]
@@ -602,78 +607,69 @@ function Should-InvokeInternal {
         }
     }
 
+    $failure = $null
     if ($Negate) {
         # Negative checks
         if (-not $PSBoundParameters.ContainsKey('Times') -and -not $Exactly -and $matchingCalls.Count -ge 1) {
             # Plain 'Should -Not -Invoke' (no -Times/-Exactly) means the command should not have
             # been called at all. Word the failure that way instead of the confusing default
             # "not to be called exactly 1 times".
-            $timeWord = if ($matchingCalls.Count -eq 1) { 'time' } else { 'times' }
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called,$(Format-Because $Because) but it was called $($matchingCalls.Count) $timeWord`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} not to be called"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.Count) $timeWord"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = 'not to be called'
+                But      = "but it was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
         elseif ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} not to be called exactly $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "not to be called exactly $(Format-TimesCalled $Times)"
+                But      = 'but it was'
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called less than $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called less than $(Format-TimesCalled $Times)"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
     }
     else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called $Times times exactly"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called $(Format-TimesCalled $Times) exactly"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called at least $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called at least $(Format-TimesCalled $Times)"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to only be called with with parameters matching the specified filter"
-                    Actual   = "${commandName}${moduleMessage} was called $($nonMatchingCalls.Count) times with non-matching parameters"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = 'to only be called with with parameters matching the specified filter'
+                Actual   = "was called $($nonMatchingCalls.Count) times with non-matching parameters"
+                But      = "but $($nonMatchingCalls.Count) non-matching calls were made"
+            }
+        }
+    }
+
+    if ($null -ne $failure) {
+        $expected = "${commandName}${moduleMessage} $($failure.Expected)"
+        $actual = if ($failure.ContainsKey('Actual')) {
+            "${commandName}${moduleMessage} $($failure.Actual)"
+        }
+        else {
+            "${commandName}${moduleMessage} was called $(Format-TimesCalled $matchingCalls.Count)"
+        }
+
+        return [Pester.ShouldResult] @{
+            Succeeded      = $false
+            FailureMessage = "Expected $expected,$(Format-Because $Because) $($failure.But)`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
+            ExpectResult   = [Pester.ShouldExpectResult]@{
+                Expected = $expected
+                Actual   = $actual
+                Because  = Format-Because $Because
             }
         }
     }
