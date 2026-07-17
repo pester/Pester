@@ -1,5 +1,55 @@
 ﻿Set-StrictMode -Version Latest
 
+Describe 'Invoke-TestRegistryWithRetry' {
+    # This helper makes TestRegistry reads and writes resilient to the transient
+    # 'IOException: No more data is available' that happens on parallel Windows PowerShell
+    # runs (.NET Framework). The retry logic itself is OS-agnostic, so these tests run
+    # everywhere. See https://github.com/pester/Pester/issues/2418
+    It 'Returns the result of the script block on success' {
+        InModuleScope -ModuleName Pester {
+            Invoke-TestRegistryWithRetry { 'result' } | Should -Be 'result'
+        }
+    }
+
+    It 'Invokes the script block once on success' {
+        InModuleScope -ModuleName Pester {
+            $calls = @{ Count = 0 }
+            $null = Invoke-TestRegistryWithRetry { $calls.Count++ }
+            $calls.Count | Should -Be 1
+        }
+    }
+
+    It 'Retries once and returns the second result when the first attempt throws a transient IOException' {
+        InModuleScope -ModuleName Pester {
+            $calls = @{ Count = 0 }
+            $result = Invoke-TestRegistryWithRetry {
+                $calls.Count++
+                if ($calls.Count -eq 1) {
+                    throw [System.IO.IOException] 'No more data is available'
+                }
+                'recovered'
+            }
+            $calls.Count | Should -Be 2
+            $result | Should -Be 'recovered'
+        }
+    }
+
+    It 'Rethrows when the transient IOException persists on retry' {
+        InModuleScope -ModuleName Pester {
+            { Invoke-TestRegistryWithRetry { throw [System.IO.IOException] 'No more data is available' } } |
+                Should -Throw -ExceptionType ([System.IO.IOException])
+        }
+    }
+
+    It 'Does not retry on non-IOException errors' {
+        InModuleScope -ModuleName Pester {
+            $calls = @{ Count = 0 }
+            { Invoke-TestRegistryWithRetry { $calls.Count++; throw 'boom' } } | Should -Throw
+            $calls.Count | Should -Be 1
+        }
+    }
+}
+
 $os = InModuleScope -ModuleName Pester { GetPesterOs }
 if ("Windows" -ne $os) {
     # test registry are only for Windows
