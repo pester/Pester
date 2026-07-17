@@ -604,7 +604,22 @@ function Should-InvokeInternal {
 
     if ($Negate) {
         # Negative checks
-        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
+        if (-not $PSBoundParameters.ContainsKey('Times') -and -not $Exactly -and $matchingCalls.Count -ge 1) {
+            # Plain 'Should -Not -Invoke' (no -Times/-Exactly) means the command should not have
+            # been called at all. Word the failure that way instead of the confusing default
+            # "not to be called exactly 1 times".
+            $timeWord = if ($matchingCalls.Count -eq 1) { 'time' } else { 'times' }
+            return [Pester.ShouldResult] @{
+                Succeeded      = $false
+                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called,$(Format-Because $Because) but it was called $($matchingCalls.Count) $timeWord`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
+                ExpectResult   = [Pester.ShouldExpectResult]@{
+                    Expected = "${commandName}${moduleMessage} not to be called"
+                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.Count) $timeWord"
+                    Because  = Format-Because $Because
+                }
+            }
+        }
+        elseif ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
             return [Pester.ShouldResult] @{
                 Succeeded      = $false
                 FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"

@@ -775,7 +775,36 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 1 time*"
+    }
+
+    It "Should throw and report the call count using plural 'times' when called more than once" {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 2 times*"
+    }
+
+    It 'Should include reason when -Because is used' {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
