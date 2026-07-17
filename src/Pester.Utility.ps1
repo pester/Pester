@@ -1,4 +1,4 @@
-﻿function or {
+﻿function or_ {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -16,7 +16,7 @@
 }
 
 # looks for a property on object that might be null
-function tryGetProperty {
+function tryGetProperty_ {
     [CmdletBinding()]
     param (
         [Parameter(Position = 0)]
@@ -39,7 +39,7 @@ function tryGetProperty {
     # }
 }
 
-function trySetProperty {
+function trySetProperty_ {
     [CmdletBinding()]
     param (
         [Parameter(Position = 0)]
@@ -61,7 +61,7 @@ function trySetProperty {
 # combines collections that are not null or empty, but does not remove null values
 # from collections so e.g. combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
 # returns 1, $null, 1, 2, 3, 10
-function combineNonNull ($Array) {
+function combineNonNull_ ($Array) {
     foreach ($i in $Array) {
 
         $arr = @($i)
@@ -74,14 +74,14 @@ function combineNonNull ($Array) {
 }
 
 
-filter selectNonNull {
+filter selectNonNull_ {
     param($Collection)
     @(foreach ($i in $Collection) {
             if ($i) { $i }
         })
 }
 
-function any ($InputObject) {
+function any_ ($InputObject) {
     # inlining version
     $(<# any #> if (-not ($s = $InputObject)) { return $false } else { @($s).Length -gt 0 })
     # if (-not $InputObject) {
@@ -91,11 +91,11 @@ function any ($InputObject) {
     # @($InputObject).Length -gt 0
 }
 
-function none ($InputObject) {
-    -not (any $InputObject)
+function none_ ($InputObject) {
+    -not (any_ $InputObject)
 }
 
-function defined {
+function defined_ {
     param(
         [Parameter(Mandatory)]
         [String] $Name
@@ -109,7 +109,7 @@ function defined {
     $ExecutionContext.SessionState.PSVariable.GetValue($Name)
 }
 
-function notDefined {
+function notDefined_ {
     param(
         [Parameter(Mandatory)]
         [String] $Name
@@ -141,8 +141,8 @@ function Test-CIDebugOutputEnabled ([PesterConfiguration]$PesterPreference) {
 }
 
 
-function sum ($InputObject, $PropertyName, $Zero) {
-    if (none $InputObject.Length) {
+function sum_ ($InputObject, $PropertyName, $Zero) {
+    if (none_ $InputObject.Length) {
         return $Zero
     }
 
@@ -154,7 +154,7 @@ function sum ($InputObject, $PropertyName, $Zero) {
     $acc
 }
 
-function tryGetValue {
+function tryGetValue_ {
     [CmdletBinding()]
     param(
         $Hashtable,
@@ -168,7 +168,7 @@ function tryGetValue {
     }
 }
 
-function tryAddValue {
+function tryAddValue_ {
     [CmdletBinding()]
     param(
         $Hashtable,
@@ -181,7 +181,7 @@ function tryAddValue {
     }
 }
 
-function getOrUpdateValue {
+function getOrUpdateValue_ {
     [CmdletBinding()]
     param(
         $Hashtable,
@@ -202,7 +202,7 @@ function getOrUpdateValue {
     }
 }
 
-function tryRemoveKey ($Hashtable, $Key) {
+function tryRemoveKey_ ($Hashtable, $Key) {
     if ($Hashtable.ContainsKey($Key)) {
         $Hashtable.Remove($Key)
     }

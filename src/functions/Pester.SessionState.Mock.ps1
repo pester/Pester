@@ -602,7 +602,7 @@ function Get-MockDataForCurrentScope {
         $location = $currentBlock = Get-CurrentBlock
     }
 
-    if (none @($currentTest, $currentBlock)) {
+    if (none_ @($currentTest, $currentBlock)) {
         throw "I am neither in a test or a block, where am I?"
     }
 

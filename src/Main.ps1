@@ -580,7 +580,7 @@ function Invoke-Pester {
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) { $plugins.AddRange(@($script:additionalPlugins)) }
+            if (defined_ additionalPlugins) { $plugins.AddRange(@($script:additionalPlugins)) }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
@@ -590,7 +590,7 @@ function Invoke-Pester {
                 -FullName $PesterPreference.Filter.FullName.Value
 
             $containers = @()
-            if (any $PesterPreference.Run.ScriptBlock.Value) {
+            if (any_ $PesterPreference.Run.ScriptBlock.Value) {
                 $containers += @( $PesterPreference.Run.ScriptBlock.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -ScriptBlock $_ })
             }
 
@@ -599,12 +599,12 @@ function Invoke-Pester {
                 $containers += (New-BlockContainerObject -Container $c -Data $c.Data)
             }
 
-            if ((any $PesterPreference.Run.Path.Value)) {
-                if (((none $PesterPreference.Run.ScriptBlock.Value) -and (none $PesterPreference.Run.Container.Value)) -or ('.' -ne $PesterPreference.Run.Path.Value[0])) {
+            if ((any_ $PesterPreference.Run.Path.Value)) {
+                if (((none_ $PesterPreference.Run.ScriptBlock.Value) -and (none_ $PesterPreference.Run.Container.Value)) -or ('.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] { $_.Item.FullName }))
+                    $exclusions = combineNonNull_ @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] { $_.Item.FullName }))
                     $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -File $_ })
                 }
             }
@@ -620,7 +620,7 @@ function Invoke-Pester {
                 } -ThrowOnFailure
             }
 
-            if ((none $containers)) {
+            if ((none_ $containers)) {
                 throw "No test files were found and no scriptblocks were provided. Please ensure that you provided at least one path to a *$($PesterPreference.Run.TestExtension.Value) file, or a directory that contains such file.$(if ($null -ne $PesterPreference.Run.ExcludePath.Value -and 0 -lt @($PesterPreference.Run.ExcludePath.Value).Length) {" And that there is at least one file not excluded by ExcludeFile filter '$($PesterPreference.Run.ExcludePath.Value -join "', '")'."}) Or that you provided a ScriptBlock test container."
                 return
             }
@@ -713,7 +713,7 @@ function Invoke-Pester {
                 foreach ($pl in $plugins) {
                     if ('WriteScreen' -eq $pl.Name) { $reportingPlugins.Add($pl) }
                 }
-                if (defined additionalPlugins) { $reportingPlugins.AddRange(@($script:additionalPlugins)) }
+                if (defined_ additionalPlugins) { $reportingPlugins.AddRange(@($script:additionalPlugins)) }
 
                 # Replays one segment of a worker's recorded event tape to the reporting plugins.
                 # The recorded context carries the worker's PluginConfiguration; swap in the parent's
@@ -1022,7 +1022,7 @@ function Invoke-Pester {
         $global:LASTEXITCODE = $failedCount
 
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
-            $messages = combineNonNull @(
+            $messages = combineNonNull_ @(
                 $(if (0 -lt $run.FailedCount) { "$($run.FailedCount) test$(if (1 -lt $run.FailedCount) { "s" }) failed" })
                 $(if (0 -lt $run.FailedBlocksCount) { "$($run.FailedBlocksCount) block$(if (1 -lt $run.FailedBlocksCount) { "s" }) failed" })
                 $(if (0 -lt $run.FailedContainersCount) { "$($run.FailedContainersCount) container$(if (1 -lt $run.FailedContainersCount) { "s" }) failed" })
@@ -1226,9 +1226,9 @@ function ConvertTo-Pester4Result {
                 Parameters             = $test.Data
                 ParameterizedSuiteName = $test.DisplayName
 
-                FailureMessage         = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
-                ErrorRecord            = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
-                StackTrace             = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
+                FailureMessage         = $(if (any_ $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+                ErrorRecord            = $(if (any_ $test.ErrorRecord) { $test.ErrorRecord[-1] })
+                StackTrace             = $(if (any_ $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
             }
 
             $null = $legacyResult.TestResult.Add($result)

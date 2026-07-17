@@ -52,7 +52,7 @@ $script:SessionStateInternalProperty = [System.Management.Automation.SessionStat
 $script:ScriptBlockSessionStateInternalProperty = [System.Management.Automation.ScriptBlock].GetProperty('SessionStateInternal', $flags)
 $script:ScriptBlockSessionStateProperty = [System.Management.Automation.ScriptBlock].GetProperty("SessionState", $flags)
 
-if (notDefined PesterPreference) {
+if (notDefined_ PesterPreference) {
     $PesterPreference = [PesterConfiguration]::Default
 }
 else {
@@ -127,7 +127,7 @@ function Find-Test {
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
-    if (notDefined state) {
+    if (notDefined_ state) {
         $state = New-PesterState
     }
 
@@ -2029,7 +2029,7 @@ function Invoke-Test {
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
-    if (notDefined state) {
+    if (notDefined_ state) {
         $state = New-PesterState
     }
 
@@ -2443,7 +2443,7 @@ function PostProcess-ExecutedBlock {
             $childBlocks = $b.Blocks
             $anyChildBlockFailed = $false
             $aggregatedChildDuration = [TimeSpan]::Zero
-            if (none $childBlocks) {
+            if (none_ $childBlocks) {
                 # one thing to consider here is what happens when a block fails, in the current
                 # execution model the block can fail when a setup or teardown fails, with failed
                 # setup it is easy all the tests in the block are considered failed, with teardown
