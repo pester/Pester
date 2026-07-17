@@ -876,6 +876,53 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'When a container fails during discovery it is reported' {
+        # https://github.com/pester/Pester/issues/2664
+        # Passing an array directly to It (instead of via -TestCases) throws during discovery.
+        $sb = {
+            Describe 'Count' {
+                It 'Returns sum' @(
+                    @{ Name = 1; Expected = 2 }
+                    @{ Name = 2; Expected = 4 }
+                ) {
+                    $Name + $Name | Should -Be $Expected
+                }
+            }
+        }
+
+        t 'discovery-failed container is written as a failed test-suite carrying its error' {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            # sanity: the container failed during discovery and did not run any tests
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+
+            $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
+
+            # the run totals reflect the failure instead of silently reporting Inconclusive/zero
+            $xmlResult.'test-run'.result | Verify-Equal 'Failed'
+            $xmlResult.'test-run'.failed | Verify-Equal '1'
+            $xmlResult.'test-run'.total | Verify-Equal '1'
+
+            $xmlContainer = $xmlResult.'test-run'.'test-suite'
+            $xmlContainer.result | Verify-Equal 'Failed'
+            $xmlContainer.runstate | Verify-Equal 'NotRunnable'
+            $xmlContainer.failed | Verify-Equal '1'
+            $xmlContainer.failure | Verify-NotNull
+            $xmlContainer.failure.message.InnerText | Verify-Like '*ScriptBlock*'
+        }
+
+        t 'discovery-failure report validates against the nunit 3 schema' {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = [xml] ($r | ConvertTo-NUnitReport -Format NUnit3)
+
+            $xmlResult.Schemas.XmlResolver = New-Object System.Xml.XmlUrlResolver
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
     b 'Outputing into a file' {
         t 'Write NUnit3 report using TestResult.OutputFormat' {
             $sb = {

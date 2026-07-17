@@ -20,7 +20,7 @@ function Write-NUnitTestResultAttributes {
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
     $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.NotRunCount))
-    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('errors', (Get-DiscoveryFailedContainerCount -Result $Result))
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
     $XmlWriter.WriteAttributeString('inconclusive', $Result.InconclusiveCount)
@@ -48,8 +48,9 @@ function Write-NUnitTestResultChildNodes {
     $XmlWriter.WriteStartElement('results')
 
     foreach ($container in $Result.Containers) {
-        if (-not $container.ShouldRun) {
-            # skip containers that were discovered but none of their tests run
+        if ((-not $container.ShouldRun) -and -not (Test-ContainerFailedDiscovery -Container $container)) {
+            # skip containers that were discovered but none of their tests run,
+            # unless they failed during discovery so the error is still reported (#2664)
             continue
         }
 
@@ -97,6 +98,16 @@ function Write-NUnitTestSuiteElements {
     $XmlWriter.WriteStartElement('test-suite')
 
     Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
+
+    if ($Node -is [Pester.Container] -and (Test-ContainerFailedDiscovery -Container $Node)) {
+        # The container failed during discovery and has no tests to carry the error, so surface
+        # the discovery error on the suite itself. The schema requires failure before results. (#2664)
+        $discoveryError = Get-ErrorForXmlReport -TestResult $Node
+        $XmlWriter.WriteStartElement('failure')
+        $XmlWriter.WriteElementString('message', $discoveryError.FailureMessage)
+        $XmlWriter.WriteElementString('stack-trace', $discoveryError.StackTrace)
+        $XmlWriter.WriteEndElement() # Close failure tag
+    }
 
     $XmlWriter.WriteStartElement('results')
 
@@ -218,7 +229,7 @@ function Get-TestSuiteInfo {
 
     $suite = @{
         resultMessage = 'Failure'
-        success       = if ($TestSuite.FailedCount -eq 0) {
+        success       = if ($TestSuite.FailedCount -eq 0 -and $TestSuite.Result -ne 'Failed') {
             'True'
         }
         else {
@@ -361,7 +372,7 @@ function Write-NUnitTestCaseAttributes {
 function Get-GroupResult ($InputObject) {
     #I am not sure about the result precedence, and can't find any good source
     #TODO: Confirm this is the correct order of precedence
-    if ($inputObject.FailedCount -gt 0) {
+    if ($inputObject.FailedCount -gt 0 -or $InputObject.Result -eq 'Failed') {
         return 'Failure'
     }
     if ($InputObject.SkippedCount -gt 0) {

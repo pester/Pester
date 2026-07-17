@@ -270,6 +270,53 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "When a container fails during discovery it is reported" {
+        # https://github.com/pester/Pester/issues/2664
+        # Passing an array directly to It (instead of via -TestCases) throws during discovery.
+        $sb = {
+            Describe "Count" {
+                It "Returns sum" @(
+                    @{ Name = 1; Expected = 2 }
+                    @{ Name = 2; Expected = 4 }
+                ) {
+                    $Name + $Name | Should -Be $Expected
+                }
+            }
+        }
+
+        t "discovery-failed container is written as an erroring testsuite carrying its error" {
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            # sanity: the container failed during discovery and did not run any tests
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+
+            # the report totals reflect the failure instead of silently reporting zero
+            $xmlResult.'testsuites'.errors | Verify-Equal '1'
+            $xmlResult.'testsuites'.tests | Verify-Equal '1'
+
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $xmlTestSuite.errors | Verify-Equal '1'
+            $xmlTestSuite.tests | Verify-Equal '1'
+
+            $xmlTestCase = $xmlTestSuite.'testcase'
+            $xmlTestCase.status | Verify-Equal 'Failed'
+            $xmlTestCase.error | Verify-NotNull
+            $xmlTestCase.error.message | Verify-Like '*ScriptBlock*'
+        }
+
+        t "discovery-failure report validates against the junit 4 schema" {
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
+
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
     b "Writing JUnit report into file" {
         t "should write XML when using TestResult configuration" {
             try {

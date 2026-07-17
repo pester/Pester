@@ -499,6 +499,28 @@ function Get-ErrorForXmlReport ($TestResult) {
     }
 }
 
+function Test-ContainerFailedDiscovery {
+    param($Container)
+    # A container that failed during discovery never runs its tests (ShouldRun = $false),
+    # but it is marked as Failed and carries the discovery error in its ErrorRecord. Such
+    # containers would otherwise be skipped by the report writers, silently omitting the
+    # failure from the exported TestResult XML. (#2664)
+    (-not $Container.ShouldRun) -and ($Container.Result -eq 'Failed') -and ($Container.ErrorRecord.Count -gt 0)
+}
+
+function Get-DiscoveryFailedContainerCount {
+    param([Pester.Run] $Result)
+    # Number of containers that failed during discovery. Used so the exported report totals
+    # reflect these failures instead of silently reporting zero. (#2664)
+    $count = 0
+    foreach ($container in $Result.Containers) {
+        if (Test-ContainerFailedDiscovery -Container $container) {
+            $count++
+        }
+    }
+    $count
+}
+
 function Get-RunTimeEnvironment {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
