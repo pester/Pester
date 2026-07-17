@@ -694,8 +694,7 @@ Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
                     $normalized = $sb.ToString() `
                         -replace 'Pester v\S+', 'Pester v<version>' `
                         -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
-                        -replace '\d+ ms', '<time> ms' `
-                        -replace '\d+ms', '<time>ms'
+                        -replace '\d+(.\d+)?m?s', '<time>'
                     $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
 
                     # Each file's discovery is immediately followed by that same file's run - A fully, then
@@ -705,18 +704,18 @@ Pester v<version>
 
 Running tests from 2 files in parallel.
 Discovery: Discovering tests in A.Tests.ps1
-Discovery: Found 1 tests in <time> ms
+Discovery: Found 1 tests in <time>
 
 Running tests from 'A.Tests.ps1'
 Describing A
-  [+] a1 passes <time>ms
+  [+] a1 passes <time>
 Discovery: Discovering tests in B.Tests.ps1
-Discovery: Found 1 tests in <time> ms
+Discovery: Found 1 tests in <time>
 
 Running tests from 'B.Tests.ps1'
 Describing B
-  [+] b1 passes <time>ms
-Tests completed in <time>ms
+  [+] b1 passes <time>
+Tests completed in <time>
 Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
 '@ -replace "`r`n", "`n"
 

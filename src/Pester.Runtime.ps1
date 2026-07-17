@@ -999,7 +999,7 @@ function Invoke-ContainerDiscovery {
 
     $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds) ms" }
+        Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds)ms" }
         Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
     }
 
@@ -1320,14 +1320,14 @@ function Invoke-PluginStep {
             } while ($false)
 
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms"
+                Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds)ms"
             }
         }
         catch {
             $failed = $true
             $err.Add($_)
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms" -ErrorRecord $_
+                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds)ms" -ErrorRecord $_
             }
         }
     }

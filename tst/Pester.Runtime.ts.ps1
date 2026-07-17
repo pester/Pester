@@ -2134,15 +2134,15 @@ i -PassThru:$PassThru {
             $totalReported = $actualDuration + $actualFrameworkDuration + $actualDiscoveryDuration
             $totalDifference = $container.Total - $totalReported
             $testCount = $cs.Count * $bs.Count * $ts.Count
-            Write-Host Test count $testCount
-            Write-Host Per test $([int]($container.Total.TotalMilliseconds / $testCount)) ms
-            Write-Host Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount)) ms
-            Write-Host Reported discovery duration $actualDiscoveryDuration.TotalMilliseconds ms
-            Write-Host Reported total duration $actualDuration.TotalMilliseconds ms
-            Write-Host Reported total overhead $actualFrameworkDuration.TotalMilliseconds ms
-            Write-Host Reported total $totalReported.TotalMilliseconds ms
-            Write-Host Measured total $container.Total.TotalMilliseconds ms
-            Write-Host Total difference $totalDifference.TotalMilliseconds ms
+            Write-Host "Test count $testCount"
+            Write-Host "Per test $([int]($container.Total.TotalMilliseconds / $testCount))ms"
+            Write-Host "Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount))ms"
+            Write-Host "Reported discovery duration $($actualDiscoveryDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total duration $($actualDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total overhead $($actualFrameworkDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total $($totalReported.TotalMilliseconds)ms"
+            Write-Host "Measured total $($container.Total.TotalMilliseconds)ms"
+            Write-Host "Total difference $($totalDifference.TotalMilliseconds)ms"
 
 
             # the difference here is because of the code that is running after all tests have been discovered
