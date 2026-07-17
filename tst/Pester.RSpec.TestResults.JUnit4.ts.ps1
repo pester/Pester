@@ -42,6 +42,23 @@ i -PassThru:$PassThru {
             $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
         }
 
+        t "should write the testsuite timestamp as local time without timezone" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $expectedTimestamp = $r.Containers[0].ExecutedAt.ToString('yyyy-MM-ddTHH:mm:ss', [System.Globalization.CultureInfo]::InvariantCulture)
+            $xmlTestSuite.timestamp | Verify-Equal $expectedTimestamp
+        }
+
         t "should write a failed test result" {
             $sb = {
                 Describe "Mocked Describe" {
