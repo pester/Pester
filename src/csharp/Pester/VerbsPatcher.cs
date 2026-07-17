@@ -15,6 +15,14 @@ namespace Pester
         // Concurrent bag in case we start this multiple times, and god forbid in parallel.
         private static ConcurrentBag<Task> s_tasks = new ConcurrentBag<Task>();
 
+        // s_validVerbs is PowerShell's own process-global static Dictionary (one instance per
+        // process, shared by every runspace). Dictionary<TKey,TValue> is not thread-safe, so when
+        // Run.Parallel imports Pester from several ForEach-Object -Parallel runspaces at once, the
+        // concurrent writes can tear the internal bucket array and throw IndexOutOfRangeException.
+        // VerbsPatcher lives in Pester.dll, which is loaded once per process, so this static lock
+        // object is shared across all runspaces and serializes every mutation of that dictionary.
+        private static readonly object s_lock = new object();
+
         public static void AllowShouldVerb(int powershellVersion)
         {
             var should = "Should";
@@ -25,17 +33,31 @@ namespace Pester
 
             // private static readonly Dictionary<string, bool> s_validVerbs;
             Dictionary<string, bool> validVerbs = (Dictionary<string, bool>)verbsField.GetValue(null);
-            // Overwrite when we call this multiple times.
-            validVerbs[should] = true; // The bool does not matter.
+            // Only the first import structurally mutates the shared dictionary; later parallel
+            // workers see the key already present and become no-ops. The lock prevents concurrent
+            // writes from corrupting the dictionary. Do not use TryAdd, it is not available on the
+            // net462 target.
+            lock (s_lock)
+            {
+                if (!validVerbs.ContainsKey(should))
+                {
+                    validVerbs[should] = true; // The bool does not matter.
+                }
+            }
 
             s_tasks.Add(Task.Run(async () =>
             {
                 await Task.Delay(5_000);
                 try
                 {
-                    if (validVerbs.ContainsKey(should))
+                    // Serialize the removal behind the same process-global lock so it cannot race
+                    // with a concurrent insert from another runspace. No await inside the lock.
+                    lock (s_lock)
                     {
-                        validVerbs.Remove(should);
+                        if (validVerbs.ContainsKey(should))
+                        {
+                            validVerbs.Remove(should);
+                        }
                     }
                 }
                 catch { }
