@@ -10,8 +10,9 @@
 
     $testSuiteNumber = 0
     foreach ($container in $Result.Containers) {
-        if (-not $container.ShouldRun) {
-            # skip containers that were discovered but none of their tests run
+        if ((-not $container.ShouldRun) -and -not (Test-ContainerFailedDiscovery -Container $container)) {
+            # skip containers that were discovered but none of their tests run,
+            # unless they failed during discovery so the error is still reported (#2664)
             continue
         }
 
@@ -29,7 +30,7 @@ function Write-JUnitTestResultAttributes {
     $XmlWriter.WriteAttributeString('xmlns', 'xsi', $null, 'http://www.w3.org/2001/XMLSchema-instance')
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'junit_schema_4.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
-    $XmlWriter.WriteAttributeString('tests', $Result.TotalCount)
+    $XmlWriter.WriteAttributeString('tests', ($Result.TotalCount + (Get-DiscoveryFailedContainerCount -Result $Result)))
     $XmlWriter.WriteAttributeString('errors', $Result.FailedContainersCount + $Result.FailedBlocksCount)
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('disabled', $Result.NotRunCount + $Result.SkippedCount)
@@ -44,6 +45,12 @@ function Write-JUnitTestSuiteElements {
 
     Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $container.Name -Id $Id
 
+    if (Test-ContainerFailedDiscovery -Container $Container) {
+        # The container failed during discovery and has no tests to carry the error, so write a
+        # synthetic testcase holding the discovery error, since JUnit has no suite-level error. (#2664)
+        Write-JUnitDiscoveryFailureElement -Container $Container -XmlWriter $XmlWriter
+    }
+
     $testResults = [Pester.Factory]::CreateCollection()
     Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
     foreach ($t in $testResults) {
@@ -53,15 +60,41 @@ function Write-JUnitTestSuiteElements {
     $XmlWriter.WriteEndElement()
 }
 
+function Write-JUnitDiscoveryFailureElement {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
+    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter)
+
+    $discoveryError = Get-ErrorForXmlReport -TestResult $Container
+
+    $XmlWriter.WriteStartElement('testcase')
+    $XmlWriter.WriteAttributeString('name', $Container.Name)
+    $XmlWriter.WriteAttributeString('status', 'Failed')
+    $XmlWriter.WriteAttributeString('classname', $Container.Name)
+    $XmlWriter.WriteAttributeString('assertions', '0')
+    $XmlWriter.WriteAttributeString('time', $Container.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
+
+    $XmlWriter.WriteStartElement('error')
+    $XmlWriter.WriteAttributeString('message', $discoveryError.FailureMessage)
+    $XmlWriter.WriteString($discoveryError.StackTrace)
+    $XmlWriter.WriteEndElement() # Close error
+
+    $XmlWriter.WriteEndElement() # Close testcase
+}
+
 function Write-JUnitTestSuiteAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
     param($Action, [System.Xml.XmlWriter] $XmlWriter, [string] $Package, [uint16] $Id)
 
     $environment = Get-RunTimeEnvironment
 
+    # A container that failed during discovery has no tests, so count the synthetic discovery
+    # testcase (see Write-JUnitDiscoveryFailureElement) as one erroring test. (#2664)
+    $discoveryFailed = Test-ContainerFailedDiscovery -Container $Action
+    $extraCount = if ($discoveryFailed) { 1 } else { 0 }
+
     $XmlWriter.WriteAttributeString('name', $Package)
-    $XmlWriter.WriteAttributeString('tests', $Action.TotalCount)
-    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('tests', ($Action.TotalCount + $extraCount))
+    $XmlWriter.WriteAttributeString('errors', $extraCount)
     $XmlWriter.WriteAttributeString('failures', $Action.FailedCount)
     $XmlWriter.WriteAttributeString('hostname', $environment.'machine-name')
     $XmlWriter.WriteAttributeString('id', $Id)
