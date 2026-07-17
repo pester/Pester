@@ -575,4 +575,10 @@ function Resolve-TestResultConfiguration {
     if ($PesterPreference.TestResult.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'TestResult.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.TestResult.OutputFormat.Value)
     }
+
+    # Resolve the output path to an absolute path now, while the current location still points to
+    # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
+    # test can change the current location (e.g. Set-Location), so a relative path would otherwise be
+    # resolved against the wrong directory or a directory that no longer exists (#2641).
+    $PesterPreference.TestResult.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.TestResult.OutputPath.Value)
 }
