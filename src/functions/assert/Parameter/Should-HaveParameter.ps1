@@ -15,6 +15,15 @@
     .PARAMETER DefaultValue
     The default value of the parameter to check. E.g. "https://example.com"
 
+    .PARAMETER DefaultValueType
+    The kind of the parameter's default value, i.e. the AST node type of the default value expression.
+    This distinguishes how the default is written, which -DefaultValue (a string comparison) cannot.
+    For example, `$Path = (Get-Date)` is a `ParenExpressionAst` while `$Path = '(Get-Date)'` is a
+    `StringConstantExpressionAst`. Common values: StringConstantExpressionAst (literal string),
+    ExpandableStringExpressionAst (interpolated string), ConstantExpressionAst (numeric literal),
+    VariableExpressionAst (e.g. $true, $false, $null, $var), ParenExpressionAst (e.g. (Get-Date)),
+    ScriptBlockExpressionAst (e.g. { ... }). The trailing `Ast` is optional and matching is case-insensitive.
+
     .PARAMETER Mandatory
     Whether the parameter is mandatory or not.
 
@@ -99,6 +108,7 @@
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,
+        [String] $DefaultValueType,
         [Switch] $Mandatory,
         [String] $InParameterSet,
         [Switch] $HasArgumentCompleter,

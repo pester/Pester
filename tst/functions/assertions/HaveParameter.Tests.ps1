@@ -287,7 +287,12 @@ InPesterModuleScope {
 
         It 'fails if the parameter DefaultValue is used with a binary cmdlet' {
             $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValue $False } | Verify-Throw
-            $err.Exception.Message | Verify-Equal 'Using -DefaultValue is only supported for functions and scripts.'
+            $err.Exception.Message | Verify-Equal 'Using -DefaultValue or -DefaultValueType is only supported for functions and scripts.'
+        }
+
+        It 'fails if the parameter DefaultValueType is used with a binary cmdlet' {
+            $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValueType VariableExpression } | Verify-Throw
+            $err.Exception.Message | Verify-Equal 'Using -DefaultValue or -DefaultValueType is only supported for functions and scripts.'
         }
 
         It "fails if the parameter MandatoryParam has no alias 'Second'" {
@@ -381,6 +386,58 @@ InPesterModuleScope {
             It "returns the correct assertion message when parameter ParamWithNotNullOrEmptyValidation is not mandatory, of the wrong type, has a different default value than expected and has no ArgumentCompleter" {
                 $err = { Get-Command "Invoke-DummyFunction" | Should -HaveParameter ParamWithNotNullOrEmptyValidation -Mandatory -Type [TimeSpan] -DefaultValue "wrong value" -HasArgumentCompleter -Because 'of reasons' } | Verify-AssertionFailed
                 $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to have a parameter ParamWithNotNullOrEmptyValidation, which is mandatory, of type [System.TimeSpan], the default value to be 'wrong value' and has ArgumentCompletion, because of reasons, but it wasn't mandatory, it was of type [System.DateTime], the default value was '(Get-Date)' and has no ArgumentCompletion."
+            }
+        }
+
+        Context 'Using DefaultValueType' {
+            BeforeAll {
+                function Test-DefaultValueType {
+                    param (
+                        [string] $LiteralString = '(Get-Date)',
+                        [string] $Expression = (Get-Date),
+                        $ScriptBlockDefault = { Get-Date },
+                        [int] $Number = 1,
+                        $Bool = $true,
+                        $NoDefault
+                    )
+                }
+            }
+
+            It "passes when the default value <ParameterName> is of the expected type <DefaultValueType>" -TestCases @(
+                @{ ParameterName = 'LiteralString'; DefaultValueType = 'StringConstantExpressionAst' }
+                @{ ParameterName = 'Expression'; DefaultValueType = 'ParenExpressionAst' }
+                @{ ParameterName = 'ScriptBlockDefault'; DefaultValueType = 'ScriptBlockExpressionAst' }
+                @{ ParameterName = 'Number'; DefaultValueType = 'ConstantExpressionAst' }
+                @{ ParameterName = 'Bool'; DefaultValueType = 'VariableExpressionAst' }
+            ) {
+                Get-Command Test-DefaultValueType | Should -HaveParameter $ParameterName -DefaultValueType $DefaultValueType
+            }
+
+            It "passes when the trailing 'Ast' is omitted and matches case-insensitively" {
+                Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValueType ParenExpression
+                Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType stringconstantexpression
+            }
+
+            It "distinguishes an expression default from a string-literal default" {
+                # This is the core scenario from issue #1888: (Get-Date) vs '(Get-Date)' share the same
+                # -DefaultValue string, but differ in their DefaultValueType.
+                Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValue '(Get-Date)' -DefaultValueType ParenExpression
+                Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValue '(Get-Date)' -DefaultValueType StringConstantExpression
+            }
+
+            It "fails when the default value type does not match" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType ParenExpression } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value type to be 'ParenExpression', but the default value type was 'StringConstantExpressionAst'."
+            }
+
+            It "fails when the parameter has no default value" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter NoDefault -DefaultValueType VariableExpression } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter NoDefault, the default value type to be 'VariableExpression', but the parameter had no default value."
+            }
+
+            It "returns a combined message when both DefaultValue and DefaultValueType differ" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValue 'wrong' -DefaultValueType ParenExpression -Because 'of reasons' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value to be 'wrong' and the default value type to be 'ParenExpression', because of reasons, but the default value was '(Get-Date)' and the default value type was 'StringConstantExpressionAst'."
             }
         }
 
@@ -538,6 +595,25 @@ InPesterModuleScope {
             }
         ) {
             { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -DefaultValue $ExpectedValue } | Verify-AssertionFailed
+        }
+
+        It "passes if the parameter <ParameterName> default value type is not <DefaultValueType>" -TestCases @(
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; DefaultValueType = "StringConstantExpression" }
+            @{ParameterName = "ParamWithScriptValidation"; DefaultValueType = "ParenExpression" }
+        ) {
+            Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -DefaultValueType $DefaultValueType
+        }
+
+        It "fails if the parameter <ParameterName> default value type is <DefaultValueType>" -TestCases @(
+            @{ParameterName = "ParamWithNotNullOrEmptyValidation"; DefaultValueType = "ParenExpression" }
+            @{ParameterName = "ParamWithScriptValidation"; DefaultValueType = "StringConstantExpression" }
+        ) {
+            { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter $ParameterName -DefaultValueType $DefaultValueType } | Verify-AssertionFailed
+        }
+
+        It "returns the correct assertion message when the default value type should not match but does" {
+            $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ParamWithScriptValidation -DefaultValueType StringConstantExpression -Because 'of reasons' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithScriptValidation, the default value type not to be 'StringConstantExpression', because of reasons, but the default value type was 'StringConstantExpressionAst'."
         }
 
         It "fails if the parameter <ParameterName> is of type <ExpectedType> or has a default value of '<ExpectedValue>'" -TestCases @(

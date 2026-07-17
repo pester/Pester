@@ -108,4 +108,51 @@ Describe "Should-HaveParameter" {
             Get-Command f | Should-HaveParameter a -HasArgumentCompleter:$false
         }
     }
+
+    Context "DefaultValueType" {
+        It "Passes when the default value is an expression and ParenExpression is expected" {
+            function f {
+                param([string] $Path = (Get-Date))
+            }
+
+            Get-Command f | Should-HaveParameter Path -DefaultValueType ParenExpression
+        }
+
+        It "Passes when the default value is a literal string and StringConstantExpression is expected" {
+            function f {
+                param([string] $Path = '(Get-Date)')
+            }
+
+            Get-Command f | Should-HaveParameter Path -DefaultValueType StringConstantExpression
+        }
+
+        It "Distinguishes a string-literal default from an expression default" {
+            function f {
+                param(
+                    [string] $Literal = '(Get-Date)',
+                    [string] $Expression = (Get-Date)
+                )
+            }
+
+            # Same -DefaultValue string, different -DefaultValueType (issue #1888)
+            Get-Command f | Should-HaveParameter Literal -DefaultValue '(Get-Date)' -DefaultValueType StringConstantExpression
+            Get-Command f | Should-HaveParameter Expression -DefaultValue '(Get-Date)' -DefaultValueType ParenExpression
+        }
+
+        It "Fails when the default value type does not match" {
+            function f {
+                param([string] $Path = '(Get-Date)')
+            }
+
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType ParenExpression } | Verify-Throw
+        }
+
+        It "Fails when the parameter has no default value" {
+            function f {
+                param([string] $Path)
+            }
+
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType StringConstantExpression } | Verify-Throw
+        }
+    }
 }

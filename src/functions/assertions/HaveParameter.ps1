@@ -3,6 +3,7 @@
     [String] $ParameterName,
     $Type,
     [String] $DefaultValue,
+    [String] $DefaultValueType,
     [Switch] $Mandatory,
     [String] $InParameterSet,
     [Switch] $HasArgumentCompleter,
@@ -53,7 +54,7 @@
 
         if ($null -eq $ast) {
             # Ast is unavailable, ex. for a binary cmdlet
-            throw [ArgumentException]'Using -DefaultValue is only supported for functions and scripts.'
+            throw [ArgumentException]'Using -DefaultValue or -DefaultValueType is only supported for functions and scripts.'
         }
 
         if ($null -ne $ast.Parameters) {
@@ -82,7 +83,7 @@
                 Type             = "[$($parameter.StaticType.Name.ToLower())]"
                 HasDefaultValue  = $false
                 DefaultValue     = $null
-                DefaultValueType = $parameter.StaticType.Name
+                DefaultValueType = $null
             }
 
             # Default value here contains a descriptor object of the default value,
@@ -99,6 +100,11 @@
                 # we take that and use it, otherwise we take the extent (how it was written in code). This will make
                 # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
                 $paramInfo.DefaultValue = Get-DefaultValue $parameter.DefaultValue
+                # The AST node type of the default value expression, e.g. StringConstantExpressionAst for
+                # a literal string like '(Get-Date)', or ParenExpressionAst for an expression like (Get-Date).
+                # This describes how the default value is written, which -DefaultValue (a string comparison)
+                # cannot distinguish.
+                $paramInfo.DefaultValueType = $parameter.DefaultValue.GetType().Name
             }
 
             $paramInfo
@@ -240,7 +246,7 @@
     elseif ($Negate -and -not $hasKey) {
         return [Pester.ShouldResult] @{ Succeeded = $true }
     }
-    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
+    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $DefaultValueType -or $HasArgumentCompleter)) {
         $buts += 'the parameter exists'
     }
     else {
@@ -326,6 +332,39 @@
             }
             elseif ($Negate -and $testDefault) {
                 $buts += "the default value was $(Format-Nicely $actualDefault)"
+            }
+        }
+
+        if ($PSBoundParameters.ContainsKey('DefaultValueType')) {
+            $parameterMetadata = Get-ParameterInfo -Name $ParameterName -Command $ActualValue
+            if ($null -eq $parameterMetadata) {
+                # For safety, but this probably won't happen because if the parameter is not on the command we will fail much sooner.
+                throw "Metadata for parameter '$ParameterName' were not found."
+            }
+
+            $filters += "the default value type$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValueType)"
+
+            # DefaultValueType is the AST node type of the parameter's default value expression, e.g.
+            # StringConstantExpressionAst for a literal string default like '(Get-Date)', or
+            # ParenExpressionAst for an expression default like (Get-Date). This distinguishes how the
+            # default value is written, which the string-based -DefaultValue comparison cannot do.
+            # We match with or without the trailing 'Ast' so both 'ParenExpression' and 'ParenExpressionAst'
+            # are accepted. Comparison is case-insensitive (default for -eq on strings).
+            $actualDefaultValueType = $parameterMetadata.DefaultValueType
+            $normalizedExpected = $DefaultValueType -replace 'Ast$', ''
+            $normalizedActual = if ($null -eq $actualDefaultValueType) { $null } else { $actualDefaultValueType -replace 'Ast$', '' }
+            $testDefaultValueType = ($null -ne $actualDefaultValueType) -and ($normalizedActual -eq $normalizedExpected)
+
+            if (-not $Negate -and -not $testDefaultValueType) {
+                if ($null -eq $actualDefaultValueType) {
+                    $buts += 'the parameter had no default value'
+                }
+                else {
+                    $buts += "the default value type was $(Format-Nicely $actualDefaultValueType)"
+                }
+            }
+            elseif ($Negate -and $testDefaultValueType) {
+                $buts += "the default value type was $(Format-Nicely $actualDefaultValueType)"
             }
         }
 
