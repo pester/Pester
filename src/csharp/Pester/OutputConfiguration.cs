@@ -28,6 +28,7 @@ namespace Pester
         private StringOption _ciLogLevel;
         private StringOption _ciDebugOutput;
         private StringOption _renderMode;
+        private BoolOption _showTags;
 
         public static OutputConfiguration Default { get { return new OutputConfiguration(); } }
         public static OutputConfiguration ShallowClone(OutputConfiguration configuration)
@@ -45,6 +46,7 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(CILogLevel), v => CILogLevel = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(CIDebugOutput), v => CIDebugOutput = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RenderMode), v => RenderMode = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(ShowTags), v => ShowTags = v);
             }
         }
 
@@ -56,6 +58,7 @@ namespace Pester
             CILogLevel = new StringOption("The CI log level in build logs, options are Error and Warning.", "Error");
             CIDebugOutput = new StringOption("Whether to automatically surface verbose and debug output when a CI system has its debug switch enabled (Azure DevOps 'System.Debug', GitHub Actions runner debug logging), options are None and Auto.", "Auto");
             RenderMode = new StringOption("The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.", "Auto");
+            ShowTags = new BoolOption("Append the tags of each Describe, Context and It to its console output line, e.g. 'Describing Get-Planet [Tags: Slow, Unix]'.", false);
         }
 
         public StringOption Verbosity
@@ -150,6 +153,22 @@ namespace Pester
                 else
                 {
                     _renderMode = new StringOption(_renderMode, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption ShowTags
+        {
+            get { return _showTags; }
+            set
+            {
+                if (_showTags == null)
+                {
+                    _showTags = value;
+                }
+                else
+                {
+                    _showTags = new BoolOption(_showTags, value.Value);
                 }
             }
         }

@@ -823,3 +823,73 @@ Describe 'Write-PesterHostMessage' {
         }
     }
 }
+
+Describe 'Output.ShowTags' {
+    It 'defaults to $false and exposes a description' {
+        $c = New-PesterConfiguration
+        $c.Output.ShowTags.Value | Should -BeFalse
+        $c.Output.ShowTags.Description | Should -Not -BeNullOrEmpty
+    }
+
+    It 'round-trips when set through a hashtable' {
+        $c = New-PesterConfiguration -Hashtable @{ Output = @{ ShowTags = $true } }
+        $c.Output.ShowTags.Value | Should -BeTrue
+    }
+
+    Context 'Rendering' {
+        BeforeAll {
+            function Invoke-PesterCapturingOutput ([bool] $ShowTags) {
+                $sb = {
+                    Describe 'Planets' -Tag 'Slow' {
+                        It 'tagged test' -Tag 'Fast', 'Unit' {
+                            1 | Should -Be 1
+                        }
+
+                        Context 'Filtering' -Tag 'Ctx' {
+                            It 'untagged test' {
+                                2 | Should -Be 2
+                            }
+                        }
+                    }
+                }
+
+                $c = New-PesterConfiguration
+                $c.Run.ScriptBlock = $sb
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+                $c.Output.ShowTags = $ShowTags
+
+                $records = Invoke-Pester -Configuration $c 6>&1
+                ($records | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+            }
+        }
+
+        It 'does not render tags when the option is off (default behaviour is unchanged)' {
+            $out = Invoke-PesterCapturingOutput -ShowTags $false
+            $out | Should -Match 'Describing Planets'
+            $out | Should -Match '\[\+\] tagged test'
+            $out | Should -Not -Match '\[Tags:'
+        }
+
+        It 'renders block tags on the Describe line when the option is on' {
+            $out = Invoke-PesterCapturingOutput -ShowTags $true
+            $out | Should -Match 'Describing Planets \[Tags: Slow\]'
+        }
+
+        It 'renders block tags on the Context line when the option is on' {
+            $out = Invoke-PesterCapturingOutput -ShowTags $true
+            $out | Should -Match 'Context Filtering \[Tags: Ctx\]'
+        }
+
+        It 'renders test tags on the It line when the option is on' {
+            $out = Invoke-PesterCapturingOutput -ShowTags $true
+            $out | Should -Match '\[\+\] tagged test \[Tags: Fast, Unit\]'
+        }
+
+        It 'leaves untagged blocks and tests unchanged when the option is on' {
+            $out = Invoke-PesterCapturingOutput -ShowTags $true
+            $untaggedLine = @($out -split [Environment]::NewLine) | Where-Object { $_ -match '\[\+\] untagged test' }
+            $untaggedLine | Should -Not -Match '\[Tags:'
+        }
+    }
+}

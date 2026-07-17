@@ -14,6 +14,7 @@ $script:ReportStrings = DATA {
         Context           = 'Context {0}'
         Margin            = ' '
         Timing            = 'Tests completed in {0}'
+        Tags              = ' [Tags: {0}]'
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -688,6 +689,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
+        if ($PesterPreference.Output.ShowTags.Value -and $null -ne $_test.Tag -and 0 -lt @($_test.Tag).Count) {
+            $out += $ReportStrings.Tags -f ($_test.Tag -join ', ')
+        }
+
         # UserDuration and FrameworkDuration are kept on the result object for profiling,
         # but we only show the combined Duration here to keep the output easy to read.
         $humanTime = "$(Get-HumanTime ($_test.Duration))"
@@ -1062,6 +1067,10 @@ function Write-BlockToScreen {
 
     $name = if (-not [string]::IsNullOrWhiteSpace($Block.ExpandedName)) { $Block.ExpandedName } else { $Block.Name }
     $text = $ReportStrings.$commandUsed -f $name
+
+    if ($PesterPreference.Output.ShowTags.Value -and $null -ne $Block.Tag -and 0 -lt @($Block.Tag).Count) {
+        $text += $ReportStrings.Tags -f ($Block.Tag -join ', ')
+    }
 
     if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
         $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
