@@ -86,6 +86,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         }
 
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
+        $metadata = Repair-EncodingParameters -Metadata $metadata
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
         $paramBlock = Repair-OrderedType -ParamBlock $paramBlock -Metadata $metadata
@@ -2024,6 +2025,53 @@ function Repair-ConflictingParameters {
         $attrIndexesToRemove.Reverse()
         foreach ($index in $attrIndexesToRemove) {
             $null = $paramMetadata.Attributes.RemoveAt($index)
+        }
+    }
+
+    $repairedMetadata
+}
+
+function Repair-EncodingParameters {
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.CommandMetadata])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
+    )
+
+    # PowerShell 6+ cmdlets that accept an -Encoding parameter (Out-File, Export-Csv,
+    # Import-Csv, Export-Clixml, ...) declare it as [System.Text.Encoding] and rely on an
+    # internal ArgumentToEncodingTransformationAttribute to turn friendly names such as
+    # 'utf8NoBOM' into a System.Text.Encoding value while the code is parsed. ProxyCommand's
+    # GetParamBlock cannot reproduce that internal attribute, so the generated mock ends up with
+    # a bare [System.Text.Encoding] parameter that rejects the string names. Calling the mock
+    # with e.g. -Encoding utf8NoBOM then throws a ParameterBindingArgumentTransformationException.
+    # https://github.com/pester/Pester/issues/1877
+    #
+    # Relax the parameter type to [object] so any value the real command accepts (a friendly
+    # name, a code-page name or an actual System.Text.Encoding object) binds and routes to the
+    # mock, while the original argument is preserved for -ParameterFilter. A [ValidateSet] of the
+    # known names is intentionally not added: it would reject valid inputs the real cmdlet accepts,
+    # such as code-page names and System.Text.Encoding objects. The [System.Text.Encoding] check
+    # is self-gating to PowerShell 6+; Windows PowerShell declares -Encoding as an enum instead.
+    $repairedMetadata = [System.Management.Automation.CommandMetadata]$Metadata
+
+    foreach ($paramMetadata in $repairedMetadata.Parameters.Values) {
+        if ($paramMetadata.IsDynamic -or $paramMetadata.ParameterType -ne [System.Text.Encoding]) {
+            continue
+        }
+
+        $hasEncodingTransform = $false
+        foreach ($attr in $paramMetadata.Attributes) {
+            if ($attr -is [System.Management.Automation.ArgumentTransformationAttribute]) {
+                $hasEncodingTransform = $true
+                break
+            }
+        }
+
+        if ($hasEncodingTransform) {
+            $paramMetadata.ParameterType = [object]
         }
     }
 
