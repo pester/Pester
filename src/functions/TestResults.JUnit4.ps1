@@ -103,6 +103,11 @@ function Write-JUnitTestSuiteAttributes {
     $XmlWriter.WriteAttributeString('package', $Package)
     $XmlWriter.WriteAttributeString('time', $Action.Duration.TotalSeconds.ToString('0.000', [System.Globalization.CultureInfo]::InvariantCulture))
 
+    if ($null -ne $Action.ExecutedAt -and $Action.ExecutedAt -gt [datetime]::MinValue) {
+        # JUnit uses local time without timezone offset for the testsuite timestamp, unlike NUnit3. See https://github.com/pester/Pester/issues/2410
+        $XmlWriter.WriteAttributeString('timestamp', $Action.ExecutedAt.ToString('yyyy-MM-ddTHH:mm:ss', [System.Globalization.CultureInfo]::InvariantCulture))
+    }
+
     $XmlWriter.WriteStartElement('properties')
 
     foreach ($keyValuePair in $environment.GetEnumerator()) {
