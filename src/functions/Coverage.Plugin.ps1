@@ -240,4 +240,10 @@ function Resolve-CodeCoverageConfiguration {
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }
+
+    # Resolve the output path to an absolute path now, while the current location still points to
+    # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
+    # test can change the current location (e.g. Set-Location), so a relative path would otherwise be
+    # resolved against the wrong directory or a directory that no longer exists (#2641).
+    $PesterPreference.CodeCoverage.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
 }
