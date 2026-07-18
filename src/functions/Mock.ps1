@@ -88,6 +88,7 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             # default makes the no-argument call succeed, matching the real cmdlet's behaviour. (#1531)
             if ([string]::IsNullOrEmpty($metadata.DefaultParameterSetName)) {
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, "DefaultParameterSetName='__AllParameterSets'")
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
             }
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
