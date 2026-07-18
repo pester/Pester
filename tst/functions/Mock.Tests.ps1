@@ -743,7 +743,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 times*'
+        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -757,7 +757,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 time*'
     }
 }
 
@@ -775,7 +775,36 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 1 time*"
+    }
+
+    It "Should throw and report the call count using plural 'times' when called more than once" {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 2 times*"
+    }
+
+    It 'Should include reason when -Because is used' {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -817,7 +846,9 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $Times times, but was called $MockCalls times*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $callsText = if ($MockCalls -eq 1) { '1 time' } else { "$MockCalls times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $timesText, but was called $callsText*"
     }
 
     It 'Should include reason when -Because is used' {
@@ -830,7 +861,7 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 times, because of reasons, but was called 2 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 time, because of reasons, but was called 2 times*'
     }
 }
 
@@ -871,7 +902,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 time, but it was*"
     }
 
     It "Should not throw if mock was not called" {
@@ -885,7 +916,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 times, because of reasons, but it was*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 time, because of reasons, but it was*'
     }
 }
 
@@ -924,7 +955,8 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $Times times, but it was*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $timesText, but it was*"
     }
 }
 
@@ -1009,7 +1041,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 times*
+        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 time*
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
@@ -1046,7 +1078,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 times exactly, but was called 0 times
+        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 time exactly, but was called 0 times
 Performed invocations:
   <none>' -replace "`r`n", "`n")
     }
