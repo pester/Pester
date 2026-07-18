@@ -420,10 +420,9 @@ i -PassThru:$PassThru {
 
     b 'User alias shadowing internal helper does not break Pester' {
         # https://github.com/pester/Pester/issues/2113
-        # A user module (for example ListFunctions) can export an alias whose name
-        # collides with one of Pester's short internal helper functions (like 'any').
-        # PowerShell resolves aliases before functions and traverses the scope chain
-        # up to global, so such an alias shadowed Pester's internal helper and
+        # A user module (for example ListFunctions) can export an alias whose name collides with
+        # one of Pester's short internal helpers (like 'any'). PowerShell resolves aliases before
+        # functions and walks the scope chain up to global, so the alias shadowed our helper and
         # Invoke-Pester crashed with a ParameterBindingException before running any test.
         t 'Invoke-Pester succeeds when a global alias shadows the internal any helper' {
             $sb = {

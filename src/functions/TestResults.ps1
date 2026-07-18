@@ -501,17 +501,16 @@ function Get-ErrorForXmlReport ($TestResult) {
 
 function Test-ContainerFailedDiscovery {
     param($Container)
-    # A container that failed during discovery never runs its tests (ShouldRun = $false),
-    # but it is marked as Failed and carries the discovery error in its ErrorRecord. Such
-    # containers would otherwise be skipped by the report writers, silently omitting the
-    # failure from the exported TestResult XML. (#2664)
+    # A container that failed during discovery never runs its tests (ShouldRun = $false), but it
+    # is marked Failed and keeps the discovery error in its ErrorRecord. The report writers would
+    # otherwise skip it and drop the failure from the exported TestResult XML. (#2664)
     (-not $Container.ShouldRun) -and ($Container.Result -eq 'Failed') -and ($Container.ErrorRecord.Count -gt 0)
 }
 
 function Get-DiscoveryFailedContainerCount {
     param([Pester.Run] $Result)
-    # Number of containers that failed during discovery. Used so the exported report totals
-    # reflect these failures instead of silently reporting zero. (#2664)
+    # Number of containers that failed during discovery, so the exported report totals count
+    # them instead of reporting zero. (#2664)
     $count = 0
     foreach ($container in $Result.Containers) {
         if (Test-ContainerFailedDiscovery -Container $container) {
@@ -598,9 +597,9 @@ function Resolve-TestResultConfiguration {
         throw (Get-StringOptionErrorMessage -OptionPath 'TestResult.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.TestResult.OutputFormat.Value)
     }
 
-    # Resolve the output path to an absolute path now, while the current location still points to
+    # Resolve the output path to an absolute path now, while the current location still points at
     # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
-    # test can change the current location (e.g. Set-Location), so a relative path would otherwise be
-    # resolved against the wrong directory or a directory that no longer exists (#2641).
+    # test can change the current location (e.g. Set-Location), so a relative path would resolve
+    # against the wrong directory, or one that no longer exists (#2641).
     $PesterPreference.TestResult.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.TestResult.OutputPath.Value)
 }

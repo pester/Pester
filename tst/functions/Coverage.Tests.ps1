@@ -1014,10 +1014,10 @@ InPesterModuleScope {
         }
 
         # https://github.com/pester/Pester/issues/1143
-        # The '& $wrappedCmd @PSBoundParameters' line inside a steppable-pipeline proxy
-        # function must not be reported as missed. PowerShell never fires the breakpoint on
-        # that scriptblock (the command runs through the steppable pipeline), so both the
-        # inner command and the scriptblock-literal wrapper it lives in are ignored.
+        # The '& $wrappedCmd @PSBoundParameters' line inside a steppable-pipeline proxy function
+        # must not be reported as missed. PowerShell never fires the breakpoint on that scriptblock
+        # (the command runs through the steppable pipeline), so we ignore both the inner command and
+        # the scriptblock-literal wrapper it lives in.
         Context 'Steppable-pipeline proxy function using <description>' -Foreach @(
             @{ UseBreakpoints = $true; Description = "breakpoints" }
             @{ UseBreakpoints = $false; Description = "Profiler based cc" }

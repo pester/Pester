@@ -3373,13 +3373,13 @@ i -PassThru:$PassThru {
 
     b 'Stray output during the run does not crash Pester (#2655)' {
         t 'a real run with stray output finishes, keeps its results, and warns instead of crashing' {
-            # Reproduce the leak end-to-end the way it happens in the wild: something writes to the
-            # success stream while the run is in progress, so the stray value ends up in Invoke-Test's
-            # output next to the real [Pester.Container]. A repo-root Pester.BeforeContainer.ps1 that
-            # emits to the success stream is a reliable stand-in for the original trigger - an
-            # unredirected native command (winrm/net) in a setup block - which could not be reproduced
-            # deterministically. Before #2655 that stray object was added to the strongly-typed
-            # Run.Containers list and threw "Cannot find an overload for Add", taking down the whole run.
+            # Reproduce the leak end-to-end the way it really happens: something writes to the success
+            # stream while the run is in progress, so the stray value ends up in Invoke-Test's output
+            # next to the real [Pester.Container]. A repo-root Pester.BeforeContainer.ps1 that emits to
+            # the success stream is a reliable stand-in for the original trigger (an unredirected native
+            # command like winrm/net in a setup block), which could not be reproduced deterministically.
+            # Before #2655 that stray object was added to the strongly-typed Run.Containers list and
+            # threw "Cannot find an overload for Add", taking down the whole run.
             $sb = {
                 Describe 'd' {
                     It 'passes' { $true | Should -Be $true }

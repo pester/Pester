@@ -1074,10 +1074,10 @@ function Invoke-ContainerRun {
         # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
         # before all script, but it might be better to make this a plugin, because there we can pass data.
 
-        # When a CI system has its debug switch enabled (e.g. Azure DevOps System.Debug or GitHub Actions
-        # runner debug logging) and the user did not opt out, surface Write-Verbose / Write-Debug from
-        # tests and setup blocks by raising the preferences in the user's root scope below. This is scoped
-        # to the run and does not leak into the caller's session afterwards. See issue #1694.
+        # When a CI system has its debug switch enabled (e.g. Azure DevOps System.Debug or GitHub
+        # Actions runner debug logging) and the user did not opt out, surface Write-Verbose and
+        # Write-Debug from tests and setup blocks by raising the preferences in the user's root scope
+        # below. This is scoped to the run and does not leak into the caller's session afterwards (#1694).
         $surfaceCIDebugOutput = Test-CIDebugOutputEnabled -PesterPreference $PesterPreference
 
         $setVariables = {
@@ -1378,14 +1378,13 @@ function Assert-Success {
 }
 
 function New-EscapedFlowControlErrorRecord {
-    # User code can run `break` / `continue` with a label that does not match any enclosing
-    # loop (usually a typo). PowerShell raises a flow-control exception (BreakException /
-    # ContinueException) that a normal try/catch cannot see and that unwinds past the whole
-    # Pester runner, silently aborting the run with no result (see #2669). Invoke-ScriptBlock
-    # detects that escape and calls this helper to build a normal terminating error so the
-    # current test or block fails with a clear message instead of the run being torn down.
-    # We cannot recover the label or tell break from continue at that point (the flow-control
-    # exception is not surfaced), so the message names both keywords.
+    # User code can run `break` or `continue` with a label that matches no enclosing loop,
+    # usually a typo. PowerShell raises a flow-control exception (BreakException / ContinueException)
+    # that a normal try/catch does not see, and it unwinds past the whole Pester runner and aborts
+    # the run with no result (#2669). Invoke-ScriptBlock catches that escape and calls this helper
+    # to build a normal terminating error, so the current test or block just fails with a clear
+    # message. At that point we cannot recover the label or tell break from continue, so the
+    # message names both keywords.
     $message = "A 'break' or 'continue' statement with a label that does not match any enclosing loop escaped from your code. " +
     "This is usually a misspelled or undefined loop label. Left unhandled it silently aborts the whole Pester run with no result (see https://github.com/pester/Pester/issues/2669), so Pester failed this test or block instead."
 
@@ -1687,19 +1686,18 @@ function Invoke-ScriptBlock {
                 & $OnUserScopeTransition
             }
         }
-        # User code can run `break` / `continue` with a label that does not match any enclosing
-        # loop (usually a typo). PowerShell raises a flow-control exception (BreakException /
-        # ContinueException) that a normal try/catch cannot see. Left unhandled it unwinds past
-        # the whole Pester runner and silently aborts the run with no result (see #2669).
+        # User code can run `break` or `continue` with a label that matches no enclosing loop,
+        # usually a typo. PowerShell raises a flow-control exception (BreakException / ContinueException)
+        # that a normal try/catch does not see, and left unhandled it unwinds past the whole Pester
+        # runner and aborts the run with no result (#2669).
         #
-        # The do/while ($false) below already absorbs a plain, unlabelled break/continue, so
-        # those keep their current behaviour and simply end the scriptblock. A labelled
-        # break/continue whose label matches no enclosing loop escapes the do/while; when that
-        # happens for user code we rethrow it from the finally as a normal terminating error so
-        # the outer catch records it as a failure of the current test or block instead of
-        # letting it tear down the whole run. Correctly labelled break/continue inside loops in
-        # user code stays within that code and never reaches here, so it is unaffected. This
-        # only guards user code ($MoveBetweenScopes); framework invocations run unchanged.
+        # The do/while ($false) below already absorbs a plain, unlabelled break/continue, those just
+        # end the scriptblock as before. A labelled break/continue whose label matches no enclosing
+        # loop escapes the do/while, and for user code we rethrow it from the finally as a normal
+        # terminating error, so the outer catch records it as a failed test or block instead of
+        # tearing down the run. Correctly labelled break/continue inside a loop stays in that loop
+        # and never reaches here, so it is unaffected. We only guard user code ($MoveBetweenScopes),
+        # framework invocations run unchanged.
         $flowControlEscaped = $MoveBetweenScopes
         try {
             do {
@@ -2051,9 +2049,9 @@ function Invoke-Test {
         # global steps once for the whole run while this call handles only the
         # non-parallel containers' per-container/per-test steps.
         [switch] $SkipFrameworkGlobalSteps,
-        # Initialization text (resolved from the repo-root Pester.BeforeContainer.ps1)
-        # dot-sourced into the run session state before each container
-        # is discovered and run, so the same setup is available in sequential and parallel runs.
+        # Initialization text (resolved from the repo-root Pester.BeforeContainer.ps1), dot-sourced
+        # into the run session state before each container is discovered and run, so the same setup
+        # is available in sequential and parallel runs.
         [string] $BeforeContainerInit
     )
 
