@@ -3,7 +3,7 @@
     [String] $ParameterName,
     $Type,
     [String] $DefaultValue,
-    [ValidateSet('String', 'InterpolatedString', 'Number', 'Variable', 'Expression', 'ScriptBlock', 'Array', 'Hashtable')]
+    [ValidateSet('Boolean', 'Null', 'Number', 'String', 'ScriptBlock', 'Array', 'Hashtable', 'Expression')]
     [String] $DefaultValueType,
     [Switch] $Mandatory,
     [String] $InParameterSet,
@@ -101,12 +101,11 @@
                 # we take that and use it, otherwise we take the extent (how it was written in code). This will make
                 # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
                 $paramInfo.DefaultValue = Get-DefaultValue $parameter.DefaultValue
-                # The AST node type of the default value expression, e.g. StringConstantExpressionAst for
-                # a literal string like '(Get-Date)', or ParenExpressionAst for an expression like (Get-Date).
-                # This describes how the default value is written, which -DefaultValue (a string comparison)
-                # cannot distinguish. The -DefaultValueType assertion maps this raw AST type to a friendly
-                # kind (e.g. String, Expression) so callers don't need to know PowerShell AST type names.
-                $paramInfo.DefaultValueType = $parameter.DefaultValue.GetType().Name
+                # The value type of the default, e.g. Boolean for $true, String for a literal string, or
+                # Expression for a computed default like (Get-Date) whose type is not known statically.
+                # This is what -DefaultValueType asserts, and Expression vs String is what tells a literal
+                # string default apart from an expression that -DefaultValue (a string comparison) cannot.
+                $paramInfo.DefaultValueType = Get-DefaultValueKind $parameter.DefaultValue
             }
 
             $paramInfo
@@ -138,6 +137,41 @@
         }
 
         $DefaultValue.Extent.Text
+    }
+
+    function Get-DefaultValueKind {
+        # Classifies the parameter's default value by its value type, so -DefaultValueType can be asserted
+        # with a real type name (Boolean, Number, String, ...) rather than a PowerShell AST type name.
+        # The type is only known for values the parser can type statically. A computed default like
+        # (Get-Date), [datetime]::Now or $someVariable has no static type (PowerShell reports it as
+        # System.Object), so it is reported as an Expression, which is also what tells it apart from a
+        # string literal default that happens to have the same -DefaultValue text.
+        param($DefaultValue)
+
+        # $true, $false and $null are variable references in the AST, but their value type is known,
+        # so report them as Boolean and Null instead of a generic Expression. Any other variable
+        # ($var, $env:PATH) has a type we cannot know without running it, so it stays an Expression.
+        if ($DefaultValue -is [System.Management.Automation.Language.VariableExpressionAst]) {
+            $variableName = $DefaultValue.VariablePath.UserPath
+            if ('true' -eq $variableName -or 'false' -eq $variableName) { return 'Boolean' }
+            if ('null' -eq $variableName) { return 'Null' }
+            return 'Expression'
+        }
+
+        $staticType = $DefaultValue.StaticType
+        if ($null -eq $staticType) { return 'Expression' }
+
+        if ([string] -eq $staticType) { return 'String' }
+        if ([bool] -eq $staticType) { return 'Boolean' }
+        if ([scriptblock] -eq $staticType) { return 'ScriptBlock' }
+        if ([hashtable] -eq $staticType) { return 'Hashtable' }
+        if ($staticType.IsArray) { return 'Array' }
+
+        $numericTypes = @([byte], [sbyte], [int16], [uint16], [int], [uint32], [int64], [uint64], [single], [double], [decimal])
+        if ($numericTypes -contains $staticType) { return 'Number' }
+
+        # System.Object (a computed expression) or any type we don't have a friendly name for.
+        return 'Expression'
     }
 
     function Get-ArgumentCompleter {
@@ -344,47 +378,22 @@
                 throw "Metadata for parameter '$ParameterName' were not found."
             }
 
-            # -DefaultValueType asserts the *kind* of the parameter's default value, so you can tell an
-            # expression default like (Get-Date) apart from a literal string '(Get-Date)' that -DefaultValue
-            # (a plain string comparison) cannot distinguish. Users specify a friendly kind (e.g. Expression),
-            # not the underlying PowerShell AST node type (e.g. ParenExpressionAst) which is a parser
-            # implementation detail. This maps each friendly kind to the AST node type(s) that represent it.
-            $defaultValueTypeMap = [ordered]@{
-                String             = @('StringConstantExpressionAst')
-                InterpolatedString = @('ExpandableStringExpressionAst')
-                Number             = @('ConstantExpressionAst')
-                Variable           = @('VariableExpressionAst')
-                Expression         = @('ParenExpressionAst')
-                ScriptBlock        = @('ScriptBlockExpressionAst')
-                Array              = @('ArrayExpressionAst', 'ArrayLiteralAst')
-                Hashtable          = @('HashtableAst')
-            }
-
-            # Canonical casing of the expected kind for the message and lookup (ValidateSet allows any casing).
-            $expectedKind = @($defaultValueTypeMap.Keys | & $SafeCommands['Where-Object'] { $_ -eq $DefaultValueType })[0]
+            # -DefaultValueType asserts the value type of the parameter's default (Boolean, Number, String,
+            # ScriptBlock, Array, Hashtable, Null), and Expression for a computed default like (Get-Date)
+            # whose type is not known statically. Expression vs String is what tells an expression default
+            # apart from a literal string default that -DefaultValue (a string comparison) cannot.
+            # Get-ParameterInfo already resolved the actual default to one of these kinds.
+            $validKinds = 'Boolean', 'Null', 'Number', 'String', 'ScriptBlock', 'Array', 'Hashtable', 'Expression'
+            # Canonical casing of the expected kind for the message (ValidateSet allows any casing).
+            $expectedKind = @($validKinds | & $SafeCommands['Where-Object'] { $_ -eq $DefaultValueType })[0]
             $filters += "the default value type$(if ($Negate) {" not"}) to be $(Format-Nicely $expectedKind)"
 
-            # The raw AST node type name of the actual default, or $null when the parameter has no default.
-            $actualAst = $parameterMetadata.DefaultValueType
-            # Friendly kind of the actual default for the message. Fall back to the AST type name (without the
-            # trailing 'Ast') for the rare default value kinds we don't have a friendly name for.
-            $actualKind = $null
-            if ($null -ne $actualAst) {
-                foreach ($key in $defaultValueTypeMap.Keys) {
-                    if ($defaultValueTypeMap[$key] -contains $actualAst) {
-                        $actualKind = $key
-                        break
-                    }
-                }
-                if ($null -eq $actualKind) {
-                    $actualKind = $actualAst -replace 'Ast$', ''
-                }
-            }
-
-            $testDefaultValueType = ($null -ne $actualAst) -and ($defaultValueTypeMap[$expectedKind] -contains $actualAst)
+            # The value type of the actual default, or $null when the parameter has no default value.
+            $actualKind = $parameterMetadata.DefaultValueType
+            $testDefaultValueType = ($null -ne $actualKind) -and ($actualKind -eq $expectedKind)
 
             if (-not $Negate -and -not $testDefaultValueType) {
-                if ($null -eq $actualAst) {
+                if ($null -eq $actualKind) {
                     $buts += 'the parameter had no default value'
                 }
                 else {

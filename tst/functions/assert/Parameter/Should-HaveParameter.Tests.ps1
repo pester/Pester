@@ -126,6 +126,14 @@ Describe "Should-HaveParameter" {
             Get-Command f | Should-HaveParameter Path -DefaultValueType String
         }
 
+        It "Reports the value type, so a `$true default is Boolean, not a variable" {
+            function f {
+                param($Enabled = $true)
+            }
+
+            Get-Command f | Should-HaveParameter Enabled -DefaultValueType Boolean
+        }
+
         It "Distinguishes a string-literal default from an expression default" {
             function f {
                 param(

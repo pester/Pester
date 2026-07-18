@@ -16,13 +16,14 @@
     The default value of the parameter to check. E.g. "https://example.com"
 
     .PARAMETER DefaultValueType
-    The kind of the parameter's default value. This distinguishes how the default is written, which
-    -DefaultValue (a string comparison) cannot: for example `$Path = (Get-Date)` is an `Expression`
-    while `$Path = '(Get-Date)'` is a `String`. Valid values:
-    `String` (literal string, e.g. 'abc' or "abc"), `InterpolatedString` (e.g. "$x/bar"),
-    `Number` (numeric literal, e.g. 1), `Variable` (e.g. $true, $false, $null, $var),
-    `Expression` (e.g. (Get-Date)), `ScriptBlock` (e.g. { Get-Date }), `Array` (e.g. @(1, 2) or 1, 2),
-    `Hashtable` (e.g. @{}). Matching is case-insensitive.
+    The value type of the parameter's default. Valid values:
+    `Boolean` (`$true`, `$false`), `Null` (`$null`), `Number` (e.g. 1, 1.5), `String` (a literal or
+    interpolated string, e.g. 'abc' or "$x bar"), `ScriptBlock` (e.g. { Get-Date }), `Array` (e.g. @(1, 2)),
+    `Hashtable` (e.g. @{ a = 1 }), and `Expression` for a computed default whose type is not known until
+    it runs (e.g. (Get-Date), [datetime]::Now, $someVariable).
+    `Expression` vs `String` is what tells an expression default apart from a literal string default, which
+    -DefaultValue (a string comparison) cannot: for example `$Path = (Get-Date)` is an `Expression` while
+    `$Path = '(Get-Date)'` is a `String`. Matching is case-insensitive.
 
     .PARAMETER Mandatory
     Whether the parameter is mandatory or not.
@@ -108,7 +109,7 @@
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,
-        [ValidateSet('String', 'InterpolatedString', 'Number', 'Variable', 'Expression', 'ScriptBlock', 'Array', 'Hashtable')]
+        [ValidateSet('Boolean', 'Null', 'Number', 'String', 'ScriptBlock', 'Array', 'Hashtable', 'Expression')]
         [String] $DefaultValueType,
         [Switch] $Mandatory,
         [String] $InParameterSet,

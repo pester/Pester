@@ -291,7 +291,7 @@ InPesterModuleScope {
         }
 
         It 'fails if the parameter DefaultValueType is used with a binary cmdlet' {
-            $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValueType Variable } | Verify-Throw
+            $err = { Get-Command 'Get-Content' | Should -HaveParameter Force -DefaultValueType Boolean } | Verify-Throw
             $err.Exception.Message | Verify-Equal 'Using -DefaultValue or -DefaultValueType is only supported for functions and scripts.'
         }
 
@@ -396,9 +396,13 @@ InPesterModuleScope {
                         [string] $LiteralString = '(Get-Date)',
                         [string] $Interpolated = "$x bar",
                         [string] $Expression = (Get-Date),
+                        $Member = [datetime]::Now,
+                        $Variable = $env:PATH,
                         $ScriptBlockDefault = { Get-Date },
                         [int] $Number = 1,
+                        $Double = 1.5,
                         $Bool = $true,
+                        $BoolFalse = $false,
                         $Null = $null,
                         $ArrayDefault = @(1, 2),
                         $HashtableDefault = @{ a = 1 },
@@ -407,14 +411,18 @@ InPesterModuleScope {
                 }
             }
 
-            It "passes when the default value <ParameterName> is of the expected kind <DefaultValueType>" -TestCases @(
+            It "passes when the default value <ParameterName> is of the expected type <DefaultValueType>" -TestCases @(
                 @{ ParameterName = 'LiteralString'; DefaultValueType = 'String' }
-                @{ ParameterName = 'Interpolated'; DefaultValueType = 'InterpolatedString' }
+                @{ ParameterName = 'Interpolated'; DefaultValueType = 'String' }
                 @{ ParameterName = 'Expression'; DefaultValueType = 'Expression' }
+                @{ ParameterName = 'Member'; DefaultValueType = 'Expression' }
+                @{ ParameterName = 'Variable'; DefaultValueType = 'Expression' }
                 @{ ParameterName = 'ScriptBlockDefault'; DefaultValueType = 'ScriptBlock' }
                 @{ ParameterName = 'Number'; DefaultValueType = 'Number' }
-                @{ ParameterName = 'Bool'; DefaultValueType = 'Variable' }
-                @{ ParameterName = 'Null'; DefaultValueType = 'Variable' }
+                @{ ParameterName = 'Double'; DefaultValueType = 'Number' }
+                @{ ParameterName = 'Bool'; DefaultValueType = 'Boolean' }
+                @{ ParameterName = 'BoolFalse'; DefaultValueType = 'Boolean' }
+                @{ ParameterName = 'Null'; DefaultValueType = 'Null' }
                 @{ ParameterName = 'ArrayDefault'; DefaultValueType = 'Array' }
                 @{ ParameterName = 'HashtableDefault'; DefaultValueType = 'Hashtable' }
             ) {
@@ -423,18 +431,18 @@ InPesterModuleScope {
 
             It "matches case-insensitively" {
                 Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValueType expression
-                Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType STRING
+                Get-Command Test-DefaultValueType | Should -HaveParameter Bool -DefaultValueType boolean
             }
 
             It "distinguishes an expression default from a string-literal default" {
                 # This is the core scenario from issue #1888: (Get-Date) vs '(Get-Date)' share the same
-                # -DefaultValue string, but differ in their kind.
+                # -DefaultValue string, but differ in their type.
                 Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValue '(Get-Date)' -DefaultValueType Expression
                 Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValue '(Get-Date)' -DefaultValueType String
             }
 
-            It "throws a clear error listing the valid kinds when given an unknown default value type" {
-                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType NotAKind } | Verify-Throw
+            It "throws a clear error listing the valid types when given an unknown default value type" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType NotAType } | Verify-Throw
                 $err.Exception.Message | Verify-Like "*Cannot validate argument on parameter 'DefaultValueType'*"
             }
 
@@ -444,8 +452,8 @@ InPesterModuleScope {
             }
 
             It "fails when the parameter has no default value" {
-                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter NoDefault -DefaultValueType Variable } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter NoDefault, the default value type to be 'Variable', but the parameter had no default value."
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter NoDefault -DefaultValueType Boolean } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter NoDefault, the default value type to be 'Boolean', but the parameter had no default value."
             }
 
             It "returns a combined message when both DefaultValue and DefaultValueType differ" {
