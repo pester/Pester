@@ -64,6 +64,15 @@ if ($CC) {
     Write-Host "Running Code Coverage"
     $env:PESTER_CC_DEBUG = 0
     $env:PESTER_CC_IN_CC = 1
+    # Tests that spawn a child process via Invoke-InNewProcess (e.g. the Output and InNewProcess
+    # tests) execute Pester code the parent tracer cannot see. Point those children at a shared
+    # drop folder and the same coverage target; each child traces itself and writes the coordinates
+    # it hit there, and we merge them into $measure below before the report is generated.
+    $ccChildDir = Join-Path ([System.IO.Path]::GetTempPath()) "pester-cc-child-$PID"
+    if (Test-Path $ccChildDir) { Remove-Item $ccChildDir -Recurse -Force }
+    $null = New-Item -ItemType Directory -Path $ccChildDir -Force
+    $env:PESTER_CC_CHILD_OUTPUT = $ccChildDir
+    $env:PESTER_CC_CHILD_TARGET = if ($Inline) { "$PSScriptRoot/bin/Pester*" } else { "$PSScriptRoot/src/*" }
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $here = {}
     $bp = Set-PSBreakpoint -Script $PSCommandPath -Line $here.StartPosition.StartLine -Action {}
@@ -198,12 +207,47 @@ if ($CC) {
 
         & $Stop_TraceScript -Patched $patched
         $measure = $tracer.Hits
+
+        # Merge the hits collected in child processes (Invoke-InNewProcess) into the in-process
+        # measure. Parent and child trace the same target, so a child hit at path + "line:column"
+        # maps onto the same not-yet-hit point here; flip it to Hit (the point is a struct, so we
+        # copy-modify-write back, exactly like the tracer does on a live hit).
+        $childFiles = @(Get-ChildItem -Path $ccChildDir -Filter '*.tsv' -File -ErrorAction SilentlyContinue)
+        $mergedPoints = 0
+        foreach ($cf in $childFiles) {
+            foreach ($rawLine in [System.IO.File]::ReadAllLines($cf.FullName)) {
+                if ([string]::IsNullOrWhiteSpace($rawLine)) { continue }
+                $tab = $rawLine.IndexOf("`t")
+                if ($tab -lt 0) { continue }
+                $path = $rawLine.Substring(0, $tab)
+                $key = $rawLine.Substring($tab + 1)
+                if (-not $measure.ContainsKey($path)) { continue }
+                $byKey = $measure[$path]
+                if (-not $byKey.ContainsKey($key)) { continue }
+                $list = $byKey[$key]
+                for ($i = 0; $i -lt $list.Count; $i++) {
+                    if (-not $list[$i].Hit) {
+                        $point = $list[$i]
+                        $point.Hit = $true
+                        $list[$i] = $point
+                        $mergedPoints++
+                    }
+                }
+            }
+        }
+        Write-Host "Merged code coverage from $($childFiles.Count) child process run(s), marking $mergedPoints additional point(s) as hit."
+
         $coverageReport = & $Get_CoverageReport -CommandCoverage $breakpoints -Measure $measure
     }
     finally {
         if ($null -ne $bp) {
             $bp | Remove-PSBreakpoint
         }
+        if ($ccChildDir -and (Test-Path $ccChildDir)) {
+            Remove-Item $ccChildDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $env:PESTER_CC_CHILD_OUTPUT = $null
+        $env:PESTER_CC_CHILD_TARGET = $null
     }
 
     [xml] $jaCoCoReport = [xml] (& $Get_JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $sw.ElapsedMilliseconds -CoverageReport $coverageReport -ReportRoot $PSScriptRoot)
