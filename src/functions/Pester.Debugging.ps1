@@ -1,4 +1,4 @@
-﻿function Count-Scopes {
+function Count-Scopes {
     param(
         [Parameter(Mandatory = $true)]
         $ScriptBlock)
@@ -51,7 +51,6 @@ function Write-ScriptBlockInvocationHint {
     if ($global:DisableScopeHints) {
         return
     }
-
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope SessionState -LazyMessage {
@@ -145,26 +144,6 @@ function Set-SessionStateHint {
     }
 }
 
-function Get-SessionStateHint {
-    param(
-        [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
-    )
-
-    if ($script:DisableScopeHints) {
-        return
-    }
-
-    # the hint is also attached to the session state object, but sessionstate objects are recreated while
-    # the internal state stays static so to see the hint on object that we receive via $PSCmdlet.SessionState we need
-    # to look at the InternalSessionState. the internal state should be never null so just looking there is enough
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $internalSessionState = $SessionState.GetType().GetProperty('Internal', $flags).GetValue($SessionState, $null)
-    if (Test-Hint $internalSessionState) {
-        $internalSessionState.Hint
-    }
-}
-
 function Set-ScriptBlockHint {
     param(
         [Parameter(Mandatory = $true)]
@@ -229,7 +208,6 @@ function Get-ScriptBlockHint {
     # the internal state stays static so to see the hint on object that we receive we need to look at the InternalSessionState
     $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
     $internalSessionState = $ScriptBlock.GetType().GetProperty('SessionStateInternal', $flags).GetValue($ScriptBlock, $null)
-
 
     if ($null -ne $internalSessionState -and (Test-Hint $internalSessionState)) {
         return $internalSessionState.Hint

@@ -1,14 +1,3 @@
-﻿function Get-FailureMessage($assertionEntry, $negate, $value, $expected) {
-    if ($negate) {
-        $failureMessageFunction = $assertionEntry.GetNegativeFailureMessage
-    }
-    else {
-        $failureMessageFunction = $assertionEntry.GetPositiveFailureMessage
-    }
-
-    return (& $failureMessageFunction $value $expected)
-}
-
 function Should {
     <#
     .SYNOPSIS

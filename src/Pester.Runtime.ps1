@@ -1,4 +1,4 @@
-﻿# PESTER_BUILD
+# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/Pester.Utility.ps1"
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
@@ -44,7 +44,6 @@ else {
 # 'New-FilterObject'
 # 'New-PluginObject'
 # 'New-BlockContainerObject'
-
 
 # instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
@@ -449,7 +448,6 @@ function Invoke-Block ($previousBlock) {
                 [Array]::Reverse($frameworkEachBlockTeardowns)
                 [Array]::Reverse($frameworkOneTimeBlockTeardowns)
 
-
                 # setting those values here so they are available for the teardown
                 # BUT they are then set again at the end of the block to make them accurate
                 # so the value on the screen vs the value in the object is slightly different
@@ -735,7 +733,6 @@ function Invoke-TestItem {
             }
         }
 
-
         # setting those values here so they are available for the teardown
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
@@ -868,17 +865,6 @@ function New-EachBlockTeardown {
 }
 
 # endpoint for adding a setup for all blocks in the current block
-function New-OneTimeBlockSetup {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-    if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockSetup = $ScriptBlock
-    }
-}
-
 # endpoint for adding a teardown for all clocks in the current block
 function New-OneTimeBlockTeardown {
     [CmdletBinding()]
@@ -905,17 +891,6 @@ function Get-CurrentTest {
     $state.CurrentTest
 }
 
-function Set-CurrentBlock {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Block
-    )
-
-    $state.CurrentBlock = $Block
-}
-
-
 function Set-CurrentTest {
     [CmdletBinding()]
     param (
@@ -925,7 +900,6 @@ function Set-CurrentTest {
 
     $state.CurrentTest = $Test
 }
-
 
 function Is-Discovery {
     $state.Discovery
@@ -1170,7 +1144,6 @@ function Invoke-ContainerRun {
     $result
 }
 
-
 function Discover-Test {
     [CmdletBinding()]
     param (
@@ -1214,41 +1187,6 @@ function Discover-Test {
     }
 
     $found
-}
-
-function Run-Test {
-    param (
-        [Parameter(Mandatory = $true)]
-        [PSObject[]] $Block,
-        [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
-    )
-
-    $state.Discovery = $false
-    $steps = $state.Plugin.RunStart
-    if ($null -ne $steps -and 0 -lt @($steps).Count) {
-        Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
-            Blocks                   = $Block
-            Configuration            = $state.PluginConfiguration
-            Data                     = $state.PluginData
-            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
-        } -ThrowOnFailure
-    }
-    foreach ($rootBlock in $Block) {
-        Invoke-ContainerRun -RootBlock $rootBlock -SessionState $SessionState
-    }
-
-    $steps = $state.Plugin.RunEnd
-    if ($null -ne $steps -and 0 -lt @($steps).Count) {
-        Invoke-PluginStep -Plugins $state.Plugin -Step RunEnd -Context @{
-            Blocks                   = $Block
-            Configuration            = $state.PluginConfiguration
-            Data                     = $state.PluginData
-            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
-        } -ThrowOnFailure
-    }
 }
 
 function Invoke-PluginStep {
@@ -1450,10 +1388,6 @@ function Invoke-ScriptBlock {
         }
     }
 
-
-
-
-
     # this is what the code below does
     # . $OuterSetup
     # & {
@@ -1468,7 +1402,6 @@ function Invoke-ScriptBlock {
     # }
     # . $OuterTeardown
 
-
     $wrapperScriptBlock = {
         # THIS RUNS (MOST OF THE TIME) IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______parameters)
@@ -1479,8 +1412,6 @@ function Invoke-ScriptBlock {
             # so we can use it for Teardowns and to forward errors that happened after test teardown
             $______parametersForward = $______parameters
         }
-
-
 
         try {
             if ($______parameters.ContextInOuterScope) {
@@ -1742,10 +1673,6 @@ function Invoke-ScriptBlock {
     $r = [Pester.InvocationResult]::Create((0 -eq $parameters.ErrorRecord.Count), $parameters. ErrorRecord, $standardOutput)
 
     return $r
-}
-
-function Reset-TestSuiteTimer ($o) {
-
 }
 
 function Switch-Timer {
@@ -2347,7 +2274,6 @@ function PostProcess-DiscoveredBlock {
                 }
             }
 
-
             # if we determined that the block should run we can still make it not run if
             # none of it's children will run
             if ($b.ShouldRun) {
@@ -2433,7 +2359,6 @@ function PostProcess-ExecutedBlock {
         $Block
     )
 
-
     # traverses the block structure after a block was executed and
     # and sets the failures correctly so the aggreagatted failures
     # propagate towards the root so if a child test fails it's block
@@ -2488,10 +2413,7 @@ function PostProcess-ExecutedBlock {
                 # setup it is easy all the tests in the block are considered failed, with teardown
                 # not so much, when all tests pass and the teardown itself fails what should be the result?
 
-
-
                 # todo: there are two concepts mixed with the "own", because the duration and the test counts act differently. With the counting we are using own as "the count of the tests in this block", but with duration the "own" means "self", that is how long this block itself has run, without the tests. This information might not be important but this should be cleared up before shipping. Same goes with the relation to failure, ownPassed means that the block itself passed (that is no setup or teardown failed in it), even though the underlying tests might fail.
-
 
                 $b.OwnDuration = $b.Duration - $testDuration
 
@@ -2706,27 +2628,6 @@ function New-BlockContainerObject {
     $c.Item = $item
     $c.Data = $ContainerData
     $c
-}
-
-function New-DiscoveredBlockContainerObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        $BlockContainer,
-        [Parameter(Mandatory)]
-        $Block
-    )
-
-    [PSCustomObject] @{
-        Type   = $BlockContainer.Type
-        Item   = $BlockContainer.Item
-        # I create a Root block to keep the discovery unaware of containers,
-        # but I don't want to publish that root block because it contains properties
-        # that do not make sense on container level like Name and Parent,
-        # so here we don't want to take the root block but the blocks inside of it
-        # and copy the rest of the meaningful properties
-        Blocks = $Block.Blocks
-    }
 }
 
 function Invoke-File {
