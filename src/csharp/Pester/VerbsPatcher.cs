@@ -37,6 +37,16 @@ namespace Pester
             // workers see the key already present and become no-ops. The lock prevents concurrent
             // writes from corrupting the dictionary. Do not use TryAdd, it is not available on the
             // net462 target.
+            //
+            // We deliberately do NOT double-check with an unlocked ContainsKey before taking the
+            // lock. That would be an optimization to skip the lock once patched, but reading a
+            // plain Dictionary outside the lock while another runspace is inserting inside the lock
+            // is itself a data race: the insert can trigger an internal bucket-array resize, and a
+            // concurrent unlocked read can observe the torn array and throw IndexOutOfRange, the
+            // exact failure this lock exists to prevent. AllowShouldVerb runs once per runspace at
+            // import time and the lock only holds a ContainsKey plus at most one insert, so there
+            // is no contention worth optimizing here. A correct fast path would need a separate
+            // volatile flag rather than an unlocked read of this non-thread-safe dictionary.
             lock (s_lock)
             {
                 if (!validVerbs.ContainsKey(should))
