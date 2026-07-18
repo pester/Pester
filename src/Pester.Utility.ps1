@@ -345,7 +345,6 @@ function Contain-AnyStringLike ($Filter, $Collection) {
     return $false
 }
 
-# TODO: Remove?
 function View-Flat {
     [CmdletBinding()]
     param (

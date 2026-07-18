@@ -2031,7 +2031,6 @@ function Get-ScriptBlockAST {
     return $ast
 }
 
-# TODO: Remove?
 function Repair-EnumParameters {
     param (
         [string]
