@@ -71,12 +71,10 @@ function Get-TestRegistryChildItem ([string]$TestRegistryPath) {
 }
 
 function Invoke-TestRegistryWithRetry {
-    # Reading from and writing to the registry can intermittently throw
-    # 'IOException: No more data is available' when TestRegistry is used from parallel
-    # runspaces on Windows PowerShell (.NET Framework). This is a known .NET Framework bug
-    # that is fixed in .NET Core / PowerShell 7. Retry the operation once on that transient
-    # error, so both reads and writes are resilient. See
-    # https://github.com/pester/Pester/issues/2418
+    # Registry reads and writes occasionally throw 'IOException: No more data is available' when
+    # TestRegistry is used from parallel runspaces on Windows PowerShell (.NET Framework). It is a
+    # known .NET Framework bug, fixed in .NET Core / PowerShell 7. Retry once on that transient
+    # error, so both reads and writes survive it. See https://github.com/pester/Pester/issues/2418
     param(
         [Parameter(Mandatory)]
         [scriptblock] $ScriptBlock

@@ -209,7 +209,7 @@ function Invoke-TestInParallel {
     $baseConfig.Run.Container = @()
 
     # Whether this run measures code coverage. When enabled the workers collect breakpoint-based
-    # coverage (see the .NOTES) and the parent merges it; when disabled coverage stays off entirely.
+    # coverage (see the .NOTES) and the parent merges it. When disabled coverage stays off entirely.
     $collectCoverage = [bool] $Configuration.CodeCoverage.Enabled.Value
 
     # The per-container and per-test plugin steps each worker records and the parent replays.
@@ -283,7 +283,7 @@ function Invoke-TestInParallel {
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
         # Keep the raw result object in the worker. At the end of a run Pester strips internal,
-        # non-public state - including each block's FrameworkData - off the result tree. The tape
+        # non-public state (including each block's FrameworkData) off the result tree. The tape
         # holds live references to those same Block/Test objects, so that cleanup would blank out
         # FrameworkData.CommandUsed (Describe/Context) before the parent replays the tape, and the
         # reporting plugins would then fail to render the "Describing"/"Context" headers in
@@ -318,7 +318,7 @@ function Invoke-TestInParallel {
         # wrapped in a hashtable when handed across the module boundary: passing the (still empty) list
         # positionally coerces it to a fixed-size array, which then throws on .Add during the run.
         # When coverage is on, also tell the Coverage plugin's End step to skip report generation and
-        # the output-file write in this worker - the parent merges every worker's raw hits and emits the
+        # the output-file write in this worker, the parent merges every worker's raw hits and emits the
         # single report/file.
         & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
         & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }

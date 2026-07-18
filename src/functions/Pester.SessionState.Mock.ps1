@@ -246,7 +246,7 @@ function Mock {
     # A global mock is not scoped to a single module, it is defined in the caller scope and the
     # engine-level hook routes calls from every module to it. ModuleName is therefore not the
     # destination of the mock. It is still used as a hint to resolve the command though (see the
-    # -Global path in Resolve-Command), so a module-private command can be found and mocked. So we
+    # -Global path in Resolve-Command), so a module-private command can be found and mocked. We
     # keep whatever ModuleName the caller passed and let Resolve-Command use it only for lookup.
     if (-not $isGlobalMock -and -not $PSBoundParameters.ContainsKey('ModuleName') -and $null -ne $SessionState.Module) {
         # use the caller module name as ModuleName, so calling the mock in InModuleScope uses the ModuleName as target module

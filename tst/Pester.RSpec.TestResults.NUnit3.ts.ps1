@@ -899,7 +899,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-NUnitReport -Format NUnit3
 
-            # the run totals reflect the failure instead of silently reporting Inconclusive/zero
+            # the run totals reflect the failure instead of reporting Inconclusive or zero
             $xmlResult.'test-run'.result | Verify-Equal 'Failed'
             $xmlResult.'test-run'.failed | Verify-Equal '1'
             $xmlResult.'test-run'.total | Verify-Equal '1'

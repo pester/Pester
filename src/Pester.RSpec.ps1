@@ -118,9 +118,8 @@ function Filter-Excluded ($Files, $ExcludePath) {
         return @($Files)
     }
 
-    # Directory exclusions are compared as path prefixes below. Match them
-    # case-insensitively on Windows, but case-sensitively on Linux and macOS
-    # where the filesystem is case-sensitive.
+    # Directory exclusions are compared as path prefixes below. Match them case-insensitively
+    # on Windows, and case-sensitively on Linux and macOS where the filesystem is case-sensitive.
     $pathComparison = if ('Windows' -eq (GetPesterOs)) {
         [System.StringComparison]::OrdinalIgnoreCase
     }
@@ -143,10 +142,10 @@ function Filter-Excluded ($Files, $ExcludePath) {
                 break
             }
 
-            # A directory exclusion (e.g. C:\proj\excluded) should exclude every file
-            # underneath it, see https://github.com/pester/Pester/issues/1575. Trailing
-            # separators are trimmed so both 'C:\proj\excluded' and 'C:\proj\excluded\'
-            # behave the same. Wildcard patterns are already handled by -like above.
+            # A directory exclusion (e.g. C:\proj\excluded) should exclude every file under it,
+            # see https://github.com/pester/Pester/issues/1575. Trailing separators are trimmed so
+            # 'C:\proj\excluded' and 'C:\proj\excluded\' behave the same. Wildcard patterns are
+            # already handled by -like above.
             if (-not [System.Management.Automation.WildcardPattern]::ContainsWildcardCharacters($exclusion)) {
                 $prefix = $exclusion.TrimEnd("\") + "\"
                 if ($p.StartsWith($prefix, $pathComparison)) {

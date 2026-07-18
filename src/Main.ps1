@@ -673,14 +673,14 @@ function Invoke-Pester {
             }
 
             # Resolve the BeforeContainer initialization once for the whole run. It is the same for
-            # every file (from the repo-root Pester.BeforeContainer.ps1 convention file) and
-            # runs before each container in both the parallel and sequential paths below.
+            # every file (from the repo-root Pester.BeforeContainer.ps1 convention file), and it runs
+            # before each container in both the parallel and sequential paths below.
             $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $PesterPreference
 
             # Engage the parallel path only when at least one file can actually run in parallel.
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
-            # so fall through to the sequential path - which fires the framework's own global
-            # plugin steps at the correct interleaved points.
+            # so fall through to the sequential path, which fires the framework's own global plugin
+            # steps at the correct interleaved points.
             $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
             if ($ranInParallel) {
                 $foldedContainers = [System.Collections.Generic.List[object]]@()
@@ -721,9 +721,9 @@ function Invoke-Pester {
                 $replaySegment = {
                     param($entries)
                     foreach ($entry in $entries) {
-                        # Host/debug output captured in the worker carries no Step - replay it to the
+                        # Host/debug output captured in the worker carries no Step, so replay it to the
                         # real host now, in tape order, so it lands interleaved with the per-test output
-                        # it belongs to instead of appearing up front, detached from its test (#2825).
+                        # it belongs to instead of up front, detached from its test (#2825).
                         if ($null -eq $entry.Step) {
                             $hostArgs = $entry.Host
                             Write-PesterHostMessage @hostArgs
@@ -904,7 +904,7 @@ function Invoke-Pester {
                 # Merge every batch's measured locations into one CommandCoverage list and hand it to
                 # the plugin data, so the Coverage plugin's End step (fired once below) produces the
                 # single merged report and writes the output file. A location counts as covered when
-                # any file hit it; hit counts are summed across files.
+                # any file hit it, and hit counts are summed across files.
                 if ($collectCoverageInParallel) {
                     $mergedCoverage = @(Merge-CoverageFromParallel -CommandCoverage $parallelCoverage.ToArray())
                     $pluginData['Coverage'] = @{

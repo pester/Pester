@@ -1,8 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 
 Describe 'Invoke-TestRegistryWithRetry' {
-    # This helper makes TestRegistry reads and writes resilient to the transient
-    # 'IOException: No more data is available' that happens on parallel Windows PowerShell
+    # This helper makes TestRegistry reads and writes survive the transient
+    # 'IOException: No more data is available' that shows up on parallel Windows PowerShell
     # runs (.NET Framework). The retry logic itself is OS-agnostic, so these tests run
     # everywhere. See https://github.com/pester/Pester/issues/2418
     It 'Returns the result of the script block on success' {

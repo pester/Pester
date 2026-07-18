@@ -224,8 +224,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         BootstrapFunctionName   = $mockName
         IsGlobal                = $false
         # The run that created this mock. A global mock installs a script-scope bootstrap alias in this
-        # run; if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to the
-        # currently executing run and defers to the original command when they differ (see Invoke-Mock).
+        # run, and if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to
+        # the currently executing run and defers to the original command when they differ (see Invoke-Mock).
         OwnerRunId              = [Pester.GlobalMockHook]::CurrentRunId
         BootstrapFunctionInfo   = $null
     }
@@ -887,7 +887,7 @@ function Resolve-Command {
 
     if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
         # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
-        # script-scope alias leaked into this run. Do not reuse it - unwrap to the original command so this
+        # script-scope alias leaked into this run. Do not reuse it, unwrap to the original command so this
         # run creates and owns its own hook, and the outer run's mock stays intact.
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope MockCore "Resolved a global mock bootstrap owned by another run; unwrapping to the original command $($command.Mock.Hook.OriginalCommand.Name) so this run gets its own hook."
@@ -1829,9 +1829,10 @@ function Get-DynamicParametersForCmdlet {
             $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
         }
         catch {
-            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
-            # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
-            # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
+            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that
+            # isn't available while the command is mocked. For example Set-PSRepository's -Location comes from
+            # the package provider and validates while resolving. Fall back to no dynamic parameters instead
+            # of failing. (#619)
             return
         }
     }
@@ -2208,11 +2209,11 @@ function Repair-OrderedType {
     )
 
     # ProxyCommand.GetParamBlock serializes [System.Collections.Specialized.OrderedDictionary]
-    # parameters using the [ordered] type accelerator on PowerShell 7+ (Windows PowerShell 5.1 emits
-    # the full type name). That accelerator is only valid as a cast on a hash literal ([ordered]@{}),
-    # not as a parameter type constraint, so [scriptblock]::Create would throw a ParseException before
-    # the mock is ever invoked. Replace the accelerator with the full type name for each affected
-    # parameter. https://github.com/pester/Pester/issues/2370
+    # parameters with the [ordered] type accelerator on PowerShell 7+ (Windows PowerShell 5.1 emits
+    # the full type name). The accelerator is only valid as a cast on a hash literal ([ordered]@{}),
+    # not as a parameter type constraint, so [scriptblock]::Create throws a ParseException before the
+    # mock ever runs. Replace the accelerator with the full type name for each affected parameter.
+    # https://github.com/pester/Pester/issues/2370
     if ($ParamBlock -notmatch '\[ordered(?:\[\])?\]') {
         # No ordered accelerator present (e.g. Windows PowerShell). Return original string.
         return $ParamBlock
@@ -2230,9 +2231,8 @@ function Repair-OrderedType {
         $fullType = if ($isArray) { '[System.Collections.Specialized.OrderedDictionary[]]' } else { '[System.Collections.Specialized.OrderedDictionary]' }
         $paramName = $param.Name
 
-        # Only rewrite the accelerator that is the type constraint for this specific parameter,
-        # i.e. the token immediately preceding ${ParameterName}. This avoids touching any legitimate
-        # [ordered]@{} cast that might appear elsewhere.
+        # Only rewrite the accelerator that is the type constraint for this parameter, the token
+        # right before ${ParameterName}. This leaves any legitimate [ordered]@{} cast elsewhere alone.
         $pattern = "$([regex]::Escape($accelerator))(?<ws>\s*)$([regex]::Escape('${' + $paramName + '}'))"
         $evaluator = {
             param($match)

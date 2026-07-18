@@ -282,12 +282,12 @@ Describe 'Module import' {
         }
 
         t "shares a single bootstrap across many files in parallel, anchored on the stable `$PSScriptRoot" {
-            # Compelling real-world case: instead of repeating an Import-Module + mock defaults setup
-            # in every test file, put it once in Pester.BeforeContainer.ps1. Because it is a real
-            # file, it always has a stable `$PSScriptRoot` to resolve the module relative to
-            # (unlike the removed Run.BeforeContainer scriptblock option, which only had the unstable
-            # `$pwd` - see #2838). Each parallel worker starts from a clean runspace and re-runs the
-            # bootstrap, so the shared helpers are available to every file without duplication.
+            # A real-world case: instead of repeating an Import-Module + mock defaults setup in every
+            # test file, put it once in Pester.BeforeContainer.ps1. Because it is a real file it always
+            # has a stable `$PSScriptRoot` to resolve the module relative to, unlike the removed
+            # Run.BeforeContainer scriptblock option, which only had the unstable `$pwd` (#2838). Each
+            # parallel worker starts from a clean runspace and re-runs the bootstrap, so the shared
+            # helpers are available to every file without duplication.
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
 
@@ -458,7 +458,7 @@ Describe 'S' {
             try {
                 # A shared code file to measure coverage on, plus two parallelizable test files that
                 # each exercise a different function in it. The parallel run must collect coverage
-                # from every worker and merge it into one report - matching a sequential run exactly.
+                # from every worker and merge it into one report, matching a sequential run exactly.
                 Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
 function Get-One { 1 }
 function Get-Two { 2 }
@@ -490,7 +490,7 @@ Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
                 $parallel.Run.Parallel = $true
                 $par = Invoke-Pester -Configuration $parallel
 
-                # Two of the four functions are covered; parallel must match sequential exactly.
+                # Two of the four functions are covered, parallel must match sequential exactly.
                 $par.PassedCount | Verify-Equal 2
                 $par.CodeCoverage | Verify-NotNull
                 $par.CodeCoverage.CommandsAnalyzedCount | Verify-Equal $seq.CodeCoverage.CommandsAnalyzedCount
@@ -505,7 +505,7 @@ Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
             try {
-                # A,B run in parallel; C opts out and runs in the parent. Coverage from the in-parent
+                # A and B run in parallel, C opts out and runs in the parent. Coverage from the in-parent
                 # (non-parallel) file must be merged with the worker coverage.
                 Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
 function Get-One { 1 }
@@ -650,9 +650,10 @@ Describe 'OuterTwo' {
 
     b "Run.Parallel debug output" {
         t "captures debug output and replays it interleaved with each file's tests" {
-            # Each worker runs silently and records its screen and debug output into the shared tape;
-            # the parent replays that tape in order. So debug output must come back interleaved with the
-            # per-test output of the file that produced it, not dumped up front detached from it (#2825).
+            # Each worker writes nothing to the host directly and records its screen and debug output into
+            # the shared tape, and the parent replays that tape in order. So debug output must come back
+            # interleaved with the per-test output of the file that produced it, not dumped up front
+            # detached from it (#2825).
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
             try {
@@ -697,8 +698,8 @@ Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
                         -replace '\d+(.\d+)?m?s', '<time>'
                     $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
 
-                    # Each file's discovery is immediately followed by that same file's run - A fully, then
-                    # B fully - instead of both discoveries being dumped up front, detached from the tests.
+                    # Each file's discovery is immediately followed by that same file's run (A fully, then
+                    # B fully), instead of both discoveries being dumped up front, detached from the tests.
                     $expected = @'
 Pester v<version>
 

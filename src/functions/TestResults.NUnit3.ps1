@@ -28,7 +28,7 @@ function Write-NUnit3TestRunAttributes {
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
     $XmlWriter.WriteAttributeString('fullname', $Result.Configuration.TestResult.TestSuiteName.Value) # required attr. in schema, but not in docs or nunit-console output...
     # Containers that failed during discovery have no tests, so count each as one failed item
-    # to keep the run totals from silently reporting zero. (#2664)
+    # and the run totals do not report zero. (#2664)
     $discoveryFailedCount = Get-DiscoveryFailedContainerCount -Result $Result
     $testcasecount = ($Result.TotalCount - $Result.NotRunCount) + $discoveryFailedCount
     $XmlWriter.WriteAttributeString('testcasecount', $testcasecount) # all testcases in run (before filtering). would've been totalcount if we listed shouldrun=false
@@ -271,7 +271,7 @@ function Get-NUnit3TestSuiteInfo {
         'Ignored'
     }
     elseif ($TestSuite -isnot [Pester.Run] -and (-not $TestSuite.ShouldRun) -and $TestSuite.Result -eq 'Failed') {
-        # Discovery failed - not runnable code
+        # Discovery failed, so the code is not runnable
         'NotRunnable'
     }
     else {
@@ -285,7 +285,7 @@ function Get-NUnit3TestSuiteInfo {
     }
 
     # A container that failed during discovery has no tests, so count it as one failed item
-    # to keep the suite totals from silently reporting zero. (#2664)
+    # and the suite totals do not report zero. (#2664)
     $isDiscoveryFailure = $TestSuite -is [Pester.Container] -and (Test-ContainerFailedDiscovery -Container $TestSuite)
     $testcasecount = if ($isDiscoveryFailure) { 1 } else { ($TestSuite.TotalCount - $TestSuite.NotRunCount) }
     $failedCount = if ($isDiscoveryFailure) { 1 } else { $TestSuite.FailedCount }
@@ -343,8 +343,8 @@ function Write-NUnit3TestSuiteAttributes {
 }
 
 function Get-NUnit3Result ($InputObject) {
-    # A discovery failure has no tests (TotalCount -eq NotRunCount), so check the failed
-    # state first, otherwise such a failure would be reported as Inconclusive. (#2664)
+    # A discovery failure has no tests (TotalCount -eq NotRunCount), so check the failed state
+    # first, otherwise it would be reported as Inconclusive. (#2664)
     if ($InputObject.Result -eq 'Failed' -or $InputObject.FailedCount -gt 0) {
         # also checking result to cover setup/teardown and discovery errors
         'Failed'

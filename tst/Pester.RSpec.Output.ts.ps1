@@ -273,7 +273,7 @@ i -PassThru:$PassThru {
             $null, $run = $output -join "`n" -split 'Running tests.'
             $run | Write-Host
 
-            # Detailed shows per-test [+] lines; none of them should carry the "(N tests)" suffix
+            # Detailed shows per-test [+] lines, none of them should carry the "(N tests)" suffix
             $countSuffix = $output | Select-String -Pattern '\(\d+ tests?\)\s*$'
             @($countSuffix).Count | Verify-Equal 0
         }

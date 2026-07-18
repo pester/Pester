@@ -576,7 +576,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
 
-            # the report totals reflect the failure instead of silently reporting zero
+            # the report totals reflect the failure instead of reporting zero
             $xmlResult.'test-results'.errors | Verify-Equal '1'
             $xmlResult.'test-results'.'test-suite'.result | Verify-Equal 'Failure'
             $xmlResult.'test-results'.'test-suite'.success | Verify-Equal 'False'

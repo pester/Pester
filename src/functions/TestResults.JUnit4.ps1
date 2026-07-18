@@ -46,8 +46,8 @@ function Write-JUnitTestSuiteElements {
     Write-JUnitTestSuiteAttributes -Action $Container -XmlWriter $XmlWriter -Package $container.Name -Id $Id
 
     if (Test-ContainerFailedDiscovery -Container $Container) {
-        # The container failed during discovery and has no tests to carry the error, so write a
-        # synthetic testcase holding the discovery error, since JUnit has no suite-level error. (#2664)
+        # The container failed during discovery and has no tests to carry the error, and JUnit has
+        # no suite-level error, so write a synthetic testcase that holds the discovery error. (#2664)
         Write-JUnitDiscoveryFailureElement -Container $Container -XmlWriter $XmlWriter
     }
 

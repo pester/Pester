@@ -293,7 +293,7 @@ i -PassThru:$PassThru {
 
             $xmlResult = $r | ConvertTo-JUnitReport
 
-            # the report totals reflect the failure instead of silently reporting zero
+            # the report totals reflect the failure instead of reporting zero
             $xmlResult.'testsuites'.errors | Verify-Equal '1'
             $xmlResult.'testsuites'.tests | Verify-Equal '1'
 

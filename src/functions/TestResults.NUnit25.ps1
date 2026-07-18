@@ -100,8 +100,8 @@ function Write-NUnitTestSuiteElements {
     Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
 
     if ($Node -is [Pester.Container] -and (Test-ContainerFailedDiscovery -Container $Node)) {
-        # The container failed during discovery and has no tests to carry the error, so surface
-        # the discovery error on the suite itself. The schema requires failure before results. (#2664)
+        # The container failed during discovery and has no tests to carry the error, so surface the
+        # discovery error on the suite itself. The schema wants the failure before any results. (#2664)
         $discoveryError = Get-ErrorForXmlReport -TestResult $Node
         $XmlWriter.WriteStartElement('failure')
         $XmlWriter.WriteElementString('message', $discoveryError.FailureMessage)

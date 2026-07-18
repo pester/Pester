@@ -132,7 +132,7 @@
         param($Context)
 
         # Parallel workers collect the raw breakpoint hits but must not produce the report or write
-        # the output file themselves - the parent merges every worker's CommandCoverage and generates
+        # the output file themselves, the parent merges every worker's CommandCoverage and generates
         # the report once. The flag is set on the (per-runspace) module scope only inside a worker, so
         # a normal run and the parent's own End step never see it. See Invoke-TestInParallel.
         if (defined_ CodeCoverageSkipReport) {
@@ -241,9 +241,9 @@ function Resolve-CodeCoverageConfiguration {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
     }
 
-    # Resolve the output path to an absolute path now, while the current location still points to
+    # Resolve the output path to an absolute path now, while the current location still points at
     # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
-    # test can change the current location (e.g. Set-Location), so a relative path would otherwise be
-    # resolved against the wrong directory or a directory that no longer exists (#2641).
+    # test can change the current location (e.g. Set-Location), so a relative path would resolve
+    # against the wrong directory, or one that no longer exists (#2641).
     $PesterPreference.CodeCoverage.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
 }

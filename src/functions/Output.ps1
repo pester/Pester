@@ -127,13 +127,13 @@ function Write-PesterHostMessage {
     process {
         # In a parallel worker the whole run is silenced (Output.Verbosity = 'None') and its output is
         # captured into the shared event tape (see Invoke-TestInParallel) so the parent can replay it in
-        # order. Instead of writing to the host right away - which in a ForEach-Object -Parallel runspace
-        # surfaces live and detached from the test that produced it (#2825) - append the message to the
-        # tape. The worker runs one file synchronously, so append order already is the correct order, and
-        # host/debug entries land interleaved with the per-test steps the recorder captured around them.
-        # Read the tape via GetValue (not the 'defined' helper): 'defined' returns the value through a
-        # function output, which enumerates a collection and would hand back its first element instead of
-        # the list itself. GetValue returns the list object and tolerates the variable being unset ($null).
+        # order. In a ForEach-Object -Parallel runspace writing to the host right away surfaces live and
+        # detached from the test that produced it (#2825), so instead append the message to the tape. The
+        # worker runs one file synchronously, so append order is already the correct order, and host/debug
+        # entries land interleaved with the per-test steps the recorder captured around them.
+        # Read the tape via GetValue, not the 'defined' helper: 'defined' returns the value through a
+        # function output, which enumerates a collection and hands back its first element instead of the
+        # list itself. GetValue returns the list object and tolerates the variable being unset ($null).
         $parallelOutputTape = $ExecutionContext.SessionState.PSVariable.GetValue('parallelOutputTape')
         if ($null -ne $parallelOutputTape) {
             $captured = @{}
@@ -1151,11 +1151,11 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
         throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIDebugOutput' -SupportedValues $supportedCIDebugOutput -Value $PesterPreference.Output.CIDebugOutput.Value)
     }
     elseif ((-not $PesterPreference.Output.Verbosity.IsModified) -and (Test-CIDebugOutputEnabled -PesterPreference $PesterPreference)) {
-        # A CI system has its debug switch enabled and the user did not pick a verbosity explicitly.
-        # Raise the verbosity to Diagnostic so the run shows detailed output and Pester's debug messages,
-        # matching how e.g. Azure DevOps' System.Debug makes the rest of the pipeline verbose.
-        # The user's own Write-Verbose / Write-Debug in tests is surfaced separately during the run,
-        # see Invoke-ContainerRun in Pester.Runtime.ps1.
+        # A CI system has its debug switch enabled and the user did not set a verbosity. Raise it to
+        # Diagnostic so the run shows detailed output and Pester's debug messages, the same way e.g.
+        # Azure DevOps' System.Debug makes the rest of the pipeline verbose. The user's own
+        # Write-Verbose and Write-Debug in tests is surfaced separately during the run, see
+        # Invoke-ContainerRun in Pester.Runtime.ps1.
         $PesterPreference.Output.Verbosity = 'Diagnostic'
     }
 
