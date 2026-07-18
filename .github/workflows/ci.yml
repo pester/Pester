@@ -118,7 +118,14 @@ jobs:
           - { name: 'PS5.1 - Windows latest', id: ps51-windows-latest, os: windows-latest, psexe: powershell }
           - { name: 'PS5.1 - Windows 2022',   id: ps51-windows-2022,   os: windows-2022,   psexe: powershell }
     steps:
-      # No checkout — we test the published build, exactly like Azure (checkout: none).
+      # Shallow checkout only so dorny/test-reporter (below) has git context — it
+      # shells out to git and errors without a repo. The artifact overlays this,
+      # so the tests still run against the published build, like Azure.
+      - name: Checkout (git context for test-reporter)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
       - name: Download build output
         uses: actions/download-artifact@v4
         with:
