@@ -3036,6 +3036,48 @@ Describe 'Mocking command with OrderedDictionary-parameters' {
     }
 }
 
+Describe 'Mocking command with an Encoding parameter' {
+    # https://github.com/pester/Pester/issues/1877
+    # On PowerShell 6+ Out-File (and Export-Csv, Import-Csv, Export-Clixml, ...) declare -Encoding
+    # as [System.Text.Encoding] and rely on an internal transformation attribute to convert friendly
+    # names such as 'utf8NoBOM' into a System.Text.Encoding value. ProxyCommand-generation cannot
+    # reproduce that internal attribute, so mocking such a command and calling it with a friendly
+    # encoding name used to throw a ParameterBindingArgumentTransformationException. Repair-EncodingParameters
+    # relaxes the parameter type to [object] so the mock accepts any value the real command accepts.
+
+    # Self-gating: Windows PowerShell declares -Encoding as an enum, so the bug and fix only apply
+    # where Out-File uses [System.Text.Encoding].
+    if ((Get-Command Out-File).Parameters['Encoding'].ParameterType -eq [System.Text.Encoding]) {
+
+        It 'does not throw and returns the mock when called with a friendly encoding name' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'records the invocation with the friendly encoding name available to the parameter filter' {
+            Mock Out-File { 'mocked' }
+            'data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM
+            Should -Invoke Out-File -Times 1 -Exactly -ParameterFilter { $Encoding -eq 'utf8NoBOM' }
+        }
+
+        It 'still routes to the mock when called with a System.Text.Encoding object' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding ([System.Text.Encoding]::UTF8)) | Should -Be 'mocked'
+            Should -Invoke Out-File -Times 1 -Exactly
+        }
+
+        It 'applies to other cmdlets that use the encoding transformation (Export-Csv)' {
+            Mock Export-Csv { 'mocked' }
+            ([pscustomobject]@{ A = 1 } | Export-Csv -Path 'TestDrive:/f.csv' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'still supports the -RemoveParameterType Encoding workaround' {
+            Mock Out-File { 'mocked' } -RemoveParameterType Encoding
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+    }
+}
+
 Describe "Running Mock with ModuleName in test scope" {
     BeforeAll {
         Get-Module "test" -ErrorAction SilentlyContinue | Remove-Module
