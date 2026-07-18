@@ -1,4 +1,4 @@
-function Count-Scopes {
+function Get-ScopeCount {
     param(
         [Parameter(Mandatory = $true)]
         $ScriptBlock)
@@ -55,7 +55,7 @@ function Write-ScriptBlockInvocationHint {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope SessionState -LazyMessage {
             $scope = Get-ScriptBlockHint $ScriptBlock
-            $count = Count-Scopes -ScriptBlock $ScriptBlock
+            $count = Get-ScopeCount -ScriptBlock $ScriptBlock
             "Invoking scriptblock from location '$Hint' in state '$scope', $count scopes deep:"
             "{"
             $ScriptBlock.ToString().Trim()
