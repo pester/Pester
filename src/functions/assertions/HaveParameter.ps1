@@ -3,6 +3,7 @@
     [String] $ParameterName,
     $Type,
     [String] $DefaultValue,
+    [ValidateSet('String', 'InterpolatedString', 'Number', 'Variable', 'Expression', 'ScriptBlock', 'Array', 'Hashtable')]
     [String] $DefaultValueType,
     [Switch] $Mandatory,
     [String] $InParameterSet,
@@ -103,7 +104,8 @@
                 # The AST node type of the default value expression, e.g. StringConstantExpressionAst for
                 # a literal string like '(Get-Date)', or ParenExpressionAst for an expression like (Get-Date).
                 # This describes how the default value is written, which -DefaultValue (a string comparison)
-                # cannot distinguish.
+                # cannot distinguish. The -DefaultValueType assertion maps this raw AST type to a friendly
+                # kind (e.g. String, Expression) so callers don't need to know PowerShell AST type names.
                 $paramInfo.DefaultValueType = $parameter.DefaultValue.GetType().Name
             }
 
@@ -342,29 +344,55 @@
                 throw "Metadata for parameter '$ParameterName' were not found."
             }
 
-            $filters += "the default value type$(if ($Negate) {" not"}) to be $(Format-Nicely $DefaultValueType)"
+            # -DefaultValueType asserts the *kind* of the parameter's default value, so you can tell an
+            # expression default like (Get-Date) apart from a literal string '(Get-Date)' that -DefaultValue
+            # (a plain string comparison) cannot distinguish. Users specify a friendly kind (e.g. Expression),
+            # not the underlying PowerShell AST node type (e.g. ParenExpressionAst) which is a parser
+            # implementation detail. This maps each friendly kind to the AST node type(s) that represent it.
+            $defaultValueTypeMap = [ordered]@{
+                String             = @('StringConstantExpressionAst')
+                InterpolatedString = @('ExpandableStringExpressionAst')
+                Number             = @('ConstantExpressionAst')
+                Variable           = @('VariableExpressionAst')
+                Expression         = @('ParenExpressionAst')
+                ScriptBlock        = @('ScriptBlockExpressionAst')
+                Array              = @('ArrayExpressionAst', 'ArrayLiteralAst')
+                Hashtable          = @('HashtableAst')
+            }
 
-            # DefaultValueType is the AST node type of the parameter's default value expression, e.g.
-            # StringConstantExpressionAst for a literal string default like '(Get-Date)', or
-            # ParenExpressionAst for an expression default like (Get-Date). This distinguishes how the
-            # default value is written, which the string-based -DefaultValue comparison cannot do.
-            # We match with or without the trailing 'Ast' so both 'ParenExpression' and 'ParenExpressionAst'
-            # are accepted. Comparison is case-insensitive (default for -eq on strings).
-            $actualDefaultValueType = $parameterMetadata.DefaultValueType
-            $normalizedExpected = $DefaultValueType -replace 'Ast$', ''
-            $normalizedActual = if ($null -eq $actualDefaultValueType) { $null } else { $actualDefaultValueType -replace 'Ast$', '' }
-            $testDefaultValueType = ($null -ne $actualDefaultValueType) -and ($normalizedActual -eq $normalizedExpected)
+            # Canonical casing of the expected kind for the message and lookup (ValidateSet allows any casing).
+            $expectedKind = @($defaultValueTypeMap.Keys | & $SafeCommands['Where-Object'] { $_ -eq $DefaultValueType })[0]
+            $filters += "the default value type$(if ($Negate) {" not"}) to be $(Format-Nicely $expectedKind)"
+
+            # The raw AST node type name of the actual default, or $null when the parameter has no default.
+            $actualAst = $parameterMetadata.DefaultValueType
+            # Friendly kind of the actual default for the message. Fall back to the AST type name (without the
+            # trailing 'Ast') for the rare default value kinds we don't have a friendly name for.
+            $actualKind = $null
+            if ($null -ne $actualAst) {
+                foreach ($key in $defaultValueTypeMap.Keys) {
+                    if ($defaultValueTypeMap[$key] -contains $actualAst) {
+                        $actualKind = $key
+                        break
+                    }
+                }
+                if ($null -eq $actualKind) {
+                    $actualKind = $actualAst -replace 'Ast$', ''
+                }
+            }
+
+            $testDefaultValueType = ($null -ne $actualAst) -and ($defaultValueTypeMap[$expectedKind] -contains $actualAst)
 
             if (-not $Negate -and -not $testDefaultValueType) {
-                if ($null -eq $actualDefaultValueType) {
+                if ($null -eq $actualAst) {
                     $buts += 'the parameter had no default value'
                 }
                 else {
-                    $buts += "the default value type was $(Format-Nicely $actualDefaultValueType)"
+                    $buts += "the default value type was $(Format-Nicely $actualKind)"
                 }
             }
             elseif ($Negate -and $testDefaultValueType) {
-                $buts += "the default value type was $(Format-Nicely $actualDefaultValueType)"
+                $buts += "the default value type was $(Format-Nicely $actualKind)"
             }
         }
 

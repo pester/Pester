@@ -16,13 +16,13 @@
     The default value of the parameter to check. E.g. "https://example.com"
 
     .PARAMETER DefaultValueType
-    The kind of the parameter's default value, i.e. the AST node type of the default value expression.
-    This distinguishes how the default is written, which -DefaultValue (a string comparison) cannot.
-    For example, `$Path = (Get-Date)` is a `ParenExpressionAst` while `$Path = '(Get-Date)'` is a
-    `StringConstantExpressionAst`. Common values: StringConstantExpressionAst (literal string),
-    ExpandableStringExpressionAst (interpolated string), ConstantExpressionAst (numeric literal),
-    VariableExpressionAst (e.g. $true, $false, $null, $var), ParenExpressionAst (e.g. (Get-Date)),
-    ScriptBlockExpressionAst (e.g. { ... }). The trailing `Ast` is optional and matching is case-insensitive.
+    The kind of the parameter's default value. This distinguishes how the default is written, which
+    -DefaultValue (a string comparison) cannot: for example `$Path = (Get-Date)` is an `Expression`
+    while `$Path = '(Get-Date)'` is a `String`. Valid values:
+    `String` (literal string, e.g. 'abc' or "abc"), `InterpolatedString` (e.g. "$x/bar"),
+    `Number` (numeric literal, e.g. 1), `Variable` (e.g. $true, $false, $null, $var),
+    `Expression` (e.g. (Get-Date)), `ScriptBlock` (e.g. { Get-Date }), `Array` (e.g. @(1, 2) or 1, 2),
+    `Hashtable` (e.g. @{}). Matching is case-insensitive.
 
     .PARAMETER Mandatory
     Whether the parameter is mandatory or not.
@@ -108,6 +108,7 @@
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,
+        [ValidateSet('String', 'InterpolatedString', 'Number', 'Variable', 'Expression', 'ScriptBlock', 'Array', 'Hashtable')]
         [String] $DefaultValueType,
         [Switch] $Mandatory,
         [String] $InParameterSet,
