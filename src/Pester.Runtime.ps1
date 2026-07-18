@@ -26,10 +26,6 @@ else {
 # 'New-EachTestTeardown'
 # 'New-OneTimeTestSetup'
 # 'New-OneTimeTestTeardown'
-# 'New-EachBlockSetup'
-# 'New-EachBlockTeardown'
-# 'New-OneTimeBlockSetup'
-# 'New-OneTimeBlockTeardown'
 # 'Invoke-Test',
 # 'Find-Test',
 # 'Invoke-PluginStep'
@@ -390,7 +386,7 @@ function Invoke-Block ($previousBlock) {
                         -ScriptBlock $sb `
                         -OuterSetup @(
                         $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                                @($block.OneTimeTestSetup)
                             })
                         $(if (-not $Block.IsRoot) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
@@ -427,7 +423,7 @@ function Invoke-Block ($previousBlock) {
                             })
                     ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
+                            @($block.OneTimeTestTeardown)
                         } ) `
                         -Context $context `
                         -MoveBetweenScopes `
@@ -839,41 +835,6 @@ function New-OneTimeTestTeardown {
             throw "AfterAll is already defined in this block. Each block can only have one AfterAll. Combine the code into a single AfterAll block."
         }
         $state.CurrentBlock.OneTimeTestTeardown = $ScriptBlock
-    }
-}
-
-# endpoint for adding a setup for each block in the current block
-function New-EachBlockSetup {
-    param (
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-    if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockSetup = $ScriptBlock
-    }
-}
-
-# endpoint for adding a teardown for each block in the current block
-function New-EachBlockTeardown {
-    param (
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-    if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockTeardown = $ScriptBlock
-    }
-}
-
-# endpoint for adding a setup for all blocks in the current block
-# endpoint for adding a teardown for all clocks in the current block
-function New-OneTimeBlockTeardown {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-    if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockTeardown = $ScriptBlock
     }
 }
 
