@@ -231,6 +231,10 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: 'Auto'
 
+        ShowTags: Append the tags of each Describe, Context and It to its console output line, e.g. 'Describing Get-Planet [Tags: Slow, Unix]'.
+        Type: bool
+        Default value: $false
+
     TestDrive:
         Enabled: Enable TestDrive.
         Type: bool
