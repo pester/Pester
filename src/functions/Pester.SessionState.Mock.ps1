@@ -290,7 +290,6 @@ function Mock {
         Write-PesterDebugMessage -Scope Mock -Message "Setting up $(if ($ParameterFilter) {"parametrized"} else {"default"}) mock for$(if ($ModuleName) {" $ModuleName -"}) $CommandName."
     }
 
-
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $null = Set-ScriptBlockHint -Hint "Unbound MockWith - Captured in Mock" -ScriptBlock $MockWith
         $null = if ($ParameterFilter) { Set-ScriptBlockHint -Hint "Unbound ParameterFilter - Captured in Mock" -ScriptBlock $ParameterFilter }
@@ -467,7 +466,6 @@ function Get-VerifiableBehaviors {
     $behaviors
 }
 
-
 function Get-AssertMockTable {
     [CmdletBinding()]
     param(
@@ -495,7 +493,6 @@ function Get-AssertMockTable {
     if ($inTest -and 0 -eq $scope) {
         # we are in test and we care only about the test scope,
         # this is easy, we just look for call history of the command
-
 
         $history = if ($Frame.Frame.PluginData.Mock.CallHistory.ContainsKey($Key)) {
             # do not enumerate so we get the same thing back
@@ -545,7 +542,6 @@ function Get-AssertMockTable {
         }
     }
 
-
     # this is harder, we have scope and we are in a block, we need to look
     # in this block and any child for mock calls
 
@@ -578,7 +574,6 @@ function Get-AssertMockTable {
         $block = $i
     }
 
-
     # we have our block so we need to collect all the history for the given mock
 
     $history = [System.Collections.Generic.List[Object]]@()
@@ -592,7 +587,6 @@ function Get-AssertMockTable {
         $mockData = $b.pluginData.Mock
 
         $callHistory = $mockData.CallHistory
-
 
         $v = if ($callHistory.ContainsKey($key)) {
             $callHistory.$key
@@ -611,7 +605,6 @@ function Get-AssertMockTable {
             "$key" = [Collections.Generic.List[object]]@()
         }
     }
-
 
     return @{
         "$key" = [Collections.Generic.List[object]]@($history)
@@ -1286,17 +1279,4 @@ function Invoke-Mock {
 
     Invoke-MockInternal @PSBoundParameters -Behaviors $behaviors -CallHistory $callHistory
 }
-
-function Assert-RunInProgress {
-    param(
-        [Parameter(Mandatory)]
-        [String] $CommandName
-    )
-
-    if (Is-Discovery) {
-        throw "$CommandName can run only during Run, but not during Discovery."
-    }
-}
-
-
 

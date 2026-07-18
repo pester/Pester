@@ -1,21 +1,4 @@
-﻿
 
-function Add-MockBehavior {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Behaviors,
-        [Parameter(Mandatory)]
-        $Behavior
-    )
-
-    if ($Behavior.IsDefault) {
-        $Behaviors.Default.Add($Behavior)
-    }
-    else {
-        $Behaviors.Parametrized.Add($Behavior)
-    }
-}
 
 function New-MockBehavior {
     [CmdletBinding()]
@@ -163,7 +146,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
     `$MyInvocation.MyCommand.Mock.PSCmdlet = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
 
-
     `if (`$null -ne `$MyInvocation.MyCommand.Mock.PSCmdlet)
     {
         `$MyInvocation.MyCommand.Mock.SessionState = `$MyInvocation.MyCommand.Mock.PSCmdlet.SessionState
@@ -266,7 +248,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         # and so ______param from the parent scope was inherited
 
         ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME
-
 
         # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
         # but that breaks mocking inside of Pester itself, because the mock is defined in this function and dies with it
@@ -904,7 +885,6 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
-
     if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
         # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
         # script-scope alias leaked into this run. Do not reuse it, unwrap to the original command so this
@@ -1085,52 +1065,6 @@ function Invoke-MockInternal {
     }
 }
 
-function FindMock {
-    param (
-        [Parameter(Mandatory)]
-        [String] $CommandName,
-        $ModuleName,
-        [Parameter(Mandatory)]
-        [HashTable] $MockTable
-    )
-
-    $result = @{
-        Mock        = $null
-        MockFound   = $false
-        CommandName = $CommandName
-        ModuleName  = $ModuleName
-    }
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Looking for mock $($ModuleName)||$CommandName."
-    }
-    $MockTable["$($ModuleName)||$CommandName"]
-
-    if ($null -ne $mock) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Found mock $(if (-not [string]::IsNullOrEmpty($ModuleName)) {"with module name $($ModuleName)"})||$CommandName."
-        }
-        $result.MockFound = $true
-    }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "No mock found, re-trying without module name ||$CommandName."
-        }
-        $mock = $MockTable["||$CommandName"]
-        $result.ModuleName = $null
-        if ($null -ne $mock) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found mock without module name, setting the target module to empty."
-            }
-            $result.MockFound = $true
-        }
-        else {
-            $result.MockFound = $false
-        }
-    }
-
-    return $result
-}
-
 function FindMatchingBehavior {
     param (
         [Parameter(Mandatory)]
@@ -1195,22 +1129,6 @@ function FindMatchingBehavior {
     }
     return $null, $failedFilterInvocations
 }
-
-function LastThat {
-    param (
-        $Collection,
-        $Predicate
-    )
-
-    $count = $Collection.Count
-    for ($i = $count; $i -gt 0; $i--) {
-        $item = $Collection[$i]
-        if (&$Predicate $Item) {
-            return $Item
-        }
-    }
-}
-
 
 function ExecuteBehavior {
     param (
@@ -1903,29 +1821,6 @@ function Get-DynamicParametersForMockedFunction {
     }
 }
 
-function Test-IsClosure {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock)
-    if ($null -eq $sessionStateInternal) {
-        return $false
-    }
-
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
-
-    return (
-        $null -ne $module -and
-        $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
-        $null -ne ($matches[1] -as [guid])
-    )
-}
-
 function Remove-MockFunctionsAndAliases ($SessionState) {
     # when a test is terminated (e.g. by stopping at a breakpoint and then stopping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
@@ -2098,33 +1993,6 @@ function Repair-EncodingParameters {
     $repairedMetadata
 }
 
-function Reset-ConflictingParameters {
-    [CmdletBinding()]
-    [OutputType([hashtable])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [hashtable]
-        $BoundParameters
-    )
-
-    $parameters = $BoundParameters.Clone()
-    # unnecessary function call that could be replaced by variable access, but is needed for tests
-    $names = Get-ConflictingParameterNames
-
-    foreach ($param in $names) {
-        $fixedName = "_$param"
-
-        if (-not $parameters.ContainsKey($fixedName)) {
-            continue
-        }
-
-        $parameters[$param] = $parameters[$fixedName]
-        $null = $parameters.Remove($fixedName)
-    }
-
-    $parameters
-}
-
 $script:ConflictingParameterNames = @(
     '?'
     'ConsoleFileName'
@@ -2169,50 +2037,6 @@ function Get-ScriptBlockAST {
     }
 
     return $ast
-}
-
-# TODO: Remove?
-function New-BlockWithoutParameterAliases {
-    [OutputType([scriptblock])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [System.Management.Automation.CommandMetadata]
-        $Metadata,
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [scriptblock]
-        $Block
-    )
-    try {
-        $params = $Metadata.Parameters.Values
-        $ast = Get-ScriptBlockAST $Block
-        $blockText = $ast.Extent.Text
-        $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst] }, $true))
-        [array]::Reverse($variables)
-
-        foreach ($var in $variables) {
-            $varName = $var.VariablePath.UserPath
-            $length = $varName.Length
-
-            foreach ($param in $params) {
-                if ($param.Aliases -contains $varName) {
-                    $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
-
-                    $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
-
-                    break # It is safe to stop checking for further params here, since aliases cannot be shared by parameters
-                }
-            }
-        }
-
-        $Block = [scriptblock]::Create($blockText)
-
-        $Block
-    }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
 }
 
 function Repair-EnumParameters {

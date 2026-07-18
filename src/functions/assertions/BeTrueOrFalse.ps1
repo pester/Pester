@@ -1,4 +1,4 @@
-﻿function Should-BeTrueAssertion($ActualValue, [switch] $Negate, [string] $Because) {
+function Should-BeTrueAssertion($ActualValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that the value is true, or truthy.
@@ -86,7 +86,6 @@ function Should-BeFalseAssertion($ActualValue, [switch] $Negate, $Because) {
     }
 }
 
-
 & $script:SafeCommands['Add-ShouldOperator'] -Name BeTrue `
     -InternalName Should-BeTrueAssertion `
     -Test         ${function:Should-BeTrueAssertion}
@@ -102,11 +101,3 @@ Set-ShouldOperatorHelpMessage -OperatorName BeFalse `
     -HelpMessage "Asserts that the value is false, or falsy."
 
 # to keep tests happy
-function ShouldBeTrueFailureMessage($ActualValue) {
-}
-function NotShouldBeTrueFailureMessage($ActualValue) {
-}
-function ShouldBeFalseFailureMessage($ActualValue) {
-}
-function NotShouldBeFalseFailureMessage($ActualValue) {
-}
