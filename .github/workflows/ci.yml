@@ -37,6 +37,8 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: write   # dorny/test-reporter creates a check run with the test report
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
@@ -97,6 +99,10 @@ jobs:
     needs: build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
+    # NUnit3 so dorny/test-reporter (below) can parse the result file. test.ps1
+    # reads this; unset elsewhere (e.g. Azure) keeps the default NUnit 2.5.
+    env:
+      PESTER_TESTRESULT_FORMAT: NUnit3
     strategy:
       fail-fast: false
       matrix:
@@ -194,6 +200,19 @@ jobs:
           path: |
             testResults.xml
             coverage.xml
+
+      # Render the NUnit3 results as a check run (Azure test-tab parity).
+      # fail-on-error: false so a parse hiccup — or a fork PR, where the token is
+      # read-only and can't create checks — doesn't fail the leg.
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: 'Tests - ${{ matrix.name }}'
+          path: testResults.xml
+          reporter: dotnet-nunit
+          fail-on-error: false
+          use-actions-summary: 'true'
 
   # Single gate after the matrix so branch protection / auto-merge only needs to
   # require "Done" instead of listing all 8 legs. Mirrors Azure's Done stage.

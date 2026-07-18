@@ -185,6 +185,13 @@ if ($CI) {
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
+
+    # Let CI pick the test-result format. Azure Pipelines consumes the default
+    # NUnit 2.5 schema; the GitHub Actions pilot sets NUnit3 so dorny/test-reporter
+    # can render it. Unset -> unchanged for every existing caller.
+    if ($env:PESTER_TESTRESULT_FORMAT) {
+        $configuration.TestResult.OutputFormat = $env:PESTER_TESTRESULT_FORMAT
+    }
 }
 
 $r = Invoke-Pester -Configuration $configuration
