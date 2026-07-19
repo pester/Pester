@@ -71,6 +71,9 @@ function Should {
     .LINK
     https://pester.dev/docs/assertions
     #>
+    # $lineNumber, $lineText, $file and $addErrorCallback are consumed by Test-AssertionResult
+    # through dynamic scoping, which the analyzer cannot see.
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
     [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]
@@ -78,7 +81,9 @@ function Should {
     )
 
     dynamicparam {
-        Get-AssertionDynamicParams
+        # Inlined Get-AssertionDynamicParams (whose whole body is `return $script:AssertionDynamicParams`)
+        # to save a function-call frame in the dynamicparam block, which PowerShell evaluates on every Should call.
+        $script:AssertionDynamicParams
     }
 
     begin {
@@ -90,9 +95,12 @@ function Should {
     }
 
     end {
-        $lineNumber = $MyInvocation.ScriptLineNumber
-        $lineText = $MyInvocation.Line.TrimEnd([System.Environment]::NewLine)
-        $file = $MyInvocation.ScriptName
+        # [int]/[string] typed to mirror the parameter types of Invoke-Assertion, whose body is inlined
+        # below; notably a $null ScriptName becomes '' exactly like binding $null to a [string] parameter,
+        # which keeps the "$null -eq $currentFile" fallback in Test-AssertionResult unreachable, as before.
+        [int] $lineNumber = $MyInvocation.ScriptLineNumber
+        [string] $lineText = $MyInvocation.Line.TrimEnd([System.Environment]::NewLine)
+        [string] $file = $MyInvocation.ScriptName
 
         $negate = $false
         if ($PSBoundParameters.ContainsKey('Not')) {
@@ -103,9 +111,15 @@ function Should {
         $null = $PSBoundParameters.Remove($PSCmdlet.ParameterSetName)
         $null = $PSBoundParameters.Remove('Not')
 
-        $entry = Get-AssertionOperatorEntry -Name $PSCmdlet.ParameterSetName
+        # Inlined Get-AssertionOperatorEntry (whose whole body is `return $script:AssertionOperators[$Name]`)
+        # to save a function-call frame per assertion. Should is a module function, so $script: resolves to
+        # the same module scope the helper reads.
+        $entry = $script:AssertionOperators[$PSCmdlet.ParameterSetName]
 
         $shouldThrow = $null
+        # always defined so the dynamic-scope read in Test-AssertionResult (called below without the
+        # former Invoke-Assertion parameter layer) finds it even when no callback is set up
+        $addErrorCallback = $null
         $errorActionIsDefined = $PSBoundParameters.ContainsKey("ErrorAction")
         if ($errorActionIsDefined) {
             $shouldThrow = 'Stop' -eq $PSBoundParameters["ErrorAction"]
@@ -153,39 +167,38 @@ function Should {
             }
         }
 
-        $assertionParams = @{
-            AssertionEntry     = $entry
-            BoundParameters    = $PSBoundParameters
-            File               = $file
-            LineNumber         = $lineNumber
-            LineText           = $lineText
-            Negate             = $negate
-            CallerSessionState = $PSCmdlet.SessionState
-            ShouldThrow        = $shouldThrow
-            AddErrorCallback   = $addErrorCallback
-        }
-
         if (-not $entry) { return }
 
+        # The Invoke-Assertion body is inlined below: its 12-parameter binding (Mandatory + validation
+        # attributes) plus the splat hashtable cost ~100us per assertion, roughly half of a passing
+        # `Should -Be`. Test-AssertionResult keeps reading $file/$lineNumber/$lineText/$shouldThrow/
+        # $addErrorCallback from this scope via dynamic scoping, exactly as it read the equally-named
+        # Invoke-Assertion parameters before. Invoke-Assertion itself stays defined for other callers.
+        $callerSessionState = $PSCmdlet.SessionState
+
         if ($inputArray.Count -eq 0) {
-            Invoke-Assertion @assertionParams -ValueToTest $null
+            $testResult = & $entry.Test -ActualValue $null -Negate:$negate -CallerSessionState $callerSessionState @PSBoundParameters
+            Test-AssertionResult $testResult
         }
         elseif ($entry.SupportsArrayInput) {
             if ($MyInvocation.ExpectingInput) {
                 # Pipeline input is collected item-by-item in the process block, so pass the collected array.
-                Invoke-Assertion @assertionParams -ValueToTest $inputArray.ToArray()
+                $testResult = & $entry.Test -ActualValue ($inputArray.ToArray()) -Negate:$negate -CallerSessionState $callerSessionState @PSBoundParameters
+                Test-AssertionResult $testResult
             }
             else {
                 # The value was supplied by parameter instead (Should -ActualValue @(1,2,3), which is also what
                 # splatting does). The process block ran once and $inputArray wrapped the whole value into a
                 # single element; enumerate the original $ActualValue with @() so it matches what the pipeline
                 # would have produced, rather than being wrapped one level too deep. (#2314)
-                Invoke-Assertion @assertionParams -ValueToTest @($ActualValue)
+                $testResult = & $entry.Test -ActualValue (@($ActualValue)) -Negate:$negate -CallerSessionState $callerSessionState @PSBoundParameters
+                Test-AssertionResult $testResult
             }
         }
         else {
             foreach ($object in $inputArray) {
-                Invoke-Assertion @assertionParams -ValueToTest $object
+                $testResult = & $entry.Test -ActualValue $object -Negate:$negate -CallerSessionState $callerSessionState @PSBoundParameters
+                Test-AssertionResult $testResult
             }
         }
     }
