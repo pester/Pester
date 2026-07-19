@@ -69,6 +69,7 @@ function New-PesterState {
         CurrentTest         = $null
 
         Plugin              = $null
+        PluginSteps         = $null
         PluginConfiguration = $null
         PluginData          = $null
         Configuration       = $null
@@ -333,9 +334,9 @@ function Invoke-Block ($previousBlock) {
                 # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
+                    if ($block.First) { $state.PluginSteps.OneTimeBlockSetupStart }
                 ) `
-                    -Setup @( $state.Plugin.EachBlockSetupStart ) `
+                    -Setup $state.PluginSteps.EachBlockSetupStart `
                     -Context @{
                     Context = @{
                         # context that is visible to plugins
@@ -442,11 +443,9 @@ function Invoke-Block ($previousBlock) {
                     }
                 }
 
-                $frameworkEachBlockTeardowns = @($state.Plugin.EachBlockTeardownEnd )
-                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardownEnd } )
-                # reverse the teardowns so they run in opposite order to setups
-                [Array]::Reverse($frameworkEachBlockTeardowns)
-                [Array]::Reverse($frameworkOneTimeBlockTeardowns)
+                # the cached teardown steps are stored already reversed, so they run in the opposite order to setups
+                $frameworkEachBlockTeardowns = $state.PluginSteps.EachBlockTeardownEndReversed
+                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.PluginSteps.OneTimeBlockTeardownEndReversed } )
 
                 # setting those values here so they are available for the teardown
                 # BUT they are then set again at the end of the block to make them accurate
@@ -509,9 +508,11 @@ function New-Test {
         throw "Test cannot be directly in the root."
     }
 
-    # avoid managing state by not pushing to the stack only to pop out in finally
-    # simply concatenate the arrays
-    $path = @(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history + $name)
+    # The test's path is its parent block's path plus the test name. The parent is always the current
+    # block (a test cannot be directly in the root, guarded above), and CurrentBlock.Path already holds
+    # the reversed stack captured when the block was entered, so reuse it instead of rebuilding the path
+    # from the stack (Stack.ToArray() + [Array]::Reverse) on every one of the many New-Test calls.
+    $path = @($state.CurrentBlock.Path) + $name
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
@@ -585,9 +586,9 @@ function Invoke-TestItem {
         # no callbacks are provided because we are not transitioning between any states
         $frameworkSetupResult = Invoke-ScriptBlock `
             -OuterSetup @(
-            if ($Test.First) { $state.Plugin.OneTimeTestSetupStart }
+            if ($Test.First) { $state.PluginSteps.OneTimeTestSetupStart }
         ) `
-            -Setup @( $state.Plugin.EachTestSetupStart ) `
+            -Setup $state.PluginSteps.EachTestSetupStart `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -740,10 +741,9 @@ function Invoke-TestItem {
         $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
-        $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
-        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.Plugin.OneTimeTestTeardownEnd })
-        [array]::Reverse($frameworkEachTestTeardowns)
-        [array]::Reverse($frameworkOneTimeTestTeardowns)
+        # the cached teardown steps are stored already reversed, so they run in the opposite order to setups
+        $frameworkEachTestTeardowns = $state.PluginSteps.EachTestTeardownEndReversed
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.PluginSteps.OneTimeTestTeardownEndReversed })
 
         $frameworkTeardownResult = Invoke-ScriptBlock `
             -Teardown $frameworkEachTestTeardowns `
@@ -1751,7 +1751,11 @@ function Test-ShouldRun {
     }
 
     $anyIncludeFilters = $false
-    $fullDottedPath = $Item.Path -join "."
+    # $fullDottedPath is consumed only by the debug messages and by the FullName filter below,
+    # so skip the per-item -join when neither can read it (the common case).
+    $fullDottedPath = if ($PesterPreference.Debug.WriteDebugMessages.Value -or ($null -ne $Filter -and $Filter.FullName)) {
+        $Item.Path -join "."
+    }
     if ($null -eq $Filter) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
@@ -1808,8 +1812,14 @@ function Test-ShouldRun {
     }
 
     $excludeLineFilter = $Filter.ExcludeLine
+    $lineFilter = $Filter.Line
 
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    # The path:line key is only consumed by the exclude-line and line filters below; building it
+    # (a string interpolation plus a regex -replace) on every item when neither filter is set - the
+    # common case - is wasted work, so compute it once and only when one of those filters is present.
+    $line = if (($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) -or ($lineFilter -and 0 -ne $lineFilter.Count)) {
+        "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    }
     if ($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) {
         foreach ($l in $excludeLineFilter -replace '\\', '/') {
             if ($l -eq $line) {
@@ -1825,14 +1835,12 @@ function Test-ShouldRun {
 
     # - place exclude filters above this line and include below this line
 
-    $lineFilter = $Filter.Line
     # use File for saved files or Id for ScriptBlocks without files
     # this filter has the ability to set the test to "explicit" so we can run
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
-
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    # $lineFilter and $line are computed once above, before the exclude-line filter.
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
         foreach ($l in $lineFilter -replace '\\', '/') {
@@ -2000,6 +2008,28 @@ function Invoke-Test {
     }
 
     $state.Plugin = $Plugin
+    # The plugin set cannot change during the run (this is the only assignment to $state.Plugin), so
+    # precompute the framework step arrays that Invoke-TestItem and Invoke-Block would otherwise rebuild
+    # from it for every test and block via member enumeration. The teardown arrays are stored already
+    # reversed - they run in the opposite order to setups - so the per-test [array]::Reverse goes away too.
+    $eachTestTeardownEndReversed = @( $Plugin.EachTestTeardownEnd )
+    [Array]::Reverse($eachTestTeardownEndReversed)
+    $oneTimeTestTeardownEndReversed = @( $Plugin.OneTimeTestTeardownEnd )
+    [Array]::Reverse($oneTimeTestTeardownEndReversed)
+    $eachBlockTeardownEndReversed = @( $Plugin.EachBlockTeardownEnd )
+    [Array]::Reverse($eachBlockTeardownEndReversed)
+    $oneTimeBlockTeardownEndReversed = @( $Plugin.OneTimeBlockTeardownEnd )
+    [Array]::Reverse($oneTimeBlockTeardownEndReversed)
+    $state.PluginSteps = @{
+        OneTimeTestSetupStart           = @( $Plugin.OneTimeTestSetupStart )
+        EachTestSetupStart              = @( $Plugin.EachTestSetupStart )
+        EachTestTeardownEndReversed     = $eachTestTeardownEndReversed
+        OneTimeTestTeardownEndReversed  = $oneTimeTestTeardownEndReversed
+        OneTimeBlockSetupStart          = @( $Plugin.OneTimeBlockSetupStart )
+        EachBlockSetupStart             = @( $Plugin.EachBlockSetupStart )
+        EachBlockTeardownEndReversed    = $eachBlockTeardownEndReversed
+        OneTimeBlockTeardownEndReversed = $oneTimeBlockTeardownEndReversed
+    }
     $state.PluginConfiguration = $PluginConfiguration
     $state.PluginData = $PluginData
     $state.Configuration = $Configuration
