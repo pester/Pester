@@ -24,7 +24,7 @@ BeforeDiscovery {
     # the module version has to line up with the git tag. Detect that here so the
     # tests skip during normal development and CI runs on an untagged HEAD.
     $isTaggedReleaseCommit = $false
-    if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $PSScriptRoot '..' '.git'))) {
+    if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path (Join-Path $PSScriptRoot '..') '.git'))) {
         $releaseTag = & git -C $PSScriptRoot describe --exact-match --tags HEAD 2>$null
         $isTaggedReleaseCommit = -not [string]::IsNullOrWhiteSpace($releaseTag)
     }
