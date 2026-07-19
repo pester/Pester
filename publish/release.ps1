@@ -119,8 +119,18 @@ Get-ChildItem -Path $bin -Filter *.dll -Recurse | ForEach-Object {
 "@
 }
 
-& nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetDir -NoPackageAnalysis -version $version
-[string] $nupkg = (Join-Path $nugetDir "Pester.$version.nupkg")
+# The packaged .nupkg goes to NuGet.org and Chocolatey. Pack it into its own folder named for
+# the publish target, so when a push fails the exact package can be grabbed from the build
+# artifact and pushed by hand. The pack input stays tmp/nuget (the nuspec globs it), only the
+# output nupkg goes here.
+$nugetOrgDir = "$PSScriptRoot/../tmp/nuget.org/"
+if (Test-Path $nugetOrgDir) {
+    Remove-Item -Recurse -Force $nugetOrgDir
+}
+$null = New-Item -ItemType Directory -Path $nugetOrgDir
+
+& nuget pack "$PSScriptRoot/Pester.nuspec" -OutputDirectory $nugetOrgDir -NoPackageAnalysis -version $version
+[string] $nupkg = (Join-Path $nugetOrgDir "Pester.$version.nupkg")
 
 dotnet tool install --global NuGetKeyVaultSignTool
 if (0 -ne $LASTEXITCODE) {
@@ -138,37 +148,55 @@ if (0 -ne $LASTEXITCODE) {
     throw "Failed to verify nupkg"
 }
 
-# Pack the PowerShell Gallery module into a .nupkg under tmp/ so the exact package we publish
-# is captured as a build artifact. Publish-Module otherwise packs into a random system temp
-# folder and discards it, so a failed gallery push leaves us with no package to inspect or
-# publish manually. Do this before the gallery push, because that push aborts the script on
-# failure (ErrorActionPreference = 'Stop').
-$psGalleryPackageDir = "$PSScriptRoot/../tmp/PSGallery-package"
-if (Test-Path $psGalleryPackageDir) {
-    Remove-Item -Recurse -Force $psGalleryPackageDir
+# NuGet.org and Chocolatey get the identical signed package. Copy it into the chocolatey
+# folder so each target's published .nupkg sits in its own folder in the build artifact.
+$chocolateyDir = "$PSScriptRoot/../tmp/chocolatey/"
+if (Test-Path $chocolateyDir) {
+    Remove-Item -Recurse -Force $chocolateyDir
 }
-$null = New-Item -ItemType Directory -Path $psGalleryPackageDir
+$null = New-Item -ItemType Directory -Path $chocolateyDir
+[string] $chocolateyNupkg = (Join-Path $chocolateyDir "Pester.$version.nupkg")
+Copy-Item $nupkg $chocolateyNupkg
 
-$localRepository = 'PesterLocalPublish'
+# Publish to every feed, and keep going even if one fails, so a single broken feed does not
+# block the others. Collect the failures and fail the build at the end. The built packages are
+# in tmp/ (kept as a pipeline artifact), so any failed feed can be grabbed from the artifact and
+# published by hand.
+$failedFeeds = @()
+
+# The PowerShell Gallery is published from the module folder ($psGalleryDir = tmp/PSGallery/Pester),
+# not from a .nupkg, so that folder is the gallery's build artifact.
 try {
-    Get-PSRepository -Name $localRepository -ErrorAction SilentlyContinue | Unregister-PSRepository
-    Register-PSRepository -Name $localRepository -SourceLocation $psGalleryPackageDir -PublishLocation $psGalleryPackageDir -InstallationPolicy Trusted
-    Publish-Module -Path $psGalleryDir -Repository $localRepository -NuGetApiKey 'local' -Verbose -Force
-    Write-Host "Saved PowerShell Gallery package to $psGalleryPackageDir"
+    Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 }
 catch {
-    Write-Warning "Failed to capture local PowerShell Gallery package: $_"
+    Write-Warning "Failed to publish to PowerShell Gallery: $_"
+    $failedFeeds += 'PowerShell Gallery'
 }
-finally {
-    Get-PSRepository -Name $localRepository -ErrorAction SilentlyContinue | Unregister-PSRepository
-}
-
-Publish-Module -Path $psGalleryDir -NuGetApiKey $PsGalleryApiKey -Verbose -Force
 
 if (-not $isPreRelease -or $Force) {
-    & nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
-    & nuget push $nupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
+    try {
+        & nuget push $nupkg -Source https://api.nuget.org/v3/index.json -apikey $NugetApiKey
+        if (0 -ne $LASTEXITCODE) { throw "nuget push exited with code $LASTEXITCODE" }
+    }
+    catch {
+        Write-Warning "Failed to push to NuGet.org: $_"
+        $failedFeeds += 'NuGet.org'
+    }
+
+    try {
+        & nuget push $chocolateyNupkg -Source https://push.chocolatey.org/ -apikey $ChocolateyApiKey
+        if (0 -ne $LASTEXITCODE) { throw "nuget push exited with code $LASTEXITCODE" }
+    }
+    catch {
+        Write-Warning "Failed to push to Chocolatey: $_"
+        $failedFeeds += 'Chocolatey'
+    }
 }
 else {
     Write-Host "This is pre-release $version, not pushing to Nuget and Chocolatey."
+}
+
+if (0 -lt $failedFeeds.Count) {
+    throw "Failed to publish to: $($failedFeeds -join ', '). Grab the built packages from the tmp/ pipeline artifact and publish them by hand."
 }
