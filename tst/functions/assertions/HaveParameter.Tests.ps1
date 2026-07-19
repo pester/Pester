@@ -411,54 +411,75 @@ InPesterModuleScope {
                 }
             }
 
-            It "passes when the default value <ParameterName> is of the expected type <DefaultValueType>" -TestCases @(
-                @{ ParameterName = 'LiteralString'; DefaultValueType = 'String' }
-                @{ ParameterName = 'Interpolated'; DefaultValueType = 'String' }
-                @{ ParameterName = 'Expression'; DefaultValueType = 'Expression' }
-                @{ ParameterName = 'Member'; DefaultValueType = 'Expression' }
-                @{ ParameterName = 'Variable'; DefaultValueType = 'Expression' }
-                @{ ParameterName = 'ScriptBlockDefault'; DefaultValueType = 'ScriptBlock' }
-                @{ ParameterName = 'Number'; DefaultValueType = 'Number' }
-                @{ ParameterName = 'Double'; DefaultValueType = 'Number' }
-                @{ ParameterName = 'Bool'; DefaultValueType = 'Boolean' }
-                @{ ParameterName = 'BoolFalse'; DefaultValueType = 'Boolean' }
-                @{ ParameterName = 'Null'; DefaultValueType = 'Null' }
-                @{ ParameterName = 'ArrayDefault'; DefaultValueType = 'Array' }
-                @{ ParameterName = 'HashtableDefault'; DefaultValueType = 'Hashtable' }
+            It "passes when the literal default <ParameterName> is of type <DefaultValueType>" -TestCases @(
+                @{ ParameterName = 'LiteralString'; DefaultValueType = 'string' }
+                @{ ParameterName = 'Interpolated'; DefaultValueType = 'string' }
+                @{ ParameterName = 'ScriptBlockDefault'; DefaultValueType = 'scriptblock' }
+                @{ ParameterName = 'Number'; DefaultValueType = 'int' }
+                @{ ParameterName = 'Number'; DefaultValueType = 'Int32' }
+                @{ ParameterName = 'Double'; DefaultValueType = 'double' }
+                @{ ParameterName = 'Bool'; DefaultValueType = 'bool' }
+                @{ ParameterName = 'BoolFalse'; DefaultValueType = 'bool' }
+                @{ ParameterName = 'HashtableDefault'; DefaultValueType = 'hashtable' }
+                @{ ParameterName = 'ArrayDefault'; DefaultValueType = 'object[]' }
             ) {
                 Get-Command Test-DefaultValueType | Should -HaveParameter $ParameterName -DefaultValueType $DefaultValueType
             }
 
-            It "matches case-insensitively" {
+            It "passes when the type is given as a type object rather than a string" {
+                Get-Command Test-DefaultValueType | Should -HaveParameter Number -DefaultValueType ([int])
+                Get-Command Test-DefaultValueType | Should -HaveParameter Bool -DefaultValueType ([bool])
+                Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType ([string])
+            }
+
+            It "passes when the computed default <ParameterName> is an Expression" -TestCases @(
+                @{ ParameterName = 'Expression' }
+                @{ ParameterName = 'Member' }
+                @{ ParameterName = 'Variable' }
+            ) {
+                Get-Command Test-DefaultValueType | Should -HaveParameter $ParameterName -DefaultValueType Expression
+            }
+
+            It "Expression matches case-insensitively" {
                 Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValueType expression
-                Get-Command Test-DefaultValueType | Should -HaveParameter Bool -DefaultValueType boolean
             }
 
             It "distinguishes an expression default from a string-literal default" {
                 # This is the core scenario from issue #1888: (Get-Date) vs '(Get-Date)' share the same
-                # -DefaultValue string, but differ in their type.
+                # -DefaultValue string. The literal is a [string], the expression has no static type.
                 Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValue '(Get-Date)' -DefaultValueType Expression
                 Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValue '(Get-Date)' -DefaultValueType String
             }
 
-            It "throws a clear error listing the valid types when given an unknown default value type" {
+            It "throws when given a type name that does not exist" {
                 $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType NotAType } | Verify-Throw
-                $err.Exception.Message | Verify-Like "*Cannot validate argument on parameter 'DefaultValueType'*"
+                $err.Exception | Verify-Type ([ArgumentException])
+                $err.Exception.Message | Verify-Equal 'Could not find type [NotAType]. Make sure that the assembly that contains that type is loaded, or use -DefaultValueType Expression to check for a computed default value.'
             }
 
-            It "fails when the default value type does not match" {
+            It "fails when the literal default is of a different type" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType ([int]) } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value to be of type [System.Int32], but the default value was of type [System.String]."
+            }
+
+            It "fails when a concrete type is expected but the default is an expression" {
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter Expression -DefaultValueType ([string]) } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter Expression, the default value to be of type [System.String], but the default value was an expression."
+            }
+
+            It "fails when Expression is expected but the default is a literal" {
                 $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValueType Expression } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value type to be 'Expression', but the default value type was 'String'."
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value to be an expression, but the default value was of type [System.String]."
             }
 
             It "fails when the parameter has no default value" {
-                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter NoDefault -DefaultValueType Boolean } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter NoDefault, the default value type to be 'Boolean', but the parameter had no default value."
+                $err = { Get-Command Test-DefaultValueType | Should -HaveParameter NoDefault -DefaultValueType ([string]) } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter NoDefault, the default value to be of type [System.String], but the parameter had no default value."
             }
 
             It "returns a combined message when both DefaultValue and DefaultValueType differ" {
                 $err = { Get-Command Test-DefaultValueType | Should -HaveParameter LiteralString -DefaultValue 'wrong' -DefaultValueType Expression -Because 'of reasons' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value to be 'wrong' and the default value type to be 'Expression', because of reasons, but the default value was '(Get-Date)' and the default value type was 'String'."
+                $err.Exception.Message | Verify-Equal "Expected command Test-DefaultValueType to have a parameter LiteralString, the default value to be 'wrong' and the default value to be an expression, because of reasons, but the default value was '(Get-Date)' and the default value was of type [System.String]."
             }
         }
 
@@ -634,7 +655,7 @@ InPesterModuleScope {
 
         It "returns the correct assertion message when the default value type should not match but does" {
             $err = { Get-Command "Invoke-DummyFunction" | Should -Not -HaveParameter ParamWithScriptValidation -DefaultValueType String -Because 'of reasons' } | Verify-AssertionFailed
-            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithScriptValidation, the default value type not to be 'String', because of reasons, but the default value type was 'String'."
+            $err.Exception.Message | Verify-Equal "Expected command Invoke-DummyFunction to not have a parameter ParamWithScriptValidation, the default value not to be of type [System.String], because of reasons, but the default value was of type [System.String]."
         }
 
         It "fails if the parameter <ParameterName> is of type <ExpectedType> or has a default value of '<ExpectedValue>'" -TestCases @(

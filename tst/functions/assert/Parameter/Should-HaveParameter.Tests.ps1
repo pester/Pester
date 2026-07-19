@@ -118,20 +118,22 @@ Describe "Should-HaveParameter" {
             Get-Command f | Should-HaveParameter Path -DefaultValueType Expression
         }
 
-        It "Passes when the default value is a literal string and String is expected" {
+        It "Passes when the default value is a literal string and its type is expected" {
             function f {
                 param([string] $Path = '(Get-Date)')
             }
 
             Get-Command f | Should-HaveParameter Path -DefaultValueType String
+            Get-Command f | Should-HaveParameter Path -DefaultValueType ([string])
         }
 
-        It "Reports the value type, so a `$true default is Boolean, not a variable" {
+        It "Reports the real type, so a `$true default is [bool] and a number is [int]" {
             function f {
-                param($Enabled = $true)
+                param($Enabled = $true, $Retries = 3)
             }
 
-            Get-Command f | Should-HaveParameter Enabled -DefaultValueType Boolean
+            Get-Command f | Should-HaveParameter Enabled -DefaultValueType ([bool])
+            Get-Command f | Should-HaveParameter Retries -DefaultValueType int
         }
 
         It "Distinguishes a string-literal default from an expression default" {
@@ -163,12 +165,12 @@ Describe "Should-HaveParameter" {
             { Get-Command f | Should-HaveParameter Path -DefaultValueType String } | Verify-Throw
         }
 
-        It "Rejects an unknown default value type at parameter binding" {
+        It "Throws when given a type name that does not exist" {
             function f {
                 param([string] $Path = '(Get-Date)')
             }
 
-            { Get-Command f | Should-HaveParameter Path -DefaultValueType NotAKind } | Verify-Throw
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType NotAType } | Verify-Throw
         }
     }
 }

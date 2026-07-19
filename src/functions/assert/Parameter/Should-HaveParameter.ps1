@@ -16,14 +16,14 @@
     The default value of the parameter to check. E.g. "https://example.com"
 
     .PARAMETER DefaultValueType
-    The value type of the parameter's default. Valid values:
-    `Boolean` (`$true`, `$false`), `Null` (`$null`), `Number` (e.g. 1, 1.5), `String` (a literal or
-    interpolated string, e.g. 'abc' or "$x bar"), `ScriptBlock` (e.g. { Get-Date }), `Array` (e.g. @(1, 2)),
-    `Hashtable` (e.g. @{ a = 1 }), and `Expression` for a computed default whose type is not known until
-    it runs (e.g. (Get-Date), [datetime]::Now, $someVariable).
-    `Expression` vs `String` is what tells an expression default apart from a literal string default, which
-    -DefaultValue (a string comparison) cannot: for example `$Path = (Get-Date)` is an `Expression` while
-    `$Path = '(Get-Date)'` is a `String`. Matching is case-insensitive.
+    The .NET type of the parameter's default value, as a type or a type name (the same way -Type is given),
+    e.g. `([string])`, `[int]`, `bool` or `datetime`. This matches literal defaults whose type is known, so
+    `$Force = $false` is `[bool]` and `$Retries = 3` is `[int]`.
+    Pass the special value `Expression` for a computed default whose type is not known until it runs, e.g.
+    `(Get-Date)`, `[datetime]::Now` or `$someVariable`. `Expression` vs a concrete type is what tells an
+    expression default apart from a literal string default, which -DefaultValue (a string comparison)
+    cannot: for example `$Path = (Get-DefaultPath)` is an `Expression` while `$Path = '(Get-DefaultPath)'`
+    is `[string]`.
 
     .PARAMETER Mandatory
     Whether the parameter is mandatory or not.
@@ -109,8 +109,7 @@
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,
-        [ValidateSet('Boolean', 'Null', 'Number', 'String', 'ScriptBlock', 'Array', 'Hashtable', 'Expression')]
-        [String] $DefaultValueType,
+        $DefaultValueType,
         [Switch] $Mandatory,
         [String] $InParameterSet,
         [Switch] $HasArgumentCompleter,
