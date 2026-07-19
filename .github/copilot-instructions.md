@@ -15,6 +15,10 @@ These instructions apply to all Copilot sessions working in this repository.
   closes automatically on merge. Do **not** mention the fixed issue in commit
   messages (no `Fix #34:` prefix or similar) — it's unnecessary noise.
 - Give every PR a meaningful title and a summary describing the changes.
+- **Make changes through a pull request, and never force-push a branch.** Add new
+  commits on top instead. We squash-merge, so the commit history inside a PR is
+  irrelevant (it becomes a single commit on merge), and plain pushes avoid needless
+  merge conflicts.
 
 ## Signing AI-authored messages
 
