@@ -49,6 +49,19 @@ if ($SkipTests) {
     Write-Host "Skipping tests because -SkipTests was specified."
 }
 else {
+    # The version checks in tst/Pester.Tests.ps1 are tagged VersionChecks and
+    # self-skip unless HEAD is on a release tag. The pipeline may check out with
+    # a shallow clone that has no tags, in which case they would silently skip
+    # and we would publish a build without checking version against the tag.
+    # Fetch the tags and require HEAD to be on one, so they actually run in
+    # test.ps1 below, or the release stops here instead of skipping the check.
+    & git -C "$PSScriptRoot/.." fetch --tags --force 2>&1 | Out-Null
+    $releaseTag = & git -C "$PSScriptRoot/.." describe --exact-match --tags HEAD 2>$null
+    if ([string]::IsNullOrWhiteSpace($releaseTag)) {
+        throw "HEAD is not on a release tag, so the version checks would be skipped. Tag the release commit before running release.ps1 (or pass -SkipTests to publish without them)."
+    }
+    Write-Host "Release tag: $releaseTag"
+
     pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
     if ($LASTEXITCODE -ne 0) {
         throw "test failed!"

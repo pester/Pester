@@ -30,7 +30,9 @@
         forced.
 
     .NOTES
-        Tests are excluded with Tags VersionChecks, StyleRules, Help.
+        The 'Release version' checks in tst/Pester.Tests.ps1 are tagged
+        VersionChecks and skip unless HEAD is a tagged release commit, so they
+        only validate for real when publish/release.ps1 runs on a release tag.
 #>
 param (
     # force P to fail when I leave `dt` in the tests
@@ -185,7 +187,9 @@ else {
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
-$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
+# Nothing is excluded by tag: the release-only version checks are tagged
+# VersionChecks but guard themselves with -Skip unless HEAD is a tagged release
+# commit, so they simply skip here and run for real only from publish/release.ps1.
 
 if ($CI) {
     $configuration.Run.Exit = $true
