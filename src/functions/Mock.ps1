@@ -1,4 +1,9 @@
 
+# Module-scope marker used to make Should throw (instead of recording a failure) when it runs
+# inside a Mock ParameterFilter. Initialized once so the hot save/restore in Test-ParameterFilter
+# and the read in Set-AssertionPassResult can access it directly instead of via Get-Variable, and
+# so the direct read is safe even under Set-StrictMode.
+$script:______isInMockParameterFilter = $false
 
 function New-MockBehavior {
     [CmdletBinding()]
@@ -1339,18 +1344,13 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    $previousIsInMockParameterFilter = $script:______isInMockParameterFilter
     $script:______isInMockParameterFilter = $true
     try {
         $result = & $wrapper $parameters
     }
     finally {
-        if ($null -eq $previousIsInMockParameterFilter) {
-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
-        }
-        else {
-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
-        }
+        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
     }
     $passed = [bool]$result
     if ($passed) {
@@ -1414,7 +1414,9 @@ function Get-ContextToDefine {
         [System.Collections.IDictionary] $DynamicParamAliases
     )
 
-    $conflictingParameterNames = Get-ConflictingParameterNames
+    # Inlined Get-ConflictingParameterNames (body is `$script:ConflictingParameterNames`, as already used
+    # directly further down in this same function) to drop a function call from this per-mock-invocation path.
+    $conflictingParameterNames = $script:ConflictingParameterNames
     $r = @{ }
     # key the parameters by aliases so we can resolve to
     # the param itself and define it and all of it's aliases
@@ -1442,7 +1444,7 @@ function Get-ContextToDefine {
 
     foreach ($p in $Metadata.Parameters.GetEnumerator()) {
         $aliases = $p.Value.Aliases
-        if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+        if ($null -ne $aliases -and 0 -lt $aliases.Count) {
             foreach ($a in $aliases) { $h.Add($a, $p) }
         }
     }
