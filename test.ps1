@@ -28,9 +28,6 @@
         Forces inlining the module into a single file. This is how real build is
         done, but makes local debugging difficult. When -CI is used, inlining is
         forced.
-
-    .NOTES
-        Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
 param (
     # force P to fail when I leave `dt` in the tests
@@ -184,8 +181,6 @@ else {
 }
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
-
-$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
 
 if ($CI) {
     $configuration.Run.Exit = $true
