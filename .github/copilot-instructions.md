@@ -16,6 +16,15 @@ These instructions apply to all Copilot sessions working in this repository.
   messages (no `Fix #34:` prefix or similar) — it's unnecessary noise.
 - Give every PR a meaningful title and a summary describing the changes.
 
+## Signing AI-authored messages
+
+- End **every** message you post with the robot emoji `🤖` on its own new line as the very
+  last line — PR descriptions, PR/issue comments, and commit messages. It marks the message as
+  written by an AI and sits below the content without changing its voice.
+- The `🤖` is the **single** sign-off. Do not duplicate it, and drop any other AI attribution
+  footer: no `Co-authored-by: Claude` (or other AI co-author trailer) and no
+  `Generated with Claude Code` / `🤖 Generated with …` line. One robot emoji, nothing else.
+
 ## Building
 
 Pester is written in PowerShell and C#. Build from the repository root:
