@@ -95,7 +95,8 @@ function Invoke-TestRegistryWithRetry {
 function New-RandomTempRegistry {
     do {
         $tempPath = Get-TempRegistry
-        $Path = & $SafeCommands['Join-Path'] -Path $tempPath -ChildPath ([IO.Path]::GetRandomFileName().Substring(0, 4))
+        # registry provider paths always use backslash; plain interpolation avoids a per-call cmdlet invocation
+        $Path = "$tempPath\$([IO.Path]::GetRandomFileName().Substring(0, 4))"
         # Test-Path is a read operation and can throw the same transient IOException as the
         # New-Item write below, so retry it the same way.
         $keyAlreadyExists = Invoke-TestRegistryWithRetry { & $SafeCommands['Test-Path'] -Path $Path -PathType Container }
