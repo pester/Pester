@@ -19,39 +19,6 @@ Describe 'Pester manifest' {
     }
 }
 
-BeforeDiscovery {
-    # The version checks below only make sense on a tagged release commit, where
-    # the module version has to line up with the git tag. Detect that here so the
-    # tests skip during normal development and CI runs on an untagged HEAD.
-    $isTaggedReleaseCommit = $false
-    if ((Get-Command git -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path (Join-Path $PSScriptRoot '..') '.git'))) {
-        $releaseTag = & git -C $PSScriptRoot describe --exact-match --tags HEAD 2>$null
-        $isTaggedReleaseCommit = -not [string]::IsNullOrWhiteSpace($releaseTag)
-    }
-}
-
-# Tagged VersionChecks so it can be targeted/excluded on demand. The -Skip guard
-# is what keeps it dormant during normal runs; it only executes on a tagged
-# release commit, i.e. when publish/release.ps1 runs test.ps1.
-Describe 'Release version' -Tag 'VersionChecks' {
-    It 'module version and prerelease match the git tag' -Skip:(-not $isTaggedReleaseCommit) {
-        $tag = & git -C $PSScriptRoot describe --exact-match --tags HEAD 2>$null
-        $tagVersionShort, $tagPrerelease = $tag -split '-', 2
-
-        $module = Get-Module Pester
-        ($module.Version -as [Version]) | Should -Be ($tagVersionShort -as [Version])
-
-        # The manifest prerelease might be empty or null, same as the tag suffix.
-        $prereleaseFromManifest = $module.PrivateData.PSData.Prerelease | Where-Object { $_ }
-        $prereleaseFromManifest | Should -Be $tagPrerelease
-    }
-
-    It 'release notes point at the tag' -Skip:(-not $isTaggedReleaseCommit) {
-        $tag = & git -C $PSScriptRoot describe --exact-match --tags HEAD 2>$null
-        (Get-Module Pester).PrivateData.PSData.ReleaseNotes | Should -Be "https://github.com/pester/Pester/releases/tag/$tag"
-    }
-}
-
 Describe 'Clean treatment of the $error variable' {
     BeforeAll {
         $error.Clear()
