@@ -26,10 +26,10 @@ else {
 # 'New-EachTestTeardown'
 # 'New-OneTimeTestSetup'
 # 'New-OneTimeTestTeardown'
-# 'New-EachBlockSetup'
-# 'New-EachBlockTeardown'
-# 'New-OneTimeBlockSetup'
-# 'New-OneTimeBlockTeardown'
+# 'New-EachDescribeSetup'
+# 'New-EachContextSetup'
+# 'New-EachDescribeTeardown'
+# 'New-EachContextTeardown'
 # 'Invoke-Test',
 # 'Find-Test',
 # 'Invoke-PluginStep'
@@ -390,7 +390,20 @@ function Invoke-Block ($previousBlock) {
                         -ScriptBlock $sb `
                         -OuterSetup @(
                         $(if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                                @($previousBlock.EachBlockSetup) + @($block.OneTimeTestSetup)
+                                # BeforeEach -Describe / -Context: walk up the ancestors and collect the
+                                # each-block setup that matches how this block was defined, so a setup on
+                                # an outer block runs before every matching nested block.
+                                $__b = $previousBlock
+                                $__eachBlockSetups = while ($null -ne $__b) {
+                                    if ('Describe' -eq $block.FrameworkData.CommandUsed) { $__b.EachDescribeSetup }
+                                    elseif ('Context' -eq $block.FrameworkData.CommandUsed) { $__b.EachContextSetup }
+                                    $__b = $__b.Parent
+                                }
+                                if ($null -ne $__eachBlockSetups -and 1 -lt @($__eachBlockSetups).Count) {
+                                    # collected inner-first, reverse so the outermost block runs first
+                                    [Array]::Reverse($__eachBlockSetups)
+                                }
+                                @($__eachBlockSetups) + @($block.OneTimeTestSetup)
                             })
                         $(if (-not $Block.IsRoot) {
                                 # expand block name by evaluating the <> templates, only match templates that have at least 1 character and are not escaped by `<abc`>
@@ -427,7 +440,15 @@ function Invoke-Block ($previousBlock) {
                             })
                     ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
+                            # AfterEach -Describe / -Context: mirror of the setup walk above, run inner-first
+                            # (opposite order of the setups) after the block's own AfterAll.
+                            $__b = $previousBlock
+                            $__eachBlockTeardowns = while ($null -ne $__b) {
+                                if ('Describe' -eq $block.FrameworkData.CommandUsed) { $__b.EachDescribeTeardown }
+                                elseif ('Context' -eq $block.FrameworkData.CommandUsed) { $__b.EachContextTeardown }
+                                $__b = $__b.Parent
+                            }
+                            @($block.OneTimeTestTeardown) + @($__eachBlockTeardowns)
                         } ) `
                         -Context $context `
                         -MoveBetweenScopes `
@@ -842,38 +863,59 @@ function New-OneTimeTestTeardown {
     }
 }
 
-# endpoint for adding a setup for each block in the current block
-function New-EachBlockSetup {
+# endpoint for adding a setup for each Describe block nested in the current block
+function New-EachDescribeSetup {
     param (
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockSetup = $ScriptBlock
+        if ($null -ne $state.CurrentBlock.EachDescribeSetup) {
+            throw "BeforeEach -Describe is already defined in this block. Each block can only have one BeforeEach -Describe. Combine the code into a single block."
+        }
+        $state.CurrentBlock.EachDescribeSetup = $ScriptBlock
     }
 }
 
-# endpoint for adding a teardown for each block in the current block
-function New-EachBlockTeardown {
+# endpoint for adding a setup for each Context block nested in the current block
+function New-EachContextSetup {
     param (
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockTeardown = $ScriptBlock
+        if ($null -ne $state.CurrentBlock.EachContextSetup) {
+            throw "BeforeEach -Context is already defined in this block. Each block can only have one BeforeEach -Context. Combine the code into a single block."
+        }
+        $state.CurrentBlock.EachContextSetup = $ScriptBlock
     }
 }
 
-# endpoint for adding a setup for all blocks in the current block
-# endpoint for adding a teardown for all clocks in the current block
-function New-OneTimeBlockTeardown {
-    [CmdletBinding()]
+# endpoint for adding a teardown for each Describe block nested in the current block
+function New-EachDescribeTeardown {
     param (
         [Parameter(Mandatory = $true)]
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockTeardown = $ScriptBlock
+        if ($null -ne $state.CurrentBlock.EachDescribeTeardown) {
+            throw "AfterEach -Describe is already defined in this block. Each block can only have one AfterEach -Describe. Combine the code into a single block."
+        }
+        $state.CurrentBlock.EachDescribeTeardown = $ScriptBlock
+    }
+}
+
+# endpoint for adding a teardown for each Context block nested in the current block
+function New-EachContextTeardown {
+    param (
+        [Parameter(Mandatory = $true)]
+        [ScriptBlock] $ScriptBlock
+    )
+    if (Is-Discovery) {
+        if ($null -ne $state.CurrentBlock.EachContextTeardown) {
+            throw "AfterEach -Context is already defined in this block. Each block can only have one AfterEach -Context. Combine the code into a single block."
+        }
+        $state.CurrentBlock.EachContextTeardown = $ScriptBlock
     }
 }
 

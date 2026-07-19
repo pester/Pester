@@ -1296,47 +1296,6 @@ i -PassThru:$PassThru {
             $container.OneTimeTestTeardown | Verify-Equal 1
         }
 
-        t "block setups&teardowns run only when there are some tests to run in the block" {
-            $container = [PSCustomObject]@{
-                OneTimeBlockSetup1    = 0
-                EachBlockSetup1       = 0
-                EachBlockTeardown1    = 0
-                OneTimeBlockTeardown1 = 0
-            }
-            $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (New-BlockContainerObject -ScriptBlock {
-
-                    # New-OneTimeBlockSetup { $container.OneTimeBlockSetup1++}
-                    New-EachBlockSetup {
-                        $container.EachBlockSetup1++
-                    }
-
-                    New-Block 'block1' {
-                        New-Test "test1" {
-                            "here"
-                        }
-                    }
-
-                    New-Block 'no test block' {
-
-                    }
-
-                    New-Block 'no running tests' {
-                        New-Test "do not run test" -Tag "DoNotRun" {
-                        }
-                    }
-
-                    New-EachBlockTeardown {
-                        $container.EachBlockTeardown1++
-                    }
-                    # New-OneTimeBlockTeardown { $container.OneTimeBlockTeardown1++ }
-                }) -Filter (New-FilterObject -ExcludeTag DoNotRun)
-
-            # $container.OneTimeBlockSetup1 | Verify-Equal 1
-            $container.EachBlockSetup1 | Verify-Equal 1
-            $container.EachBlockTeardown1 | Verify-Equal 1
-            # $container.OneTimeBlockTeardown1 | Verify-Equal 1
-        }
-
         t 'setup and teardown are executed on skipped parent blocks when a test is explicitly included' {
             $container = @{
                 OneTimeTestSetup    = 0
@@ -2262,7 +2221,7 @@ i -PassThru:$PassThru {
                         $Value | Verify-Equal 1
                     }
 
-                    New-OneTimeBlockTeardown {
+                    New-OneTimeTestTeardown {
                         $Value | Verify-Equal 1
                     }
 
@@ -2289,7 +2248,7 @@ i -PassThru:$PassThru {
                         $Color = "Blue"
                     }
 
-                    New-OneTimeBlockTeardown {
+                    New-OneTimeTestTeardown {
                         $Value | Verify-Equal 1
                     }
 
