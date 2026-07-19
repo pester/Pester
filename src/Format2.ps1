@@ -122,11 +122,13 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
         return Format-Type2 -Value $Value
     }
 
-    if (Is-DecimalNumber -Value $Value) {
+    # Inlined Is-DecimalNumber / Is-ScriptBlock to avoid a function call per formatted value on this
+    # hot dispatch path (used for every <template> name expansion). The helpers stay defined for other callers.
+    if ($Value -is [float] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]) {
         return Format-Number2 -Value $Value
     }
 
-    if (Is-ScriptBlock -Value $Value) {
+    if ($Value -is [ScriptBlock]) {
         return Format-ScriptBlock2 -Value $Value
     }
 
@@ -142,11 +144,15 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
         return Get-ShortType2 -Value $Value
     }
 
-    if (Is-Collection -Value $Value) {
+    # Inlined Is-Collection (same LanguagePrimitives::GetEnumerator check the helper runs).
+    if ($null -ne [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Value)) {
         return Format-Collection2 -Value $Value -Pretty:$Pretty -Depth $Depth
     }
 
-    if (Is-Value -Value $Value) {
+    # Inlined Is-Value. The helper's leading `$Value = $($Value)` (which unwraps single-element and empty
+    # collections) is intentionally dropped: any collection was already handled by the Is-Collection branch
+    # above, so here $Value is never a collection and the unwrap is a no-op.
+    if ($Value -is [ValueType] -or $Value -is [string] -or $Value -is [scriptblock]) {
         return $Value
     }
 

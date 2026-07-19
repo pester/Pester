@@ -555,7 +555,12 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryEnd = {
         param ($Context)
 
-        $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
+        # flattening the tree costs time proportional to the number of discovered tests, and the
+        # result is only read by the two guarded blocks below, so skip it in the default run
+        # (Normal verbosity, not discovery-only) where neither guard can be entered
+        $discoveredTests = if ($PesterPreference.Run.SkipRun.Value -or $PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
+            @(View-Flat -Block $Context.BlockContainers)
+        }
 
         if ($PesterPreference.Run.SkipRun.Value) {
             # Only announce the discovery result on screen when we are not going to run
