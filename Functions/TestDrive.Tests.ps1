@@ -1,10 +1,11 @@
 Set-StrictMode -Version Latest
 
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
-    # GitHub Actions runners set TEMP to the 8.3 short form (C:\Users\RUNNER~1\...),
-    # but TestDrive paths resolve to the long form, expand TEMP so the -like
-    # comparisons below work
-    $tempPath = (New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:TEMP).Path
+    # don't use $env:TEMP directly, GitHub Actions runners set it to the 8.3
+    # short form (C:\Users\RUNNER~1\...) but TestDrive is created via
+    # GetTempPath which returns the long form, so the -like comparisons below
+    # would never match
+    $tempPath = [System.IO.Path]::GetTempPath()
 }
 elseif ($IsMacOS) {
     $tempPath = '/private/tmp'
@@ -16,13 +17,6 @@ else {
 Describe "Setup" {
     It "returns a location that is in a temp area" {
         $testDrivePath = (Get-Item $TestDrive).FullName
-        # TEMP diagnostic, remove before merge
-        Write-Host "DIAG tempPath      = '$tempPath'"
-        Write-Host "DIAG testDrivePath = '$testDrivePath'"
-        Write-Host "DIAG env:TEMP      = '$env:TEMP'"
-        Write-Host "DIAG env:TMP       = '$env:TMP'"
-        Write-Host "DIAG GetTempPath   = '$([System.IO.Path]::GetTempPath())'"
-        Write-Host "DIAG TestDrive var = '$TestDrive'"
         $testDrivePath -like "$tempPath*" | Should -Be $true
     }
 
