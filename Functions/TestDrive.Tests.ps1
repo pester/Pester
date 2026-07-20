@@ -16,6 +16,13 @@ else {
 Describe "Setup" {
     It "returns a location that is in a temp area" {
         $testDrivePath = (Get-Item $TestDrive).FullName
+        # TEMP diagnostic, remove before merge
+        Write-Host "DIAG tempPath      = '$tempPath'"
+        Write-Host "DIAG testDrivePath = '$testDrivePath'"
+        Write-Host "DIAG env:TEMP      = '$env:TEMP'"
+        Write-Host "DIAG env:TMP       = '$env:TMP'"
+        Write-Host "DIAG GetTempPath   = '$([System.IO.Path]::GetTempPath())'"
+        Write-Host "DIAG TestDrive var = '$TestDrive'"
         $testDrivePath -like "$tempPath*" | Should -Be $true
     }
 
