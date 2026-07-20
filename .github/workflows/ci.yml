@@ -25,9 +25,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: 'PS5.1 - Windows', id: ps51-windows, os: windows-latest, shell: powershell }
-          - { name: 'PS7 - Windows',   id: ps7-windows,  os: windows-latest, shell: pwsh }
-          - { name: 'PS7 - Ubuntu',    id: ps7-ubuntu,   os: ubuntu-latest,  shell: pwsh }
+          - { name: 'PS5.1 - Windows', id: ps51-windows, os: windows-latest, psexe: powershell }
+          - { name: 'PS7 - Windows',   id: ps7-windows,  os: windows-latest, psexe: pwsh }
+          - { name: 'PS7 - Ubuntu',    id: ps7-ubuntu,   os: ubuntu-latest,  psexe: pwsh }
     steps:
       - uses: actions/checkout@v6
         with:
@@ -35,14 +35,15 @@ jobs:
 
       # Same test invocation AppVeyor used: import the module from the repo
       # root and run the suite, excluding the tags that need extra tooling.
+      # `shell:` cannot take a matrix expression, so run from a fixed pwsh and
+      # launch the leg's interpreter: pwsh for PS7, powershell (Windows
+      # PowerShell 5.1) for the 5.1 leg. exit $LASTEXITCODE so a failure in
+      # the launched process still fails the job.
       - name: Test Pester
-        shell: ${{ matrix.shell }}
+        shell: pwsh
         run: |
-          $PSVersionTable
-          Set-StrictMode -Version Latest
-          $global:PesterDebugPreference_ShowFullErrors = $true
-          Import-Module ./Pester.psd1
-          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
+          & ${{ matrix.psexe }} -NoProfile -Command '$PSVersionTable; Set-StrictMode -Version Latest; $global:PesterDebugPreference_ShowFullErrors = $true; Import-Module ./Pester.psd1; Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml'
+          exit $LASTEXITCODE
 
       - name: Upload test results
         if: always()
