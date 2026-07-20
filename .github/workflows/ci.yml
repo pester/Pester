@@ -1,0 +1,54 @@
+# CI for the Pester v4 maintenance branch. Replaces the dead AppVeyor setup.
+#
+# v4 is in security-fix-only maintenance. We test only Windows PowerShell 5.1
+# and PowerShell 7 — nothing else is guaranteed. The goal is to keep the branch
+# releasable: green CI here means a security fix can be validated and shipped
+# through the manual release process (release.ps1).
+name: CI
+
+on:
+  push:
+    branches: ['rel/4.x.x']
+  pull_request:
+    branches: ['rel/4.x.x']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: 'PS5.1 - Windows', id: ps51-windows, os: windows-latest, shell: powershell }
+          - { name: 'PS7 - Windows',   id: ps7-windows,  os: windows-latest, shell: pwsh }
+          - { name: 'PS7 - Ubuntu',    id: ps7-ubuntu,   os: ubuntu-latest,  shell: pwsh }
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      # Same test invocation AppVeyor used: import the module from the repo
+      # root and run the suite, excluding the tags that need extra tooling.
+      - name: Test Pester
+        shell: ${{ matrix.shell }}
+        run: |
+          $PSVersionTable
+          Set-StrictMode -Version Latest
+          $global:PesterDebugPreference_ShowFullErrors = $true
+          Import-Module ./Pester.psd1
+          Invoke-Pester -ExcludeTag VersionChecks, StyleRules, Help -EnableExit -OutputFile TestResults.xml -OutputFormat NUnitXml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: TestResults.xml
