@@ -727,11 +727,23 @@ function Get-CoverageReport {
 }
 
 function Get-ReportRoot {
-    if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
-        return $PesterPreference.CodeCoverage.ReportRoot.Value
+    $reportRoot = if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
+        $PesterPreference.CodeCoverage.ReportRoot.Value
+    }
+    else {
+        $PesterPreference.Run.RepoRoot.Value
     }
 
-    $PesterPreference.Run.RepoRoot.Value
+    if ([string]::IsNullOrEmpty($reportRoot)) {
+        return $reportRoot
+    }
+
+    # Resolve to an absolute path. Get-RelativePath strips this prefix off the
+    # (absolute) file paths, so a relative ReportRoot/RepoRoot would never match
+    # and the report would keep the absolute paths instead of making them
+    # relative (#2920). GetUnresolvedProviderPathFromPSPath resolves against the
+    # current location without requiring the path to exist.
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($reportRoot)
 }
 
 function Get-RelativePath {

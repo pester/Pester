@@ -1414,4 +1414,30 @@ InPesterModuleScope {
     #             }
     #         }
     #     }
+
+    Describe 'Get-ReportRoot' {
+        It 'resolves a relative CodeCoverage.ReportRoot to an absolute path (#2920)' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+            [System.IO.Path]::IsPathRooted((Get-ReportRoot)) | Should -BeTrue
+        }
+
+        It 'resolves a relative Run.RepoRoot fallback to an absolute path (#2920)' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.Run.RepoRoot = '.'
+            [System.IO.Path]::IsPathRooted((Get-ReportRoot)) | Should -BeTrue
+        }
+
+        It 'lets a relative ReportRoot still yield relative file paths in the report (#2920)' {
+            # Reproduces #2920: with a relative ReportRoot, Get-RelativePath could
+            # not strip the prefix from the absolute file paths, so the report kept
+            # the absolute paths. Get-ReportRoot now resolves to absolute first.
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+            $absRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath('.')
+            $absFile = Join-Path -Path $absRoot -ChildPath (Join-Path 'sub' 'File.ps1')
+            $expected = 'sub{0}File.ps1' -f [System.IO.Path]::DirectorySeparatorChar
+            Get-RelativePath -Path $absFile -RelativeTo (Get-ReportRoot) | Should -Be $expected
+        }
+    }
 }
