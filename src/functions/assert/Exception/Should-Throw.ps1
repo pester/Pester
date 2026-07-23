@@ -143,17 +143,45 @@
 function Get-ErrorObject ($ErrorRecord) {
 
     if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
-        $e = $ErrorRecord.Exception.InnerException.ErrorRecord
+        # The scriptblock ran via InvokeWithContext, so a terminating error is wrapped in
+        # a MethodInvocationException. Unwrap it so we report the same exception that
+        # & { } would have surfaced in $_ (#2873).
+        $inner = $ErrorRecord.Exception.InnerException
+        $record = $inner.ErrorRecord
+
+        # When the inner exception carries an error record whose own exception is just a
+        # ParentContainsErrorRecordException placeholder (e.g. a parameter binding failure,
+        # or a division by zero), the real exception is the inner exception itself.
+        # Otherwise the record's exception is the one the caller threw - for example
+        # Write-Error -ErrorAction Stop wraps the original record in an
+        # ActionPreferenceStopException, and Get-Item -ErrorAction Stop does the same.
+        if ($null -eq $record) {
+            $realException = $inner
+            $record = $ErrorRecord
+        }
+        elseif ($record.Exception -is [System.Management.Automation.ParentContainsErrorRecordException]) {
+            $realException = $inner
+        }
+        else {
+            $realException = $record.Exception
+        }
+
+        [PSCustomObject] @{
+            ErrorRecord           = $record
+            ExceptionMessage      = $realException.Message
+            Exception             = $realException
+            ExceptionType         = $realException.GetType()
+            FullyQualifiedErrorId = $record.FullyQualifiedErrorId
+        }
     }
     else {
-        $e = $ErrorRecord
-    }
-    [PSCustomObject] @{
-        ErrorRecord           = $e
-        ExceptionMessage      = $e.Exception.Message
-        Exception             = $e.Exception
-        ExceptionType         = $e.Exception.GetType()
-        FullyQualifiedErrorId = $e.FullyQualifiedErrorId
+        [PSCustomObject] @{
+            ErrorRecord           = $ErrorRecord
+            ExceptionMessage      = $ErrorRecord.Exception.Message
+            Exception             = $ErrorRecord.Exception
+            ExceptionType         = $ErrorRecord.Exception.GetType()
+            FullyQualifiedErrorId = $ErrorRecord.FullyQualifiedErrorId
+        }
     }
 }
 
