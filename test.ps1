@@ -189,6 +189,10 @@ if ($CI) {
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
+
+    # Modern NUnit3 schema. Both consumers read it: Azure Pipelines
+    # (PublishTestResults@2) and the GitHub Actions pilot (dorny/test-reporter).
+    $configuration.TestResult.OutputFormat = 'NUnit3'
 }
 
 $r = Invoke-Pester -Configuration $configuration
