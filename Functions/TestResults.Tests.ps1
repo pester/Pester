@@ -198,7 +198,7 @@ InModuleScope Pester {
                 #create state
                 $TestResults = New-PesterState -Path TestDrive:\
                 $testResults.EnterTestGroup('Describe #1', 'Describe')
-                $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -mi 1))
+                $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Minutes 1))
                 $testResults.LeaveTestGroup('Describe #1', 'Describe')
                 $testResults.EnterTestGroup('Describe #2', 'Describe')
                 $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))
@@ -352,7 +352,7 @@ InModuleScope Pester {
                 #create state
                 $TestResults = New-PesterState -Path TestDrive:\
                 $testResults.EnterTestGroup('Describe #1', 'Describe')
-                $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -mi 1))
+                $TestResults.AddTestResult("Successful testcase", 'Passed', (New-TimeSpan -Minutes 1))
                 $testResults.LeaveTestGroup('Describe #1', 'Describe')
                 $testResults.EnterTestGroup('Describe #2', 'Describe')
                 $TestResults.AddTestResult("Failed testcase", 'Failed', (New-TimeSpan -Seconds 2))

@@ -1,7 +1,11 @@
 Set-StrictMode -Version Latest
 
 if ($PSVersionTable.PSVersion.Major -lt 6 -or $IsWindows) {
-    $tempPath = $env:TEMP
+    # don't use $env:TEMP directly, GitHub Actions runners set it to the 8.3
+    # short form (C:\Users\RUNNER~1\...) but TestDrive is created via
+    # GetTempPath which returns the long form, so the -like comparisons below
+    # would never match
+    $tempPath = [System.IO.Path]::GetTempPath()
 }
 elseif ($IsMacOS) {
     $tempPath = '/private/tmp'
