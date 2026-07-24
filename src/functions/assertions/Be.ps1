@@ -393,6 +393,27 @@ function ArraysAreEqual {
         throw "Reached the recursion depth limit of $RecursionLimit when comparing arrays $First and $Second. Is one of your arrays cyclic?"
     }
 
+    # Fast path for the overwhelmingly common case: each side is a single non-null value that
+    # PowerShell does not enumerate (numbers, strings, dates, hashtables, scriptblocks, ...),
+    # either bare or wrapped in a one-element object[] - which is what `1 | Should -Be 1` produces,
+    # because Should always hands the Be operator the collected pipeline array. Unwrapping a
+    # one-element object[] matches the full path exactly: @() leaves such an array as-is and the
+    # element loop below compares its single element. LanguagePrimitives.GetEnumerator is the same
+    # enumerability test @() uses, so anything it enumerates (arrays, lists, Keys/Values collections,
+    # enumerators) - including a one-element array wrapping another collection - still takes the full
+    # path. For two single values the full path always reaches the element comparison: the null/empty
+    # checks cannot match (one non-null element), the counts are both 1, and IsArray is false for
+    # both elements, ending in $Second -eq $First (-ceq when case sensitive) - which is what we do
+    # here without the @() allocations and four helper-function calls.
+    $singleFirst = if ($First -is [object[]] -and 1 -eq $First.Length) { $First[0] } else { $First }
+    $singleSecond = if ($Second -is [object[]] -and 1 -eq $Second.Length) { $Second[0] } else { $Second }
+    if ($null -ne $singleFirst -and $null -ne $singleSecond -and
+        $null -eq [System.Management.Automation.LanguagePrimitives]::GetEnumerator($singleFirst) -and
+        $null -eq [System.Management.Automation.LanguagePrimitives]::GetEnumerator($singleSecond)) {
+        if ($CaseSensitive) { return $singleSecond -ceq $singleFirst }
+        return $singleSecond -eq $singleFirst
+    }
+
     # Enumerate the inputs ourselves with @(). PowerShell's [object[]] parameter binding wraps a non-IList
     # enumerable - such as the collection returned by [hashtable].Keys/.Values - into a single element instead
     # of enumerating it, which made Should -Be report two equal collections as different (#1200). @() uses the
@@ -422,14 +443,11 @@ function ArraysAreEqual {
             }
         }
         else {
-            if ($CaseSensitive) {
-                $comparer = { param($Actual, $Expected) $Expected -ceq $Actual }
-            }
-            else {
-                $comparer = { param($Actual, $Expected) $Expected -eq $Actual }
-            }
-
-            if (-not (& $comparer $First[$i] $Second[$i])) {
+            # Inline the element comparison. This previously built a fresh comparer scriptblock and
+            # invoked it (& $comparer) on every iteration even though $CaseSensitive is loop-invariant;
+            # the comparison itself is identical ($Expected -eq/-ceq $Actual, i.e. $Second[$i] vs $First[$i]).
+            $itemsEqual = if ($CaseSensitive) { $Second[$i] -ceq $First[$i] } else { $Second[$i] -eq $First[$i] }
+            if (-not $itemsEqual) {
                 return $false
             }
         }
