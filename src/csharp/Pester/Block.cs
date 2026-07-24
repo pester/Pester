@@ -56,10 +56,10 @@ namespace Pester
         public ScriptBlock OneTimeTestSetup { get; set; }
         public ScriptBlock EachTestTeardown { get; set; }
         public ScriptBlock OneTimeTestTeardown { get; set; }
-        public ScriptBlock EachBlockSetup { get; set; }
-        public ScriptBlock OneTimeBlockSetup { get; set; }
-        public ScriptBlock EachBlockTeardown { get; set; }
-        public ScriptBlock OneTimeBlockTeardown { get; set; }
+        public ScriptBlock EachDescribeSetup { get; set; }
+        public ScriptBlock EachContextSetup { get; set; }
+        public ScriptBlock EachDescribeTeardown { get; set; }
+        public ScriptBlock EachContextTeardown { get; set; }
         public List<object> Order { get; set; } = new List<object>();
 
         public bool Passed { get; set; }

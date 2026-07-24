@@ -54,12 +54,29 @@
         [Parameter(Mandatory = $true,
             Position = 1)]
         [Scriptblock]
-        $Scriptblock
+        $Scriptblock,
+
+        # Run before each test (It) in the current block and its descendants. This is the default
+        # when no target switch is provided.
+        [switch] $It,
+
+        # Run before each Describe block nested in the current block.
+        [switch] $Describe,
+
+        # Run before each Context block nested in the current block.
+        [switch] $Context
     )
     Assert-DescribeInProgress -CommandName BeforeEach
     Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
-    New-EachTestSetup -ScriptBlock $Scriptblock
+    # keep the classic per-test behavior when no target switch is given
+    if (-not ($It -or $Describe -or $Context)) {
+        $It = $true
+    }
+
+    if ($It) { New-EachTestSetup -ScriptBlock $Scriptblock }
+    if ($Describe) { New-EachDescribeSetup -ScriptBlock $Scriptblock }
+    if ($Context) { New-EachContextSetup -ScriptBlock $Scriptblock }
 }
 
 function AfterEach {
@@ -121,12 +138,29 @@ function AfterEach {
         [Parameter(Mandatory = $true,
             Position = 1)]
         [Scriptblock]
-        $Scriptblock
+        $Scriptblock,
+
+        # Run after each test (It) in the current block and its descendants. This is the default
+        # when no target switch is provided.
+        [switch] $It,
+
+        # Run after each Describe block nested in the current block.
+        [switch] $Describe,
+
+        # Run after each Context block nested in the current block.
+        [switch] $Context
     )
     Assert-DescribeInProgress -CommandName AfterEach
     Assert-BoundScriptBlockInput -ScriptBlock $Scriptblock
 
-    New-EachTestTeardown -ScriptBlock $Scriptblock
+    # keep the classic per-test behavior when no target switch is given
+    if (-not ($It -or $Describe -or $Context)) {
+        $It = $true
+    }
+
+    if ($It) { New-EachTestTeardown -ScriptBlock $Scriptblock }
+    if ($Describe) { New-EachDescribeTeardown -ScriptBlock $Scriptblock }
+    if ($Context) { New-EachContextTeardown -ScriptBlock $Scriptblock }
 }
 
 function BeforeAll {
