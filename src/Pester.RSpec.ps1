@@ -203,6 +203,24 @@ function Add-RSpecBlockObjectProperties ($BlockObject) {
     }
 }
 
+function Add-RSpecTestObjectPropertiesToContainer ($Container) {
+    # Direct walk over the container tree instead of Fold-Container. It visits every test in the
+    # same pre-order (tests of a block before its child blocks), but without the fold's per-item
+    # scriptblock dispatch and per-block advanced-function recursion.
+    foreach ($b in $Container.Blocks) {
+        Add-RSpecTestObjectPropertiesToBlock $b
+    }
+}
+
+function Add-RSpecTestObjectPropertiesToBlock ($Block) {
+    foreach ($t in $Block.Tests) {
+        Add-RSpecTestObjectProperties $t
+    }
+    foreach ($b in $Block.Blocks) {
+        Add-RSpecTestObjectPropertiesToBlock $b
+    }
+}
+
 function PostProcess-RspecTestRun ($TestRun, [switch] $Parallel, [TimeSpan] $RunDuration) {
     $discoveryOnly = $PesterPreference.Run.SkipRun.Value
 
@@ -507,56 +525,32 @@ function Remove-RSpecNonPublicProperties ($run) {
     #     'Duration'
     # )
 
-    Fold-Run $run -OnRun {
-        param($i)
-        # $ps = $i.PsObject.Properties.Name
-        # foreach ($p in $ps) {
-        #     if ($p -like 'Plugin*') {
-        #         $i.PsObject.Properties.Remove($p)
-        #     }
-        # }
+    # Direct walk over the run tree instead of Fold-Run; same visit of every block and test,
+    # without the fold's per-item scriptblock dispatch. Containers need no cleanup.
+    foreach ($r in $run) {
+        $r.PluginConfiguration = $null
+        $r.PluginData = $null
+        $r.Plugins = $null
 
-        $i.PluginConfiguration = $null
-        $i.PluginData = $null
-        $i.Plugins = $null
+        foreach ($c in $r.Containers) {
+            foreach ($b in $c.Blocks) {
+                Remove-RSpecNonPublicPropertiesFromBlock $b
+            }
+        }
+    }
+}
 
-    } -OnContainer {
-        param($i)
-        # $ps = $i.PsObject.Properties.Name
-        # foreach ($p in $ps) {
-        #     if ($p -like 'Own*') {
-        #         $i.PsObject.Properties.Remove($p)
-        #     }
-        # }
+function Remove-RSpecNonPublicPropertiesFromBlock ($Block) {
+    $Block.FrameworkData = $null
+    $Block.PluginData = $null
 
-        # $i.FrameworkData = $null
-        # $i.PluginConfiguration = $null
-        # $i.PluginData = $null
-        # $i.Plugins = $null
+    foreach ($t in $Block.Tests) {
+        $t.FrameworkData = $null
+        $t.PluginData = $null
+    }
 
-    } -OnBlock {
-        param($i)
-        # $ps = $i.PsObject.Properties.Name
-        # foreach ($p in $ps) {
-        #     if ($p -eq 'FrameworkData' -or $p -like 'Own*' -or $p -like 'Plugin*') {
-        #         $i.PsObject.Properties.Remove($p)
-        #     }
-        # }
-
-        $i.FrameworkData = $null
-        $i.PluginData = $null
-
-    } -OnTest {
-        param($i)
-        # $ps = $i.PsObject.Properties.Name
-        # foreach ($p in $ps) {
-        #     if ($p -eq 'FrameworkData' -or $p -like 'Plugin*') {
-        #         $i.PsObject.Properties.Remove($p)
-        #     }
-        # }
-
-        $i.FrameworkData = $null
-        $i.PluginData = $null
+    foreach ($b in $Block.Blocks) {
+        Remove-RSpecNonPublicPropertiesFromBlock $b
     }
 }
 

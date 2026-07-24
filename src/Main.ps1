@@ -853,7 +853,7 @@ function Invoke-Pester {
                     }
 
                     foreach ($c in $rspecResult.Containers) {
-                        Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
+                        Add-RSpecTestObjectPropertiesToContainer $c
                         $foldedContainers.Add($c)
                     }
                 }
@@ -931,7 +931,7 @@ function Invoke-Pester {
                 }
 
                 foreach ($c in $rspecContainers) {
-                    Fold-Container -Container $c  -OnTest { param($t) Add-RSpecTestObjectProperties $t }
+                    Add-RSpecTestObjectPropertiesToContainer $c
                 }
             }
 
