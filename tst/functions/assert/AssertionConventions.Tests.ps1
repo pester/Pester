@@ -28,13 +28,6 @@ BeforeDiscovery {
     # (including a positional -Because), so they are exempt from the -Because and -Actual rules.
     $parameterAssertions = 'Should-HaveParameter', 'Should-NotHaveParameter'
 
-    # --- Known deviation (NOT an intentional exception) ---------------------------------------
-    # Should-BeHashtable is a single-subject shape assertion (no positional comparand) but currently
-    # declares -Actual at Position 1 instead of 0 - the exact shape #2933 fixed on the other
-    # single-subject assertions. It is excluded from the -Actual position check only to keep this
-    # suite green. Remove this entry once -Actual moves to Position 0 in the source.
-    $knownActualPositionDeviations = 'Should-BeHashtable'
-
     function Get-ParameterAttribute ($Parameter) {
         $Parameter.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
     }
@@ -101,7 +94,7 @@ BeforeDiscovery {
 
             ActualPosition            = Get-MinPosition $actual
             ActualPositionExpected    = switch ($subject) { 'SingleSubject' { 0 } 'TwoArgument' { 1 } default { $null } }
-            ActualPositionChecked     = $category -eq 'Value' -and $name -notin $knownActualPositionDeviations
+            ActualPositionChecked     = $category -eq 'Value'
 
             ComparandName             = if ($comparand) { $comparand.Name } else { $null }
             ComparandMandatory        = [bool]($comparand -and ((Get-ParameterAttribute $comparand) | Where-Object Mandatory))
@@ -113,7 +106,7 @@ BeforeDiscovery {
     }
 
     $everyAssertion = $assertions
-    $shapedValueAssertions = $assertions | Where-Object { $_.Category -eq 'Value' -and $_.Name -notin $knownActualPositionDeviations }
+    $shapedValueAssertions = $assertions | Where-Object { $_.Category -eq 'Value' }
     $namedBecauseAssertions = $assertions | Where-Object BecauseNamedOnlyExpected
     $pipelineAssertions = $assertions | Where-Object SubjectFromPipelineExpected
     $singleSubjectAssertions = $assertions | Where-Object { $_.ActualPositionChecked -and $_.Subject -eq 'SingleSubject' }
