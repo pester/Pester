@@ -125,47 +125,53 @@ Describe 'Should-* assertion conventions' {
 
     It 'Discovers the exported Should-* assertions' -ForEach @{ AssertionCount = @($everyAssertion).Count } {
         # Guards against the reflection silently finding nothing (e.g. module not imported).
-        $AssertionCount | Should -BeGreaterThan 30
+        ($AssertionCount -gt 30) | Verify-True
     }
 
     It '<_.Name> has a recognised assertion shape' -ForEach $shapedValueAssertions {
         # A value assertion is either single-subject (-Actual only) or two-argument (comparand + -Actual).
         # Anything else is a new shape that needs an explicit decision, not a silent pass.
-        $_.Subject | Should -BeIn @('SingleSubject', 'TwoArgument') -Because "$($_.Name) does not match a known assertion shape"
+        (@('SingleSubject', 'TwoArgument') -contains $_.Subject) | Verify-True
     }
 
     Context '-Because is a named-only [string]' {
         It '<_.Name> exposes -Because as [string]' -ForEach $everyAssertion {
-            $_.BecausePresent | Should -BeTrue -Because "$($_.Name) should expose a -Because parameter"
-            $_.BecauseTypeName | Should -Be 'String' -Because "$($_.Name) -Because should be [string]"
+            $_.BecausePresent | Verify-True
+            $_.BecauseTypeName | Verify-Equal 'String'
         }
 
         It '<_.Name> keeps -Because named-only (no Position)' -ForEach $namedBecauseAssertions {
-            # A parameter without a Position reports Int32.MinValue, i.e. a negative number.
-            $_.BecausePosition | Should -BeLessThan 0 -Because "$($_.Name) -Because must be passed by name, not by position"
+            # A parameter without a Position reports Int32.MinValue, i.e. a negative number, so
+            # -Because must be passed by name and not by position.
+            ($_.BecausePosition -lt 0) | Verify-True
         }
     }
 
     Context 'the subject binds from the pipeline' {
         It '<_.Name> binds its subject from the pipeline' -ForEach $pipelineAssertions {
-            $_.PipelineParameterCount | Should -Be 1 -Because "$($_.Name) should have exactly one ValueFromPipeline parameter"
-            $_.PipelineParameterNames | Should -Be $_.ExpectedSubjectName -Because "$($_.Name) should bind -$($_.ExpectedSubjectName) from the pipeline"
+            # Exactly one ValueFromPipeline parameter, and it is the expected subject.
+            $expectedSubject = $_.ExpectedSubjectName
+            $_.PipelineParameterCount | Verify-Equal 1
+            $_.PipelineParameterNames | Verify-Equal $expectedSubject
         }
     }
 
     Context '-Actual position follows the single-/two-argument convention' {
         It '<_.Name> (single-subject) puts -Actual at Position 0' -ForEach $singleSubjectAssertions {
-            $_.ActualPosition | Should -Be 0 -Because "$($_.Name) has no positional comparand, so -Actual should be at Position 0"
+            # No positional comparand, so -Actual should be at Position 0.
+            $_.ActualPosition | Verify-Equal 0
         }
 
         It '<_.Name> (two-argument) puts -Actual at Position 1' -ForEach $twoArgumentAssertions {
-            $_.ActualPosition | Should -Be 1 -Because "$($_.Name) has a positional comparand at Position 0, so -Actual should be at Position 1"
+            # A positional comparand sits at Position 0, so -Actual should be at Position 1.
+            $_.ActualPosition | Verify-Equal 1
         }
     }
 
     Context 'the comparand is mandatory' {
         It '<_.Name> makes its comparand -<_.ComparandName> mandatory' -ForEach $comparandAssertions {
-            $_.ComparandMandatory | Should -BeTrue -Because "$($_.Name) -$($_.ComparandName) is the positional comparand and should be mandatory"
+            # The positional comparand (e.g. -Expected) must be mandatory.
+            $_.ComparandMandatory | Verify-True
         }
     }
 }
