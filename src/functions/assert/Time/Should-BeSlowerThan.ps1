@@ -54,7 +54,7 @@
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory)]
         $Expected,
         [string] $Because
     )

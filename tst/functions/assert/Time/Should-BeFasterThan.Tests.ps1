@@ -54,4 +54,9 @@ Describe "Should-BeFasterThan" {
         $err = { $Actual | Should-BeFasterThan -Expected $Expected -Because $Because } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Like '*because I said so*'
     }
+
+    It "Requires Expected" {
+        $err = { [timespan]::FromMilliseconds(1) | Should-BeFasterThan } | Verify-Throw
+        $err.Exception | Verify-Type ([System.Management.Automation.ParameterBindingException])
+    }
 }
