@@ -45,6 +45,19 @@ Describe "Should-NotBeString" {
         It "Can compare strings without whitespace" {
             { Should-NotBeString -Expected " a b c " -Actual "abc" -IgnoreWhitespace } | Verify-AssertionFailed
         }
+
+        It "Fails when strings differ only by whitespace at the start or end" -ForEach @(
+            @{ Value = " abc" }
+            @{ Value = "abc " }
+            @{ Value = "abc`t" }
+            @{ Value = "`tabc" }
+        ) {
+            { $Value | Should-NotBeString -Expected "abc" -TrimWhitespace } | Verify-AssertionFailed
+        }
+
+        It "Trimming whitespace does not remove it from inside of the string" {
+            "a bc" | Should-NotBeString -Expected "abc" -TrimWhitespace
+        }
     }
 
     It "Can be called with positional parameters" {

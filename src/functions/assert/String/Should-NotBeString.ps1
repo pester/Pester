@@ -22,6 +22,9 @@ function Should-NotBeString {
     .PARAMETER IgnoreWhitespace
     Indicates that the comparison should ignore whitespace.
 
+    .PARAMETER TrimWhitespace
+    Trims whitespace at the start and end of the string.
+
     .PARAMETER Because
     The reason why the actual value should not be equal to the expected value.
 
@@ -61,7 +64,8 @@ function Should-NotBeString {
         [String]$Expected,
         [String]$Because,
         [switch]$CaseSensitive,
-        [switch]$IgnoreWhitespace
+        [switch]$IgnoreWhitespace,
+        [switch]$TrimWhitespace
     )
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
@@ -71,7 +75,7 @@ function Should-NotBeString {
         throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -ne operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
     }
 
-    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace) {
+    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace) {
         if (-not $CustomMessage) {
             $formattedMessage = Get-StringNotEqualDefaultFailureMessage -Expected $Expected -Actual $Actual
         }
