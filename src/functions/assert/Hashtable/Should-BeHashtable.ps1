@@ -69,6 +69,10 @@
     `Should-BeHashtable` only asserts on the shape of the dictionary. To compare its keys and
     values against an expected dictionary, use `Should-BeEquivalent`.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeHashtable
 
@@ -86,24 +90,19 @@
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if (-not (Is-Dictionary -Value $Actual)) {
-        $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected a hashtable,<because> but got <actualType> <actual>."
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected a hashtable,<because> but got <actualType> <actual>.", @{ Because = $Because })
     }
 
     if ($Ordered -and ($Actual -isnot [System.Collections.Specialized.OrderedDictionary])) {
-        $Message = Get-AssertionMessage -Expected $null -Actual $Actual -Because $Because -DefaultMessage "Expected an ordered hashtable ([ordered]@{}),<because> but got unordered <actualType> <actual>."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected an ordered hashtable ([ordered]@{}),<because> but got unordered <actualType> <actual>.", @{ Because = $Because })
     }
 
     if ($PSBoundParameters.ContainsKey('Count') -and ($Count -ne $Actual.Count)) {
-        $Message = Get-AssertionMessage -Expected $Count -Actual $Actual -Because $Because -Data @{ actualCount = $Actual.Count } -DefaultMessage "Expected <expected> entries in hashtable <actual>,<because> but it has <actualCount> entries."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected <expected> entries in hashtable <actual>,<because> but it has <actualCount> entries.", @{ Expected = $Count; Because = $Because; actualCount = $Actual.Count })
     }
 
     if ($PSBoundParameters.ContainsKey('Key')) {
@@ -113,8 +112,7 @@
         if ($missingKeys.Count -gt 0) {
             $missingFormatted = @(foreach ($k in $missingKeys) { Format-Nicely2 -Value $k }) -join ', '
             $keyWord = if ($missingKeys.Count -eq 1) { 'key' } else { 'keys' }
-            $Message = Get-AssertionMessage -Expected $Key -Actual $Actual -Because $Because -DefaultMessage "Expected hashtable <actual> to contain $keyWord $missingFormatted,<because> but it does not."
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            $assert.Fail("Expected hashtable <actual> to contain $keyWord $missingFormatted,<because> but it does not.", @{ Expected = $Key; Because = $Because })
         }
 
         # When the dictionary is asserted to be ordered, the requested keys must also appear in the
@@ -138,11 +136,8 @@
             if (-not $inOrder) {
                 $keysFormatted = @(foreach ($k in $Key) { Format-Nicely2 -Value $k }) -join ', '
                 $actualOrderFormatted = @(foreach ($k in $actualKeys) { Format-Nicely2 -Value $k }) -join ', '
-                $Message = Get-AssertionMessage -Expected $Key -Actual $Actual -Because $Because -DefaultMessage "Expected keys $keysFormatted to appear in this order in hashtable <actual>,<because> but the actual key order is $actualOrderFormatted."
-                Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+                $assert.Fail("Expected keys $keysFormatted to appear in this order in hashtable <actual>,<because> but the actual key order is $actualOrderFormatted.", @{ Expected = $Key; Because = $Because })
             }
         }
     }
-
-    Set-AssertionPassResult
 }

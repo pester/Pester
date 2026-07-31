@@ -42,6 +42,23 @@ i -PassThru:$PassThru {
             $xmlTestCase.time | Verify-XmlTime -AsJUnitFormat -Expected $r.Containers[0].Blocks[0].Tests[0].Duration
         }
 
+        t "should write the testsuite timestamp as local time without timezone" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $expectedTimestamp = $r.Containers[0].ExecutedAt.ToString('yyyy-MM-ddTHH:mm:ss', [System.Globalization.CultureInfo]::InvariantCulture)
+            $xmlTestSuite.timestamp | Verify-Equal $expectedTimestamp
+        }
+
         t "should write a failed test result" {
             $sb = {
                 Describe "Mocked Describe" {
@@ -261,6 +278,53 @@ i -PassThru:$PassThru {
                     }
                 }
             }
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = [xml] ($r | ConvertTo-JUnitReport)
+
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
+    b "When a container fails during discovery it is reported" {
+        # https://github.com/pester/Pester/issues/2664
+        # Passing an array directly to It (instead of via -TestCases) throws during discovery.
+        $sb = {
+            Describe "Count" {
+                It "Returns sum" @(
+                    @{ Name = 1; Expected = 2 }
+                    @{ Name = 2; Expected = 4 }
+                ) {
+                    $Name + $Name | Should -Be $Expected
+                }
+            }
+        }
+
+        t "discovery-failed container is written as an erroring testsuite carrying its error" {
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            # sanity: the container failed during discovery and did not run any tests
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+
+            # the report totals reflect the failure instead of reporting zero
+            $xmlResult.'testsuites'.errors | Verify-Equal '1'
+            $xmlResult.'testsuites'.tests | Verify-Equal '1'
+
+            $xmlTestSuite = $xmlResult.'testsuites'.'testsuite'
+            $xmlTestSuite.errors | Verify-Equal '1'
+            $xmlTestSuite.tests | Verify-Equal '1'
+
+            $xmlTestCase = $xmlTestSuite.'testcase'
+            $xmlTestCase.status | Verify-Equal 'Failed'
+            $xmlTestCase.error | Verify-NotNull
+            $xmlTestCase.error.message | Verify-Like '*ScriptBlock*'
+        }
+
+        t "discovery-failure report validates against the junit 4 schema" {
             $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
 
             $xmlResult = [xml] ($r | ConvertTo-JUnitReport)

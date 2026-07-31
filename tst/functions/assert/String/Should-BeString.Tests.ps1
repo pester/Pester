@@ -85,6 +85,37 @@ Describe "Should-BeString" {
         "abc" | Should-BeString "abc"
     }
 
+    Context "Empty expected string" {
+        It "Passes when both expected and actual are empty strings" {
+            Should-BeString -Expected "" -Actual ""
+        }
+
+        It "Passes when expected is empty and actual is passed by pipeline" {
+            "" | Should-BeString -Expected ""
+        }
+
+        It "Passes when empty expected is passed by position" {
+            "" | Should-BeString ""
+        }
+
+        It "Fails when expected is empty but actual is not" {
+            { Should-BeString -Expected "" -Actual "abc" } | Verify-AssertionFailed
+        }
+
+        It "Throws with default message when expected is empty but actual is not" {
+            $err = { Should-BeString -Expected "" -Actual "abc" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal (@'
+Expected strings to be the same, but they were different.
+Expected length: 0
+Actual length:   3
+Strings differ at index 0.
+Expected: ''
+But was:  'abc'
+          ^
+'@ -replace "`r`n", "`n")
+        }
+    }
+
     It "Fails when collection of strings is passed in by pipeline, even if the last string is the same as the expected string" {
         { "bde", "abc" | Should-BeString -Expected "abc" } | Verify-AssertionFailed
     }

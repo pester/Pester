@@ -31,6 +31,11 @@
 
     The assertions will fail because none of theitems in the array are greater than 4.
 
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-Any
 
@@ -51,23 +56,11 @@
     Assert-BoundScriptBlockInput -ScriptBlock $FilterScript
 
     $Expected = $FilterScript
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
-
-    # Captured up-front (cheap reference grabs); the diagnostic hint itself is only computed inside
-    # a failure branch, via & $reportFailure, so there is no cost on the passing path.
-    $pipelineBuffer = $local:Input
-    $isPipelineInput = $collectedInput.IsPipelineInput
-    $reportFailure = {
-        param($Message)
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $pipelineBuffer -CollectedActual $Actual -IsPipelineInput $isPipelineInput -Expecting CollectionItems
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
-    }
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
+    $Actual = $assert.Actual()
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        & $reportFailure $Message
+        $assert.Fail("Expected at least one item in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare.", @{ Expected = $Expected; Because = $Because })
     }
 
     $failReasons = $null
@@ -103,7 +96,7 @@
     }
 
     if (-not $pass) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected at least one item in collection <actual> to pass filter <expected>, but none of the items passed the filter."
+        $Message = "Expected at least one item in collection <actual> to pass filter <expected>, but none of the items passed the filter."
         if ($null -ne $failReasons) {
             $failReasons = $failReasons -join "`n"
             if ($appendMore) {
@@ -111,7 +104,6 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        & $reportFailure $Message
+        $assert.Fail($Message, @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

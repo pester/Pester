@@ -14,6 +14,7 @@ $script:ReportStrings = DATA {
         Context           = 'Context {0}'
         Margin            = ' '
         Timing            = 'Tests completed in {0}'
+        Tags              = ' [Tags: {0}]'
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -125,6 +126,23 @@ function Write-PesterHostMessage {
     }
 
     process {
+        # In a parallel worker the whole run is silenced (Output.Verbosity = 'None') and its output is
+        # captured into the shared event tape (see Invoke-TestInParallel) so the parent can replay it in
+        # order. In a ForEach-Object -Parallel runspace writing to the host right away surfaces live and
+        # detached from the test that produced it (#2825), so instead append the message to the tape. The
+        # worker runs one file synchronously, so append order is already the correct order, and host/debug
+        # entries land interleaved with the per-test steps the recorder captured around them.
+        # Read the tape via GetValue, not the 'defined' helper: 'defined' returns the value through a
+        # function output, which enumerates a collection and hands back its first element instead of the
+        # list itself. GetValue returns the list object and tolerates the variable being unset ($null).
+        $parallelOutputTape = $ExecutionContext.SessionState.PSVariable.GetValue('parallelOutputTape')
+        if ($null -ne $parallelOutputTape) {
+            $captured = @{}
+            foreach ($k in $PSBoundParameters.Keys) { $captured[$k] = $PSBoundParameters[$k] }
+            $null = $parallelOutputTape.Add([PSCustomObject]@{ Step = $null; Host = $captured })
+            return
+        }
+
         if (-not $HostSupportsOutput) { return }
 
         if ($RenderMode -eq 'Ansi') {
@@ -606,8 +624,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $humanTime = "$(Get-HumanTime ($Context.Result.Duration))"
 
             if ($Context.Result.Passed) {
+                $testCount = $Context.Result.TotalCount
+                $testCountText = if (1 -eq $testCount) { '1 test' } else { "$testCount tests" }
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " ($testCountText)"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
@@ -669,6 +690,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
         else {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
+        }
+
+        if ($PesterPreference.Output.ShowTags.Value -and $null -ne $_test.Tag -and 0 -lt @($_test.Tag).Count) {
+            $out += $ReportStrings.Tags -f ($_test.Tag -join ', ')
         }
 
         # UserDuration and FrameworkDuration are kept on the result object for profiling,
@@ -1046,6 +1071,10 @@ function Write-BlockToScreen {
     $name = if (-not [string]::IsNullOrWhiteSpace($Block.ExpandedName)) { $Block.ExpandedName } else { $Block.Name }
     $text = $ReportStrings.$commandUsed -f $name
 
+    if ($PesterPreference.Output.ShowTags.Value -and $null -ne $Block.Tag -and 0 -lt @($Block.Tag).Count) {
+        $text += $ReportStrings.Tags -f ($Block.Tag -join ', ')
+    }
+
     if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
         $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
     }
@@ -1124,6 +1153,19 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
     $supportedCILogLevels = 'Error', 'Warning'
     if ($PesterPreference.Output.CILogLevel.Value -notin $supportedCILogLevels) {
         throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
+    }
+
+    $supportedCIDebugOutput = 'None', 'Auto'
+    if ($PesterPreference.Output.CIDebugOutput.Value -notin $supportedCIDebugOutput) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIDebugOutput' -SupportedValues $supportedCIDebugOutput -Value $PesterPreference.Output.CIDebugOutput.Value)
+    }
+    elseif ((-not $PesterPreference.Output.Verbosity.IsModified) -and (Test-CIDebugOutputEnabled -PesterPreference $PesterPreference)) {
+        # A CI system has its debug switch enabled and the user did not set a verbosity. Raise it to
+        # Diagnostic so the run shows detailed output and Pester's debug messages, the same way e.g.
+        # Azure DevOps' System.Debug makes the rest of the pipeline verbose. The user's own
+        # Write-Verbose and Write-Debug in tests is surfaced separately during the run, see
+        # Invoke-ContainerRun in Pester.Runtime.ps1.
+        $PesterPreference.Output.Verbosity = 'Diagnostic'
     }
 
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {

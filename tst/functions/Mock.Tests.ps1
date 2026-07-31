@@ -743,7 +743,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 times*'
+        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -757,7 +757,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 time*'
     }
 }
 
@@ -775,7 +775,36 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 1 time*"
+    }
+
+    It "Should throw and report the call count using plural 'times' when called more than once" {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 2 times*"
+    }
+
+    It 'Should include reason when -Because is used' {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -817,7 +846,9 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $Times times, but was called $MockCalls times*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $callsText = if ($MockCalls -eq 1) { '1 time' } else { "$MockCalls times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $timesText, but was called $callsText*"
     }
 
     It 'Should include reason when -Because is used' {
@@ -830,7 +861,7 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 times, because of reasons, but was called 2 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 time, because of reasons, but was called 2 times*'
     }
 }
 
@@ -871,7 +902,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 time, but it was*"
     }
 
     It "Should not throw if mock was not called" {
@@ -885,7 +916,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 times, because of reasons, but it was*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 time, because of reasons, but it was*'
     }
 }
 
@@ -924,7 +955,8 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $Times times, but it was*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $timesText, but it was*"
     }
 }
 
@@ -1009,7 +1041,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 times*
+        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 time*
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
@@ -1046,7 +1078,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 times exactly, but was called 0 times
+        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 time exactly, but was called 0 times
 Performed invocations:
   <none>' -replace "`r`n", "`n")
     }
@@ -2027,6 +2059,23 @@ Describe 'Mocking commands with potentially ambiguous parameter sets' {
     }
 }
 
+Describe 'Mocking a cmdlet with multiple non-default parameter sets and no DefaultParameterSetName (#1531)' {
+    # Get-PackageSource has two provider-specific parameter sets (NuGet and PowerShellGet) with no
+    # default, and its dynamic parameters introduce those sets. Without a DefaultParameterSetName in
+    # the generated bootstrap proxy, PowerShell cannot resolve the parameter set when the mock is
+    # called with no arguments, producing "Parameter set cannot be resolved". The fix injects
+    # DefaultParameterSetName='__AllParameterSets' into the proxy [CmdletBinding()] for any cmdlet
+    # whose metadata has an empty DefaultParameterSetName.
+
+    It 'Can mock Get-PackageSource and call it with no arguments' -Skip:($null -eq (Get-Command Get-PackageSource -ErrorAction SilentlyContinue)) {
+        Mock Get-PackageSource { [PSCustomObject]@{ Name = 'MockedSource'; ProviderName = 'NuGet' } }
+
+        $result = Get-PackageSource
+        $result.Name | Should -Be 'MockedSource'
+        Should -Invoke Get-PackageSource -Times 1
+    }
+}
+
 Describe 'When mocking a command that has an ArgumentList parameter with validation' {
     BeforeAll {
         Mock Start-Process { return 'mocked' }
@@ -2963,6 +3012,85 @@ Describe 'Mocking command with ValidateRange-attributes' {
         It 'mocked cmdlet does not throw' {
             Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }
             Start-BitsTransfer -Source "/nonexistingpath" | Should -Be 'mock'
+        }
+    }
+}
+
+Describe 'Mocking command with OrderedDictionary-parameters' {
+    # https://github.com/pester/Pester/issues/2370
+    # Bug in PowerShell. ProxyCommand-generation serializes [System.Collections.Specialized.OrderedDictionary]
+    # parameters using the [ordered] type accelerator on PowerShell 7+, which is invalid as a parameter type
+    # constraint and makes the mock bootstrap function fail to compile. Needs Repair-OrderedType.
+
+    It 'mocked function does not throw when param is <Name>' -TestCases @(
+        @{
+            Name      = 'a scalar OrderedDictionary'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary]$Context'
+        },
+        @{
+            Name      = 'an OrderedDictionary with other params'
+            Parameter = '[string]$Name, [System.Collections.Specialized.OrderedDictionary]$Context, [int]$Count'
+        },
+        @{
+            Name      = 'an OrderedDictionary array'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary[]]$Contexts'
+        }
+    ) {
+        Set-Item -Path 'function:Test-OrderedParameter' -Value ('param ( {0} )' -f $Parameter)
+
+        Mock -CommandName 'Test-OrderedParameter' -MockWith { 'mock' }
+        Test-OrderedParameter | Should -Be 'mock'
+    }
+
+    It 'mocked function is invoked and captures the OrderedDictionary argument' {
+        function Get-OrderedThing { param([System.Collections.Specialized.OrderedDictionary]$Context) 'real' }
+        function Invoke-OrderedWrapper { Get-OrderedThing -Context ([ordered]@{ a = 1 }) }
+
+        Mock -CommandName 'Get-OrderedThing' -MockWith { 'mock' }
+
+        Invoke-OrderedWrapper | Should -Be 'mock'
+        Should -Invoke Get-OrderedThing -Times 1 -Exactly
+    }
+}
+
+Describe 'Mocking command with an Encoding parameter' {
+    # https://github.com/pester/Pester/issues/1877
+    # On PowerShell 6+ Out-File (and Export-Csv, Import-Csv, Export-Clixml, ...) declare -Encoding
+    # as [System.Text.Encoding] and rely on an internal transformation attribute to convert friendly
+    # names such as 'utf8NoBOM' into a System.Text.Encoding value. ProxyCommand-generation cannot
+    # reproduce that internal attribute, so mocking such a command and calling it with a friendly
+    # encoding name used to throw a ParameterBindingArgumentTransformationException. Repair-EncodingParameters
+    # relaxes the parameter type to [object] so the mock accepts any value the real command accepts.
+
+    # Self-gating: Windows PowerShell declares -Encoding as an enum, so the bug and fix only apply
+    # where Out-File uses [System.Text.Encoding].
+    if ((Get-Command Out-File).Parameters['Encoding'].ParameterType -eq [System.Text.Encoding]) {
+
+        It 'does not throw and returns the mock when called with a friendly encoding name' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'records the invocation with the friendly encoding name available to the parameter filter' {
+            Mock Out-File { 'mocked' }
+            'data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM
+            Should -Invoke Out-File -Times 1 -Exactly -ParameterFilter { $Encoding -eq 'utf8NoBOM' }
+        }
+
+        It 'still routes to the mock when called with a System.Text.Encoding object' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding ([System.Text.Encoding]::UTF8)) | Should -Be 'mocked'
+            Should -Invoke Out-File -Times 1 -Exactly
+        }
+
+        It 'applies to other cmdlets that use the encoding transformation (Export-Csv)' {
+            Mock Export-Csv { 'mocked' }
+            ([pscustomobject]@{ A = 1 } | Export-Csv -Path 'TestDrive:/f.csv' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'still supports the -RemoveParameterType Encoding workaround' {
+            Mock Out-File { 'mocked' } -RemoveParameterType Encoding
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
         }
     }
 }

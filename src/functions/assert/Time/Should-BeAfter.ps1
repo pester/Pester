@@ -58,6 +58,10 @@
     .NOTES
     The `Should-BeAfter` assertion is the opposite of the `Should-BeBefore` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeAfter
 
@@ -89,8 +93,8 @@
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     # Now is just a syntax marker, we don't need to do anything with it.
     $Now = $Now
@@ -124,11 +128,7 @@
         $comparisonError = $_
     }
     if ($comparisonError -or $failed) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected>,<because> but it was before: <actual>"
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($comparisonError -and -not $hint) { throw $comparisonError }
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        if ($comparisonError -and -not $assert.Hint()) { throw $comparisonError }
+        $assert.Fail("Expected the provided [datetime] to be after <expectedType> <expected>,<because> but it was before: <actual>", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

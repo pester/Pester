@@ -46,12 +46,10 @@ function Resolve-PesterBeforeContainer {
     parallel runs. Parallel workers especially start from a clean runspace and would otherwise be
     missing it.
 
-    - If Run.BeforeContainer is set, its scriptblocks win and apply to every container.
-      ScriptBlocks cannot cross the runspace boundary, so they are returned as text and recreated
-      with [scriptblock]::Create where they run.
-    - Otherwise Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root
-      (Run.RepoRoot, which defaults to the nearest '.git' directory and can be overridden) and
-      dot-sources it, giving a zero-config per-repo bootstrap.
+    Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root (Run.RepoRoot,
+    which defaults to the nearest '.git' directory and can be overridden) and dot-sources it,
+    giving a zero-config per-repo bootstrap. Because it is a real file it always exposes a stable
+    '$PSScriptRoot' / '$PSCommandPath' to anchor relative paths against.
 
     The result is the same for every container, so callers resolve it once per run.
     Returns $null when there is nothing to run.
@@ -62,11 +60,6 @@ function Resolve-PesterBeforeContainer {
         [Parameter(Mandatory)]
         $Configuration
     )
-
-    $explicit = $Configuration.Run.BeforeContainer.Value
-    if ($explicit -and 0 -lt @($explicit).Count) {
-        return (@(foreach ($sb in $explicit) { $sb.ToString() }) -join [Environment]::NewLine)
-    }
 
     $repoRoot = $Configuration.Run.RepoRoot.Value
     if ([string]::IsNullOrEmpty($repoRoot)) {
@@ -94,22 +87,29 @@ function Split-PesterEventTape {
     DiscoveryEnd/RunStart steps at the right moment, the parent needs the per-container steps
     grouped by phase: everything up to and including ContainerDiscoveryEnd is discovery, the
     rest (ContainerRunStart onward) is the run.
+
+    The tape may also carry host/debug output entries (Step = $null) captured while the file ran.
+    Splitting positionally at ContainerDiscoveryEnd - rather than by step name - keeps each of those
+    entries in the phase it was produced in, so debug written during discovery replays with discovery
+    and debug written during the run replays interleaved with the tests.
     #>
     [CmdletBinding()]
     param(
         [object[]] $Tape
     )
 
-    $discoverySteps = @('ContainerDiscoveryStart', 'BlockDiscoveryStart', 'TestDiscoveryStart', 'TestDiscoveryEnd', 'BlockDiscoveryEnd', 'ContainerDiscoveryEnd')
     $discovery = [System.Collections.Generic.List[object]]@()
     $run = [System.Collections.Generic.List[object]]@()
 
+    $inRun = $false
     foreach ($entry in $Tape) {
-        if ($discoverySteps -contains $entry.Step) {
-            $discovery.Add($entry)
-        }
-        else {
+        if ($inRun) {
             $run.Add($entry)
+            continue
+        }
+        $discovery.Add($entry)
+        if ('ContainerDiscoveryEnd' -eq $entry.Step) {
+            $inRun = $true
         }
     }
 
@@ -147,9 +147,13 @@ function Invoke-TestInParallel {
 
     .NOTES
     Prototype limitations:
-    - CodeCoverage and TestResult are disabled inside workers to avoid output-file collisions;
-      merging coverage across workers is not handled yet. TestResult is produced once by the
-      parent from the merged result tree.
+    - TestResult is disabled inside workers to avoid output-file collisions; it is produced once by
+      the parent from the merged result tree.
+    - CodeCoverage, when enabled, is collected inside every worker using breakpoints (the default
+      profiler/tracer uses a process-global static and is not concurrency-safe across the worker
+      runspaces). Each worker returns its measured locations with per-location hit counts; the parent
+      merges them and produces the single coverage report and output file. Workers skip their own
+      report generation and file write via the CodeCoverageSkipReport module flag.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Get-Module/Import-Module run in a fresh ForEach-Object -Parallel runspace where the module-internal $SafeCommands table is unavailable.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-ObjectCmdlets', '', Justification = 'ForEach-Object -Parallel is the runspace-parallelism primitive with no language-keyword equivalent; the accompanying Where-Object/Sort-Object run once over the small per-run result set.')]
@@ -163,8 +167,8 @@ function Invoke-TestInParallel {
         $Configuration
     )
 
-    # The BeforeContainer initialization is the same for every file (resolved from
-    # Run.BeforeContainer or the repo-root convention file), so resolve it once and reuse it.
+    # The BeforeContainer initialization is the same for every file (resolved from the repo-root
+    # Pester.BeforeContainer.ps1 convention file), so resolve it once and reuse it.
     $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
@@ -175,7 +179,17 @@ function Invoke-TestInParallel {
         })
 
     # Path to the currently loaded Pester so each worker imports the exact same build.
-    $modulePath = $ExecutionContext.SessionState.Module.Path
+    # Use the module manifest (.psd1), not the root module (.psm1) that Module.Path points to:
+    # importing the bare .psm1 loads Pester without its manifest metadata, so its ModuleVersion
+    # becomes 0.0.0.0. That then fails to satisfy any module a test imports whose manifest lists
+    # Pester in RequiredModules (e.g. @{ ModuleName = 'Pester'; ModuleVersion = '5.7.1' }),
+    # because the loaded 0.0.0.0 is below the required version (#2816).
+    $pesterModuleInfo = $ExecutionContext.SessionState.Module
+    $modulePath = $pesterModuleInfo.Path
+    $manifestPath = & $SafeCommands['Join-Path'] $pesterModuleInfo.ModuleBase "$($pesterModuleInfo.Name).psd1"
+    if (& $SafeCommands['Test-Path'] -LiteralPath $manifestPath -PathType Leaf) {
+        $modulePath = $manifestPath
+    }
 
     # Cap concurrency at Run.ParallelThrottleLimit when set (> 0); otherwise use all processors.
     $requestedThrottle = [int]$Configuration.Run.ParallelThrottleLimit.Value
@@ -188,12 +202,15 @@ function Invoke-TestInParallel {
     if ($throttle -lt 1) { $throttle = 1 }
 
     # Sanitize the configuration handed to workers: strip the options that hold scriptblocks so
-    # nothing with runspace affinity is sent across the boundary. BeforeContainer is
+    # nothing with runspace affinity is sent across the boundary. The BeforeContainer setup is
     # already resolved to text per work item above; ScriptBlock/Container are unused for file runs.
     $baseConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
-    $baseConfig.Run.BeforeContainer = [scriptblock[]]@()
     $baseConfig.Run.ScriptBlock = [scriptblock[]]@()
     $baseConfig.Run.Container = @()
+
+    # Whether this run measures code coverage. When enabled the workers collect breakpoint-based
+    # coverage (see the .NOTES) and the parent merges it. When disabled coverage stays off entirely.
+    $collectCoverage = [bool] $Configuration.CodeCoverage.Enabled.Value
 
     # The per-container and per-test plugin steps each worker records and the parent replays.
     # Global steps (Start/DiscoveryStart/DiscoveryEnd/RunStart/RunEnd/End) are intentionally
@@ -208,15 +225,17 @@ function Invoke-TestInParallel {
     # Worker body. Imports Pester, runs the per-container initialization (so helper
     # modules/functions the parent provided are available), clones the base configuration (via
     # Merge so unset options keep their defaults), points it at a single file, disables
-    # parallel/exit/throw to avoid recursion and process exits, disables result/coverage file
-    # writing to avoid concurrent workers overwriting output files, and silences the worker's own
-    # console output. A recorder plugin is injected (via the supported $script:additionalPlugins
-    # channel) to capture the ordered plugin-event tape, which is returned to the parent for replay.
+    # parallel/exit/throw to avoid recursion and process exits, disables the TestResult file write
+    # (the parent produces it), and silences the worker's own console output. When coverage is on it
+    # is measured with breakpoints and the report/file write is suppressed, so the parent can merge
+    # every worker's hits and emit one report. A recorder plugin is injected (via the supported
+    # $script:additionalPlugins channel) to capture the ordered plugin-event tape returned for replay.
     $worker = {
         $item = $_
         $modulePath = $using:modulePath
         $baseConfig = $using:baseConfig
         $recordedSteps = $using:recordedSteps
+        $collectCoverage = $using:collectCoverage
 
         if (-not (Get-Module -Name Pester)) {
             Import-Module $modulePath
@@ -245,14 +264,34 @@ function Invoke-TestInParallel {
         $workerConfig.Run.Exit = $false
         $workerConfig.Run.Throw = $false
         $workerConfig.TestResult.Enabled = $false
-        $workerConfig.CodeCoverage.Enabled = $false
+        if ($collectCoverage) {
+            # Measure coverage with breakpoints, not the default profiler/tracer: the tracer keeps its
+            # state in a process-global static, so concurrent workers would overwrite each other's hits.
+            # Set-PSBreakpoint is per-runspace, so every worker measures its own file in isolation.
+            $workerConfig.CodeCoverage.Enabled = $true
+            $workerConfig.CodeCoverage.UseBreakpoints = $true
+        }
+        else {
+            $workerConfig.CodeCoverage.Enabled = $false
+        }
         # The BeforeContainer init already ran above (as $item.Init). Clear RepoRoot so the worker's
         # own sequential run does not resolve and dot-source the repo-root Pester.BeforeContainer.ps1
         # a second time; that would run the setup twice per file and diverge from a sequential run.
-        # RepoRoot is otherwise only used for CodeCoverage, which is disabled in workers.
+        # RepoRoot is otherwise only used for CodeCoverage report roots, which the parent applies when
+        # it generates the merged report.
         $workerConfig.Run.RepoRoot = ''
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
+        # Keep the raw result object in the worker. At the end of a run Pester strips internal,
+        # non-public state (including each block's FrameworkData) off the result tree. The tape
+        # holds live references to those same Block/Test objects, so that cleanup would blank out
+        # FrameworkData.CommandUsed (Describe/Context) before the parent replays the tape, and the
+        # reporting plugins would then fail to render the "Describing"/"Context" headers in
+        # Detailed/Diagnostic output (#2824). The parent runs the same cleanup itself after folding
+        # the worker's containers into its own run (Remove-RSpecNonPublicProperties in Main.ps1,
+        # after the tape has been replayed), so the user still receives a cleaned result. Keeping the
+        # raw object also preserves PluginData.Coverage so the worker's measured hits reach the parent.
+        $workerConfig.Debug.ReturnRawResultObject = $true
 
         $pesterModule = Get-Module -Name Pester
 
@@ -273,13 +312,27 @@ function Invoke-TestInParallel {
             New-PluginObject @h
         } $tape $recordedSteps
 
-        # Inject the recorder via the supported additional-plugins channel, run, then clear it.
+        # Inject the recorder via the supported additional-plugins channel and point the module's
+        # parallel output tape at the same list, so both the recorded plugin steps and any host/debug
+        # output the run writes are appended to one ordered tape. Run, then clear both. The tape is
+        # wrapped in a hashtable when handed across the module boundary: passing the (still empty) list
+        # positionally coerces it to a fixed-size array, which then throws on .Add during the run.
+        # When coverage is on, also tell the Coverage plugin's End step to skip report generation and
+        # the output-file write in this worker, the parent merges every worker's raw hits and emits the
+        # single report/file.
         & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
+        & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }
+        if ($collectCoverage) {
+            & $pesterModule { $script:CodeCoverageSkipReport = $true }
+        }
         try {
             $out = Invoke-Pester -Configuration $workerConfig
         }
         finally {
-            & $pesterModule { $script:additionalPlugins = $null }
+            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null }
+            if ($collectCoverage) {
+                & $pesterModule { $script:CodeCoverageSkipReport = $null }
+            }
         }
 
         $runObject = $null
@@ -287,10 +340,21 @@ function Invoke-TestInParallel {
             if ($o -is [Pester.Run]) { $runObject = $o; break }
         }
 
+        # Project the measured breakpoint locations to a light shape (no Ast / live Breakpoint refs)
+        # carrying just the metadata and hit count the parent needs to merge and report coverage.
+        # Convert-CommandCoverageToProjection is module-internal, so call it in the module scope.
+        $coverage = if ($collectCoverage -and $null -ne $runObject -and $null -ne $runObject.PluginData -and $runObject.PluginData.ContainsKey('Coverage')) {
+            @(& $pesterModule { param($cc) Convert-CommandCoverageToProjection -CommandCoverage $cc } @($runObject.PluginData.Coverage.CommandCoverage))
+        }
+        else {
+            @()
+        }
+
         [PSCustomObject]@{
             Path       = $item.Path
             Containers = @($runObject.Containers)
             Tape       = $tape.ToArray()
+            Coverage   = $coverage
         }
     }
 

@@ -35,6 +35,7 @@ public class PesterConfiguration
         cfg.Output = OutputConfiguration.ShallowClone(configuration.Output);
         cfg.TestDrive = TestDriveConfiguration.ShallowClone(configuration.TestDrive);
         cfg.TestRegistry = TestRegistryConfiguration.ShallowClone(configuration.TestRegistry);
+        cfg.Mock = MockConfiguration.ShallowClone(configuration.Mock);
         return cfg;
     }
 
@@ -50,6 +51,7 @@ public class PesterConfiguration
         cfg.Output = Merger.Merge(configuration.Output, @override.Output);
         cfg.TestDrive = Merger.Merge(configuration.TestDrive, @override.TestDrive);
         cfg.TestRegistry = Merger.Merge(configuration.TestRegistry, @override.TestRegistry);
+        cfg.Mock = Merger.Merge(configuration.Mock, @override.Mock);
         return cfg;
     }
 
@@ -66,6 +68,7 @@ public class PesterConfiguration
             Output = new OutputConfiguration(configuration.GetIDictionaryOrNull(nameof(Output)));
             TestDrive = new TestDriveConfiguration(configuration.GetIDictionaryOrNull(nameof(TestDrive)));
             TestRegistry = new TestRegistryConfiguration(configuration.GetIDictionaryOrNull(nameof(TestRegistry)));
+            Mock = new MockConfiguration(configuration.GetIDictionaryOrNull(nameof(Mock)));
         }
     }
 
@@ -80,6 +83,7 @@ public class PesterConfiguration
         Output = new OutputConfiguration();
         TestDrive = new TestDriveConfiguration();
         TestRegistry = new TestRegistryConfiguration();
+        Mock = new MockConfiguration();
     }
 
     public RunConfiguration Run { get; set; }
@@ -91,4 +95,5 @@ public class PesterConfiguration
     public OutputConfiguration Output { get; set; }
     public TestDriveConfiguration TestDrive { get; set; }
     public TestRegistryConfiguration TestRegistry { get; set; }
+    public MockConfiguration Mock { get; set; }
 }

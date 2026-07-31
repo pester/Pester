@@ -69,8 +69,19 @@ function Should-BeString {
 
     This assertion will fail, because the actual value is not equal to the expected value.
 
+    .EXAMPLE
+    ```powershell
+    "" | Should-BeString ""
+    ```
+
+    This assertion will pass, because an empty string is allowed as the expected value.
+
     .NOTES
     The `Should-BeString` assertion is the opposite of the `Should-NotBeString` assertion.
+
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
 
     .LINK
     https://pester.dev/docs/commands/Should-BeString
@@ -84,6 +95,7 @@ function Should-BeString {
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
         [Parameter(Position = 0, Mandatory)]
+        [AllowEmptyString()]
         [String]$Expected,
         [String]$Because,
         [switch]$CaseSensitive,
@@ -91,22 +103,18 @@ function Should-BeString {
         [switch]$TrimWhitespace
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
     if (-not ($stringsAreEqual)) {
         if ($Actual -is [string]) {
-            $Message = Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because
+            $assert.Fail((Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because))
         }
         else {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>, but got <actualType> <actual>."
+            $assert.Fail("Expected <expectedType> <expected>, but got <actualType> <actual>.", @{ Expected = $Expected; Because = $Because })
         }
-        $hint = Get-AssertionGotcha -Cmdlet $PSCmdlet -Buffer $local:Input -CollectedActual $Actual -IsPipelineInput $collectedInput.IsPipelineInput -Expecting Scalar
-        if ($hint) { $Message = "$Message`n`nHint: $hint" }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
     }
-    Set-AssertionPassResult
 }
 
 function Get-StringDifferenceMessage {

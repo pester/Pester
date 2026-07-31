@@ -40,6 +40,12 @@ Describe "Should-Throw" {
         It "Fails when exception is thrown, but is not the expected type nor iheriting form the expected type" {
             { { throw [InvalidOperationException]"This operation is invalid!" } | Should-Throw -ExceptionType ([ArgumentException]) } | Verify-AssertionFailed
         }
+
+        It "Matches the real exception type for a parameter binding failure (#2873)" {
+            # Used to report ParentContainsErrorRecordException instead of the real type.
+            { Get-Item "/non-existing" -NonExistentParameter 1 } |
+                Should-Throw -ExceptionType ([System.Management.Automation.ParameterBindingException])
+        }
     }
 
     Context "Filtering with exception message" {
@@ -241,6 +247,40 @@ InPesterModuleScope {
             $err.ExceptionMessage | Verify-Like "Cannot find path*because it does not exist."
             $err.ExceptionType | Verify-Equal ([Management.Automation.ItemNotFoundException])
             $err.FullyQualifiedErrorId | Verify-Equal 'PathNotFound,Microsoft.PowerShell.Commands.GetItemCommand'
+        }
+
+        # #2873 - the exception type must match what & { } would surface in $_, not the
+        # ParentContainsErrorRecordException placeholder that some inner error records carry.
+        BeforeAll {
+            function Get-ThrownError ([scriptblock] $ScriptBlock) {
+                try {
+                    $eap = [PSVariable]::new("erroractionpreference", 'Stop')
+                    $null = $ScriptBlock.InvokeWithContext($null, $eap, $null) 2>&1
+                }
+                catch {
+                    return Get-ErrorObject $_
+                }
+            }
+        }
+
+        It 'Reports the real exception type for a parameter binding failure (#2873)' {
+            $err = Get-ThrownError { Get-Item "/non-existing" -NonExistentParameter 1 }
+            $err.ExceptionType | Verify-Equal ([System.Management.Automation.ParameterBindingException])
+        }
+
+        It 'Reports the real exception type for a division by zero (#2873)' {
+            $err = Get-ThrownError { 1 / $null }
+            $err.ExceptionType | Verify-Equal ([System.Management.Automation.RuntimeException])
+        }
+
+        It 'Reports the wrapped exception for Write-Error -ErrorAction Stop (#2873)' {
+            $err = Get-ThrownError { Write-Error -ErrorAction Stop -Exception ([System.ArgumentException]"boom") }
+            $err.ExceptionType | Verify-Equal ([System.ArgumentException])
+        }
+
+        It 'Reports the wrapped exception for a cmdlet with -ErrorAction Stop (#2873)' {
+            $err = Get-ThrownError { Get-Item "/non-existing" -ErrorAction Stop }
+            $err.ExceptionType | Verify-Equal ([System.Management.Automation.ItemNotFoundException])
         }
     }
 }

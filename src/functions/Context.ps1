@@ -87,7 +87,6 @@
         [ValidateNotNull()]
         [ScriptBlock] $Fixture,
 
-        # [Switch] $Focus,
         [Switch] $Skip,
         [Switch] $AllowNullOrEmptyForEach,
 
@@ -95,7 +94,6 @@
         $ForEach
     )
 
-    $Focus = $false
     if ($Fixture -eq $null) {
         if ($Name.Contains("`n")) {
             throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"
@@ -122,10 +120,10 @@
                 return
             }
 
-            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Skip:$Skip -Data $ForEach
         }
         else {
-            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Context'; WrittenToScreen = $false } -Skip:$Skip
         }
     }
     else {

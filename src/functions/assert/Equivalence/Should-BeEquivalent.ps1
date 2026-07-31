@@ -650,7 +650,7 @@ function Should-BeEquivalent {
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
-    ```powereshell
+    ```powershell
     Should-BeEquivalent ... -ExcludePathsNotOnExpected
     ```
 
@@ -687,6 +687,11 @@ function Should-BeEquivalent {
 
     This will pass because the actual object has the same properties as the expected object and the Name values are equivalent.
 
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeEquivalent
 
@@ -710,20 +715,21 @@ function Should-BeEquivalent {
 
     $options = Get-EquivalencyOption -ExcludePath:$ExcludePath -ExcludePathsNotOnExpected:$ExcludePathsNotOnExpected -Comparator:$Comparator
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'None'
+    $Actual = $assert.Actual()
 
     $areDifferent = Compare-Equivalent -Actual $Actual -Expected $Expected -Options $Options | & $SafeCommands['Out-String']
 
     if ($areDifferent) {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
-        # the parameter is -Option not -Options
-        $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
-        Invoke-AssertionFailed -Message $message -CallerCmdlet $PSCmdlet
+        $optionsText = $null
+        if ($null -ne $optionsFormatted -and $optionsFormatted.Length -gt 0) {
+            $optionsText = "Used options:$(foreach ($o in $optionsFormatted) { "`n$o" })."
+        }
+        $assert.Fail("Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n$optionsText", @{ Expected = $Expected }, $true)
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."
-    Set-AssertionPassResult
 }
 
 function Get-EquivalencyOption {

@@ -14,7 +14,7 @@
 #      [+] Given valid -Name 'Earth', it returns 'Earth' 61ms
 #      [+] Given valid -Name 'ne*', it returns 'Neptune' 11ms
 #      [+] Given valid -Name 'ur*', it returns 'Uranus' 19ms
-#      [+] Given valid -Name 'm*', it returns 'Mercury Mars' 9ms
+#      [+] Given valid -Name 'm*', it returns '@('Mercury', 'Mars')' 9ms
 #      [+] Given invalid parameter -Name 'Alpha Centauri', it returns $null 22ms
 
 
@@ -54,8 +54,8 @@ Describe 'Get-Planet' {
         $allPlanets = Get-Planet
 
         # We count how many planets we got. And validate it by using
-        # the Should -Be assertion.
-        $allPlanets.Count | Should -Be 8
+        # the Should-BeCollection assertion.
+        $allPlanets |  Should-BeCollection -Count 8
 
         # The assertion will do nothing if the count is 8,
         # and throw an exception if the count is something else.
@@ -85,6 +85,9 @@ Describe 'Get-Planet' {
         # We put names of our parameters in the description and surround them by <>.
         # Pester will expand test values into description, for example:
         # Given valid -Name 'ne*', it returns 'Neptune'
+
+        # When the filter matches a single planet, Get-Planet returns a single name.
+        # We compare single values with Should-Be.
         It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
 
             # We define an array of hashtables. Each hashtable will be used
@@ -95,7 +98,6 @@ Describe 'Get-Planet' {
             @{ Filter = 'Earth'; Expected = 'Earth' }
             @{ Filter = 'ne*'  ; Expected = 'Neptune' }
             @{ Filter = 'ur*'  ; Expected = 'Uranus' }
-            @{ Filter = 'm*'   ; Expected = 'Mercury', 'Mars' }
         ) {
 
             # We define parameters in param (), to pass our test data into the test body.
@@ -106,7 +108,17 @@ Describe 'Get-Planet' {
             $planets = Get-Planet -Name $Filter
             # We validate that the returned name is equal to $Expected.
             # That is Neptune, in our second test.
-            $planets.Name | Should -Be $Expected
+            $planets.Name | Should-Be $Expected
+        }
+
+        # When the filter matches more than one planet, Get-Planet returns a
+        # collection of names. In v6 we assert collections with Should-BeCollection,
+        # which compares the items one by one. Should-Be is only for single values.
+        It "Given valid -Name '<Filter>', it returns '<Expected>'" -TestCases @(
+            @{ Filter = 'm*'   ; Expected = 'Mercury', 'Mars' }
+        ) {
+            $planets = Get-Planet -Name $Filter
+            $planets.Name | Should-BeCollection $Expected
         }
 
         # Testing just the positive cases is usually not enough. Our tests
@@ -114,10 +126,10 @@ Describe 'Get-Planet' {
         # $null. We could merge this with the previous test but it is better to
         # split positive and negative cases, even if that means duplicated code.
         # Normally we would use TestCases here as well, but let's keep it simple
-        # and show that Should -Be is pretty versatile in what it can assert.
+        # and use Should-BeNull to check that nothing was returned.
         It "Given invalid parameter -Name 'Alpha Centauri', it returns `$null" {
             $planets = Get-Planet -Name 'Alpha Centauri'
-            $planets | Should -Be $null
+            $planets | Should-BeNull
         }
     }
 }
@@ -149,4 +161,4 @@ Describe 'Get-Planet' {
 # - Make sure you can filter moons for given planet.
 # - Make sure you Get-Planet and Get-Moon functions work together.
 #   $moons = Get-Planet Earth | Get-Moon
-#   $moons.Name | Should -Be Moon
+#   $moons.Name | Should-Be Moon

@@ -9,6 +9,17 @@ Describe "Should-HaveType" {
         { 1 | Should-HaveType ([string]) } | Verify-AssertionFailed
     }
 
+    It "Given a value with a matching custom PSTypeName it passes" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $actual | Should-HaveType 'MyApp.Person'
+    }
+
+    It "Given a value without the expected custom PSTypeName it fails" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $err = { $actual | Should-HaveType 'MyApp.Animal' } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like "*Expected value to have type or PSTypeName*MyApp.Animal*"
+    }
+
     It "Can be called with positional parameters" {
         { Should-HaveType ([string]) 1 } | Verify-AssertionFailed
     }
@@ -18,6 +29,17 @@ Describe "Should-HaveType" {
         @{ Value = [string[]]('a') }
     ) {
         Should-HaveType -Actual $Value -Expected ([string[]])
+    }
+
+    # Regression test for https://github.com/pester/Pester/issues/2828
+    # Formatting a self-referential actual value for the failure message used to recurse until
+    # PowerShell threw "The script failed due to call depth overflow", hiding the real result.
+    It "Reports a normal assertion failure for a self-referential value instead of overflowing" {
+        $o = [PSCustomObject]@{ Name = 'x' }
+        $o | Add-Member -NotePropertyName Self -NotePropertyValue $o
+
+        $err = { Should-HaveType -Actual $o -Expected ([string]) } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected value to have type*'
     }
 }
 

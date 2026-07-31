@@ -193,7 +193,61 @@ Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -
         }
     }
 
-    b "Run.BeforeContainer" {
+    b "Run.Parallel module loading" {
+        t "imports a module that lists Pester in RequiredModules (#2816)" {
+            # Each parallel worker imports Pester so test bodies can use it. The worker must import
+            # Pester *via its manifest* so the loaded module keeps its real ModuleVersion. Importing
+            # the bare root module instead would load Pester as 0.0.0.0, and any module a test imports
+            # whose manifest lists Pester in RequiredModules (e.g. @{ ModuleName = 'Pester';
+            # ModuleVersion = '5.0.0' }) would then fail to resolve that requirement against the
+            # loaded 0.0.0.0 Pester - the bug reported in #2816.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $moduleDir = Join-Path $folder 'RequiresPester'
+                $null = New-Item -ItemType Directory -Path $moduleDir -Force
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psm1') -Value 'function Get-RequiresPester { ''ok'' }'
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psd1') -Value @'
+@{
+    RootModule        = 'RequiresPester.psm1'
+    ModuleVersion     = '1.0.0'
+    GUID              = 'b3c4d5e6-f7a8-4901-b2c3-d4e5f6a7b8c9'
+    RequiredModules   = @( @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' } )
+    FunctionsToExport = @('Get-RequiresPester')
+}
+'@
+                $manifest = Join-Path $moduleDir 'RequiresPester.psd1'
+                Set-Content -Path (Join-Path $folder 'Import.Tests.ps1') -Value @"
+Describe 'Module import' {
+    It 'imports a module that requires Pester' {
+        { Import-Module '$manifest' -Force -ErrorAction Stop } | Should -Not -Throw
+    }
+}
+"@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally {
+                # Import.Tests.ps1 imports RequiresPester, which takes a dependency on Pester. When
+                # Run.Parallel falls back to sequential (e.g. Windows PowerShell 5.1) that import runs
+                # in this process, so the module leaks into the shared P-test session and the next
+                # *.ts.ps1 file's `Remove-Module Pester` fails with "required by 'RequiresPester'".
+                # Unload it first - this also releases the lock on its .psm1 so the folder can be removed.
+                Get-Module RequiresPester | Remove-Module -Force
+                Remove-Item -Path $folder -Recurse -Force
+            }
+        }
+    }
+
+    b "Pester.BeforeContainer.ps1 convention" {
         t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
             $folder = New-BeforeContainerTestFolder
             try {
@@ -227,25 +281,48 @@ Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
-        t "uses explicit Run.BeforeContainer scriptblocks instead of the convention file" {
+        t "shares a single bootstrap across many files in parallel, anchored on the stable `$PSScriptRoot" {
+            # A real-world case: instead of repeating an Import-Module + mock defaults setup in every
+            # test file, put it once in Pester.BeforeContainer.ps1. Because it is a real file it always
+            # has a stable `$PSScriptRoot` to resolve the module relative to, unlike the removed
+            # Run.BeforeContainer scriptblock option, which only had the unstable `$pwd` (#2838). Each
+            # parallel worker starts from a clean runspace and re-runs the bootstrap, so the shared
+            # helpers are available to every file without duplication.
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
-            Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
-Describe 'Marker' {
-    It 'can call the helper defined by Run.BeforeContainer' {
-        Get-ExplicitMarker | Should -Be 'explicit'
-    }
+
+            Set-Content -Path (Join-Path $folder 'Helpers.psm1') -Value @'
+function Get-Answer { 42 }
+'@
+
+            # Resolve the module relative to $PSScriptRoot (the folder of this bootstrap file), which
+            # is stable regardless of the working directory Invoke-Pester was called from.
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
+Import-Module -Name (Join-Path $PSScriptRoot 'Helpers.psm1') -Force
+'@
+
+            Set-Content -Path (Join-Path $folder 'First.Tests.ps1') -Value @'
+Describe 'First' {
+    It 'uses the shared helper' { Get-Answer | Should -Be 42 }
+}
+'@
+            Set-Content -Path (Join-Path $folder 'Second.Tests.ps1') -Value @'
+Describe 'Second' {
+    It 'uses the shared helper too' { Get-Answer | Should -Be 42 }
 }
 '@
             try {
                 $c = [PesterConfiguration]::Default
                 $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
                 $c.Run.PassThru = $true
                 $c.Output.Verbosity = 'None'
-                $c.Run.BeforeContainer = { function Get-ExplicitMarker { 'explicit' } }
-                $r = Invoke-Pester -Configuration $c
+                # Call from a different working directory to prove the bootstrap does not depend on $pwd.
+                Push-Location ([IO.Path]::GetTempPath())
+                try { $r = Invoke-Pester -Configuration $c } finally { Pop-Location }
 
-                $r.PassedCount | Verify-Equal 1
+                $r.PassedCount | Verify-Equal 2
                 $r.FailedCount | Verify-Equal 0
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
@@ -375,14 +452,18 @@ Describe 'S' {
             ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*parallelizes only file-based runs*')
         }
 
-        t "falls back to sequential with a warning when CodeCoverage is enabled" {
+        t "collects and merges code coverage across parallel workers" {
             $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $folder -Force
             try {
-                # A code file to measure coverage on, plus two parallelizable test files that use it.
+                # A shared code file to measure coverage on, plus two parallelizable test files that
+                # each exercise a different function in it. The parallel run must collect coverage
+                # from every worker and merge it into one report, matching a sequential run exactly.
                 Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
 function Get-One { 1 }
 function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
 '@
                 Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
 BeforeAll { . $PSScriptRoot/lib.ps1 }
@@ -392,6 +473,59 @@ Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
 BeforeAll { . $PSScriptRoot/lib.ps1 }
 Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
 '@
+                $newConfig = {
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.CodeCoverage.Enabled = $true
+                    $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
+                    $c
+                }
+
+                $sequential = & $newConfig
+                $sequential.Run.Parallel = $false
+                $seq = Invoke-Pester -Configuration $sequential
+
+                $parallel = & $newConfig
+                $parallel.Run.Parallel = $true
+                $par = Invoke-Pester -Configuration $parallel
+
+                # Two of the four functions are covered, parallel must match sequential exactly.
+                $par.PassedCount | Verify-Equal 2
+                $par.CodeCoverage | Verify-NotNull
+                $par.CodeCoverage.CommandsAnalyzedCount | Verify-Equal $seq.CodeCoverage.CommandsAnalyzedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal $seq.CodeCoverage.CommandsExecutedCount
+                $par.CodeCoverage.CommandsMissedCount | Verify-Equal $seq.CodeCoverage.CommandsMissedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "merges code coverage from a file marked #pester:no-parallel" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                # A and B run in parallel, C opts out and runs in the parent. Coverage from the in-parent
+                # (non-parallel) file must be merged with the worker coverage.
+                Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
+function Get-One { 1 }
+function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
+'@
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
+'@
+                Set-Content -Path (Join-Path $folder 'C.Tests.ps1') -Value @'
+#pester:no-parallel
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'C' { It 'c1 passes' { Get-Three | Should -Be 3 } }
+'@
                 $c = [PesterConfiguration]::Default
                 $c.Run.Path = $folder
                 $c.Run.Parallel = $true
@@ -399,16 +533,15 @@ Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
                 $c.CodeCoverage.Enabled = $true
                 $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
 
-                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
+                $r = Invoke-Pester -Configuration $c
 
-                # The tests still run and produce correct counts.
-                $r.TotalCount | Verify-Equal 2
-                $r.PassedCount | Verify-Equal 2
-                # Parallel cannot collect coverage yet, so it must warn and run sequentially...
-                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*does not support CodeCoverage*')
-                # ...which means real coverage was collected (the parallel path collects none).
+                $r.PassedCount | Verify-Equal 3
                 $r.CodeCoverage | Verify-NotNull
-                ($r.CodeCoverage.CommandsAnalyzedCount -gt 0) | Verify-True
+                # Get-One, Get-Two (workers) and Get-Three (#pester:no-parallel) were executed.
+                $r.CodeCoverage.CommandsExecutedCount | Verify-Equal 3
+                $r.CodeCoverage.CommandsMissedCount | Verify-Equal 1
+                $executedLines = $r.CodeCoverage.CommandsExecuted.StartLine
+                $executedLines -contains 3 | Verify-True
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
@@ -469,6 +602,126 @@ Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
                 # a2 and the whole of B are skipped once the first test fails.
                 $r.SkippedCount | Verify-Equal 2
                 $r.PassedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel output" {
+        t "renders Describing/Context block headers in Detailed output" {
+            # In parallel each file runs in a silent worker whose result tree is replayed to the
+            # parent's reporting plugins. The worker's end-of-run cleanup used to strip every block's
+            # FrameworkData (which carries the Describe/Context command name), and because the replay
+            # tape holds live references to those same block objects the parent was then left without
+            # a CommandUsed to render - so the "Describing"/"Context" headers silently vanished from
+            # Detailed/Diagnostic output (#2824). Assert they are present in a parallel run.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'One.Tests.ps1') -Value @'
+Describe 'OuterOne' {
+    Context 'CtxA' { It 'a1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                Set-Content -Path (Join-Path $folder 'Two.Tests.ps1') -Value @'
+Describe 'OuterTwo' {
+    Context 'CtxB' { It 'b1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # Write-PesterHostMessage uses Write-Host, so console output lands on the
+                # information stream (6) and can be captured in-process.
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                $output | Verify-Like '*Describing OuterOne*'
+                $output | Verify-Like '*Context CtxA*'
+                $output | Verify-Like '*Describing OuterTwo*'
+                $output | Verify-Like '*Context CtxB*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel debug output" {
+        t "captures debug output and replays it interleaved with each file's tests" {
+            # Each worker writes nothing to the host directly and records its screen and debug output into
+            # the shared tape, and the parent replays that tape in order. So debug output must come back
+            # interleaved with the per-test output of the file that produced it, not dumped up front
+            # detached from it (#2825).
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' { It 'a1 passes' { 1 | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Diagnostic'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # 6>&1 folds the host output (written as information records) into the pipeline so we can
+                # replay it exactly as it was rendered; the Pester.Run object comes out alongside it.
+                $out = Invoke-Pester -Configuration $c 3>$null 6>&1
+                $r = @($out).Where({ $_ -is [Pester.Run] })[0]
+
+                # The run still executes in parallel and produces correct results.
+                $r.PassedCount | Verify-Equal 2
+
+                # PowerShell 5.1 has no ForEach-Object -Parallel and falls back to a sequential run whose
+                # output differs, so only assert the exact parallel rendering on 7+.
+                if ($PSVersionTable.PSVersion.Major -ge 7) {
+                    # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
+                    # then blank out the volatile version, temp paths and timings so the snapshot is stable.
+                    $sb = [System.Text.StringBuilder]::new()
+                    foreach ($rec in @($out)) {
+                        if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
+                        $md = $rec.MessageData
+                        if ($md -is [System.Management.Automation.HostInformationMessage]) {
+                            $null = $sb.Append($md.Message)
+                            if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
+                        }
+                    }
+                    $normalized = $sb.ToString() `
+                        -replace 'Pester v\S+', 'Pester v<version>' `
+                        -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
+                        -replace '\d+(.\d+)?m?s', '<time>'
+                    $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
+
+                    # Each file's discovery is immediately followed by that same file's run (A fully, then
+                    # B fully), instead of both discoveries being dumped up front, detached from the tests.
+                    $expected = @'
+Pester v<version>
+
+Running tests from 2 files in parallel.
+Discovery: Discovering tests in A.Tests.ps1
+Discovery: Found 1 tests in <time>
+
+Running tests from 'A.Tests.ps1'
+Describing A
+  [+] a1 passes <time>
+Discovery: Discovering tests in B.Tests.ps1
+Discovery: Found 1 tests in <time>
+
+Running tests from 'B.Tests.ps1'
+Describing B
+  [+] b1 passes <time>
+Tests completed in <time>
+Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
+'@ -replace "`r`n", "`n"
+
+                    $actual | Verify-Equal $expected
+                }
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }

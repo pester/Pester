@@ -1,7 +1,7 @@
-﻿function Format-Collection2 ($Value, [switch]$Pretty) {
+﻿function Format-Collection2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
     $length = 0
     $o = foreach ($v in $Value) {
-        $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty
+        $formatted = Format-Nicely2 -Value $v -Pretty:$Pretty -Depth ($Depth + 1)
         $length += $formatted.Length + 1 # 1 is for the separator
         $formatted
     }
@@ -19,7 +19,7 @@
     }
 }
 
-function Format-Object2 ($Value, $Property, [switch]$Pretty) {
+function Format-Object2 ($Value, $Property, [switch]$Pretty, [int]$Depth = 0) {
     if ($null -eq $Property) {
         $Property = foreach ($p in $Value.PSObject.Properties) { $p.Name }
     }
@@ -31,7 +31,7 @@ function Format-Object2 ($Value, $Property, [switch]$Pretty) {
     $valueType = Get-ShortType $Value
     $items = foreach ($p in $orderedProperty) {
         $v = ([PSObject]$Value.$p)
-        $f = Format-Nicely2 -Value $v -Pretty:$Pretty
+        $f = Format-Nicely2 -Value $v -Pretty:$Pretty -Depth ($Depth + 1)
         "$p=$f"
     }
 
@@ -81,31 +81,31 @@ function Format-Number2 ($Value) {
     [string]$Value
 }
 
-function Format-Hashtable2 ($Value) {
+function Format-Hashtable2 ($Value, [int]$Depth = 0) {
     $head = '@{'
     $tail = '}'
 
     $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object']) {
-        $formattedValue = Format-Nicely2 $Value.$v
+        $formattedValue = Format-Nicely2 -Value $Value.$v -Depth ($Depth + 1)
         "$v=$formattedValue"
     }
 
     $head + ( $entries -join '; ') + $tail
 }
 
-function Format-Dictionary2 ($Value) {
+function Format-Dictionary2 ($Value, [int]$Depth = 0) {
     $head = 'Dictionary{'
     $tail = '}'
 
     $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object'] ) {
-        $formattedValue = Format-Nicely2 $Value.$v
+        $formattedValue = Format-Nicely2 -Value $Value.$v -Depth ($Depth + 1)
         "$v=$formattedValue"
     }
 
     $head + ( $entries -join '; ') + $tail
 }
 
-function Format-Nicely2 ($Value, [switch]$Pretty) {
+function Format-Nicely2 ($Value, [switch]$Pretty, [int]$Depth = 0) {
     if ($null -eq $Value) {
         return Format-Null2 -Value $Value
     }
@@ -130,8 +130,20 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
         return Format-ScriptBlock2 -Value $Value
     }
 
+    # Deeply nested or self-referential objects (e.g. SMO stubs or DirectoryInfo, whose
+    # Parent/Root point back up the tree) would otherwise recurse until PowerShell throws
+    # "The script failed due to call depth overflow" (#2828, #2474). Once we are past a sane
+    # nesting depth stop expanding and just print the value's type, which is enough for a
+    # diagnostic message and cannot recurse further. Scalars above are always fully formatted;
+    # only the container/object branches below recurse, so the guard sits in front of them.
+    # A depth of 10 is never useful in an assertion message and is well below PowerShell's own
+    # call-depth limit, so it is fixed here rather than exposed as a configurable variable.
+    if ($Depth -ge 10) {
+        return Get-ShortType2 -Value $Value
+    }
+
     if (Is-Collection -Value $Value) {
-        return Format-Collection2 -Value $Value -Pretty:$Pretty
+        return Format-Collection2 -Value $Value -Pretty:$Pretty -Depth $Depth
     }
 
     if (Is-Value -Value $Value) {
@@ -139,18 +151,18 @@ function Format-Nicely2 ($Value, [switch]$Pretty) {
     }
 
     if (Is-Hashtable -Value $Value) {
-        return Format-Hashtable2 -Value $Value
+        return Format-Hashtable2 -Value $Value -Depth $Depth
     }
 
     if (Is-Dictionary -Value $Value) {
-        return Format-Dictionary2 -Value $Value
+        return Format-Dictionary2 -Value $Value -Depth $Depth
     }
 
     if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {
         return Format-DataTable2 -Value $Value -Pretty:$Pretty
     }
 
-    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty
+    Format-Object2 -Value $Value -Property (Get-DisplayProperty2 $Value.GetType()) -Pretty:$Pretty -Depth $Depth
 }
 
 function Format-NicelyForTemplate ($Value) {

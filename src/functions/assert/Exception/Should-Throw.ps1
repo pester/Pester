@@ -45,6 +45,11 @@
 
     The error record is returned from the assertion and can be used in further assertions.
 
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-Throw
 
@@ -68,8 +73,8 @@
         [Switch]$AllowNonTerminatingError
     )
 
-    $collectedInput = Collect-Input -ParameterInput $ScriptBlock -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $ScriptBlock = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $ScriptBlock -Buffer $local:Input
+    $ScriptBlock = $assert.Actual()
 
     Assert-BoundScriptBlockInput -ScriptBlock $ScriptBlock
 
@@ -129,30 +134,54 @@
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
         $but = Join-And $buts
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
-
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $ScriptBlock -Because $Because `
-            -DefaultMessage $defaultMessage
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail($defaultMessage, @{ Because = $Because })
     }
 
     $err.ErrorRecord
-    Set-AssertionPassResult
 }
 
 function Get-ErrorObject ($ErrorRecord) {
 
     if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
-        $e = $ErrorRecord.Exception.InnerException.ErrorRecord
+        # The scriptblock ran via InvokeWithContext, so a terminating error is wrapped in
+        # a MethodInvocationException. Unwrap it so we report the same exception that
+        # & { } would have surfaced in $_ (#2873).
+        $inner = $ErrorRecord.Exception.InnerException
+        $record = $inner.ErrorRecord
+
+        # When the inner exception carries an error record whose own exception is just a
+        # ParentContainsErrorRecordException placeholder (e.g. a parameter binding failure,
+        # or a division by zero), the real exception is the inner exception itself.
+        # Otherwise the record's exception is the one the caller threw - for example
+        # Write-Error -ErrorAction Stop wraps the original record in an
+        # ActionPreferenceStopException, and Get-Item -ErrorAction Stop does the same.
+        if ($null -eq $record) {
+            $realException = $inner
+            $record = $ErrorRecord
+        }
+        elseif ($record.Exception -is [System.Management.Automation.ParentContainsErrorRecordException]) {
+            $realException = $inner
+        }
+        else {
+            $realException = $record.Exception
+        }
+
+        [PSCustomObject] @{
+            ErrorRecord           = $record
+            ExceptionMessage      = $realException.Message
+            Exception             = $realException
+            ExceptionType         = $realException.GetType()
+            FullyQualifiedErrorId = $record.FullyQualifiedErrorId
+        }
     }
     else {
-        $e = $ErrorRecord
-    }
-    [PSCustomObject] @{
-        ErrorRecord           = $e
-        ExceptionMessage      = $e.Exception.Message
-        Exception             = $e.Exception
-        ExceptionType         = $e.Exception.GetType()
-        FullyQualifiedErrorId = $e.FullyQualifiedErrorId
+        [PSCustomObject] @{
+            ErrorRecord           = $ErrorRecord
+            ExceptionMessage      = $ErrorRecord.Exception.Message
+            Exception             = $ErrorRecord.Exception
+            ExceptionType         = $ErrorRecord.Exception.GetType()
+            FullyQualifiedErrorId = $ErrorRecord.FullyQualifiedErrorId
+        }
     }
 }
 

@@ -46,7 +46,6 @@ namespace Pester
         public string GroupId { get; set; }
         public ScriptBlock ScriptBlock { get; set; }
         public List<string> Tag { get; set; }
-        public bool Focus { get; set; }
         public bool Skip { get; set; }
         // IDictionary to allow users use [ordered]
 

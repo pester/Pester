@@ -58,6 +58,10 @@ function Should-NotBeLikeString {
     .NOTES
     The `Should-NotBeLikeString` assertion is the opposite of the `Should-BeLikeString` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-NotBeLikeString
 
@@ -75,8 +79,8 @@ function Should-NotBeLikeString {
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -isnot [string]) {
         throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -like operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
@@ -91,7 +95,6 @@ function Should-NotBeLikeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because -CaseSensitive:$CaseSensitive
         }
 
-        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet -Expected $Expected -Actual $Actual -Because $Because
+        $assert.Fail($formattedMessage, @{ Expected = $Expected; Actual = $Actual; Because = $Because })
     }
-    Set-AssertionPassResult
 }

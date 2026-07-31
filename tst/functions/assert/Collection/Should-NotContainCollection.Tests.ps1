@@ -20,6 +20,28 @@ InPesterModuleScope {
             @(5, 6, 7) | Should-NotContainCollection 1
         }
 
+        It "Passes when the expected items are not in the right order" {
+            1, 2, 3 | Should-NotContainCollection @(3, 2, 1)
+        }
+
+        It "Passes when an expected item is missing" {
+            1, 2, 3 | Should-NotContainCollection @(3, 4)
+        }
+
+        It "Passes when a repeated expected item cannot be matched by a single actual item" {
+            1, 2 | Should-NotContainCollection @(1, 1)
+        }
+
+        It "Fails when the expected items appear as a contiguous block" {
+            $err = { 1, 2, 3 | Should-NotContainCollection @(1, 2) } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected [Object[]] @(1, 2) to not be present in [Object[]] @(1, 2, 3), but it was there."
+        }
+
+        It "Fails when the expected items appear in order with gaps" {
+            $err = { 1, 2, 3 | Should-NotContainCollection @(1, 3) } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected [Object[]] @(1, 3) to not be present in [Object[]] @(1, 2, 3), but it was there."
+        }
+
         It "Can be called with positional parameters" {
             { Should-NotContainCollection 1 1, 2, 3 } | Verify-AssertionFailed
         }
