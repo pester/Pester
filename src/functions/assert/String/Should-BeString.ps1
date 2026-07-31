@@ -162,7 +162,7 @@ function Get-StringDifferenceMessage {
     $prefix = "Expected: '"
     $lines += "$prefix$expectedExpanded'"
     $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $differenceIndex) + '^'
+    $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
 
     $lines -join "`n"
 }

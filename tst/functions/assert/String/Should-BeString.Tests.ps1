@@ -111,7 +111,7 @@ Actual length:   3
 Strings differ at index 0.
 Expected: ''
 But was:  'abc'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
         }
     }
@@ -155,7 +155,7 @@ String lengths are both 3.
 Strings differ at index 0.
 Expected: 'abc'
 But was:  'bde'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -167,7 +167,7 @@ String lengths are both 11.
 Strings differ at index 0.
 Expected: 'Hello World'
 But was:  'hello world'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -180,7 +180,7 @@ Actual length:   3
 Strings differ at index 3.
 Expected: 'abcdef'
 But was:  'abc'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
     }
 
@@ -193,7 +193,7 @@ Actual length:   7
 Strings differ at index 3.
 Expected: 'abc␍␊def'
 But was:  'abc␊def'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
     }
 }
