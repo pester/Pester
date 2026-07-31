@@ -77,40 +77,29 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
     $notFound = @()
     $anyDifferent = $false
     for ($e = 0; $e -lt $eEnd; $e++) {
-        # todo: retest strict order
         Write-EquivalenceResult "`nSearching for `$Expected[$e]:"
         $currentExpected = $Expected[$e]
         $found = $false
-        if ($StrictOrder) {
-            $currentActual = $Actual[$e]
-            if ($taken -notcontains $e -and (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options))) {
-                $taken += $e
-                $found = $true
-                Write-EquivalenceResult -Equivalence "`Found `$Expected[$e]."
+        for ($a = 0; $a -lt $aEnd; $a++) {
+            # we already took this item as equivalent to an item
+            # in the expected collection, skip it
+            if ($taken -contains $a) {
+                Write-EquivalenceResult "Skipping `$Actual[$a] because it is already taken."
+                continue
             }
-        }
-        else {
-            for ($a = 0; $a -lt $aEnd; $a++) {
-                # we already took this item as equivalent to an item
-                # in the expected collection, skip it
-                if ($taken -contains $a) {
-                    Write-EquivalenceResult "Skipping `$Actual[$a] because it is already taken."
-                    continue
-                }
-                $currentActual = $Actual[$a]
-                # -not, because $null means no differences, and some strings means there are differences
-                Write-EquivalenceResult "Comparing `$Actual[$a] to `$Expected[$e] to see if they are equivalent."
-                if (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) {
-                    # add the index to the list of taken items so we can skip it
-                    # in the search, this way we can compare collections with
-                    # arrays multiple same items
-                    $taken += $a
-                    $found = $true
-                    Write-EquivalenceResult -Equivalence "`Found equivalent item for `$Expected[$e] at `$Actual[$a]."
-                    # we already found the item we
-                    # can move on to the next item in Expected array
-                    break
-                }
+            $currentActual = $Actual[$a]
+            # -not, because $null means no differences, and some strings means there are differences
+            Write-EquivalenceResult "Comparing `$Actual[$a] to `$Expected[$e] to see if they are equivalent."
+            if (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) {
+                # add the index to the list of taken items so we can skip it
+                # in the search, this way we can compare collections with
+                # arrays multiple same items
+                $taken += $a
+                $found = $true
+                Write-EquivalenceResult -Equivalence "`Found equivalent item for `$Expected[$e] at `$Actual[$a]."
+                # we already found the item we
+                # can move on to the next item in Expected array
+                break
             }
         }
         if (-not $found) {
@@ -159,20 +148,11 @@ function Compare-DataTableEquivalent ($Expected, $Actual, $Property, $Options) {
     for ($e = 0; $e -lt $eEnd; $e++) {
         $currentExpected = $Expected.Rows[$e]
         $found = $false
-        if ($StrictOrder) {
-            $currentActual = $Actual.Rows[$e]
-            if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $e) {
-                $taken += $e
+        for ($a = 0; $a -lt $aEnd; $a++) {
+            $currentActual = $Actual.Rows[$a]
+            if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $a) {
+                $taken += $a
                 $found = $true
-            }
-        }
-        else {
-            for ($a = 0; $a -lt $aEnd; $a++) {
-                $currentActual = $Actual.Rows[$a]
-                if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $a) {
-                    $taken += $a
-                    $found = $true
-                }
             }
         }
         if (-not $found) {
@@ -709,8 +689,6 @@ function Should-BeEquivalent {
         [switch] $ExcludePathsNotOnExpected,
         [ValidateSet('Equivalency', 'Equality')]
         [string] $Comparator = 'Equivalency'
-        # TODO: I am not sure this works.
-        # [Switch] $StrictOrder
     )
 
     $options = Get-EquivalencyOption -ExcludePath:$ExcludePath -ExcludePathsNotOnExpected:$ExcludePathsNotOnExpected -Comparator:$Comparator
