@@ -548,11 +548,11 @@ function Invoke-Pester {
             # Write-PesterDebugMessage is used regardless of WriteScreenPlugin.
             Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
-            # Resolve the randomized-order seed once for the whole run (#2425), so it is reported a
-            # single time and shared by every container - including parallel workers, which each
-            # receive this resolved configuration. RandomSeed 0 means "pick a new seed for this run".
-            if ($PesterPreference.Run.Random.Value -and 0 -eq $PesterPreference.Run.RandomSeed.Value) {
-                $PesterPreference.Run.RandomSeed = [System.Random]::new().Next(1, [int]::MaxValue)
+            # Resolve the shuffle seed once for the whole run (#2425), so it is reported a single
+            # time and shared by every container - including parallel workers, which each receive
+            # this resolved configuration. ShuffleSeed 0 means "pick a new seed for this run".
+            if ($PesterPreference.Run.Shuffle.Value -and 0 -eq $PesterPreference.Run.ShuffleSeed.Value) {
+                $PesterPreference.Run.ShuffleSeed = [System.Random]::new().Next(1, [int]::MaxValue)
             }
 
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {

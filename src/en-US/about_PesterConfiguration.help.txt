@@ -81,23 +81,15 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $true
 
-        Random: Randomize the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.RandomSeed so a run can be repeated, and helps surface hidden dependencies between tests.
-        Type: bool
-        Default value: $false
-
-        RandomSeed: Seed used to randomize execution order when Run.Random is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.RandomSeed to that value.
-        Type: int
-        Default value: 0
-
         RepoRoot: EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.
         Type: string
         Default value: '<path of .git>'
 
-        Random: Randomize the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.RandomSeed so a run can be repeated, and helps surface hidden dependencies between tests.
+        Shuffle: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.
         Type: bool
         Default value: $false
 
-        RandomSeed: Seed used to randomize execution order when Run.Random is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.RandomSeed to that value.
+        ShuffleSeed: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.
         Type: int
         Default value: 0
 

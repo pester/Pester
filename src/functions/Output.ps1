@@ -1,7 +1,7 @@
 $script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
-        RandomOrderMessage = "Randomizing execution order using seed {0}. Set 'Run.RandomSeed = {0}' to repeat this order."
+        ShuffleMessage = "Shuffling execution order using seed {0}. Set 'Run.ShuffleSeed = {0}' to repeat this order."
 
         CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
@@ -530,9 +530,9 @@ function Get-WriteScreenPlugin ($Verbosity) {
             Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from $(@($Context.BlockContainers).Length) files$parallelSuffix."
         }
 
-        if ($PesterPreference.Run.Random.Value) {
+        if ($PesterPreference.Run.Shuffle.Value) {
             # Report the resolved seed so a randomized run (#2425) can be repeated.
-            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery ($ReportStrings.RandomOrderMessage -f $PesterPreference.Run.RandomSeed.Value)
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery ($ReportStrings.ShuffleMessage -f $PesterPreference.Run.ShuffleSeed.Value)
         }
     }
 
