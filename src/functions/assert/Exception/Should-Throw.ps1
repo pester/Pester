@@ -68,7 +68,6 @@
         [String]$FullyQualifiedErrorId,
         [Parameter(Position = 2)]
         [Type]$ExceptionType,
-        [Parameter(Position = 3)]
         [String]$Because,
         [Switch]$AllowNonTerminatingError
     )

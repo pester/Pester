@@ -17,9 +17,16 @@ Describe "Should-Throw" {
         { { Write-Error "fail!" } | Should-Throw -AllowNonTerminatingError } | Verify-AssertionFailed
     }
 
-    It 'Supports same positional parameters as Should -Throw' {
+    It 'Supports positional ExceptionMessage, FullyQualifiedErrorId and ExceptionType, with Because named' {
         { Write-Error -Message 'MockErrorMessage' -ErrorId 'MockErrorId' -Category 'InvalidOperation' -TargetObject 'MockTargetObject' -ErrorAction 'Stop' } |
-            Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString'
+            Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) -Because 'MockBecauseString'
+    }
+
+    It 'Because is named-only and cannot be bound positionally' {
+        # Passing a fourth positional argument used to bind to Because. Now that Because
+        # is named-only there is no positional parameter for it, so binding fails. (#2932)
+        $ex = { { throw } | Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString' } | Verify-Throw
+        $ex.Exception.Message | Verify-Like '*positional parameter*'
     }
 
     It 'Throws when provided unbound scriptblock' {
