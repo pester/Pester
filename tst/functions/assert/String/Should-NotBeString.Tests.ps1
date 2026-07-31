@@ -60,5 +60,10 @@ Describe "Should-NotBeString" {
         $err = { Should-NotBeString -Expected "abc" -Actual 1 } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
     }
+
+    It "Requires Expected" {
+        $err = { "abc" | Should-NotBeString } | Verify-Throw
+        $err.Exception | Verify-Type ([System.Management.Automation.ParameterBindingException])
+    }
 }
 
