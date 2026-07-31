@@ -56,6 +56,39 @@ InPesterModuleScope {
             { Should-ContainCollection 1 3, 4, 5 } | Verify-AssertionFailed
         }
     }
+
+    Describe "Should-ContainCollection -IgnoreOrder" {
+        It "Passes when the expected items are present in the same order" {
+            1, 2, 3 | Should-ContainCollection @(1, 2) -IgnoreOrder
+        }
+
+        It "Passes when the expected items are present in a different order" {
+            1, 2, 3 | Should-ContainCollection @(3, 2, 1) -IgnoreOrder
+            1, 2, 3 | Should-ContainCollection @(3, 1) -IgnoreOrder
+        }
+
+        It "Passes for the reported repro with a `$null and unordered items" {
+            'b', 3, 2, 'a', $null | Should-ContainCollection ('a', 2, $null) -IgnoreOrder
+        }
+
+        It "Passes when there are enough duplicate items to match repeated expected items" {
+            1, 1, 2 | Should-ContainCollection @(1, 1) -IgnoreOrder
+        }
+
+        It "Passes when a single value is treated as a one-item collection" {
+            1, 2, 3 | Should-ContainCollection 2 -IgnoreOrder
+        }
+
+        It "Fails when an expected item is missing, even ignoring order" {
+            $err = { 1, 2, 3 | Should-ContainCollection @(3, 4) -IgnoreOrder } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected [Object[]] @(3, 4) to be present in [Object[]] @(1, 2, 3) in any order, but it was not there."
+        }
+
+        It "Fails when a repeated expected item cannot be matched by a single actual item" {
+            { 1, 2 | Should-ContainCollection @(1, 1) -IgnoreOrder } | Verify-AssertionFailed
+            { 2, 'a', $null | Should-ContainCollection ($null, $null) -IgnoreOrder } | Verify-AssertionFailed
+        }
+    }
 }
 
 Describe "Should-ContainCollection input hint" {
