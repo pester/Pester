@@ -80,6 +80,11 @@ function New-PesterState {
 
         Stack               = [Collections.Stack]@()
 
+        # [System.Random] used to shuffle the execution order of containers, blocks and tests
+        # when Run.Random is enabled. Seeded from Run.RandomSeed so a run can be repeated.
+        # Stays $null when Run.Random is disabled.
+        RandomOrderRandom   = $null
+
         # Captured here so the <> template expansion (which runs in the user's session state) can
         # invoke it via "& $____Pester.FormatNicelyForTemplate" while the function itself stays bound
         # to the Pester module session state, where Format-Nicely2 is available (#2744).
@@ -2034,6 +2039,25 @@ function Invoke-Test {
     $state.PluginData = $PluginData
     $state.Configuration = $Configuration
 
+    # Randomized execution order (#2425). The seed is normally resolved once in Invoke-Pester
+    # and written back to the configuration so it can be reported and repeated. When Invoke-Test
+    # is called directly (e.g. from tests) with Run.Random enabled but no seed, pick one here.
+    if ($PesterPreference.Run.Random.Value) {
+        $randomSeed = $PesterPreference.Run.RandomSeed.Value
+        if (0 -eq $randomSeed) {
+            $randomSeed = [System.Random]::new().Next(1, [int]::MaxValue)
+            $PesterPreference.Run.RandomSeed = $randomSeed
+        }
+
+        $state.RandomOrderRandom = [System.Random]::new($randomSeed)
+
+        # Shuffle the order the containers (test files / script blocks) run in. The blocks and
+        # tests inside each container are shuffled later, during discovery post-processing.
+        if (@($BlockContainer).Count -gt 1) {
+            $BlockContainer = Get-RandomizedOrder -Random $state.RandomOrderRandom -InputObject $BlockContainer
+        }
+    }
+
     # # TODO: this it potentially unreliable, because suppressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
     # # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
@@ -2153,6 +2177,29 @@ function Invoke-Test {
     $executedContainers
 }
 
+function Get-RandomizedOrder {
+    # Fisher-Yates shuffle. Returns a new array with the items in a random but
+    # deterministic order for a given seeded [System.Random], so a run can be repeated.
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Random] $Random,
+        $InputObject
+    )
+
+    $items = [object[]]@($InputObject)
+    for ($i = $items.Length - 1; $i -gt 0; $i--) {
+        $j = $Random.Next(0, $i + 1)
+        if ($i -ne $j) {
+            $tmp = $items[$i]
+            $items[$i] = $items[$j]
+            $items[$j] = $tmp
+        }
+    }
+
+    # comma to return the array as a single object, preventing pipeline unrolling
+    , $items
+}
+
 function PostProcess-DiscoveredBlock {
     param (
         [Parameter(Mandatory = $true)]
@@ -2177,6 +2224,28 @@ function PostProcess-DiscoveredBlock {
         $b.IsRoot = $b -eq $RootBlock
         $b.Root = $RootBlock
         $b.BlockContainer = $BlockContainer
+
+        # Randomize the order of this block's direct children (its child blocks and tests, kept
+        # together in .Order) when Run.Random is enabled. This shuffles same-level items only:
+        # the Describes in a file, the Describes/Contexts in a Describe, and the Its in a block.
+        # We do it here, before First/Last are marked below, and rebuild .Blocks and .Tests to
+        # follow the shuffled .Order so the one-time setup/teardown boundaries match the real
+        # execution order. Uses the run's seeded RNG so the order is repeatable (#2425).
+        if ($null -ne $state.RandomOrderRandom -and $b.Order.Count -gt 1) {
+            $shuffledOrder = Get-RandomizedOrder -Random $state.RandomOrderRandom -InputObject $b.Order
+            $b.Order.Clear()
+            $b.Blocks.Clear()
+            $b.Tests.Clear()
+            foreach ($item in $shuffledOrder) {
+                $null = $b.Order.Add($item)
+                if ('Test' -eq $item.ItemType) {
+                    $null = $b.Tests.Add($item)
+                }
+                else {
+                    $null = $b.Blocks.Add($item)
+                }
+            }
+        }
 
         $tests = $b.Tests
 
