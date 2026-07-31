@@ -231,6 +231,20 @@ function Get-CompareStringMessage {
     }
 
     if ($null -ne $differenceIndex) {
+        $actualExpanded = Expand-SpecialCharacters -InputObject $actual
+        $expectedExpanded = Expand-SpecialCharacters -InputObject $ExpectedValue
+
+        # ConciseView (the default $ErrorView since PowerShell 7.2) collapses newlines and
+        # re-wraps the message to the console width, which mangles this multi-line diff and its
+        # caret into an unreadable single line (#2872). Emit a compact single-line message under
+        # ConciseView instead. See Get-StringDifferenceMessage in Should-BeString.ps1.
+        if ('ConciseView' -eq $ErrorView) {
+            if ($ExpectedValue.Length -ne $actual.Length) {
+                return "Expected strings to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they differ at index $differenceIndex. Expected: '$expectedExpanded' (length $ExpectedValueLength), but was: '$actualExpanded' (length $actualLength)."
+            }
+            return "Expected strings to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they differ at index $differenceIndex. Expected: '$expectedExpanded', but was: '$actualExpanded' (both length $ExpectedValueLength)."
+        }
+
         "Expected strings to be the same,$(if ($null -ne $Because) { Format-Because $Because }) but they were different."
 
         if ($ExpectedValue.Length -ne $actual.Length) {
@@ -242,9 +256,6 @@ function Get-CompareStringMessage {
             "String lengths are both $ExpectedValueLength."
             "Strings differ at index $differenceIndex."
         }
-
-        $actualExpanded = Expand-SpecialCharacters -InputObject $actual
-        $expectedExpanded = Expand-SpecialCharacters -InputObject $ExpectedValue
 
         $ellipsis = "..."
         # we will surround the output with Expected: '' and But was: '', from which the Expected: '' is longer

@@ -143,6 +143,21 @@ function Get-StringDifferenceMessage {
 
     $because = if ($Because) { " because $Because," } else { "" }
 
+    $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
+    $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
+
+    # ConciseView (the default $ErrorView since PowerShell 7.2) reflows the error message: it
+    # collapses every newline into a space and re-wraps to the console width. That turns the
+    # aligned multi-line diff, including the caret, into an unreadable single line (#2872). No
+    # message shape survives that reflow, so under ConciseView we emit a compact single-line
+    # message instead, which stays readable once flattened.
+    if ('ConciseView' -eq $ErrorView) {
+        if ($Expected.Length -ne $Actual.Length) {
+            return "Expected strings to be the same,$because but they differ at index $differenceIndex. Expected: '$expectedExpanded' (length $($Expected.Length)), but was: '$actualExpanded' (length $($Actual.Length))."
+        }
+        return "Expected strings to be the same,$because but they differ at index $differenceIndex. Expected: '$expectedExpanded', but was: '$actualExpanded' (both length $($Expected.Length))."
+    }
+
     $lines = @(
         "Expected strings to be the same,$because but they were different."
     )
@@ -156,13 +171,14 @@ function Get-StringDifferenceMessage {
     }
     $lines += "Strings differ at index $differenceIndex."
 
-    $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
-    $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
-
     $prefix = "Expected: '"
     $lines += "$prefix$expectedExpanded'"
     $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $differenceIndex) + '^'
+    # Point the caret at the first differing character. The line content starts at column
+    # $prefix.Length (just after the opening quote), so pad by that many spaces, then draw
+    # $differenceIndex dashes before the caret. This matches the classic Should -Be caret in
+    # Get-CompareStringMessage, which previously pointed one column further right (#2872).
+    $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
 
     $lines -join "`n"
 }

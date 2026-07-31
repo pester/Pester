@@ -111,7 +111,7 @@ Actual length:   3
 Strings differ at index 0.
 Expected: ''
 But was:  'abc'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
         }
     }
@@ -155,7 +155,7 @@ String lengths are both 3.
 Strings differ at index 0.
 Expected: 'abc'
 But was:  'bde'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -167,7 +167,7 @@ String lengths are both 11.
 Strings differ at index 0.
 Expected: 'Hello World'
 But was:  'hello world'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -180,7 +180,7 @@ Actual length:   3
 Strings differ at index 3.
 Expected: 'abcdef'
 But was:  'abc'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
     }
 
@@ -193,7 +193,39 @@ Actual length:   7
 Strings differ at index 3.
 Expected: 'abc␍␊def'
 But was:  'abc␊def'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
+    }
+
+    Context "ConciseView renders a readable single-line message (#2872)" {
+        # ConciseView (the default $ErrorView since PowerShell 7.2) collapses newlines and
+        # re-wraps the message, mangling the multi-line diff. Under it we emit a compact
+        # single-line message instead. Users typically set $ErrorView globally, which is what
+        # the message builder reads, so drive the tests through $global:ErrorView.
+        BeforeAll { $script:originalErrorView = $global:ErrorView }
+        BeforeEach { $global:ErrorView = 'ConciseView' }
+        AfterAll { $global:ErrorView = $script:originalErrorView }
+
+        It "Uses a compact single-line message when the lengths differ" {
+            $err = { Should-BeString -Expected "ab" -Actual "abc" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected strings to be the same, but they differ at index 2. Expected: 'ab' (length 2), but was: 'abc' (length 3)."
+        }
+
+        It "Uses a compact single-line message when the lengths are equal" {
+            $err = { Should-BeString -Expected "abcYef" -Actual "abcXef" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected strings to be the same, but they differ at index 3. Expected: 'abcYef', but was: 'abcXef' (both length 6)."
+        }
+
+        It "Includes the reason in the compact message" {
+            $err = { Should-BeString -Expected "ab" -Actual "abc" -Because "reasons" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected strings to be the same, because reasons, but they differ at index 2. Expected: 'ab' (length 2), but was: 'abc' (length 3)."
+        }
+
+        It "Keeps the compact message on a single line by escaping control characters" {
+            # The exact expected string below contains no newline, so this both verifies the escaping
+            # and proves the message stays on a single line (which is the whole point under ConciseView).
+            $err = { Should-BeString -Expected "abc`r`ndef" -Actual "abc`ndef" } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected strings to be the same, but they differ at index 3. Expected: 'abc␍␊def' (length 8), but was: 'abc␊def' (length 7)."
+        }
     }
 }

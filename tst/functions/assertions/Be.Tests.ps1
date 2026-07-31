@@ -220,6 +220,27 @@ InPesterModuleScope {
         It "The arrow points to the correct position when non-printable characters are replaced after the difference" {
             ShouldBeFailureMessage "abcd`n123" "abc!`n123" | Verify-Equal "Expected strings to be the same, but they were different.`nString lengths are both 8.`nStrings differ at index 3.`nExpected: 'abc!␊123'`nBut was:  'abcd␊123'`n           ---^"
         }
+
+        Context "ConciseView renders a readable single-line message (#2872)" {
+            # ConciseView (the default $ErrorView since PowerShell 7.2) collapses newlines and
+            # re-wraps the message, mangling the multi-line diff. Under it we emit a compact
+            # single-line message instead, matching Should-BeString.
+            BeforeAll { $script:originalErrorView = $global:ErrorView }
+            BeforeEach { $global:ErrorView = 'ConciseView' }
+            AfterAll { $global:ErrorView = $script:originalErrorView }
+
+            It "Uses a compact single-line message when the lengths differ" {
+                ShouldBeFailureMessage "actual" "expected" | Verify-Equal "Expected strings to be the same, but they differ at index 0. Expected: 'expected' (length 8), but was: 'actual' (length 6)."
+            }
+
+            It "Uses a compact single-line message when the lengths are equal" {
+                ShouldBeFailureMessage "abcXef" "abcYef" | Verify-Equal "Expected strings to be the same, but they differ at index 3. Expected: 'abcYef', but was: 'abcXef' (both length 6)."
+            }
+
+            It "Includes the reason in the compact message" {
+                ShouldBeFailureMessage "actual" "expected" -Because 'reason' | Verify-Equal "Expected strings to be the same, because reason, but they differ at index 0. Expected: 'expected' (length 8), but was: 'actual' (length 6)."
+            }
+        }
     }
 }
 
