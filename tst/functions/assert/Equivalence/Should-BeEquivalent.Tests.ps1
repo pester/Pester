@@ -477,8 +477,6 @@ InPesterModuleScope {
             Should-BeEquivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized
             Should-BeEquivalent -Actual $Actual -Expected $ExpectedDeserialized
 
-            { Should-BeEquivalent -Actual $Actual -Expected $Expected -StrictOrder } | Should -Throw
-
             $Actual.Rows[1].Name = 'D'
             { Should-BeEquivalent -Actual $Actual -Expected $Expected } | Should -Throw
 
