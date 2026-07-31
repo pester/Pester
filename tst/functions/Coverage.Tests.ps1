@@ -1440,4 +1440,58 @@ InPesterModuleScope {
             Get-RelativePath -Path $absFile -RelativeTo (Get-ReportRoot) | Should -Be $expected
         }
     }
+
+    Describe 'Resolve-CodeCoverageConfiguration report root resolution (#2923)' {
+        # A relative ReportRoot (or its Run.RepoRoot fallback) must be captured against the
+        # location Invoke-Pester was called from, during configuration validation, not against
+        # whatever location a test leaves behind. The report is written after all tests ran, so
+        # resolving only then (in Get-ReportRoot) would break when a test changes the location.
+        BeforeAll {
+            $invocationDir = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'invocation-dir') -Force).FullName
+            $elsewhere = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'elsewhere') -Force).FullName
+        }
+
+        It 'captures a relative CodeCoverage.ReportRoot at configuration time so a later location change does not move it' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+
+            Push-Location -Path $invocationDir
+            try {
+                Resolve-CodeCoverageConfiguration
+            }
+            finally {
+                Pop-Location
+            }
+
+            # A test changed the current location before the report is written.
+            Push-Location -Path $elsewhere
+            try {
+                Get-ReportRoot | Should -Be $invocationDir
+            }
+            finally {
+                Pop-Location
+            }
+        }
+
+        It 'captures a relative Run.RepoRoot fallback at configuration time so a later location change does not move it' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.Run.RepoRoot = '.'
+
+            Push-Location -Path $invocationDir
+            try {
+                Resolve-CodeCoverageConfiguration
+            }
+            finally {
+                Pop-Location
+            }
+
+            Push-Location -Path $elsewhere
+            try {
+                Get-ReportRoot | Should -Be $invocationDir
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    }
 }
