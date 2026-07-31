@@ -25,6 +25,7 @@ Describe "Should-BeTruthy" {
     }
 
     It "Can be called with positional parameters" {
-        { Should-BeTruthy $false } | Verify-AssertionFailed
+        $err = { Should-BeTruthy $false } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "Expected [bool] `$true or a truthy value, but got: [bool] `$false."
     }
 }
