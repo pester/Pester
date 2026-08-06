@@ -58,6 +58,14 @@ Describe "Should-NotBeString" {
         It "Trimming whitespace does not remove it from inside of the string" {
             "a bc" | Should-NotBeString -Expected "abc" -TrimWhitespace
         }
+
+        It "Fails when strings differ only in line ending style" {
+            { "line1`nline2" | Should-NotBeString -Expected "line1`r`nline2" -NormalizeNewline } | Verify-AssertionFailed
+        }
+
+        It "Passes when strings differ in more than line ending style" {
+            "a`nb" | Should-NotBeString -Expected "a`n`nb" -NormalizeNewline
+        }
     }
 
     It "Can be called with positional parameters" {
