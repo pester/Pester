@@ -80,6 +80,15 @@ function New-PesterState {
 
         Stack               = [Collections.Stack]@()
 
+        # [System.Random] used to shuffle the execution order of containers, blocks and tests
+        # when Run.Shuffle is enabled. Seeded from Run.ShuffleSeed so a run can be repeated.
+        # Stays $null when Run.Shuffle is disabled.
+        ShuffleRandom       = $null
+
+        # Set of block containers that opt out of shuffling via a '#pester:no-shuffle' comment.
+        # Their blocks and tests keep declaration order even when Run.Shuffle is enabled.
+        NoShuffleContainers = $null
+
         # Captured here so the <> template expansion (which runs in the user's session state) can
         # invoke it via "& $____Pester.FormatNicelyForTemplate" while the function itself stays bound
         # to the Pester module session state, where Format-Nicely2 is available (#2744).
@@ -2034,6 +2043,34 @@ function Invoke-Test {
     $state.PluginData = $PluginData
     $state.Configuration = $Configuration
 
+    # Shuffled execution order (#2425). The seed is normally resolved once in Invoke-Pester
+    # and written back to the configuration so it can be reported and repeated. When Invoke-Test
+    # is called directly (e.g. from tests) with Run.Shuffle enabled but no seed, pick one here.
+    if ($PesterPreference.Run.Shuffle.Value) {
+        $shuffleSeed = $PesterPreference.Run.ShuffleSeed.Value
+        if (0 -eq $shuffleSeed) {
+            $shuffleSeed = [System.Random]::new().Next(1, [int]::MaxValue)
+            $PesterPreference.Run.ShuffleSeed = $shuffleSeed
+        }
+
+        $state.ShuffleRandom = [System.Random]::new($shuffleSeed)
+
+        # A file or script block can opt out with a '#pester:no-shuffle' comment. Collect those
+        # containers so their blocks and tests keep declaration order during discovery post-processing.
+        $state.NoShuffleContainers = [System.Collections.Generic.HashSet[object]]::new()
+        foreach ($container in $BlockContainer) {
+            if (Test-BlockContainerIsNoShuffle -Container $container) {
+                $null = $state.NoShuffleContainers.Add($container)
+            }
+        }
+
+        # Shuffle the order the containers (test files / script blocks) run in. The blocks and
+        # tests inside each container are shuffled later, during discovery post-processing.
+        if (@($BlockContainer).Count -gt 1) {
+            $BlockContainer = Get-ShuffledOrder -Random $state.ShuffleRandom -InputObject $BlockContainer
+        }
+    }
+
     # # TODO: this it potentially unreliable, because suppressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
     # # finding if there were any non-terminating errors during the run, user can clear the array, and the array has fixed size so we can't just try to detect if there is any difference by counts before and after. So I capture the last known error in that state and try to find it in the array after the run
@@ -2153,6 +2190,67 @@ function Invoke-Test {
     $executedContainers
 }
 
+function Get-ShuffledOrder {
+    # Fisher-Yates shuffle. Returns a new array with the items in a random but
+    # deterministic order for a given seeded [System.Random], so a run can be repeated.
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Random] $Random,
+        $InputObject
+    )
+
+    $items = [object[]]@($InputObject)
+    for ($i = $items.Length - 1; $i -gt 0; $i--) {
+        $j = $Random.Next(0, $i + 1)
+        if ($i -ne $j) {
+            $tmp = $items[$i]
+            $items[$i] = $items[$j]
+            $items[$j] = $tmp
+        }
+    }
+
+    # comma to return the array as a single object, preventing pipeline unrolling
+    , $items
+}
+
+function Test-BlockContainerIsNoShuffle {
+    # Returns $true when a container opts out of shuffling (#2425) via a file-level comment directive,
+    # parsed similarly to PowerShell's #requires:
+    #
+    #     #pester:no-shuffle
+    #
+    # The marker is matched against real comment tokens using the PowerShell tokenizer, so it is
+    # recognized only inside comments and never inside strings or here-strings. It may appear anywhere
+    # in the file or script block. Blocks and tests in a marked container keep their declaration order.
+    [OutputType([bool])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Container
+    )
+
+    $tokens = $null
+    $parseErrors = $null
+
+    if ('File' -eq $Container.Type) {
+        $null = [System.Management.Automation.Language.Parser]::ParseFile($Container.Item.FullName, [ref] $tokens, [ref] $parseErrors)
+    }
+    elseif ('ScriptBlock' -eq $Container.Type) {
+        $null = [System.Management.Automation.Language.Parser]::ParseInput($Container.Item.ToString(), [ref] $tokens, [ref] $parseErrors)
+    }
+    else {
+        return $false
+    }
+
+    foreach ($token in $tokens) {
+        if ($token.Kind -eq [System.Management.Automation.Language.TokenKind]::Comment -and
+            $token.Text -match '^#\s*pester:no-shuffle\b') {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function PostProcess-DiscoveredBlock {
     param (
         [Parameter(Mandatory = $true)]
@@ -2177,6 +2275,30 @@ function PostProcess-DiscoveredBlock {
         $b.IsRoot = $b -eq $RootBlock
         $b.Root = $RootBlock
         $b.BlockContainer = $BlockContainer
+
+        # Shuffle the order of this block's direct children (its child blocks and tests, kept
+        # together in .Order) when Run.Shuffle is enabled. This shuffles same-level items only:
+        # the Describes in a file, the Describes/Contexts in a Describe, and the Its in a block.
+        # We do it here, before First/Last are marked below, and rebuild .Blocks and .Tests to
+        # follow the shuffled .Order so the one-time setup/teardown boundaries match the real
+        # execution order. Uses the run's seeded RNG so the order is repeatable (#2425). Containers
+        # that opt out with '#pester:no-shuffle' are skipped and keep their declaration order.
+        $containerOptedOut = $null -ne $state.NoShuffleContainers -and $state.NoShuffleContainers.Contains($BlockContainer)
+        if ($null -ne $state.ShuffleRandom -and -not $containerOptedOut -and $b.Order.Count -gt 1) {
+            $shuffledOrder = Get-ShuffledOrder -Random $state.ShuffleRandom -InputObject $b.Order
+            $b.Order.Clear()
+            $b.Blocks.Clear()
+            $b.Tests.Clear()
+            foreach ($item in $shuffledOrder) {
+                $null = $b.Order.Add($item)
+                if ('Test' -eq $item.ItemType) {
+                    $null = $b.Tests.Add($item)
+                }
+                else {
+                    $null = $b.Blocks.Add($item)
+                }
+            }
+        }
 
         $tests = $b.Tests
 

@@ -37,6 +37,8 @@ namespace Pester
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
         private StringOption _repoRoot;
+        private BoolOption _shuffle;
+        private IntOption _shuffleSeed;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -62,6 +64,8 @@ namespace Pester
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RepoRoot), v => RepoRoot = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Shuffle), v => Shuffle = v);
+                configuration.AssignValueIfNotNull<int>(nameof(ShuffleSeed), v => ShuffleSeed = v);
             }
         }
 
@@ -80,6 +84,8 @@ namespace Pester
             ParallelThrottleLimit = new IntOption("EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.", 0);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
+            Shuffle = new BoolOption("EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.", false);
+            ShuffleSeed = new IntOption("EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.", 0);
             RepoRoot = new StringOption("EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.", FindRepoRoot());
         }
 
@@ -303,6 +309,38 @@ namespace Pester
                 else
                 {
                     _repoRoot = new StringOption(_repoRoot, value?.Value);
+                }
+            }
+        }
+
+        public BoolOption Shuffle
+        {
+            get { return _shuffle; }
+            set
+            {
+                if (_shuffle == null)
+                {
+                    _shuffle = value;
+                }
+                else
+                {
+                    _shuffle = new BoolOption(_shuffle, value.Value);
+                }
+            }
+        }
+
+        public IntOption ShuffleSeed
+        {
+            get { return _shuffleSeed; }
+            set
+            {
+                if (_shuffleSeed == null)
+                {
+                    _shuffleSeed = value;
+                }
+                else
+                {
+                    _shuffleSeed = new IntOption(_shuffleSeed, value.Value);
                 }
             }
         }
