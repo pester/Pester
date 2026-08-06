@@ -558,14 +558,18 @@ function Expand-NameForSkippedTest {
     # (see the expansion setup in Invoke-TestItem). So a skipped data-driven test used to show the
     # raw template, e.g. 'Value <_>' three times instead of 'Value foo' / 'Value bar' / ... (#2427).
     #
-    # Here we expand only the templates that are directly backed by the -ForEach data: <_> (the whole
-    # data item) and <Key> (a top-level key when the data is a dictionary). Anything else, a nested
-    # property like <_.Name>, an index/method call, or a variable that would only exist after setup,
-    # is left as the literal <template> text. That is deliberate: we must not run user expressions to
-    # render the name of a test the user asked to skip, and we only have the data, not the setup state.
+    # We expand the same way an executed test does: build the same #2044-safe expandable string and
+    # evaluate the <template> expressions against the -ForEach data, in the test's session state, so a
+    # skipped test gets the same name it would get when run (<_>, <Name>, but also <_.Length> etc.).
+    # The only thing we don't have is the setup state, so if a template refers to something that only
+    # setup would define the expansion throws just like it would for a run, and we fall back to the raw
+    # template name rather than failing the skipped test.
     param (
         [string] $Name,
         $Data,
+        # SessionStateInternal of the test's scriptblock, so <template> resolves against user scope
+        # exactly like it does when the test runs.
+        $SessionStateInternal,
         # The FormatNicelyForTemplate scriptblock captured on the state ($State.FormatNicelyForTemplate),
         # so skipped and executed tests format the same values identically, and so this keeps working
         # when the runtime is tested in isolation without Format2.ps1 loaded.
@@ -574,35 +578,44 @@ function Expand-NameForSkippedTest {
 
     if ($Name -notlike '*<*') { return $Name }
 
-    $dataIsDictionary = $Data -is [System.Collections.IDictionary]
-
-    $expanded = [System.Text.StringBuilder]::new($Name.Length)
+    # Build the same expandable string the executed expansion builds: each <template> becomes an
+    # evaluated $(& $fmt ($template)) and every other character is escaped so literal backticks, $ and "
+    # stay inert and cannot break parsing or inject code (#2044). `< and `> escape a literal bracket.
+    $builder = [System.Text.StringBuilder]::new($Name.Length)
     $pos = 0
-    # Same <template> / `< / `> matching as the executed-test expansion, minus the escaping needed
-    # only when building an expandable string, because here we build a literal string and never invoke it.
-    foreach ($match in [regex]::Matches($Name, '(?<!`)<([^>`]+)>|`([<>])')) {
-        $null = $expanded.Append($Name.Substring($pos, $match.Index - $pos))
-        if ($match.Groups[1].Success) {
-            $token = $match.Groups[1].Value
-            if ($token -eq '_') {
-                $null = $expanded.Append((& $FormatNicelyForTemplate $Data))
-            }
-            elseif ($dataIsDictionary -and $Data.Contains($token)) {
-                $null = $expanded.Append((& $FormatNicelyForTemplate $Data[$token]))
-            }
-            else {
-                # Not resolvable from the data alone, keep the original <token> untouched.
-                $null = $expanded.Append($match.Value)
-            }
-        }
-        else {
-            # `< or `> escapes a literal angle bracket, same as in the executed-test expansion.
-            $null = $expanded.Append($match.Groups[2].Value)
-        }
+    foreach ($match in [regex]::Matches($Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+        $null = $builder.Append($Name.Substring($pos, $match.Index - $pos))
+        if ($match.Groups[1].Success) { $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($match.Groups[1].Value).Append('))') }
+        elseif ($match.Groups[2].Success) { $null = $builder.Append($match.Groups[2].Value) }
+        else { $null = $builder.Append('`').Append($match.Groups[3].Value) }
         $pos = $match.Index + $match.Length
     }
-    $null = $expanded.Append($Name.Substring($pos))
-    $expanded.ToString()
+    $null = $builder.Append($Name.Substring($pos))
+
+    $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    if ($null -ne $SessionStateInternal) {
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($expandScriptBlock, $SessionStateInternal)
+    }
+
+    # Bind the -ForEach data ($_ and, for a dictionary, its keys) and the formatter, the same variables
+    # the executed expansion sees. Prefixed and private names so they can't shadow user variables.
+    $variables = [System.Collections.Generic.List[System.Management.Automation.PSVariable]]::new()
+    $variables.Add([System.Management.Automation.PSVariable]::new('____PesterFormatNicelyForTemplate', $FormatNicelyForTemplate))
+    $dataContext = @{ }
+    Add-DataToContext -Destination $dataContext -Data $Data
+    foreach ($pair in $dataContext.GetEnumerator()) {
+        $variables.Add([System.Management.Automation.PSVariable]::new($pair.Key, $pair.Value))
+    }
+
+    try {
+        $expanded = $expandScriptBlock.InvokeWithContext($null, $variables)
+        if ($null -ne $expanded -and 0 -lt @($expanded).Count) { [string]$expanded[0] } else { $Name }
+    }
+    catch {
+        # A skipped test's name must never fail the run. If a template needs something only setup would
+        # provide, keep the raw template rather than throwing, same visible result as before the fix.
+        $Name
+    }
 }
 
 function Invoke-TestItem {
@@ -668,11 +681,12 @@ function Invoke-TestItem {
                 Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
             }
 
-            # A skipped test never runs the setup that expands <template> names, so expand the
-            # data-backed templates here from the -ForEach data we already have. Same guard as the
-            # executed path uses before binding data (#2427).
+            # A skipped test never runs the setup that expands <template> names, so expand them here
+            # against the -ForEach data, the same way an executed test would. Same guard as the executed
+            # path uses before binding data (#2427).
             if (($null -ne $Test.Data -or -not [string]::IsNullOrEmpty($Test.GroupId)) -and ($Test.Name -like '*<*')) {
-                $Test.ExpandedName = Expand-NameForSkippedTest -Name $Test.Name -Data $Test.Data -FormatNicelyForTemplate $State.FormatNicelyForTemplate
+                $testSessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($Test.ScriptBlock, $null)
+                $Test.ExpandedName = Expand-NameForSkippedTest -Name $Test.Name -Data $Test.Data -SessionStateInternal $testSessionStateInternal -FormatNicelyForTemplate $State.FormatNicelyForTemplate
                 $Test.ExpandedPath = "$($block.ExpandedPath).$($Test.ExpandedName)"
             }
 

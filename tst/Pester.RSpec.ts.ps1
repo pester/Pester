@@ -2156,21 +2156,35 @@ i -PassThru:$PassThru {
             $tests[3].ExpandedName | Verify-Equal "hashtable b 2"
         }
 
-        t "skipped test leaves templates not backed by data as the literal <template> (#2427)" {
-            # A skipped test never runs setup, so anything that needs more than the raw data, a nested
-            # property, or a variable that only setup would define, cannot be resolved and stays literal.
+        t "a skipped test expands its name the same way a run test would, including nested data (#2427)" {
+            # The skipped name is expanded against the -ForEach data exactly like a run test, so a nested
+            # property such as <_.Length> resolves too, not just the whole item.
             $sb = {
                 Describe "d" {
-                    It "nested <_.Length>" -Skip -ForEach @("foo") { }
-                    It "unknown <Missing>" -Skip -ForEach @(@{ Name = "a" }) { }
+                    It "run <_.Length>" -ForEach @("foo", "bacon") { }
+                    It "skip <_.Length>" -Skip -ForEach @("foo", "bacon") { }
                 }
             }
 
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $tests = $r.Containers[0].Blocks[0].Tests
-            $tests[0].ExpandedName | Verify-Equal "nested <_.Length>"
-            $tests[1].ExpandedName | Verify-Equal "unknown <Missing>"
+            $tests[0].ExpandedName | Verify-Equal "run 3"
+            $tests[2].Result | Verify-Equal "Skipped"
+            $tests[2].ExpandedName | Verify-Equal "skip 3"
+            $tests[3].ExpandedName | Verify-Equal "skip 5"
+        }
+
+        t "a skipped test keeps escaped angle brackets literal in its name (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It 'skip `<lit`>' -Skip -ForEach @("foo") { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "skip <lit>"
         }
 
         t "<_> expands to `$_ in It even if It does not define any data" {
