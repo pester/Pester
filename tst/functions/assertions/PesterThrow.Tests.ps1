@@ -176,6 +176,28 @@ InPesterModuleScope {
                 $err.Exception.Message -replace "(`r|`n)" -replace '\s+', ' ' -replace '(char:).*$', '$1' | Verify-Equal $assertionMessage
             }
 
+            It 'hints at wildcard matching when the message is identical except for unescaped wildcard characters' {
+                # #1793: -ExpectedMessage matches with -like, so [ ] * ? are wildcards. When the expected
+                # and actual messages look identical, the failure is baffling without a hint pointing at it.
+                $testDrive = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path $testDrive test.ps1
+                Set-Content -Path $testScriptPath -Value "throw 'value is [1]'"
+
+                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage 'value is [1]' } | Verify-AssertionFailed
+                $err.Exception.Message | Verify-Like '*matches using wildcards*'
+            }
+
+            It 'does not hint at wildcard matching when the messages genuinely differ' {
+                $testDrive = (Get-PSDrive TestDrive).Root
+                $testScriptPath = Join-Path $testDrive test.ps1
+                Set-Content -Path $testScriptPath -Value "throw 'error1'"
+
+                $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage 'error2' } | Verify-AssertionFailed
+                if ($err.Exception.Message -like '*matches using wildcards*') {
+                    throw "Did not expect the wildcard hint, but got: $($err.Exception.Message)"
+                }
+            }
+
             It 'returns the correct assertion message when exceptions messages differ' {
                 $testDrive = (Get-PSDrive TestDrive).Root
                 $testScriptPath = Join-Path $testDrive test.ps1

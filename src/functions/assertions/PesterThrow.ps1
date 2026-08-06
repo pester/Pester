@@ -97,11 +97,18 @@
     }
 
     $filterOnMessage = -not [string]::IsNullOrWhitespace($ExpectedMessage)
+    $messageFailedOnWildcard = $false
     if ($filterOnMessage) {
         $unescapedExpectedMessage = [System.Management.Automation.WildcardPattern]::Unescape($ExpectedMessage)
         $filters += "message like $(Format-Nicely $unescapedExpectedMessage)"
         if ($actualExceptionWasThrown -and (-not (Get-DoValuesMatch $actualExceptionMessage $ExpectedMessage))) {
             $buts += "the message was $(Format-Nicely $actualExceptionMessage)"
+            # -ExpectedMessage matches with -like. When the actual message is identical to the expected
+            # one treated literally, the only reason the match failed is unescaped wildcard characters
+            # ([ ] * ?) in -ExpectedMessage. Flag it so the failure message is not baffling (#1793).
+            if ($actualExceptionMessage -eq $unescapedExpectedMessage) {
+                $messageFailedOnWildcard = $true
+            }
         }
     }
 
@@ -121,6 +128,10 @@
         $filter = Join-And $filters
         $but = Join-And $buts
         $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
+
+        if ($messageFailedOnWildcard) {
+            $failureMessage = "$failureMessage$([System.Environment]::NewLine)    Note: -ExpectedMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExpectedMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        }
 
         $ActualValue = $actualExceptionMessage
         $ExpectedValue = if ($filterOnExceptionType) {
