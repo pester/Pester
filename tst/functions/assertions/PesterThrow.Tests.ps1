@@ -183,8 +183,11 @@ InPesterModuleScope {
                 $testScriptPath = Join-Path $testDrive test.ps1
                 Set-Content -Path $testScriptPath -Value "throw 'value is [1]'"
 
+                # spell out the whole expected message (the hint sits before the 'from <path>' location)
+                $assertionMessage = "Expected an exception with message like 'value is [1]' to be thrown, but the message was 'value is [1]'. Note: -ExpectedMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExpectedMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+
                 $err = { { & $testScriptPath } | Should -Throw -ExpectedMessage 'value is [1]' } | Verify-AssertionFailed
-                $err.Exception.Message | Verify-Like '*matches using wildcards*'
+                $err.Exception.Message -replace "(`r|`n)", ' ' -replace '\s+', ' ' -replace ' from .*$', '' | Verify-Equal $assertionMessage
             }
 
             It 'does not hint at wildcard matching when the messages genuinely differ' {

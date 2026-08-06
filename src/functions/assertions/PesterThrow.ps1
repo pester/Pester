@@ -127,11 +127,13 @@
     if ($buts.Count -ne 0) {
         $filter = Join-And $filters
         $but = Join-And $buts
-        $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but. $actualExceptionLine".Trim()
-
-        if ($messageFailedOnWildcard) {
-            $failureMessage = "$failureMessage$([System.Environment]::NewLine)    Note: -ExpectedMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExpectedMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        $wildcardHint = if ($messageFailedOnWildcard) {
+            "$([System.Environment]::NewLine)    Note: -ExpectedMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExpectedMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
         }
+        else {
+            ""
+        }
+        $failureMessage = "Expected an exception$(if($filter) { " with $filter" }) to be thrown,$(Format-Because $Because) but $but.$wildcardHint $actualExceptionLine".Trim()
 
         $ActualValue = $actualExceptionMessage
         $ExpectedValue = if ($filterOnExceptionType) {
