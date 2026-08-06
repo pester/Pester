@@ -140,24 +140,17 @@ i -PassThru:$PassThru {
         }
 
         t "reorders the Its inside a block" {
-            # Seeds are chosen so the C block's tests are not in declaration order.
-            $found = $false
-            foreach ($seed in 1..20) {
-                $shuffled = Get-ExecutionOrder -Shuffle -Seed $seed
-                $cTests = @($shuffled.Order | Where-Object { $_ -like 'C.*' })
-                if (($cTests -join ',') -ne 'C.c1,C.c2,C.c3') { $found = $true; break }
-            }
-            $found | Verify-True
+            # Seed 7 puts the C block's tests out of declaration order.
+            $shuffled = Get-ExecutionOrder -Shuffle -Seed 7
+            $cTests = @($shuffled.Order | Where-Object { $_ -like 'C.*' })
+            ($cTests -join ',') | Verify-Equal 'C.c2,C.c1,C.c3'
         }
 
         t "reorders the Its inside a nested Context" {
-            $found = $false
-            foreach ($seed in 1..20) {
-                $shuffled = Get-ExecutionOrder -Shuffle -Seed $seed
-                $inner = @($shuffled.Order | Where-Object { $_ -like 'A.inner.*' })
-                if (($inner -join ',') -ne 'A.inner.ai1,A.inner.ai2') { $found = $true; break }
-            }
-            $found | Verify-True
+            # Seed 7 puts the nested Context's tests out of declaration order.
+            $shuffled = Get-ExecutionOrder -Shuffle -Seed 7
+            $inner = @($shuffled.Order | Where-Object { $_ -like 'A.inner.*' })
+            ($inner -join ',') | Verify-Equal 'A.inner.ai2,A.inner.ai1'
         }
     }
 
@@ -293,11 +286,14 @@ Describe 'Ordered' {
     It 'o4' { $global:__order2.Add('o4') }
 }
 '@
+            # The other files record their own order so we can prove they were shuffled - otherwise a
+            # single directive disabling shuffle globally would pass this test unnoticed (see #2948 review).
             foreach ($n in 'Free1', 'Free2', 'Free3') {
-                Set-Content -Path (Join-Path $folder "$n.Tests.ps1") -Value "Describe '$n' { It 'a' { 1 | Should -Be 1 }; It 'b' { 1 | Should -Be 1 } }"
+                Set-Content -Path (Join-Path $folder "$n.Tests.ps1") -Value "Describe '$n' { It 'a' { `$global:__freeOrder.Add('$n.a') }; It 'b' { `$global:__freeOrder.Add('$n.b') } }"
             }
             try {
                 $global:__order2 = [System.Collections.Generic.List[string]]::new()
+                $global:__freeOrder = [System.Collections.Generic.List[string]]::new()
                 $c = [PesterConfiguration]::Default
                 $c.Run.Path = $folder
                 $c.Run.Shuffle = $true
@@ -308,6 +304,8 @@ Describe 'Ordered' {
 
                 # the opted-out file kept its declaration order
                 ($global:__order2 -join ',') | Verify-Equal 'o1,o2,o3,o4'
+                # the other files still shuffled, so the directive did not disable shuffle for the whole run
+                (($global:__freeOrder -join ',') -ne 'Free1.a,Free1.b,Free2.a,Free2.b,Free3.a,Free3.b') | Verify-True
                 # and everything still ran
                 $r.FailedCount | Verify-Equal 0
             }
