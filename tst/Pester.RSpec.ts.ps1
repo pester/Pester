@@ -2138,6 +2138,41 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
         }
 
+        t "<_> and <key> expand from -ForEach data even when the test is skipped (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It "array <_>" -Skip -ForEach @("foo", "bar") { }
+                    It "hashtable <Name> <Value>" -Skip -ForEach @(@{ Name = "a"; Value = 1 }, @{ Name = "b"; Value = 2 }) { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal "Skipped"
+            $tests[0].ExpandedName | Verify-Equal "array foo"
+            $tests[1].ExpandedName | Verify-Equal "array bar"
+            $tests[2].ExpandedName | Verify-Equal "hashtable a 1"
+            $tests[3].ExpandedName | Verify-Equal "hashtable b 2"
+        }
+
+        t "skipped test leaves templates not backed by data as the literal <template> (#2427)" {
+            # A skipped test never runs setup, so anything that needs more than the raw data, a nested
+            # property, or a variable that only setup would define, cannot be resolved and stays literal.
+            $sb = {
+                Describe "d" {
+                    It "nested <_.Length>" -Skip -ForEach @("foo") { }
+                    It "unknown <Missing>" -Skip -ForEach @(@{ Name = "a" }) { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].ExpandedName | Verify-Equal "nested <_.Length>"
+            $tests[1].ExpandedName | Verify-Equal "unknown <Missing>"
+        }
+
         t "<_> expands to `$_ in It even if It does not define any data" {
             $sb = {
                 Describe "d <_>" {
