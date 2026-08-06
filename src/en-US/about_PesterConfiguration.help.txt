@@ -85,11 +85,11 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: '<path of .git>'
 
-        Shuffle: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.
+        Shuffle: EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.
         Type: bool
         Default value: $false
 
-        ShuffleSeed: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.
+        ShuffleSeed: EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.
         Type: int
         Default value: 0
 
