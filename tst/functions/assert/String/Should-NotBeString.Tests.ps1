@@ -83,8 +83,13 @@ Describe "Should-NotBeString" {
     }
 
     It "Requires Expected" {
-        $err = { "abc" | Should-NotBeString } | Verify-Throw
-        $err.Exception | Verify-Type ([System.Management.Automation.ParameterBindingException])
+        # Don't invoke with Expected missing to test this: a missing mandatory parameter makes
+        # PowerShell prompt for it, which hangs an interactive test.ps1 run and the release build.
+        # Check the parameter metadata instead. See #2963.
+        (Get-Command Should-NotBeString).Parameters['Expected'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] } |
+            ForEach-Object Mandatory |
+            Verify-True
     }
 }
 
