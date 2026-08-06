@@ -337,6 +337,30 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 }
 
+Describe 'When a bound parameter value has a ToString that throws' {
+    # The parameter filter serializer only builds diagnostic text, so a value whose ToString throws
+    # (e.g. a mocked SMO type) must not make the mock throw when the value is not even referenced by
+    # the filter. See #2953.
+    BeforeAll {
+        function Get-Thing {
+            param (
+                [object] $InputObject,
+                [switch] $Other
+            )
+        }
+    }
+
+    It 'Does not throw when a non-matching parameter filter is present' {
+        $throwingToString = [pscustomobject]@{ Name = 'demo' }
+        $throwingToString | Add-Member -MemberType ScriptMethod -Name ToString -Value { throw 'ToString should not be called by the parameter filter serializer' } -Force
+
+        Mock Get-Thing { 'default' }
+        Mock Get-Thing -ParameterFilter { $Other.IsPresent } { 'other' }
+
+        { Get-Thing -InputObject $throwingToString } | Should -Not -Throw
+    }
+}
+
 Describe "When calling Mock on existing function without matching bound params" {
     It "Should throw because no parameter filter matched the call" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
