@@ -1,0 +1,30 @@
+# Codecov configuration — added alongside the GitHub Actions CI pilot
+# (.github/workflows/ci.yml). Coverage is uploaded per matrix leg using flags.
+#
+# During the pilot we keep coverage status "informational" so Codecov never
+# posts a failing/blocking commit status while we compare against Azure.
+
+codecov:
+  # We upload one report per matrix leg (8 legs). Wait for all of them before
+  # finalizing notifications/PR comment so the merged picture is complete.
+  notify:
+    after_n_builds: 8
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "header, diff, flags, files"
+  require_changes: false
+
+# Per-leg flags (ps7-ubuntu-latest, ps51-windows-2022, ...) uploaded by ci.yml.
+# Carry a flag's last-known coverage forward on commits where it didn't upload.
+flag_management:
+  default_rules:
+    carryforward: true

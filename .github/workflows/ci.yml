@@ -1,0 +1,279 @@
+# GitHub Actions CI — pilot port of azure-pipelines.yml.
+#
+# This runs ALONGSIDE Azure Pipelines (we did not remove azure-pipelines.yml),
+# so every push/PR triggers both systems and we can compare them before cutting
+# over. Mirrors the Azure setup: build once on Windows, publish the built module
+# as an artifact, then fan out the test matrix (all 8 legs run in parallel).
+#
+# Coverage: each leg runs `test.ps1 -CC`, producing a JaCoCo coverage.xml. Azure
+# rendered this via PublishCodeCoverageResults@2; here we surface it natively in
+# the run's job summaries (per leg, plus a consolidated table in "Done") and keep
+# the raw coverage.xml as an artifact.
+#
+# Image policy: GA only. We float `*-latest` for the newest GA image and pin the
+# one previous GA image ("latest + reasonably recent"). No preview images
+# (macos-26, windows-2025-vs2026) are used. Note macos-14 is on the deprecation
+# clock (brownouts Oct 2026, removal Nov 2 2026) — swap it out before then.
+name: CI (GitHub Actions pilot)
+
+on:
+  push:
+    branches: [main, 'rel/*']
+    paths-ignore:
+      - '.devcontainer/**'
+      - '.vscode/**'
+      - 'docs/**'
+      - 'images/**'
+      - '**/*.md'
+  pull_request:
+    branches: [main, 'rel/*', 'dev/*']
+    paths-ignore:
+      - '.devcontainer/**'
+      - '.vscode/**'
+      - 'docs/**'
+      - 'images/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write   # dorny/test-reporter creates a check run with the test report
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: '0'
+  DOTNET_NOLOGO: '1'
+  CI: '1'
+
+# Supersede in-flight runs for the same branch/PR to save minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Build module (inline, locked restore)
+        shell: pwsh
+        run: |
+          "Running .NET SDK v$(dotnet --version)"
+          ./build.ps1 -LockedRestore -Clean -Inline
+
+      # Publish the built tree so every test leg runs the exact same build.
+      # Mirrors Azure's `publish: $(Build.SourcesDirectory)` + .artifactignore.
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-build
+          retention-days: 1
+          include-hidden-files: true
+          path: |
+            bin/
+            src/
+            tst/
+            build.ps1
+            test.ps1
+            global.json
+            !src/csharp/**/bin/**
+            !src/csharp/**/obj/**
+            !src/csharp/.vs/**
+
+  test:
+    name: ${{ matrix.name }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # PowerShell 7 (psexe: pwsh) — latest + one previous GA per OS.
+          - { name: 'PS7 - Ubuntu latest',    id: ps7-ubuntu-latest,   os: ubuntu-latest,  psexe: pwsh }
+          - { name: 'PS7 - Ubuntu 22.04',     id: ps7-ubuntu-2204,     os: ubuntu-22.04,   psexe: pwsh }
+          - { name: 'PS7 - macOS latest',     id: ps7-macos-latest,    os: macos-latest,   psexe: pwsh }
+          - { name: 'PS7 - macOS 14',         id: ps7-macos-14,        os: macos-14,       psexe: pwsh }
+          - { name: 'PS7 - Windows latest',   id: ps7-windows-latest,  os: windows-latest, psexe: pwsh }
+          - { name: 'PS7 - Windows 2022',     id: ps7-windows-2022,    os: windows-2022,   psexe: pwsh }
+          # Windows PowerShell 5.1 (psexe: powershell) — Windows only.
+          - { name: 'PS5.1 - Windows latest', id: ps51-windows-latest, os: windows-latest, psexe: powershell }
+          - { name: 'PS5.1 - Windows 2022',   id: ps51-windows-2022,   os: windows-2022,   psexe: powershell }
+    steps:
+      # Shallow checkout only so dorny/test-reporter (below) has git context — it
+      # shells out to git and errors without a repo. The artifact overlays this,
+      # so the tests still run against the published build, like Azure.
+      - name: Checkout (git context for test-reporter)
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Download build output
+        uses: actions/download-artifact@v4
+        with:
+          name: pester-build
+          path: .
+
+      # `shell:` cannot take a matrix expression, so run from a fixed pwsh (present
+      # on every runner) and launch the leg's interpreter: pwsh for PS7, powershell
+      # (Windows PowerShell 5.1) for the 5.1 legs. exit $LASTEXITCODE so a failure
+      # in the launched process still fails the job.
+      - name: Test Pester
+        shell: pwsh
+        run: |
+          & ${{ matrix.psexe }} -NoProfile -Command "& ./test.ps1 -CI -CC -PassThru -NoBuild"
+          exit $LASTEXITCODE
+
+      # Render this leg's JaCoCo coverage into the job summary (Azure parity).
+      - name: Coverage summary
+        if: always()
+        shell: pwsh
+        env:
+          LEG_NAME: ${{ matrix.name }}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          function Append-Summary([string]$text) {
+            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $text, (New-Object System.Text.UTF8Encoding($false)))
+          }
+          try {
+            if (-not (Test-Path 'coverage.xml')) {
+              Append-Summary "## Coverage - $env:LEG_NAME`n`nNo coverage.xml was produced.`n"
+              return
+            }
+            [xml]$xml = Get-Content -LiteralPath 'coverage.xml'
+            $counters = @($xml.report.counter)   # report-level totals (direct children)
+            $rows = foreach ($type in 'LINE','INSTRUCTION','METHOD','CLASS') {
+              $c = $counters | Where-Object { $_.type -eq $type }
+              if ($c) {
+                $cov = [int]$c.covered; $mis = [int]$c.missed; $tot = $cov + $mis
+                $pct = if ($tot) { [math]::Round(100.0 * $cov / $tot, 2) } else { 0 }
+                $pctStr = ([double]$pct).ToString('0.##', [System.Globalization.CultureInfo]::InvariantCulture)
+                [pscustomobject]@{ Type = $type; Covered = $cov; Missed = $mis; Total = $tot; PctStr = $pctStr }
+              }
+            }
+            $line = $rows | Where-Object { $_.Type -eq 'LINE' }
+            $sb = [System.Text.StringBuilder]::new()
+            [void]$sb.AppendLine("## Coverage - $env:LEG_NAME`n")
+            if ($line) { [void]$sb.AppendLine("**Line coverage: $($line.PctStr)%**  ($($line.Covered)/$($line.Total) lines)`n") }
+            [void]$sb.AppendLine("| Metric | Covered | Missed | Total | % |")
+            [void]$sb.AppendLine("|---|--:|--:|--:|--:|")
+            foreach ($r in $rows) { [void]$sb.AppendLine("| $($r.Type) | $($r.Covered) | $($r.Missed) | $($r.Total) | $($r.PctStr)% |") }
+            Append-Summary ($sb.ToString() + "`n")
+            if ($line) { Write-Host "Line coverage ($env:LEG_NAME): $($line.PctStr)%" }
+          } catch {
+            Append-Summary "## Coverage - $env:LEG_NAME`n`nCoverage summary failed: $($_.Exception.Message)`n"
+          }
+
+      # Upload this leg's JaCoCo report to Codecov. `flags` keeps a per-leg
+      # breakdown while Codecov merges all legs into one project report.
+      # pester/Pester is public, so upload works tokenless (v5 opt-out); a
+      # CODECOV_TOKEN secret, if set, makes uploads more reliable.
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          disable_search: true
+          flags: ${{ matrix.id }}
+          name: ${{ matrix.name }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            testResults.xml
+            coverage.xml
+
+      # Render the NUnit3 results as a check run (Azure test-tab parity).
+      # fail-on-error: false so a parse hiccup — or a fork PR, where the token is
+      # read-only and can't create checks — doesn't fail the leg.
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v3
+        with:
+          name: 'Tests - ${{ matrix.name }}'
+          path: testResults.xml
+          reporter: dotnet-nunit
+          fail-on-error: false
+          use-actions-summary: 'true'
+
+  # Single gate after the matrix so branch protection / auto-merge only needs to
+  # require "Done" instead of listing all 8 legs. Mirrors Azure's Done stage.
+  # It also renders a consolidated coverage table (one glance at all legs).
+  done:
+    name: Done
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download coverage reports
+        if: always()
+        uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: coverage-reports
+
+      - name: Consolidated coverage
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          function Append-Summary([string]$text) {
+            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $text, (New-Object System.Text.UTF8Encoding($false)))
+          }
+          function Get-Pct($counters, [string]$type) {
+            $c = $counters | Where-Object { $_.type -eq $type }
+            if (-not $c) { return $null }
+            $cov = [int]$c.covered; $tot = $cov + [int]$c.missed
+            $pct = if ($tot) { [math]::Round(100.0 * $cov / $tot, 2) } else { 0 }
+            ([double]$pct).ToString('0.##', [System.Globalization.CultureInfo]::InvariantCulture)
+          }
+          try {
+            $files = Get-ChildItem -Path 'coverage-reports' -Recurse -Filter 'coverage.xml' -ErrorAction SilentlyContinue
+            if (-not $files) { Append-Summary "## Coverage by matrix leg`n`nNo coverage reports found.`n"; return }
+            $sb = [System.Text.StringBuilder]::new()
+            [void]$sb.AppendLine("## Coverage by matrix leg`n")
+            [void]$sb.AppendLine("| Leg | Line % | Instruction % |")
+            [void]$sb.AppendLine("|---|--:|--:|")
+            foreach ($f in ($files | Sort-Object FullName)) {
+              $leg = (Split-Path (Split-Path $f.FullName -Parent) -Leaf) -replace '^results-', ''
+              try {
+                [xml]$xml = Get-Content -LiteralPath $f.FullName
+                $counters = @($xml.report.counter)
+                $lpct = Get-Pct $counters 'LINE'
+                $ipct = Get-Pct $counters 'INSTRUCTION'
+                [void]$sb.AppendLine("| $leg | $(if ($null -ne $lpct) { "$lpct%" } else { 'n/a' }) | $(if ($null -ne $ipct) { "$ipct%" } else { 'n/a' }) |")
+              } catch {
+                [void]$sb.AppendLine("| $leg | error | error |")
+              }
+            }
+            Append-Summary ($sb.ToString() + "`n")
+          } catch {
+            Append-Summary "## Coverage by matrix leg`n`nConsolidated coverage failed: $($_.Exception.Message)`n"
+          }
+
+      - name: All test legs passed
+        run: |
+          echo "Test matrix result: ${{ needs.test.result }}"
+          [ "${{ needs.test.result }}" = "success" ] || exit 1
+          echo "done"
