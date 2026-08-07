@@ -657,6 +657,70 @@ i -PassThru:$PassThru {
             $t = $r.Containers[0].Blocks[0].Tests[0]
             $t.Result | Verify-Equal "Passed"
         }
+
+        t "verifiable mock overridden by a verifiable mock in a narrower scope passes (#2672)" {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll { function Get-Data { 'real' } }
+                    Context 'c' {
+                        BeforeAll { Mock Get-Data { 'outer' } -Verifiable }
+                        It 'i' {
+                            Mock Get-Data { 'inner' } -Verifiable
+                            Get-Data | Should -Be 'inner'
+                            Should -InvokeVerifiable
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "verifiable mock overridden by a default mock in a narrower scope is not required (#2672)" {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll { function Get-Data { 'real' } }
+                    Context 'c' {
+                        BeforeAll { Mock Get-Data { 'outer' } -Verifiable }
+                        It 'i' {
+                            # not verifiable, but a default mock so it shadows the outer verifiable one
+                            Mock Get-Data { 'inner' }
+                            Get-Data | Should -Be 'inner'
+                            Should -InvokeVerifiable
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $r.Containers[0].Blocks[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+        }
+
+        t "an uninvoked verifiable mock that is not shadowed still fails InvokeVerifiable" {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll { function Get-Data { 'real' } }
+                    It 'i' {
+                        Mock Get-Data { 'mock' } -Verifiable
+                        # never call Get-Data, so the verifiable mock must make InvokeVerifiable fail
+                        Should -InvokeVerifiable
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run = @{ ScriptBlock = $sb; PassThru = $true }
+                })
+
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Failed"
+        }
     }
 
     b "top-level mocks" {
