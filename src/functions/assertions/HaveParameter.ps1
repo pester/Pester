@@ -3,6 +3,7 @@
     [String] $ParameterName,
     $Type,
     [String] $DefaultValue,
+    $DefaultValueType,
     [Switch] $Mandatory,
     [String] $InParameterSet,
     [Switch] $HasArgumentCompleter,
@@ -53,7 +54,7 @@
 
         if ($null -eq $ast) {
             # Ast is unavailable, ex. for a binary cmdlet
-            throw [ArgumentException]'Using -DefaultValue is only supported for functions and scripts.'
+            throw [ArgumentException]'Using -DefaultValue or -DefaultValueType is only supported for functions and scripts.'
         }
 
         if ($null -ne $ast.Parameters) {
@@ -78,11 +79,12 @@
             }
 
             $paramInfo = [PSCustomObject] @{
-                Name             = $parameter.Name.VariablePath.UserPath
-                Type             = "[$($parameter.StaticType.Name.ToLower())]"
-                HasDefaultValue  = $false
-                DefaultValue     = $null
-                DefaultValueType = $parameter.StaticType.Name
+                Name                     = $parameter.Name.VariablePath.UserPath
+                Type                     = "[$($parameter.StaticType.Name.ToLower())]"
+                HasDefaultValue          = $false
+                DefaultValue             = $null
+                DefaultValueType         = $null
+                DefaultValueIsExpression = $false
             }
 
             # Default value here contains a descriptor object of the default value,
@@ -99,6 +101,14 @@
                 # we take that and use it, otherwise we take the extent (how it was written in code). This will make
                 # 1, 2, or "abc", appear as 1, 2, abc to the assertion, but (Get-Date) will be (Get-Date).
                 $paramInfo.DefaultValue = Get-DefaultValue $parameter.DefaultValue
+                # The .NET type of the default value when the parser can type it statically (a literal like
+                # 1, 'x', $true, { }, @{ }), and whether the default is a computed expression like (Get-Date)
+                # whose type is not known until it runs. -DefaultValueType asserts against these: a concrete
+                # type for a literal, or Expression for a computed default. Expression vs a concrete type is
+                # what tells an expression default apart from a literal that -DefaultValue cannot.
+                $defaultValueTypeInfo = Get-DefaultValueTypeInfo $parameter.DefaultValue
+                $paramInfo.DefaultValueType = $defaultValueTypeInfo.Type
+                $paramInfo.DefaultValueIsExpression = $defaultValueTypeInfo.IsExpression
             }
 
             $paramInfo
@@ -130,6 +140,35 @@
         }
 
         $DefaultValue.Extent.Text
+    }
+
+    function Get-DefaultValueTypeInfo {
+        # Resolves the value type of a parameter's default. Returns .Type, the actual .NET type when the
+        # parser can type it statically (a literal like 1, 'x', $true, { }, @{ }), and .IsExpression, which
+        # is $true when the default is a computed expression like (Get-Date) or [datetime]::Now whose type
+        # is only known when it runs. A computed expression is what tells a default apart from a literal
+        # that happens to have the same -DefaultValue text. A $null default has neither a type nor is an
+        # expression.
+        param($DefaultValue)
+
+        # $true / $false have a known type; $null has no type; any other variable ($var, $env:PATH) is a
+        # computed reference whose type we cannot know without running it.
+        if ($DefaultValue -is [System.Management.Automation.Language.VariableExpressionAst]) {
+            $variableName = $DefaultValue.VariablePath.UserPath
+            if ('true' -eq $variableName -or 'false' -eq $variableName) { return @{ Type = [bool]; IsExpression = $false } }
+            if ('null' -eq $variableName) { return @{ Type = $null; IsExpression = $false } }
+            return @{ Type = $null; IsExpression = $true }
+        }
+
+        # System.Object means the parser could not determine a type, i.e. the default is a computed
+        # expression such as (Get-Date), [datetime]::Now or a pipeline. Anything else (String, Int32,
+        # Double, ScriptBlock, Hashtable, Object[], ...) is a literal we can type.
+        $staticType = $DefaultValue.StaticType
+        if ($null -eq $staticType -or [object] -eq $staticType) {
+            return @{ Type = $null; IsExpression = $true }
+        }
+
+        return @{ Type = $staticType; IsExpression = $false }
     }
 
     function Get-ArgumentCompleter {
@@ -240,7 +279,7 @@
     elseif ($Negate -and -not $hasKey) {
         return [Pester.ShouldResult] @{ Succeeded = $true }
     }
-    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $HasArgumentCompleter)) {
+    elseif ($Negate -and $hasKey -and -not ($InParameterSet -or $Mandatory -or $Type -or $DefaultValue -or $DefaultValueType -or $HasArgumentCompleter)) {
         $buts += 'the parameter exists'
     }
     else {
@@ -326,6 +365,59 @@
             }
             elseif ($Negate -and $testDefault) {
                 $buts += "the default value was $(Format-Nicely $actualDefault)"
+            }
+        }
+
+        if ($PSBoundParameters.ContainsKey('DefaultValueType')) {
+            $parameterMetadata = Get-ParameterInfo -Name $ParameterName -Command $ActualValue
+            if ($null -eq $parameterMetadata) {
+                # For safety, but this probably won't happen because if the parameter is not on the command we will fail much sooner.
+                throw "Metadata for parameter '$ParameterName' were not found."
+            }
+
+            # -DefaultValueType takes a .NET type (as a [type] or a string like 'string', same as -Type),
+            # which is matched against the value type of a literal default, or the special value 'Expression'
+            # for a computed default like (Get-Date) whose type is not known until it runs. Expression vs a
+            # concrete type is what tells an expression default apart from a literal string default that
+            # -DefaultValue (a string comparison) cannot distinguish.
+            $expectExpression = ($DefaultValueType -is [string]) -and ('Expression' -eq $DefaultValueType)
+
+            # Describe the actual default the same way for every mismatch below.
+            $actualDefaultDescription =
+            if (-not $parameterMetadata.HasDefaultValue) { 'the parameter had no default value' }
+            elseif ($parameterMetadata.DefaultValueIsExpression) { 'the default value was an expression' }
+            elseif ($null -eq $parameterMetadata.DefaultValueType) { 'the default value was $null' }
+            else { "the default value was of type [$($parameterMetadata.DefaultValueType.FullName)]" }
+
+            if ($expectExpression) {
+                $filters += "the default value$(if ($Negate) {' not'}) to be an expression"
+                $testDefaultValueType = $parameterMetadata.HasDefaultValue -and $parameterMetadata.DefaultValueIsExpression
+                $negatedBut = 'the default value was an expression'
+            }
+            else {
+                # Resolve the expected type, parsing a string type name the way -Type does.
+                if ($DefaultValueType -is [string]) {
+                    $trimmedType = $DefaultValueType -replace '^\[(.*)\]$', '$1'
+                    [type] $expectedType = $trimmedType -as [Type]
+                    if ($null -eq $expectedType) {
+                        throw [ArgumentException]"Could not find type [$trimmedType]. Make sure that the assembly that contains that type is loaded, or use -DefaultValueType Expression to check for a computed default value."
+                    }
+                }
+                else {
+                    [type] $expectedType = $DefaultValueType
+                }
+
+                $filters += "the default value$(if ($Negate) {' not'}) to be of type [$($expectedType.FullName)]"
+                $actualType = $parameterMetadata.DefaultValueType
+                $testDefaultValueType = ($null -ne $actualType) -and ($expectedType -eq $actualType)
+                $negatedBut = "the default value was of type [$($expectedType.FullName)]"
+            }
+
+            if (-not $Negate -and -not $testDefaultValueType) {
+                $buts += $actualDefaultDescription
+            }
+            elseif ($Negate -and $testDefaultValueType) {
+                $buts += $negatedBut
             }
         }
 

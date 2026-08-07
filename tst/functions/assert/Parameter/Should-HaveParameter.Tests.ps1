@@ -108,4 +108,69 @@ Describe "Should-HaveParameter" {
             Get-Command f | Should-HaveParameter a -HasArgumentCompleter:$false
         }
     }
+
+    Context "DefaultValueType" {
+        It "Passes when the default value is an expression and Expression is expected" {
+            function f {
+                param([string] $Path = (Get-Date))
+            }
+
+            Get-Command f | Should-HaveParameter Path -DefaultValueType Expression
+        }
+
+        It "Passes when the default value is a literal string and its type is expected" {
+            function f {
+                param([string] $Path = '(Get-Date)')
+            }
+
+            Get-Command f | Should-HaveParameter Path -DefaultValueType String
+            Get-Command f | Should-HaveParameter Path -DefaultValueType ([string])
+        }
+
+        It "Reports the real type, so a `$true default is [bool] and a number is [int]" {
+            function f {
+                param($Enabled = $true, $Retries = 3)
+            }
+
+            Get-Command f | Should-HaveParameter Enabled -DefaultValueType ([bool])
+            Get-Command f | Should-HaveParameter Retries -DefaultValueType int
+        }
+
+        It "Distinguishes a string-literal default from an expression default" {
+            function f {
+                param(
+                    [string] $Literal = '(Get-Date)',
+                    [string] $Expression = (Get-Date)
+                )
+            }
+
+            # Same -DefaultValue string, different -DefaultValueType (issue #1888)
+            Get-Command f | Should-HaveParameter Literal -DefaultValue '(Get-Date)' -DefaultValueType String
+            Get-Command f | Should-HaveParameter Expression -DefaultValue '(Get-Date)' -DefaultValueType Expression
+        }
+
+        It "Fails when the default value type does not match" {
+            function f {
+                param([string] $Path = '(Get-Date)')
+            }
+
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType Expression } | Verify-Throw
+        }
+
+        It "Fails when the parameter has no default value" {
+            function f {
+                param([string] $Path)
+            }
+
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType String } | Verify-Throw
+        }
+
+        It "Throws when given a type name that does not exist" {
+            function f {
+                param([string] $Path = '(Get-Date)')
+            }
+
+            { Get-Command f | Should-HaveParameter Path -DefaultValueType NotAType } | Verify-Throw
+        }
+    }
 }
