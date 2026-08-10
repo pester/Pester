@@ -119,6 +119,25 @@ Describe "New-ShouldAssertion" {
             $err = { 'lame' | Should-BeAwesome } | Verify-AssertionFailed
             ($err.Exception.Message -notlike '*Hint:*') | Verify-True
         }
+
+        It "uses an explicit Hint from the data instead of the default input hint" {
+            function Should-BeAwesomeHinted {
+                [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
+                [CmdletBinding()]
+                param (
+                    [Parameter(Position = 1, ValueFromPipeline = $true)] $Actual,
+                    [Parameter(Position = 0)] $Expected = 'Awesome'
+                )
+                $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+                $assert.Fail("Expected <expected> but got <actual>.", @{ Expected = $Expected; Hint = 'try harder' })
+            }
+
+            # Even a multi-item collection, which would normally produce the default single-value
+            # hint, gets the assertion's own hint instead.
+            $err = { 1, 2, 3 | Should-BeAwesomeHinted } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Like '*Hint: try harder'
+            ($err.Exception.Message -like '*single-value assertion*') | Verify-False
+        }
     }
 
     Context "Message tokens" {
