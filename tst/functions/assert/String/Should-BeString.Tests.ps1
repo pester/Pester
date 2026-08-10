@@ -69,15 +69,15 @@ InPesterModuleScope {
                 @{ l = "a`r`nb"; r = "a`rb"; lName = "CRLF"; rName = "CR" },
                 @{ l = "a$([char]0x2028)b"; r = "a`nb"; lName = "LS"; rName = "LF" }
             ) {
-                Test-StringEqual -Expected $l -Actual $r -NormalizeNewline | Verify-True
+                Test-StringEqual -Expected $l -Actual $r -NormalizeLineEnding | Verify-True
             }
 
             It "strings that differ in more than line ending style are not equal" {
-                Test-StringEqual -Expected "a`r`nb" -Actual "a`nc" -NormalizeNewline | Verify-False
+                Test-StringEqual -Expected "a`r`nb" -Actual "a`nc" -NormalizeLineEnding | Verify-False
             }
 
             It "keeps newline positions, so extra blank lines still differ" {
-                Test-StringEqual -Expected "a`r`nb" -Actual "a`r`n`r`nb" -NormalizeNewline | Verify-False
+                Test-StringEqual -Expected "a`r`nb" -Actual "a`r`n`r`nb" -NormalizeLineEnding | Verify-False
             }
         }
     }
@@ -162,11 +162,11 @@ But was:  'abc'
         }
 
         It "Can compare multi-line strings ignoring line ending style" {
-            "line1`nline2" | Should-BeString -Expected "line1`r`nline2" -NormalizeNewline
+            "line1`nline2" | Should-BeString -Expected "line1`r`nline2" -NormalizeLineEnding
         }
 
         It "Normalizing newlines still compares indentation and blank lines" {
-            { "a`nb" | Should-BeString -Expected "a`n`nb" -NormalizeNewline } | Verify-AssertionFailed
+            { "a`nb" | Should-BeString -Expected "a`n`nb" -NormalizeLineEnding } | Verify-AssertionFailed
         }
     }
 

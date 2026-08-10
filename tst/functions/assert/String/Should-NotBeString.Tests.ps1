@@ -60,11 +60,11 @@ Describe "Should-NotBeString" {
         }
 
         It "Fails when strings differ only in line ending style" {
-            { "line1`nline2" | Should-NotBeString -Expected "line1`r`nline2" -NormalizeNewline } | Verify-AssertionFailed
+            { "line1`nline2" | Should-NotBeString -Expected "line1`r`nline2" -NormalizeLineEnding } | Verify-AssertionFailed
         }
 
         It "Passes when strings differ in more than line ending style" {
-            "a`nb" | Should-NotBeString -Expected "a`n`nb" -NormalizeNewline
+            "a`nb" | Should-NotBeString -Expected "a`n`nb" -NormalizeLineEnding
         }
     }
 
