@@ -83,7 +83,7 @@ class ShouldAssertion {
         # Everything except the reserved keys becomes a <key> token in the message.
         $extra = @{}
         foreach ($key in $Data.Keys) {
-            if ($key -ne 'Expected' -and $key -ne 'Actual' -and $key -ne 'Because' -and $key -ne 'Hint') {
+            if ($key -notin 'Expected', 'Actual', 'Because', 'Hint') {
                 $extra[$key] = $Data[$key]
             }
         }
