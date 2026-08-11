@@ -110,10 +110,19 @@
     }
 
     $filterOnMessage = -not ([string]::IsNullOrWhiteSpace($ExceptionMessage))
+    $messageFailedOnWildcard = $false
     if ($filterOnMessage) {
-        $filters += "with message like '$([System.Management.Automation.WildcardPattern]::Unescape($ExceptionMessage))'"
+        $unescapedExceptionMessage = [System.Management.Automation.WildcardPattern]::Unescape($ExceptionMessage)
+        $filters += "with message like '$unescapedExceptionMessage'"
         if ($err.ExceptionMessage -notlike $ExceptionMessage) {
             $buts += "the message was '$($err.ExceptionMessage)'"
+            # -ExceptionMessage matches with -like. When the actual message is identical to the
+            # expected one treated literally, the only reason the match failed is unescaped wildcard
+            # characters ([ ] * ?) in -ExceptionMessage. Flag it so the failure message is not
+            # baffling (#2968, #1793).
+            if ($err.ExceptionMessage -eq $unescapedExceptionMessage) {
+                $messageFailedOnWildcard = $true
+            }
         }
     }
 
@@ -133,7 +142,11 @@
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
         $but = Join-And $buts
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
-        $assert.Fail($defaultMessage, @{ Because = $Because })
+        $data = @{ Because = $Because }
+        if ($messageFailedOnWildcard) {
+            $data['Hint'] = "-ExceptionMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExceptionMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        }
+        $assert.Fail($defaultMessage, $data)
     }
 
     $err.ErrorRecord

@@ -140,6 +140,20 @@ Describe "Should-Throw" {
             $err = { { throw [ArgumentException]"[!]" } | Should-Throw -ExceptionMessage '`[`]' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected an exception, with message like '[]' to be thrown, but the message was '[!]'."
         }
+
+        It "Hints at wildcard matching when the message is identical except for unescaped wildcard characters (#2968)" {
+            # -ExceptionMessage matches with -like, so [ ] * ? are wildcards. When the actual message
+            # is identical to the expected one treated literally, the match failed only because those
+            # characters were not escaped. The hint points that out instead of showing two
+            # identical-looking messages.
+            $err = { { throw 'value is [1]' } | Should-Throw -ExceptionMessage 'value is [1]' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like 'value is [1]' to be thrown, but the message was 'value is [1]'.`n`nHint: -ExceptionMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExceptionMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        }
+
+        It "Does not hint at wildcard matching when the messages genuinely differ" {
+            $err = { { throw [ArgumentException]"fail!" } | Should-Throw -ExceptionMessage 'halt!' } | Verify-AssertionFailed
+            ($err.Exception.Message -like '*matches using wildcards*') | Verify-False
+        }
     }
 
     Context "Unwrapping exception from different sources" {

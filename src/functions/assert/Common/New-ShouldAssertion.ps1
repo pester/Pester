@@ -74,18 +74,23 @@ class ShouldAssertion {
             $actual = $this.Collected['Actual']
         }
         $because = [string] $Data['Because']
+        # An explicit Hint overrides the default Get-AssertionGotcha hint, for assertions that have a
+        # more specific thing to say about their own failure (e.g. Should-Throw explaining that the
+        # -ExceptionMessage filter failed only because of unescaped wildcard characters). Like the
+        # other reserved keys it is not turned into a <key> token.
+        $hintOverride = [string] $Data['Hint']
 
-        # Everything except the three special keys becomes a <key> token in the message.
+        # Everything except the reserved keys becomes a <key> token in the message.
         $extra = @{}
         foreach ($key in $Data.Keys) {
-            if ($key -ne 'Expected' -and $key -ne 'Actual' -and $key -ne 'Because') {
+            if ($key -notin 'Expected', 'Actual', 'Because', 'Hint') {
                 $extra[$key] = $Data[$key]
             }
         }
 
         $formattedMessage = Get-AssertionMessage -Expected $expected -Actual $actual -Because $because -Data $extra -DefaultMessage $Message -Pretty:$Pretty
 
-        $hint = $this.Hint()
+        $hint = if (-not [string]::IsNullOrEmpty($hintOverride)) { $hintOverride } else { $this.Hint() }
         if ($hint) { $formattedMessage = "$formattedMessage`n`nHint: $hint" }
 
         Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $this.Caller
@@ -133,8 +138,9 @@ function New-ShouldAssertion {
       or `CollectionItems`) selects both unrolling and the wording of the input hint.
     - `Fail(message [, data])` reports a failure. `message` may contain `<expected>`,
       `<actual>`, `<expectedType>`, `<actualType>`, `<because>` and any `<key>` present in
-      `data`. `data` is a hashtable whose `Expected`, `Actual` and `Because` entries are
-      treated specially; all other entries become message tokens. Whether this throws
+      `data`. `data` is a hashtable whose `Expected`, `Actual`, `Because` and `Hint` entries
+      are treated specially; all other entries become message tokens. `Hint` overrides the
+      default input hint with your own text, appended as `Hint: <text>`. Whether this throws
       immediately or records the failure and continues (a soft assertion) is decided by the
       caller's `-ErrorAction` or the `Should.ErrorAction` configuration, exactly like the
       built-in assertions.
