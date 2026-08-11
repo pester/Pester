@@ -25,7 +25,7 @@ function Should-NotBeString {
     .PARAMETER TrimWhitespace
     Trims whitespace at the start and end of the string.
 
-    .PARAMETER NormalizeNewline
+    .PARAMETER NormalizeLineEnding
     Normalizes line endings before comparison, so that `\r\n`, `\r`, and the Unicode line separator are all treated as `\n`. Use this to compare multi-line strings across platforms without failing on line-ending style. Unlike `-IgnoreWhitespace`, the newlines and their positions are kept, so indentation and blank lines are still compared.
 
     .PARAMETER Because
@@ -69,7 +69,7 @@ function Should-NotBeString {
         [switch]$CaseSensitive,
         [switch]$IgnoreWhitespace,
         [switch]$TrimWhitespace,
-        [switch]$NormalizeNewline
+        [switch]$NormalizeLineEnding
     )
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
@@ -79,7 +79,7 @@ function Should-NotBeString {
         throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -ne operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
     }
 
-    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace -NormalizeNewline:$NormalizeNewline) {
+    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace -NormalizeLineEnding:$NormalizeLineEnding) {
         if (-not $CustomMessage) {
             $formattedMessage = Get-StringNotEqualDefaultFailureMessage -Expected $Expected -Actual $Actual
         }
