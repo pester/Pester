@@ -65,7 +65,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when CodeCoverage is enabled, or when Run.SkipRemainingOnFailure is set to 'Run'.
+        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.
         Type: bool
         Default value: $false
 
