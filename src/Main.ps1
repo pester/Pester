@@ -647,6 +647,13 @@ function Invoke-Pester {
             # fall back to sequential so the 'stop on first failure' intent is honored. The
             # 'Block'/'Container' scopes only skip within a single file, so they are unaffected.
             $skipRemainingRunScope = 'Run' -eq $PesterPreference.Run.SkipRemainingOnFailure.Value
+            # Run.ParallelThrottleLimit = 1 asks for one file at a time. Running that through the
+            # worker runspaces would be the worst of both: no speedup, and the file still executes
+            # in a runspace where breakpoints set in this session never hit, so it cannot be
+            # stepped through. Treat 1 as 'run sequentially in this session', which makes turning
+            # the throttle down to 1 the way to debug a test that only misbehaves under
+            # Run.Parallel, without a separate switch to remember.
+            $throttleToSequential = 1 -eq [int]$PesterPreference.Run.ParallelThrottleLimit.Value
 
             # Partition files by the #pester:no-parallel directive. Files that opt out run in this
             # (non-isolated) session via the normal interleaved path, exactly like a sequential run
@@ -658,7 +665,7 @@ function Invoke-Pester {
             # them inherits those type constraints, which silently corrupts the loop variable.
             $parallelContainers = [System.Collections.Generic.List[object]]@()
             $nonParallelContainers = [System.Collections.Generic.List[object]]@()
-            if ($useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope) {
+            if ($useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and -not $throttleToSequential) {
                 foreach ($fileContainer in $containers) {
                     if (Test-PesterFileIsNonParallel -Path $fileContainer.Item.FullName) {
                         $nonParallelContainers.Add($fileContainer)
@@ -688,7 +695,7 @@ function Invoke-Pester {
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
             # so fall through to the sequential path, which fires the framework's own global plugin
             # steps at the correct interleaved points.
-            $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
+            $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and -not $throttleToSequential -and 0 -lt $parallelContainers.Count
             if ($ranInParallel) {
                 $foldedContainers = [System.Collections.Generic.List[object]]@()
                 $hasNonParallel = 0 -lt $nonParallelContainers.Count

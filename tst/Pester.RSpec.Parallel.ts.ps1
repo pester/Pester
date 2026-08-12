@@ -103,6 +103,92 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Run.ParallelThrottleLimit = 1" {
+        t "runs the files in the current runspace so breakpoints still hit" {
+            # Throttling to 1 means one file at a time, which is a sequential run. Sending it through
+            # the worker runspaces anyway would give no speedup and no debugging: breakpoints are set
+            # per-runspace, so a breakpoint set in this session never hits inside a worker. Assert the
+            # opposite - with the throttle at 1 the file runs here, where the breakpoint fires and the
+            # debugger can step through it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            $breakpoint = $null
+            try {
+                $file = Join-Path $folder 'A.Tests.ps1'
+                Set-Content -Path $file -Value @'
+Describe 'A' {
+    It 'a1 passes' {
+        1 | Should -Be 1
+    }
+}
+'@
+                $global:parallelThrottleBreakpointHits = 0
+                # 'continue' resumes without entering the interactive debugger, so the run finishes
+                # unattended and only the hit count is observed.
+                $breakpoint = Set-PSBreakpoint -Script $file -Line 3 -Action { $global:parallelThrottleBreakpointHits++; continue }
+
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.ParallelThrottleLimit = 1
+                $c.Run.PassThru = $true
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $global:parallelThrottleBreakpointHits | Verify-Equal 1
+            }
+            finally {
+                if ($null -ne $breakpoint) { Remove-PSBreakpoint -Breakpoint $breakpoint }
+                Remove-Variable -Name parallelThrottleBreakpointHits -Scope Global -ErrorAction Ignore
+                Remove-Item -Path $folder -Recurse -Force
+            }
+        }
+
+        t "does not announce the run as parallel" {
+            $folder = New-ParallelTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.ParallelThrottleLimit = 1
+                $c.Output.Verbosity = 'Normal'
+                $c.Output.RenderMode = 'Plaintext'
+
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                $output | Verify-Like '*Running tests from 4 files*'
+                if ($output -like '*in parallel*') {
+                    throw "Expected the run banner not to say 'in parallel', but the output was:`n$output"
+                }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "produces the same counts as a parallel run" {
+            $folder = New-ParallelTestFolder
+            try {
+                $throttled = [PesterConfiguration]::Default
+                $throttled.Run.Path = $folder
+                $throttled.Run.Parallel = $true
+                $throttled.Run.ParallelThrottleLimit = 1
+                $throttled.Run.PassThru = $true
+                $s = Invoke-Pester -Configuration $throttled
+
+                $parallel = [PesterConfiguration]::Default
+                $parallel.Run.Path = $folder
+                $parallel.Run.Parallel = $true
+                $parallel.Run.PassThru = $true
+                $p = Invoke-Pester -Configuration $parallel
+
+                $s.TotalCount | Verify-Equal $p.TotalCount
+                $s.PassedCount | Verify-Equal $p.PassedCount
+                $s.FailedCount | Verify-Equal $p.FailedCount
+                $s.SkippedCount | Verify-Equal $p.SkippedCount
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Run.Parallel durations" {
         t "uses wall-clock for the run total and blanks the per-phase run totals (#2794)" {
             # Two files that each sleep ~1s would total ~2s if their container durations were summed.

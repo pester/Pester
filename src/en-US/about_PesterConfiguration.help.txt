@@ -69,7 +69,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.
+        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Set 1 to run the files sequentially in the current session, which keeps the debugger working, so the same configuration can be used to step through a test that only fails when the files run in parallel. Only used when Run.Parallel is enabled.
         Type: int
         Default value: 0
 
