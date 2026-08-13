@@ -156,6 +156,9 @@ function Setup {
     <#
         .SYNOPSIS
         This command is included in the Pester Mocking framework for backwards compatibility.  You do not need to call it directly.
+
+        .DESCRIPTION
+        This command is included in the Pester Mocking framework for backwards compatibility.  You do not need to call it directly.
     #>
     param(
         [switch]$Dir,

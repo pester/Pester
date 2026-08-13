@@ -241,6 +241,8 @@ function Invoke-Gherkin {
 
         .LINK
             Invoke-Pester
+
+        .LINK
             https://kevinmarquette.github.io/2017-03-17-Powershell-Gherkin-specification-validation/
 
         .LINK
