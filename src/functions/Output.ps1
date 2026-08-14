@@ -454,12 +454,9 @@ function ConvertTo-FailureLines {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
                 [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*/Pester.psm1: line [0-9]*$'
-                # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
                 [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
             # PESTER_BUILD
@@ -468,26 +465,42 @@ function ConvertTo-FailureLines {
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands['Split-Path']))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
-                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
             # end PESTER_BUILD
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
-            # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
-            # what we don't want to do here is shorten the stack on the Should or Invoke-Assertion. That would remove any
-            # lines describing potential functions that are invoked in the test. e.g. doing function a() { 1 | Should -Be 2 }; a
-            # we want to be able to see that we invoked the assertion inside of function a
-            # the internal calls to Should and Invoke-Assertion are filtered out later by the second match
+            # whole test script itself. This is achieved by shortening the stack trace when a Pester frame is hit after we already
+            # collected at least one frame from the user code.
+            # the frames below the user code are Pester as well, e.g. Should, or Ensure-ExpectedIsNotCollection when the error is
+            # thrown from an assertion, or Mock when the error comes from Mock. We skip those, but we must not stop on them,
+            # otherwise we throw away the whole trace, including the line in the test file that the user needs. Skipping instead of
+            # stopping also keeps any function that the user invoked in the test, e.g. doing function a() { 1 | Should -Be 2 }; a
+            # shows that we invoked the assertion inside of function a.
+            # an assertion failure already has the line with the assertion itself, taken from TargetObject above,
+            # skip the first frame of the trace when it points at the same place so we don't print it twice
+            $skipFrame = if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
+                "$($ErrorRecord.TargetObject.File):$($ErrorRecord.TargetObject.Line)"
+            }
+
+            $userFrameFound = $false
             foreach ($line in $traceLines) {
-                if ($line -match $isPesterFunction -and $line -notmatch $isShould) {
-                    break
+                if ($line -match $isPesterFunction) {
+                    if ($userFrameFound) {
+                        break
+                    }
+
+                    continue
                 }
 
-                $isPesterInternalFunction = $line -match $isPesterFunction
+                if (-not $userFrameFound) {
+                    $userFrameFound = $true
 
-                if (-not $isPesterInternalFunction) {
-                    $lines.Trace += $line
+                    if ($null -ne $skipFrame -and $line -replace '^at [^,]*, ' -replace ':\s*line\s*(\d+)\s*$', ':$1' -eq $skipFrame) {
+                        continue
+                    }
                 }
+
+                $lines.Trace += $line
             }
         }
 
