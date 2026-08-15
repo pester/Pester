@@ -108,9 +108,10 @@ class ShouldAssertion {
     }
 
     # Returns $Expected unchanged, or throws when it is a collection. Guards assertions that only
-    # make sense against a single value.
+    # make sense against a single value. The caller's name goes into the message, so the user sees
+    # which assertion refused the collection.
     [object] EnsureScalar([object] $Expected) {
-        return (Ensure-ExpectedIsNotCollection $Expected)
+        return (Ensure-ExpectedIsNotCollection -InputObject $Expected -Assertion $this.Caller.MyInvocation.MyCommand.Name)
     }
 
     # Returns whether a value is treated as a collection.

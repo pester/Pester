@@ -376,6 +376,81 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $r.Trace.Count | Should -Be 1
             }
         }
+
+        Context 'error thrown from inside a Pester function' {
+            BeforeAll {
+                $testPath = Join-Path $TestDrive test.ps1
+                Set-Content -Path $testPath -Value @'
+1, 2, 3 | Should-Be 1, 2, 3
+'@
+
+                try {
+                    & $testPath
+                }
+                catch {
+                    $e = $_
+                }
+
+                $r = $e | ConvertTo-FailureLines
+            }
+
+            It 'keeps the line from the test file.' {
+                $r.Trace[0] | Should -Be "at <ScriptBlock>, ${testPath}:1"
+            }
+
+            It 'drops the frames that are inside Pester.' {
+                $r.Trace -join [Environment]::NewLine | Should -Not -Match 'Should-Be|EnsureScalar|Ensure-ExpectedIsNotCollection'
+            }
+        }
+
+        Context 'assertion fails inside a function defined in file' {
+            BeforeAll {
+                $testPath = Join-Path $TestDrive test.ps1
+                Set-Content -Path $testPath -Value @'
+function f1 {
+    1 | Should-Be 2
+}
+f1
+'@
+
+                try {
+                    & $testPath
+                }
+                catch {
+                    $e = $_
+                }
+
+                $r = $e | ConvertTo-FailureLines
+            }
+
+            It 'produces the line with the assertion, and the line that called the function.' {
+                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:2"
+                $r.Trace[1] | Should -Be "at <ScriptBlock>, ${testPath}:4"
+            }
+        }
+
+        Context 'assertion fails directly in file' {
+            BeforeAll {
+                $testPath = Join-Path $TestDrive test.ps1
+                Set-Content -Path $testPath -Value @'
+1 | Should-Be 2
+'@
+
+                try {
+                    & $testPath
+                }
+                catch {
+                    $e = $_
+                }
+
+                $r = $e | ConvertTo-FailureLines
+            }
+
+            It 'does not print the same file and line twice.' {
+                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:1"
+                @($r.Trace -match ([regex]::Escape("${testPath}:1"))).Count | Should -Be 1
+            }
+        }
     }
 
     Describe Format-ErrorMessage {
@@ -387,6 +462,8 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 catch [System.DivideByZeroException] {
                     $errorRecord = $_
                 }
+                # the line above where 1/0 is, taken from the record so adding tests to this file does not break it
+                $divideLine = $errorRecord.InvocationInfo.ScriptLineNumber
                 $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
 
                 $stackTraceText = $errorRecord.Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
@@ -431,7 +508,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
                 $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
                 $messages = $errorMessage -split [Environment]::NewLine
                 $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line 385"
+                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line $divideLine"
                 $messages.Count | Should -BeGreaterThan 1
             }
 
