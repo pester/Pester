@@ -535,6 +535,18 @@ function Invoke-Pester {
 
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
+            # Keys from the configuration hashtable that match no section or option. They are
+            # reported and not thrown on, because a hashtable may carry keys meant for something
+            # else, but a misspelled option would otherwise leave the run on the default with
+            # nothing to notice (#2975). A value the option cannot use throws instead, when the
+            # configuration is built, because that is never intentional.
+            $unknownConfigurationKeys = $PesterPreference.GetUnknownKeys()
+            if (0 -lt $unknownConfigurationKeys.Count) {
+                $quotedKeys = @(foreach ($unknownKey in $unknownConfigurationKeys) { "'$unknownKey'" }) -join ', '
+                $reason = if (1 -eq $unknownConfigurationKeys.Count) { "key $quotedKeys, there is no such option" } else { "keys $quotedKeys, there are no such options" }
+                & $SafeCommands['Write-Warning'] "Ignoring configuration $reason. Check the spelling, 'Get-Help about_PesterConfiguration' lists all the options."
+            }
+
             Resolve-AutoEnabledConfiguration -PesterPreference $PesterPreference
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
