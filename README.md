@@ -154,9 +154,9 @@ test_script:
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
-Pester itself is built on AzureDevOps, and distributed mainly via PowerShell gallery.
+Pester itself is built on GitHub Actions, and distributed mainly via PowerShell gallery.
 
-[![Build Status](https://nohwnd.visualstudio.com/Pester/_apis/build/status/Pester%20PR?branchName=main)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6&branchName=main) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![Build Status](https://github.com/pester/Pester/actions/workflows/ci.yml/badge.svg?branch=rel%2F5.x.x)](https://github.com/pester/Pester/actions/workflows/ci.yml?query=branch%3Arel%2F5.x.x) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 

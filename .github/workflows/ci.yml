@@ -1,0 +1,152 @@
+# GitHub Actions CI — the CI for the Pester 5 maintenance branch.
+#
+# Same shape as the workflow on main: build once on Windows, publish the built
+# module as an artifact, then fan out the test matrix, then a single "Done"
+# gate. That gate is the check to require in branch protection, it is named the
+# same on every branch so one branch policy covers all of them.
+#
+# This replaces azure-pipelines.yml, which is removed in the same change.
+# Releasing still runs on Azure DevOps (azure-pipelines-publish.yml).
+#
+# No code coverage here. v5 turns coverage off in CI ("still very slow"), so
+# unlike main there is nothing to summarize or upload.
+#
+# Test results are uploaded as artifacts and rendered by test-report.yml, which
+# lives on main. workflow_run workflows always run from the default branch, so
+# runs of this workflow get reports without a copy of that file here.
+name: CI
+
+on:
+  push:
+    branches: ['rel/*']
+    paths-ignore:
+      - '.devcontainer/**'
+      - '.vscode/**'
+      - 'docs/**'
+      - 'images/**'
+      - '**/*.md'
+  pull_request:
+    branches: ['rel/*']
+    paths-ignore:
+      - '.devcontainer/**'
+      - '.vscode/**'
+      - 'docs/**'
+      - 'images/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_GENERATE_ASPNET_CERTIFICATE: '0'
+  DOTNET_NOLOGO: '1'
+  CI: '1'
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Build module (inline, locked restore)
+        shell: pwsh
+        run: |
+          "Running .NET SDK v$(dotnet --version)"
+          ./build.ps1 -LockedRestore -Clean -Inline
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: pester-build
+          retention-days: 1
+          include-hidden-files: true
+          path: |
+            bin/
+            src/
+            tst/
+            build.ps1
+            test.ps1
+            global.json
+            !src/csharp/**/bin/**
+            !src/csharp/**/obj/**
+            !src/csharp/.vs/**
+
+  test:
+    name: ${{ matrix.name }}
+    needs: build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # PowerShell 7 (psexe: pwsh) — latest + one previous GA per OS.
+          - { name: 'PS7 - Ubuntu latest',    id: ps7-ubuntu-latest,   os: ubuntu-latest,  psexe: pwsh }
+          - { name: 'PS7 - Ubuntu 22.04',     id: ps7-ubuntu-2204,     os: ubuntu-22.04,   psexe: pwsh }
+          - { name: 'PS7 - macOS latest',     id: ps7-macos-latest,    os: macos-latest,   psexe: pwsh }
+          - { name: 'PS7 - macOS 14',         id: ps7-macos-14,        os: macos-14,       psexe: pwsh }
+          - { name: 'PS7 - Windows latest',   id: ps7-windows-latest,  os: windows-latest, psexe: pwsh }
+          - { name: 'PS7 - Windows 2022',     id: ps7-windows-2022,    os: windows-2022,   psexe: pwsh }
+          # Windows PowerShell 5.1 (psexe: powershell) — Windows only.
+          - { name: 'PS5.1 - Windows latest', id: ps51-windows-latest, os: windows-latest, psexe: powershell }
+          - { name: 'PS5.1 - Windows 2022',   id: ps51-windows-2022,   os: windows-2022,   psexe: powershell }
+    steps:
+      # No checkout: the legs run against the artifact from Build, so they test
+      # the exact same build.
+      - name: Download build output
+        uses: actions/download-artifact@v8
+        with:
+          name: pester-build
+          path: .
+
+      # `shell:` cannot take a matrix expression, so run from a fixed pwsh (present
+      # on every runner) and launch the leg's interpreter: pwsh for PS7, powershell
+      # (Windows PowerShell 5.1) for the 5.1 legs. exit $LASTEXITCODE so a failure
+      # in the launched process still fails the job.
+      - name: Test Pester
+        shell: pwsh
+        run: |
+          & ${{ matrix.psexe }} -NoProfile -Command "& ./test.ps1 -CI -NoBuild"
+          exit $LASTEXITCODE
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: results-${{ matrix.id }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: testResults.xml
+
+  # Single gate after the matrix so branch protection and auto-merge only need to
+  # require "Done" instead of listing all 8 legs. This is the check to require on
+  # this branch.
+  done:
+    name: Done
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All test legs passed
+        run: |
+          echo "Test matrix result: ${{ needs.test.result }}"
+          [ "${{ needs.test.result }}" = "success" ] || exit 1
+          echo "done"
