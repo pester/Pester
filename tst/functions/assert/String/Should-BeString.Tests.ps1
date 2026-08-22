@@ -224,3 +224,50 @@ But was:  'abc␊def'
 '@ -replace "`r`n", "`n")
     }
 }
+
+Describe "Should-BeString big strings" {
+    It "Reports the differing line and its context instead of printing both strings" {
+        # The case from #2951: comparing whole generated files. Printing 10 000 lines twice is not
+        # something anyone can read, and a character offset into it is not actionable either.
+        $actual = (1..40 | ForEach-Object { "Line {0:D2}" -f $_ }) -join "`n"
+        $expected = $actual -replace 'Line 20', 'Line 99'
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Lines differ at line 20.*'
+        $message | Verify-Like '*19 |   Line 19*'
+        $message | Verify-Like '*20 | - Line 99*'
+        $message | Verify-Like '*   | + Line 20*'
+        $message | Verify-Like '*21 |   Line 21*'
+        # lines far from the difference are not printed, the whole string is not dumped
+        if ($message -like '*Line 01*') { throw 'the whole string was printed' }
+    }
+
+    It "Says so when every line matches and only the line endings differ" {
+        $lf = (1..20 | ForEach-Object { "Line $_" }) -join "`n"
+        $crlf = (1..20 | ForEach-Object { "Line $_" }) -join "`r`n"
+
+        $err = { $crlf | Should-BeString $lf } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Every line is the same, only the line endings differ.*'
+        $message | Verify-Like '*Expected: 19 LF*'
+        $message | Verify-Like '*But was:  19 CRLF*'
+        $message | Verify-Like '*-NormalizeLineEnding*'
+    }
+
+    It "Truncates a long single line around the difference" {
+        $actual = ('x' * 200) + 'A' + ('y' * 200)
+        $expected = ('x' * 200) + 'B' + ('y' * 200)
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Strings differ at index 200.*'
+        $message | Verify-Like "*Expected: '...*...'*"
+        # the excerpt is far shorter than the 401 character strings it came from
+        $line = ($message -split "`n") | Where-Object { $_ -like "Expected: '*" }
+        if (200 -lt $line.Length) { throw "excerpt was not truncated, it is $($line.Length) characters" }
+    }
+}

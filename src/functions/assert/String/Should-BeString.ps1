@@ -164,15 +164,117 @@ function Get-StringDifferenceMessage {
     else {
         $lines += "String lengths are both $($Expected.Length)."
     }
+
+    # Big strings get a compact view. Printing both in full is what makes a 10 000 line comparison
+    # useless (#2951), but for a short string the full text with a caret under the difference is
+    # more precise than anything else, so that is left exactly as it was.
+    $expectedLines = $Expected -split '\r\n|\r|\n'
+    $actualLines = $Actual -split '\r\n|\r|\n'
+    $maxLines = [Math]::Max($expectedLines.Count, $actualLines.Count)
+    $isBig = 10 -lt $maxLines -or 120 -lt $maxLength
+
+    if ($isBig -and 1 -lt $maxLines) {
+        $lineCount = $maxLines
+
+        $differenceLine = $null
+        for ($i = 0; $i -lt $lineCount -and ($null -eq $differenceLine); ++$i) {
+            $e = if ($i -lt $expectedLines.Count) { $expectedLines[$i] } else { $null }
+            $a = if ($i -lt $actualLines.Count) { $actualLines[$i] } else { $null }
+            $same = if ($CaseSensitive) { $e -ceq $a } else { $e -eq $a }
+            if (-not $same) { $differenceLine = $i }
+        }
+
+        $lines += "Expected $($expectedLines.Count) line(s), actual $($actualLines.Count) line(s)."
+
+        if ($null -eq $differenceLine) {
+            # Every line is equal, so what differs is the line endings themselves. Splitting on them
+            # threw away the only difference there is, and showing the lines would print two blocks
+            # that look identical. Name the endings instead.
+            $describeEndings = {
+                param ([string] $Value)
+                $crlf = ([regex]::Matches($Value, "`r`n")).Count
+                $cr = ([regex]::Matches($Value, "`r(?!`n)")).Count
+                $lf = ([regex]::Matches($Value, "(?<!`r)`n")).Count
+                (@(
+                        if (0 -lt $crlf) { "$crlf CRLF" }
+                        if (0 -lt $cr) { "$cr CR" }
+                        if (0 -lt $lf) { "$lf LF" }
+                    ) -join ', ')
+            }
+
+            $lines += "Every line is the same, only the line endings differ."
+            $lines += "Expected: $(& $describeEndings $Expected)"
+            $lines += "But was:  $(& $describeEndings $Actual)"
+            $lines += "Use -NormalizeLineEnding to ignore this."
+            return $lines -join "`n"
+        }
+
+        $lines += "Lines differ at line $($differenceLine + 1)."
+        $lines += ""
+
+        $context = 2
+        $from = [Math]::Max(0, $differenceLine - $context)
+        $to = [Math]::Min($lineCount - 1, $differenceLine + $context)
+        $width = ($to + 1).ToString().Length
+
+        for ($i = $from; $i -le $to; ++$i) {
+            $e = if ($i -lt $expectedLines.Count) { $expectedLines[$i] } else { $null }
+            $a = if ($i -lt $actualLines.Count) { $actualLines[$i] } else { $null }
+            $number = ($i + 1).ToString().PadLeft($width)
+
+            if ($i -eq $differenceLine) {
+                # Expand only the lines that differ, so an invisible difference (a stray \r, a
+                # trailing space) is visible without turning every other line into escape codes.
+                $lines += "  $number | - $(Expand-SpecialCharacters -InputObject ([string]$e))"
+                $lines += "  $(' ' * $width) | + $(Expand-SpecialCharacters -InputObject ([string]$a))"
+            }
+            else {
+                $lines += "  $number |   $e"
+            }
+        }
+
+        return $lines -join "`n"
+    }
+
     $lines += "Strings differ at index $differenceIndex."
 
     $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
     $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
 
     $prefix = "Expected: '"
-    $lines += "$prefix$expectedExpanded'"
-    $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
+
+    if (-not $isBig) {
+        # Short enough to print whole, which is the most precise thing we can show.
+        $lines += "$prefix$expectedExpanded'"
+        $lines += "But was:  '$actualExpanded'"
+        $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
+        return $lines -join "`n"
+    }
+
+    # Long. Show a window around the difference rather than the whole string, the way
+    # Should -BeExactly does in v5, so it stays readable.
+    $ellipsis = "..."
+    $window = 40
+
+    $start = [Math]::Max(0, $differenceIndex - $window)
+    $caretOffset = $differenceIndex - $start
+
+    $excerpt = {
+        param ([string] $Value)
+        $end = [Math]::Min($Value.Length, $start + $window * 2)
+        $text = if ($start -lt $Value.Length) { $Value.Substring($start, $end - $start) } else { "" }
+        $head = if (0 -lt $start) { $ellipsis } else { "" }
+        $tail = if ($end -lt $Value.Length) { $ellipsis } else { "" }
+        "$head$text$tail"
+    }
+
+    $expectedExcerpt = & $excerpt $expectedExpanded
+    $actualExcerpt = & $excerpt $actualExpanded
+    $caretPad = $caretOffset + $(if (0 -lt $start) { $ellipsis.Length } else { 0 })
+
+    $lines += "$prefix$expectedExcerpt'"
+    $lines += "But was:  '$actualExcerpt'"
+    $lines += (' ' * $prefix.Length) + ('-' * $caretPad) + '^'
 
     $lines -join "`n"
 }
