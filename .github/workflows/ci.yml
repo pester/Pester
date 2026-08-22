@@ -4,7 +4,13 @@
 # and PowerShell 7 — nothing else is guaranteed. The goal is to keep the branch
 # releasable: green CI here means a security fix can be validated and shipped
 # through the manual release process (release.ps1).
-name: CI
+#
+# The name differs from the workflow on main and on rel/5.x.x on purpose.
+# test-report.yml on main runs after every workflow named "CI" and renders its
+# results, and Pester 4 can only write NUnit 2.5 XML, which dorny/test-reporter
+# cannot read. The gate job below is still called "Done", same as everywhere
+# else, that is the name branch protection requires.
+name: CI (v4)
 
 on:
   push:
@@ -47,9 +53,24 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-${{ matrix.id }}
           retention-days: 7
           if-no-files-found: ignore
           path: TestResults.xml
+
+  # Single gate after the matrix so branch protection and auto-merge only need to
+  # require "Done" instead of listing every leg. Same name as the gate on main
+  # and on rel/5.x.x, so one branch policy covers all of them.
+  done:
+    name: Done
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All test legs passed
+        run: |
+          echo "Test matrix result: ${{ needs.test.result }}"
+          [ "${{ needs.test.result }}" = "success" ] || exit 1
+          echo "done"
