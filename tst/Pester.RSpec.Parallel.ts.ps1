@@ -322,37 +322,49 @@ Describe 'Second' {
         # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the
         # place a difference between them would show up first.
 
-        t "runs the items concurrently" {
-            # Four items that each sleep half a second take about 2s one after another. With four
-            # runspaces they overlap, so anything close to the sequential total means the pool is
-            # not actually running them at the same time.
-            $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            $r = & (Get-Module Pester) {
-                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -ScriptBlock {
-                    param($item)
-                    Start-Sleep -Milliseconds 500
-                    $item
-                }
+        # Each worker counts itself in on entry and out on exit, so the run's peak concurrency is
+        # measured directly. Asserting on elapsed time instead would only infer concurrency, and it
+        # would sit on a threshold that a slow or a fast machine can cross for the wrong reason.
+        $probe = {
+            param($item, $state)
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try {
+                $state.Current++
+                if ($state.Current -gt $state.Max) { $state.Max = $state.Current }
             }
-            $sw.Stop()
+            finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
 
-            @($r).Count | Verify-Equal 4
+            Start-Sleep -Milliseconds 300
+
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try { $state.Current-- } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            $item
+        }
+
+        t "runs the items concurrently" {
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
             (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
-            ($sw.Elapsed.TotalMilliseconds -lt 1500) | Verify-True
+            # More than one in flight at once is the whole claim. The exact peak depends on how the
+            # pool schedules, so do not pin it to 4.
+            ($state.Max -gt 1) | Verify-True
         }
 
         t "honours the throttle limit" {
-            # Same four half-second items through a single runspace cannot take less than 2s.
-            $sw = [System.Diagnostics.Stopwatch]::StartNew()
-            $null = & (Get-Module Pester) {
-                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 1 -ScriptBlock {
-                    param($item)
-                    Start-Sleep -Milliseconds 500
-                    $item
-                }
-            }
-            $sw.Stop()
-            ($sw.Elapsed.TotalMilliseconds -ge 2000) | Verify-True
+            # With one runspace the peak can only ever be 1, however the machine schedules them.
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 1 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            $state.Max | Verify-Equal 1
         }
 
         t "passes the item and the shared parameters to every worker" {
