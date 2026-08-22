@@ -1441,6 +1441,48 @@ InPesterModuleScope {
         }
     }
 
+    Describe 'Get-TracerPoint' {
+        BeforeAll {
+            $tracerScriptPath = Join-Path -Path (Get-PSDrive TestDrive).Root -ChildPath TracerPointScript.ps1
+            Set-Content -Path $tracerScriptPath -Value @'
+function Get-Number {
+    $a = 1
+    return $a
+}
+'@
+            $tracerBreakpoints = Enter-CoverageAnalysis -CodeCoverage $tracerScriptPath -UseBreakpoints $false
+        }
+
+        It 'produces the points Start-TraceScript would build itself' {
+            $points = Get-TracerPoint -Breakpoints $tracerBreakpoints
+            $points.Count | Should -Be $tracerBreakpoints.Count
+            $points[0].Path | Should -Be $tracerScriptPath
+        }
+
+        It 'keeps the hit coordinates through the text form test.ps1 sends to its child processes' {
+            # test.ps1 writes the points to a file and the children rebuild them from it, dropping
+            # the command text. The tracer looks up hits by path and 'line:column', so that trip has
+            # to leave those untouched, otherwise the children report coordinates the parent cannot
+            # merge and their coverage is lost without any error.
+            $points = Get-TracerPoint -Breakpoints $tracerBreakpoints
+            $tab = [char] 9
+            $rebuilt = [System.Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]::new()
+            foreach ($point in $points) {
+                $row = @($point.Path, $point.Line, $point.Column, $point.BpLine, $point.BpColumn) -join $tab
+                $f = $row.Split($tab)
+                $rebuilt.Add([Pester.Tracing.CodeCoveragePoint]::Create($f[0], [int] $f[1], [int] $f[2], [int] $f[3], [int] $f[4], [string]::Empty))
+            }
+
+            $original = [Pester.Tracing.CodeCoverageTracer]::Create($points)
+            $child = [Pester.Tracing.CodeCoverageTracer]::Create($rebuilt)
+
+            @($child.Hits.Keys) | Should -Be @($original.Hits.Keys)
+            foreach ($path in $original.Hits.Keys) {
+                @($child.Hits[$path].Keys) | Should -Be @($original.Hits[$path].Keys)
+            }
+        }
+    }
+
     Describe 'Resolve-CodeCoverageConfiguration report root resolution (#2923)' {
         # A relative ReportRoot (or its Run.RepoRoot fallback) must be captured against the
         # location Invoke-Pester was called from, during configuration validation, not against
