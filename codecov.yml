@@ -1,8 +1,8 @@
-# Codecov configuration — added alongside the GitHub Actions CI pilot
-# (.github/workflows/ci.yml). Coverage is uploaded per matrix leg using flags.
+# Codecov configuration for .github/workflows/ci.yml. Coverage is uploaded per
+# matrix leg using flags.
 #
-# During the pilot we keep coverage status "informational" so Codecov never
-# posts a failing/blocking commit status while we compare against Azure.
+# Coverage status is "informational", so Codecov reports the numbers but never
+# posts a failing or blocking commit status.
 
 codecov:
   # We upload one report per matrix leg (8 legs). Wait for all of them before

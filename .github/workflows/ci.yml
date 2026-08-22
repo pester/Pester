@@ -1,20 +1,25 @@
-# GitHub Actions CI — pilot port of azure-pipelines.yml.
+# GitHub Actions CI — the CI for Pester.
 #
-# This runs ALONGSIDE Azure Pipelines (we did not remove azure-pipelines.yml),
-# so every push/PR triggers both systems and we can compare them before cutting
-# over. Mirrors the Azure setup: build once on Windows, publish the built module
-# as an artifact, then fan out the test matrix (all 8 legs run in parallel).
+# This replaces azure-pipelines.yml, which is removed in the same change. Only
+# releasing still runs on Azure DevOps (azure-pipelines-publish.yml), because it
+# needs the signing service connection and the publishing variable groups.
 #
-# Coverage: each leg runs `test.ps1 -CC`, producing a JaCoCo coverage.xml. Azure
-# rendered this via PublishCodeCoverageResults@2; here we surface it natively in
-# the run's job summaries (per leg, plus a consolidated table in "Done") and keep
-# the raw coverage.xml as an artifact.
+# Shape: build once on Windows, publish the built module as an artifact, then fan
+# out the test matrix (all 8 legs run in parallel), then a single "Done" gate.
+#
+# Coverage: each leg runs `test.ps1 -CC`, producing a JaCoCo coverage.xml. We
+# surface it in the run's job summaries (per leg, plus a consolidated table in
+# "Done") and keep the raw coverage.xml as an artifact.
+#
+# Test results are uploaded as artifacts and rendered by test-report.yml, which
+# runs after this workflow. That split is what makes the report work for pull
+# requests from forks, where this workflow's token cannot create check runs.
 #
 # Image policy: GA only. We float `*-latest` for the newest GA image and pin the
 # one previous GA image ("latest + reasonably recent"). No preview images
 # (macos-26, windows-2025-vs2026) are used. Note macos-14 is on the deprecation
 # clock (brownouts Oct 2026, removal Nov 2 2026) — swap it out before then.
-name: CI (GitHub Actions pilot)
+name: CI
 
 on:
   push:
@@ -37,8 +42,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  checks: write   # dorny/test-reporter creates a check run with the test report
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
@@ -114,14 +117,8 @@ jobs:
           - { name: 'PS5.1 - Windows latest', id: ps51-windows-latest, os: windows-latest, psexe: powershell }
           - { name: 'PS5.1 - Windows 2022',   id: ps51-windows-2022,   os: windows-2022,   psexe: powershell }
     steps:
-      # Shallow checkout only so dorny/test-reporter (below) has git context — it
-      # shells out to git and errors without a repo. The artifact overlays this,
-      # so the tests still run against the published build, like Azure.
-      - name: Checkout (git context for test-reporter)
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-
+      # No checkout: the legs run against the artifact from Build, so they test
+      # the exact same build.
       - name: Download build output
         uses: actions/download-artifact@v4
         with:
@@ -204,21 +201,9 @@ jobs:
             testResults.xml
             coverage.xml
 
-      # Render the NUnit3 results as a check run (Azure test-tab parity).
-      # fail-on-error: false so a parse hiccup — or a fork PR, where the token is
-      # read-only and can't create checks — doesn't fail the leg.
-      - name: Publish test report
-        if: always()
-        uses: dorny/test-reporter@v3
-        with:
-          name: 'Tests - ${{ matrix.name }}'
-          path: testResults.xml
-          reporter: dotnet-nunit
-          fail-on-error: false
-          use-actions-summary: 'true'
-
-  # Single gate after the matrix so branch protection / auto-merge only needs to
-  # require "Done" instead of listing all 8 legs. Mirrors Azure's Done stage.
+  # Single gate after the matrix so branch protection and auto-merge only need to
+  # require "Done" instead of listing all 8 legs. This is the check to require on
+  # main and on the release branches.
   # It also renders a consolidated coverage table (one glance at all legs).
   done:
     name: Done

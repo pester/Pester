@@ -190,8 +190,8 @@ if ($CI) {
 
     $configuration.TestResult.Enabled = $true
 
-    # Modern NUnit3 schema. Both consumers read it: Azure Pipelines
-    # (PublishTestResults@2) and the GitHub Actions pilot (dorny/test-reporter).
+    # Modern NUnit3 schema, which is what dorny/test-reporter reads in
+    # .github/workflows/test-report.yml.
     $configuration.TestResult.OutputFormat = 'NUnit3'
 }
 
