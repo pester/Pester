@@ -66,7 +66,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup .NET (global.json)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
           cache: true
@@ -81,7 +81,7 @@ jobs:
       # Publish the built tree so every test leg runs the exact same build.
       # Mirrors Azure's `publish: $(Build.SourcesDirectory)` + .artifactignore.
       - name: Upload build output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pester-build
           retention-days: 1
@@ -120,7 +120,7 @@ jobs:
       # No checkout: the legs run against the artifact from Build, so they test
       # the exact same build.
       - name: Download build output
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pester-build
           path: .
@@ -181,7 +181,7 @@ jobs:
       # CODECOV_TOKEN secret, if set, makes uploads more reliable.
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
           disable_search: true
@@ -192,7 +192,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: results-${{ matrix.id }}
           retention-days: 7
@@ -213,7 +213,7 @@ jobs:
     steps:
       - name: Download coverage reports
         if: always()
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: results-*
           path: coverage-reports
