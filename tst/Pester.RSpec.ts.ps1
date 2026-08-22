@@ -3441,13 +3441,17 @@ i -PassThru:$PassThru {
 
     b 'Stray output during the run does not crash Pester (#2655)' {
         t 'a real run with stray output finishes, keeps its results, and warns instead of crashing' {
-            # Reproduce the leak end-to-end the way it really happens: something writes to the success
-            # stream while the run is in progress, so the stray value ends up in Invoke-Test's output
-            # next to the real [Pester.Container]. A repo-root Pester.BeforeContainer.ps1 that emits to
-            # the success stream is a reliable stand-in for the original trigger (an unredirected native
-            # command like winrm/net in a setup block), which could not be reproduced deterministically.
-            # Before #2655 that stray object was added to the strongly-typed Run.Containers list and
-            # threw "Cannot find an overload for Add", taking down the whole run.
+            # Something writes to the success stream while the run is in progress. Before #2655 a
+            # stray object could reach Invoke-Test's output next to the real [Pester.Container], get
+            # added to the strongly-typed Run.Containers list, and throw "Cannot find an overload for
+            # Add", taking down the whole run.
+            #
+            # A repo-root Pester.BeforeContainer.ps1 used to be the reliable stand-in for that,
+            # because it was dot-sourced at the Invoke-Test level where its output could escape.
+            # Setup files are now dot-sourced inside the container, the same place a test file's own
+            # top-level code runs, so their stray output is swallowed there exactly like a test
+            # file's is and can no longer reach Invoke-Test at all. This asserts the run is
+            # untouched by it; Split-RSpecResult below still covers the filtering itself.
             $sb = {
                 Describe 'd' {
                     It 'passes' { $true | Should -Be $true }
@@ -3475,8 +3479,8 @@ i -PassThru:$PassThru {
                 $r.PassedCount | Verify-Equal 1
                 $r.FailedCount | Verify-Equal 0
 
-                # The stray output was dropped with a warning that points at the likely cause.
-                ($warnings -join "`n") | Verify-Like "*unexpected output*WinRM service is already running on this machine.*"
+                # The stray output never escaped the container, so there is nothing to warn about.
+                @($warnings).Count | Verify-Equal 0
             }
             finally { Remove-Item -Path $repoRoot -Recurse -Force }
         }

@@ -21,6 +21,14 @@ namespace Pester
             Order = new List<object>();
             Blocks = new List<Block>();
             ErrorRecord = new List<object>();
+            EachTestSetup = new ScriptBlockCollection();
+            OneTimeTestSetup = new ScriptBlockCollection();
+            EachTestTeardown = new ScriptBlockCollection();
+            OneTimeTestTeardown = new ScriptBlockCollection();
+            EachBlockSetup = new ScriptBlockCollection();
+            OneTimeBlockSetup = new ScriptBlockCollection();
+            EachBlockTeardown = new ScriptBlockCollection();
+            OneTimeBlockTeardown = new ScriptBlockCollection();
         }
 
         public string Name { get; set; }
@@ -52,14 +60,18 @@ namespace Pester
         public object Root { get; set; }
         public bool IsRoot { get; set; }
         public object Parent { get; set; }
-        public ScriptBlock EachTestSetup { get; set; }
-        public ScriptBlock OneTimeTestSetup { get; set; }
-        public ScriptBlock EachTestTeardown { get; set; }
-        public ScriptBlock OneTimeTestTeardown { get; set; }
-        public ScriptBlock EachBlockSetup { get; set; }
-        public ScriptBlock OneTimeBlockSetup { get; set; }
-        public ScriptBlock EachBlockTeardown { get; set; }
-        public ScriptBlock OneTimeBlockTeardown { get; set; }
+        // Setup and teardown are lists so a block can collect more than one of each. A test
+        // file used to be allowed only a single BeforeAll, which made it impossible to combine
+        // the file's own setup with setup coming from a Pester.BeforeContainer.ps1 higher up the
+        // folder tree. They run in the order they were registered; teardowns run in reverse.
+        public ScriptBlockCollection EachTestSetup { get; set; }
+        public ScriptBlockCollection OneTimeTestSetup { get; set; }
+        public ScriptBlockCollection EachTestTeardown { get; set; }
+        public ScriptBlockCollection OneTimeTestTeardown { get; set; }
+        public ScriptBlockCollection EachBlockSetup { get; set; }
+        public ScriptBlockCollection OneTimeBlockSetup { get; set; }
+        public ScriptBlockCollection EachBlockTeardown { get; set; }
+        public ScriptBlockCollection OneTimeBlockTeardown { get; set; }
         public List<object> Order { get; set; } = new List<object>();
 
         public bool Passed { get; set; }

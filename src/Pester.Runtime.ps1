@@ -437,7 +437,12 @@ function Invoke-Block ($previousBlock) {
                             })
                     ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
+                            # Mirror the setups: the last AfterAll registered runs first.
+                            $oneTimeTeardowns = @($block.OneTimeTestTeardown)
+                            [Array]::Reverse($oneTimeTeardowns)
+                            $eachBlockTeardowns = @($previousBlock.EachBlockTeardown)
+                            [Array]::Reverse($eachBlockTeardowns)
+                            $oneTimeTeardowns + $eachBlockTeardowns
                         } ) `
                         -Context $context `
                         -MoveBetweenScopes `
@@ -716,16 +721,24 @@ function Invoke-TestItem {
                 }
 
                 # recurse up Recurse-Up $Block { param ($b) $b.EachTestSetup }
+                # A block can hold more than one BeforeEach. Emit each block's own setups reversed,
+                # because the whole collection is reversed below to make the parent's setups run
+                # first, and that would otherwise also flip the order within a single block.
                 $i = $Block
                 $eachTestSetups = while ($null -ne $i) {
-                    $i.EachTestSetup
+                    $blockSetups = @($i.EachTestSetup)
+                    for ($j = $blockSetups.Count - 1; $j -ge 0; $j--) { $blockSetups[$j] }
                     $i = $i.Parent
                 }
 
                 # recurse up Recurse-Up $Block { param ($b) $b.EachTestTeardown }
+                # Teardowns are not reversed as a whole (the child's run before the parent's), so a
+                # block's own teardowns are emitted reversed here to mirror its setups: last
+                # AfterEach registered runs first.
                 $i = $Block
                 $eachTestTeardowns = while ($null -ne $i) {
-                    $i.EachTestTeardown
+                    $blockTeardowns = @($i.EachTestTeardown)
+                    for ($j = $blockTeardowns.Count - 1; $j -ge 0; $j--) { $blockTeardowns[$j] }
                     $i = $i.Parent
                 }
 
@@ -872,10 +885,7 @@ function New-EachTestSetup {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.EachTestSetup) {
-            throw "BeforeEach is already defined in this block. Each block can only have one BeforeEach. Combine the code into a single BeforeEach block."
-        }
-        $state.CurrentBlock.EachTestSetup = $ScriptBlock
+        $state.CurrentBlock.EachTestSetup.Add($ScriptBlock)
     }
 }
 
@@ -887,10 +897,7 @@ function New-EachTestTeardown {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.EachTestTeardown) {
-            throw "AfterEach is already defined in this block. Each block can only have one AfterEach. Combine the code into a single AfterEach block."
-        }
-        $state.CurrentBlock.EachTestTeardown = $ScriptBlock
+        $state.CurrentBlock.EachTestTeardown.Add($ScriptBlock)
     }
 }
 
@@ -903,10 +910,7 @@ function New-OneTimeTestSetup {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.OneTimeTestSetup) {
-            throw "BeforeAll is already defined in this block. Each block can only have one BeforeAll. Combine the code into a single BeforeAll block."
-        }
-        $state.CurrentBlock.OneTimeTestSetup = $ScriptBlock
+        $state.CurrentBlock.OneTimeTestSetup.Add($ScriptBlock)
     }
 }
 
@@ -918,10 +922,7 @@ function New-OneTimeTestTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.OneTimeTestTeardown) {
-            throw "AfterAll is already defined in this block. Each block can only have one AfterAll. Combine the code into a single AfterAll block."
-        }
-        $state.CurrentBlock.OneTimeTestTeardown = $ScriptBlock
+        $state.CurrentBlock.OneTimeTestTeardown.Add($ScriptBlock)
     }
 }
 
@@ -932,7 +933,7 @@ function New-EachBlockSetup {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockSetup = $ScriptBlock
+        $state.CurrentBlock.EachBlockSetup.Add($ScriptBlock)
     }
 }
 
@@ -943,7 +944,7 @@ function New-EachBlockTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockTeardown = $ScriptBlock
+        $state.CurrentBlock.EachBlockTeardown.Add($ScriptBlock)
     }
 }
 
@@ -956,7 +957,7 @@ function New-OneTimeBlockTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockTeardown = $ScriptBlock
+        $state.CurrentBlock.OneTimeBlockTeardown.Add($ScriptBlock)
     }
 }
 
@@ -995,7 +996,9 @@ function Invoke-ContainerDiscovery {
         [PSObject] $Container,
         $Filter,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
     )
 
     # Discovers the tests in a single container and returns its root block, ready to
@@ -1036,7 +1039,7 @@ function Invoke-ContainerDiscovery {
     }
 
     try {
-        $null = Invoke-BlockContainer -BlockContainer $Container -SessionState $SessionState
+        $null = Invoke-BlockContainer -BlockContainer $Container -SessionState $SessionState -BeforeContainerFile $BeforeContainerFile
     }
     catch {
         $root.Passed = $false
@@ -1115,12 +1118,12 @@ function Invoke-ContainerRun {
         #     throw "Each block setup is not supported in root (directly in the block container)."
         # }
 
-        if ($null -ne $RootBlock.EachTestSetup) {
+        if (0 -lt $RootBlock.EachTestSetup.Count) {
             throw "Each test setup is not supported in root (directly in the block container)."
         }
 
         if (
-            $null -ne $RootBlock.EachTestTeardown
+            0 -lt $RootBlock.EachTestTeardown.Count
             #-or $null -ne $rootBlock.OneTimeBlockTeardown `
             #-or $null -ne $rootBlock.EachBlockTeardown `
         ) {
@@ -1159,7 +1162,10 @@ function Invoke-ContainerRun {
 
         $setVariablesAndThenRunOneTimeSetupIfAny = & {
             $action = $setVariables
-            $setup = $RootBlock.OneTimeTestSetup
+            # There can be more than one BeforeAll on the root block: the test file's own, plus one
+            # from every Pester.BeforeContainer.ps1 that applied to this container. They run in the
+            # order they were registered, after the container's parameters have been set.
+            $setups = @($RootBlock.OneTimeTestSetup)
             $parameters = @{
                 Data                 = $RootBlock.BlockContainer.Data
                 Set_Variable         = $SafeCommands["Set-Variable"]
@@ -1167,14 +1173,21 @@ function Invoke-ContainerRun {
             }
 
             {
+                # Pester internal. This wrapper replaces the root block's BeforeAll: it sets the
+                # container's parameters first, then runs the BeforeAll blocks registered on this
+                # container - the test file's own, plus any that came from a Pester.BeforeContainer.ps1.
                 . $action $parameters
-                if ($null -ne $setup) {
-                    . $setup
+                foreach ($private:____setup in $setups) {
+                    . $private:____setup
                 }
             }.GetNewClosure()
         }
 
-        $RootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
+        # Construct rather than cast. PowerShell will not convert an object[] to a type derived
+        # from List<ScriptBlock>, it only knows how to build the generic list itself.
+        $rootSetups = [Pester.ScriptBlockCollection]::new()
+        $rootSetups.Add($setVariablesAndThenRunOneTimeSetupIfAny)
+        $RootBlock.OneTimeTestSetup = $rootSetups
 
         $RootBlock.ScriptBlock = {}
         $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
@@ -2067,10 +2080,11 @@ function Invoke-Test {
         # global steps once for the whole run while this call handles only the
         # non-parallel containers' per-container/per-test steps.
         [switch] $SkipFrameworkGlobalSteps,
-        # Initialization text (resolved from the repo-root Pester.BeforeContainer.ps1), dot-sourced
-        # into the run session state before each container is discovered and run, so the same setup
-        # is available in sequential and parallel runs.
-        [string] $BeforeContainerInit
+        # Pester.BeforeContainer.ps1 files per container, keyed by container path (empty string for
+        # containers that have no path), each list ordered outermost first. Built by
+        # Resolve-PesterBeforeContainerMap, because which files apply depends on where the container
+        # sits. They are dot-sourced into the container's own scope when it is discovered.
+        [System.Collections.IDictionary] $BeforeContainerInit
     )
 
     # set the incoming value for all the child scopes
@@ -2192,29 +2206,23 @@ function Invoke-Test {
     $containerIndex = 0
     $discoveredBlocks = [System.Collections.Generic.List[object]]@()
 
-    # Prepare the BeforeContainer initialization once. It is dot-sourced into the run session
-    # state before each container so helper modules / functions the parent session would normally
-    # provide are available to both discovery and run. This is the same in sequential and parallel
-    # runs (in parallel each worker dot-sources the same text), so the two modes stay consistent.
-    $beforeContainerScriptBlock = $null
-    if (-not [string]::IsNullOrWhiteSpace($BeforeContainerInit)) {
-        $beforeContainerScriptBlock = [ScriptBlock]::Create($BeforeContainerInit)
-        $beforeContainerSessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
-        $script:ScriptBlockSessionStateInternalProperty.SetValue($beforeContainerScriptBlock, $beforeContainerSessionStateInternal, $null)
-    }
-
     $executedContainers = foreach ($container in $BlockContainer) {
         $containerIndex++
 
-        if ($null -ne $beforeContainerScriptBlock) {
-            # Dot-source so definitions land at the run session-state scope, visible to both the
-            # discovery and the run of this container (and the containers after it).
-            . $beforeContainerScriptBlock
+        # Named apart from the $BeforeContainerInit parameter on purpose. PowerShell variable names
+        # are case-insensitive, so a local $beforeContainerInit would assign onto the typed
+        # [IDictionary] parameter and fail to convert.
+        $containerSetupFiles = if ($null -ne $BeforeContainerInit) {
+            $containerKey = if ('File' -eq $container.Type) { $container.Item.FullName } else { '' }
+            @($BeforeContainerInit[$containerKey])
+        }
+        else {
+            @()
         }
 
         # --- discover this container ---
         $state.Discovery = $true
-        $rootBlock = Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState
+        $rootBlock = Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState -BeforeContainerFile $containerSetupFiles
         $discoveredBlocks.Add($rootBlock)
 
         if ($containerIndex -eq $containerCount) {
@@ -2784,16 +2792,18 @@ function Invoke-BlockContainer {
         [Parameter(Mandatory)]
         $BlockContainer,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
     )
 
     if ($null -ne $BlockContainer.Data -and 0 -lt $BlockContainer.Data.Count) {
         foreach ($d in $BlockContainer.Data) {
             switch ($BlockContainer.Type) {
                 "ScriptBlock" {
-                    Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item @d } -SessionState $SessionState
+                    Invoke-InNewScriptScope -ScriptBlock { foreach ($private:setupFile in $BeforeContainerFile) { . $private:setupFile }; & $BlockContainer.Item @d } -SessionState $SessionState
                 }
-                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d }
+                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d -BeforeContainerFile $BeforeContainerFile }
                 default { throw [System.ArgumentOutOfRangeException]"" }
             }
         }
@@ -2801,9 +2811,9 @@ function Invoke-BlockContainer {
     else {
         switch ($BlockContainer.Type) {
             "ScriptBlock" {
-                Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item } -SessionState $SessionState
+                Invoke-InNewScriptScope -ScriptBlock { foreach ($private:setupFile in $BeforeContainerFile) { . $private:setupFile }; & $BlockContainer.Item } -SessionState $SessionState
             }
-            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
+            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -BeforeContainerFile $BeforeContainerFile }
             default { throw [System.ArgumentOutOfRangeException]"" }
         }
     }
@@ -2864,11 +2874,21 @@ function Invoke-File {
         $Path,
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
-        [Collections.IDictionary] $Data = @{}
+        [Collections.IDictionary] $Data = @{},
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
     )
 
     $sb = {
-        param ($private:p, $private:d)
+        param ($private:p, $private:d, $private:setupFiles)
+        # Dot-sourced into the same scope the test file is dot-sourced into, and before it, so the
+        # setup behaves as if it were written at the top of the file: code at its top level runs
+        # during discovery, and BeforeAll/AfterAll it declares register on this container's root
+        # block. The scope goes away with the container, so a folder's setup does not leak sideways
+        # into the next container.
+        foreach ($private:setupFile in $private:setupFiles) {
+            . $private:setupFile
+        }
         . $private:p @d
     }
 
@@ -2878,7 +2898,7 @@ function Invoke-File {
     $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
-    & $sb $Path $Data
+    & $sb $Path $Data $BeforeContainerFile
 }
 
 function New-ParametrizedTest () {

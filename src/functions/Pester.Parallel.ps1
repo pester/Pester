@@ -35,46 +35,6 @@ function Test-PesterFileIsNonParallel {
     return $false
 }
 
-function Resolve-PesterBeforeContainer {
-    <#
-    .SYNOPSIS
-    Returns the initialization code (as text) to run before each test file is discovered and run.
-
-    .DESCRIPTION
-    EXPERIMENTAL. Setup the parent session normally provides - helper modules or dot-sourced
-    functions - is resolved here so it can run before every container, in both sequential and
-    parallel runs. Parallel workers especially start from a clean runspace and would otherwise be
-    missing it.
-
-    Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root (Run.RepoRoot,
-    which defaults to the nearest '.git' directory and can be overridden) and dot-sources it,
-    giving a zero-config per-repo bootstrap. Because it is a real file it always exposes a stable
-    '$PSScriptRoot' / '$PSCommandPath' to anchor relative paths against.
-
-    The result is the same for every container, so callers resolve it once per run.
-    Returns $null when there is nothing to run.
-    #>
-    [OutputType([string])]
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Configuration
-    )
-
-    $repoRoot = $Configuration.Run.RepoRoot.Value
-    if ([string]::IsNullOrEmpty($repoRoot)) {
-        return $null
-    }
-
-    $candidate = & $SafeCommands['Join-Path'] $repoRoot 'Pester.BeforeContainer.ps1'
-    if (& $SafeCommands['Test-Path'] -LiteralPath $candidate -PathType Leaf) {
-        $escaped = $candidate -replace "'", "''"
-        return ". '$escaped'"
-    }
-
-    return $null
-}
-
 function Split-PesterEventTape {
     <#
     .SYNOPSIS
@@ -167,14 +127,16 @@ function Invoke-TestInParallel {
         $Configuration
     )
 
-    # The BeforeContainer initialization is the same for every file (resolved from the repo-root
-    # Pester.BeforeContainer.ps1 convention file), so resolve it once and reuse it.
-    $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
+    # Which Pester.BeforeContainer.ps1 files apply depends on where the file sits, from
+    # Run.RepoRoot down to the file's own folder. Resolved once here in the parent, not in the workers. Workers are separate runspaces that
+    # cannot share a cache, so letting each one resolve would mean rediscovering the same folders
+    # over and over, in parallel. They receive the answer as plain paths instead.
+    $beforeContainerMap = Resolve-PesterBeforeContainerMap -BlockContainer $BlockContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
                 Path = $c.Item.FullName
                 Data = $c.Data
-                Init = $beforeContainerInit
+                Init = @($beforeContainerMap[$c.Item.FullName])
             }
         })
 
@@ -241,12 +203,6 @@ function Invoke-TestInParallel {
             Import-Module $modulePath
         }
 
-        if (-not [string]::IsNullOrWhiteSpace($item.Init)) {
-            # Suppress the initialization's own host output (stream 6) so quiet setup does not
-            # garble the shared parent host while workers run concurrently.
-            . ([scriptblock]::Create($item.Init)) 6>$null
-        }
-
         $workerConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $baseConfig)
         # Pass the file together with its -Data so parametrized containers (New-PesterContainer
         # -Path ... -Data @{ ... }) bind the file's param() block the same way they do sequentially.
@@ -274,11 +230,11 @@ function Invoke-TestInParallel {
         else {
             $workerConfig.CodeCoverage.Enabled = $false
         }
-        # The BeforeContainer init already ran above (as $item.Init). Clear RepoRoot so the worker's
-        # own sequential run does not resolve and dot-source the repo-root Pester.BeforeContainer.ps1
-        # a second time; that would run the setup twice per file and diverge from a sequential run.
-        # RepoRoot is otherwise only used for CodeCoverage report roots, which the parent applies when
-        # it generates the merged report.
+        # The parent already resolved which Pester.BeforeContainer.ps1 files apply to this file and
+        # passed them as $item.Init; they are handed to the worker's run below so it dot-sources them
+        # into the container's own scope, exactly like a sequential run does. Clear RepoRoot so the
+        # worker does not resolve them a second time. RepoRoot is otherwise only used for CodeCoverage
+        # report roots, which the parent applies when it generates the merged report.
         $workerConfig.Run.RepoRoot = ''
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
@@ -321,6 +277,7 @@ function Invoke-TestInParallel {
         # the output-file write in this worker, the parent merges every worker's raw hits and emits the
         # single report/file.
         & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
+        & $pesterModule { param($f, $p) $script:additionalBeforeContainer = @{ $f = @($p) } } $item.Path $item.Init
         & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }
         if ($collectCoverage) {
             & $pesterModule { $script:CodeCoverageSkipReport = $true }
@@ -329,7 +286,7 @@ function Invoke-TestInParallel {
             $out = Invoke-Pester -Configuration $workerConfig
         }
         finally {
-            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null }
+            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null; $script:additionalBeforeContainer = $null }
             if ($collectCoverage) {
                 & $pesterModule { $script:CodeCoverageSkipReport = $null }
             }

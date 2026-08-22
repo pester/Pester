@@ -65,7 +65,7 @@ function New-BeforeContainerTestFolder {
     $null = New-Item -ItemType Directory -Path $folder -Force
 
     Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
-function Get-BeforeContainerMarker { 'before-container-ran' }
+BeforeAll { function Get-BeforeContainerMarker { 'before-container-ran' } }
 '@
 
     Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
@@ -77,6 +77,78 @@ Describe 'Marker' {
 '@
 
     $folder
+}
+
+function New-CascadingBeforeContainerFolder {
+    # Creates a repo-shaped tree with a Pester.BeforeContainer.ps1 at three levels:
+    #
+    #   <root>/Pester.BeforeContainer.ps1                 -> 'root'
+    #   <root>/tests/Pester.BeforeContainer.ps1           -> 'tests'
+    #   <root>/tests/unit/Pester.BeforeContainer.ps1      -> 'unit'
+    #   <root>/tests/unit/Unit.Tests.ps1                  -> expects root>tests>unit
+    #   <root>/tests/integration/Integration.Tests.ps1    -> expects root>tests
+    #
+    # Each setup file appends its own name to $global:PesterCascade, so the test can assert both
+    # which files ran and the order they ran in. The integration folder deliberately has no setup
+    # file, to prove the walk only picks up the levels that actually have one. Returns the root.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $unit = Join-Path (Join-Path $root 'tests') 'unit'
+    $integration = Join-Path (Join-Path $root 'tests') 'integration'
+    $null = New-Item -ItemType Directory -Path $unit -Force
+    $null = New-Item -ItemType Directory -Path $integration -Force
+
+    # The root file resets the list, so the assertion does not depend on what a previously run
+    # container left behind in the shared session state.
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade = @(''root'') }'
+    Set-Content -Path (Join-Path (Join-Path $root 'tests') 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''tests'' }'
+    Set-Content -Path (Join-Path $unit 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''unit'' }'
+
+    Set-Content -Path (Join-Path $unit 'Unit.Tests.ps1') -Value @'
+Describe 'Unit' {
+    It 'ran root, tests and unit setup in order' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests>unit'
+    }
+}
+'@
+
+    Set-Content -Path (Join-Path $integration 'Integration.Tests.ps1') -Value @'
+Describe 'Integration' {
+    It 'ran only the setup files that exist on its own path' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests'
+    }
+}
+'@
+
+    $root
+}
+
+function New-NoInheritBeforeContainerFolder {
+    # Root has setup, and a 'docs' folder underneath declares #pester:no-inherit because its tests
+    # need their own cheap setup and should not pay for the expensive one the rest of the repo uses.
+    # The docs test asserts it got only its own setup; the normal test asserts it got the root one.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $docs = Join-Path $root 'docs'
+    $null = New-Item -ItemType Directory -Path $docs -Force
+
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterChain = @(''root'') }'
+    Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { $script:PesterChain = @('docs') }
+'@
+
+    Set-Content -Path (Join-Path $root 'Normal.Tests.ps1') -Value @'
+Describe 'Normal' {
+    It 'gets the root setup' { ($script:PesterChain -join '>') | Should -Be 'root' }
+}
+'@
+
+    Set-Content -Path (Join-Path $docs 'Docs.Tests.ps1') -Value @'
+Describe 'Docs' {
+    It 'gets only its own setup, not the root one' { ($script:PesterChain -join '>') | Should -Be 'docs' }
+}
+'@
+
+    $root
 }
 
 function Get-ExpectedParallelFallbackWarning {
@@ -324,6 +396,181 @@ Describe 'Second' {
 
                 $r.PassedCount | Verify-Equal 2
                 $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Pester.BeforeContainer.ps1 folder cascade" {
+        t "applies every Pester.BeforeContainer.ps1 from the repo root down to the file's folder, outermost first" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # unit/Unit.Tests.ps1 sees root + tests + unit, in that order.
+                # integration/Integration.Tests.ps1 sees only root + tests, because there is no
+                # Pester.BeforeContainer.ps1 in the integration folder.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "applies the same cascade inside each parallel worker" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not look above the repo root" {
+            # The setup file sits one level above Run.RepoRoot, so the walk must not pick it up even
+            # though it is an ancestor of the test folder on disk. Asserted on the resolved chain
+            # rather than on a global the setup would set, because globals survive from one
+            # container to the next within a run and would make this depend on test order.
+            $outer = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $repoRoot = Join-Path $outer 'repo'
+            $null = New-Item -ItemType Directory -Path $repoRoot -Force
+            Set-Content -Path (Join-Path $outer 'Pester.BeforeContainer.ps1') -Value '$global:PesterCascadeAbove = $true'
+
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $repoRoot
+
+                @($chain).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $outer -Recurse -Force }
+        }
+
+        t "stops at a setup file marked #pester:no-inherit" {
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "honours #pester:no-inherit inside a parallel worker too" {
+            # The worker receives the chain the parent resolved, so a truncated chain has to survive
+            # the trip across the runspace boundary as well as it does sequentially.
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "the folder setup composes with the test file's own BeforeAll, folder first" {
+            # The reason the block model had to allow more than one BeforeAll per block. The folder
+            # setup and the file's own setup both register on the container's root block, and the
+            # folder's has to run first so the file can build on it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterOrder = @(''folder'') }'
+            Set-Content -Path (Join-Path $folder 'Compose.Tests.ps1') -Value @'
+BeforeAll { $script:PesterOrder += 'file' }
+
+Describe 'Compose' {
+    It 'ran the folder setup before the file setup' {
+        ($script:PesterOrder -join '>') | Should -Be 'folder>file'
+    }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a folder's setup does not leak into a container in a sibling folder" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # Integration has no setup file of its own, so it sees root>tests and never the
+                # 'unit' entry, no matter which of the two containers ran first.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "resolves the chain for a directory" {
+            # Get-PesterBeforeContainerChain is the lookup the run uses. Assert the order directly,
+            # so a regression in the walk is not hidden behind a passing end-to-end run.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 3
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal (Split-Path $folder -Leaf)
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'tests'
+                (Split-Path (Split-Path $chain[2] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "returns nothing when the repo root has no setup file and neither does the folder" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 0
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
