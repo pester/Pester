@@ -5,11 +5,14 @@
 # releasable: green CI here means a security fix can be validated and shipped
 # through the manual release process (release.ps1).
 #
-# The name differs from the workflow on main and on rel/5.x.x on purpose.
+# The file name and the workflow name differ from main and rel/5.x.x on purpose.
 # test-report.yml on main runs after every workflow named "CI" and renders its
 # results, and Pester 4 can only write NUnit 2.5 XML, which dorny/test-reporter
-# cannot read. The gate job below is still called "Done", same as everywhere
-# else, that is the name branch protection requires.
+# cannot read. A workflow is identified by its file path, and its name comes
+# from the copy on the default branch, so while this file was also called
+# ci.yml the rename alone did nothing and the report kept running and failing.
+# The gate job below is still called "Done", same as everywhere else, that is
+# the name branch protection requires.
 name: CI (v4)
 
 on:
