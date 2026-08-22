@@ -192,7 +192,7 @@ function New-ParametrizedBlock {
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Skip:$Skip -Reason:$Reason -Data $d
+        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Skip:$Skip -Reason $Reason -Data $d
     }
 }
 
@@ -806,12 +806,22 @@ function Invoke-TestItem {
                         Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
                     }
                     $Test.Passed = $true
+
+                    # Set-ItResult throws "is skipped" / "is inconclusive", with ", because <reason>"
+                    # appended when -Because was used. Keep only the reason itself on .Reason, so it
+                    # matches what -Skip -Because puts there and the test result file gets the reason
+                    # rather than a sentence about it.
+                    $reasonMessage = $result.ErrorRecord.Exception.Message
+                    $becauseIndex = $reasonMessage.IndexOf(', because ')
+                    if (0 -le $becauseIndex) {
+                        $Test.Reason = $reasonMessage.Substring($becauseIndex + ', because '.Length)
+                    }
+
                     if ('PesterTestInconclusive' -eq $Result.ErrorRecord.FullyQualifiedErrorId) {
                         $Test.Inconclusive = $true
                     }
                     else {
                         $Test.Skipped = $true
-                        $Test.Reason = $result.ErrorRecord.Exception.Message
                     }
                 }
                 else {
@@ -2910,7 +2920,7 @@ function New-ParametrizedTest () {
     # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
     $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
-        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Skip:$Skip -Reason:$Reason
+        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Skip:$Skip -Reason $Reason
     }
 }
 

@@ -31,6 +31,8 @@
     Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
     commenting out a test, because the test remains listed in the output.
 
+    .PARAMETER Because
+    Use it with -Skip to say why this test is not running. The reason is recorded on the result as .Reason and written to the test result file, so a skipped test explains itself instead of just being skipped.
     .PARAMETER AllowNullOrEmptyForEach
     Allows empty or null values for -ForEach when Run.FailOnNullOrEmptyForEach is enabled.
     This might be excepted in certain scenarios like using external data.
@@ -135,8 +137,10 @@
         [Switch] $Skip,
         [Switch] $AllowNullOrEmptyForEach,
 
+        # Why the test is skipped. Recorded on the result as .Reason and written to the test
+        # result file, so a skipped test says why instead of just being skipped.
         [Parameter(ParameterSetName = 'Skip')]
-        [String] $Reason
+        [String] $Because
     )
 
     if ($null -eq $Test) {
@@ -159,9 +163,9 @@
             return
         }
 
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip -Reason:$Reason
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip -Reason $Because
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip -Reason:$Reason
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip -Reason $Because
     }
 }
