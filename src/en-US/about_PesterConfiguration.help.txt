@@ -69,7 +69,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.
+        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled. Setting it to 1 does not turn parallel off, the files still go through the parallel machinery one at a time, each in its own runspace, so a breakpoint set in the calling session still does not hit inside a worker.
         Type: int
         Default value: 0
 
