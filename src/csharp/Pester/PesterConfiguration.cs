@@ -178,7 +178,13 @@ public class PesterConfiguration
     /// </summary>
     public string[] GetUnknownKeys()
     {
-        return _unknownKeys;
+        // Sorted, because they are collected by walking a hashtable, and a hashtable does not
+        // enumerate in a stable order. .NET randomizes string hashing per process, so the same
+        // configuration lists the keys differently from one run to the next, and the warning
+        // Invoke-Pester writes changes with it.
+        var keys = new List<string>(_unknownKeys);
+        keys.Sort(StringComparer.OrdinalIgnoreCase);
+        return keys.ToArray();
     }
 
     public PesterConfiguration()

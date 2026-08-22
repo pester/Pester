@@ -92,6 +92,10 @@ Describe "Building a configuration from a hashtable" {
             ([PesterConfiguration]@{ run = @{ parallel = $true } }).GetUnknownKeys() | Should -BeNullOrEmpty
         }
 
+        It "Lists the keys in a stable order, a hashtable does not enumerate in one" {
+            ([PesterConfiguration]@{ Zzz = 1; Run = @{ Paralel = $true }; Aaa = 1 }).GetUnknownKeys() | Should -Be @('Aaa', 'Run.Paralel', 'Zzz')
+        }
+
         It "Survives the merge Invoke-Pester does before it reports them" {
             $merged = [PesterConfiguration]::Merge([PesterConfiguration]::Default, [PesterConfiguration]@{ Run = @{ Paralel = $true } })
             $merged.GetUnknownKeys() | Should -Be @('Run.Paralel')
@@ -116,7 +120,7 @@ Describe "Building a configuration from a hashtable" {
         It "Warns once, listing every key, when there are several" {
             $warnings = @(Invoke-Pester -Configuration @{ Nonsense = 1; Run = @{ Path = $testFile; Paralel = $true }; Output = @{ Verbosity = 'None' } } 3>&1)
             $warnings.Count | Should -Be 1
-            $warnings[0].Message | Should -BeLike "*keys 'Run.Paralel', 'Nonsense', there are no such options*"
+            $warnings[0].Message | Should -BeLike "*keys 'Nonsense', 'Run.Paralel', there are no such options*"
         }
 
         It "Does not warn when every key is an option" {
