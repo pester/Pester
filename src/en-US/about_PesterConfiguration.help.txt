@@ -65,11 +65,11 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.
+        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, on both Windows PowerShell 5.1 and PowerShell 7. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.
         Type: bool
         Default value: $false
 
-        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled, passed through to 'ForEach-Object -Parallel -ThrottleLimit'. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled.
+        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled. Setting it to 1 does not turn parallel off, the files still go through the parallel machinery one at a time, each in its own runspace, so a breakpoint set in the calling session still does not hit inside a worker.
         Type: int
         Default value: 0
 

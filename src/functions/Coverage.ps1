@@ -1,4 +1,4 @@
-function Enter-CoverageAnalysis {
+﻿function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,
@@ -1228,10 +1228,13 @@ function Add-JaCoCoCounter {
         })
 }
 
-function Start-TraceScript ($Breakpoints) {
+# Translate the breakpoints into the coordinates the tracer records hits at. Split out of
+# Start-TraceScript so a caller that already has the points can reuse them instead of doing this
+# again: it walks the Ast of every analyzed file, which is the expensive part of a coverage run.
+function Get-TracerPoint ($Breakpoints) {
 
     $points = [Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]@()
-    foreach ($breakpoint in $breakpoints) {
+    foreach ($breakpoint in $Breakpoints) {
         $location = $breakpoint.BreakpointLocation
 
         $hitColumn = $location.Column
@@ -1256,7 +1259,18 @@ function Start-TraceScript ($Breakpoints) {
         $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
     }
 
-    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
+    , $points
+}
+
+function Start-TraceScript ($Breakpoints, $Points) {
+
+    # Points are the already translated breakpoints. test.ps1 passes them in, so that the child
+    # processes it starts do not each redo the translation for the same source tree.
+    if ($null -eq $Points) {
+        $Points = Get-TracerPoint -Breakpoints $Breakpoints
+    }
+
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($Points)
 
     # detect if profiler is imported and running and in that case just add us as a second tracer
     # to not disturb the profiling session
