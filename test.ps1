@@ -206,6 +206,10 @@ if ($CI) {
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
+
+    # Modern NUnit3 schema, which is what dorny/test-reporter reads in
+    # .github/workflows/test-report.yml.
+    $configuration.TestResult.OutputFormat = 'NUnit3'
 }
 
 $r = Invoke-Pester -Configuration $configuration
