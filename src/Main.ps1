@@ -645,12 +645,11 @@ function Invoke-Pester {
             }
 
             # Parallel mode runs each file in its own runspace and merges the executed
-            # containers back. It only applies to file-based runs on PowerShell 7+; other cases fall
-            # back to the normal sequential path with a warning. CodeCoverage is supported: each
-            # worker measures its own file with breakpoints and the parent merges the results (see
-            # the parallel branch below).
+            # containers back. It applies to file-based runs on both Windows PowerShell 5.1 and
+            # PowerShell 7; other cases fall back to the normal sequential path with a warning.
+            # CodeCoverage is supported: each worker measures its own file with breakpoints and the
+            # parent merges the results (see the parallel branch below).
             $useParallel = $PesterPreference.Run.Parallel.Value
-            $parallelSupported = $PSVersionTable.PSVersion.Major -ge 7
             $allFileContainers = 0 -eq @($containers | & $SafeCommands['Where-Object'] { 'File' -ne $_.Type }).Count
             $coverageEnabled = $PesterPreference.CodeCoverage.Enabled.Value
             # Run.SkipRemainingOnFailure = 'Run' stops the whole run after the first failed
@@ -670,7 +669,7 @@ function Invoke-Pester {
             # them inherits those type constraints, which silently corrupts the loop variable.
             $parallelContainers = [System.Collections.Generic.List[object]]@()
             $nonParallelContainers = [System.Collections.Generic.List[object]]@()
-            if ($useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope) {
+            if ($useParallel -and $allFileContainers -and -not $skipRemainingRunScope) {
                 foreach ($fileContainer in $containers) {
                     if (Test-PesterFileIsNonParallel -Path $fileContainer.Item.FullName) {
                         $nonParallelContainers.Add($fileContainer)
@@ -681,10 +680,7 @@ function Invoke-Pester {
                 }
             }
 
-            if ($useParallel -and -not $parallelSupported) {
-                & $SafeCommands['Write-Warning'] "Run.Parallel requires PowerShell 7 or later for 'ForEach-Object -Parallel'. Running the tests sequentially instead."
-            }
-            elseif ($useParallel -and -not $allFileContainers) {
+            if ($useParallel -and -not $allFileContainers) {
                 & $SafeCommands['Write-Warning'] "Run.Parallel currently parallelizes only file-based runs (Run.Path). The provided ScriptBlock/Container test(s) will run sequentially instead."
             }
             elseif ($useParallel -and $skipRemainingRunScope) {
@@ -700,7 +696,7 @@ function Invoke-Pester {
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
             # so fall through to the sequential path, which fires the framework's own global plugin
             # steps at the correct interleaved points.
-            $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
+            $ranInParallel = $useParallel -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
             if ($ranInParallel) {
                 $foldedContainers = [System.Collections.Generic.List[object]]@()
                 $hasNonParallel = 0 -lt $nonParallelContainers.Count
