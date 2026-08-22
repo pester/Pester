@@ -561,6 +561,9 @@ Describe 'Compose' {
                 @($chain).Count | Verify-Equal 0
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Invoke-InRunspacePool" {
         # The parallelism primitive Run.Parallel is built on. It replaces ForEach-Object -Parallel,
         # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the
