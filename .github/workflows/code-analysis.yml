@@ -2,9 +2,9 @@ name: Code analysis
 
 on:
   push:
-    branches: [ main ]
+    branches: [ 'rel/*' ]
   pull_request:
-    branches: [ main ]
+    branches: [ 'rel/*' ]
   workflow_dispatch:
 
 jobs:
