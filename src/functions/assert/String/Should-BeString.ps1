@@ -4,11 +4,17 @@
         $Actual,
         [switch]$CaseSensitive,
         [switch]$IgnoreWhitespace,
-        [switch]$TrimWhitespace
+        [switch]$TrimWhitespace,
+        [switch]$NormalizeLineEnding
     )
 
     if ($Actual -isnot [string]) {
         return $false
+    }
+
+    if ($NormalizeLineEnding) {
+        $Expected = $Expected -replace '\r\n|\r|\p{Zl}', "`n"
+        $Actual = $Actual -replace '\r\n|\r|\p{Zl}', "`n"
     }
 
     if ($IgnoreWhitespace) {
@@ -51,6 +57,9 @@ function Should-BeString {
 
     .PARAMETER TrimWhitespace
     Trims whitespace at the start and end of the string.
+
+    .PARAMETER NormalizeLineEnding
+    Normalizes line endings before comparison, so that `\r\n`, `\r`, and the Unicode line separator are all treated as `\n`. Use this to compare multi-line strings across platforms without failing on line-ending style. Unlike `-IgnoreWhitespace`, the newlines and their positions are kept, so indentation and blank lines are still compared.
 
     .PARAMETER Because
     The reason why the actual value should be equal to the expected value.
@@ -100,13 +109,14 @@ function Should-BeString {
         [String]$Because,
         [switch]$CaseSensitive,
         [switch]$IgnoreWhitespace,
-        [switch]$TrimWhitespace
+        [switch]$TrimWhitespace,
+        [switch]$NormalizeLineEnding
     )
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
     $Actual = $assert.Actual()
 
-    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace
+    $stringsAreEqual = Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace -NormalizeLineEnding:$NormalizeLineEnding
     if (-not ($stringsAreEqual)) {
         if ($Actual -is [string]) {
             $assert.Fail((Get-StringDifferenceMessage -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -Because $Because))
@@ -162,7 +172,7 @@ function Get-StringDifferenceMessage {
     $prefix = "Expected: '"
     $lines += "$prefix$expectedExpanded'"
     $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * ($prefix.Length - 1)) + ('-' * $differenceIndex) + '^'
+    $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
 
     $lines -join "`n"
 }

@@ -1,21 +1,9 @@
-﻿
 
-function Add-MockBehavior {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Behaviors,
-        [Parameter(Mandatory)]
-        $Behavior
-    )
-
-    if ($Behavior.IsDefault) {
-        $Behaviors.Default.Add($Behavior)
-    }
-    else {
-        $Behaviors.Parametrized.Add($Behavior)
-    }
-}
+# Module-scope marker used to make Should throw (instead of recording a failure) when it runs
+# inside a Mock ParameterFilter. Initialized once so the hot save/restore in Test-ParameterFilter
+# and the read in Set-AssertionPassResult can access it directly instead of via Get-Variable, and
+# so the direct read is safe even under Set-StrictMode.
+$script:______isInMockParameterFilter = $false
 
 function New-MockBehavior {
     [CmdletBinding()]
@@ -80,6 +68,14 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         $cmdletBinding = [Management.Automation.ProxyCommand]::GetCmdletBindingAttribute($metadata)
         if ($contextInfo.Command.CommandType -eq 'Cmdlet') {
             if ($cmdletBinding -ne '[CmdletBinding()]') {
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
+            }
+            # When the cmdlet has no explicit DefaultParameterSetName and its dynamic parameters
+            # introduce multiple named parameter sets, PowerShell cannot resolve which set applies
+            # when the mock is called without arguments. Injecting '__AllParameterSets' as the
+            # default makes the no-argument call succeed, matching the real cmdlet's behaviour. (#1531)
+            if ([string]::IsNullOrEmpty($metadata.DefaultParameterSetName)) {
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, "DefaultParameterSetName='__AllParameterSets'")
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
             }
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
@@ -154,7 +150,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         `$MyInvocation.MyCommand.Mock.Args = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:args')
     }
     `$MyInvocation.MyCommand.Mock.PSCmdlet = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
-
 
     `if (`$null -ne `$MyInvocation.MyCommand.Mock.PSCmdlet)
     {
@@ -258,7 +253,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         # and so ______param from the parent scope was inherited
 
         ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME
-
 
         # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
         # but that breaks mocking inside of Pester itself, because the mock is defined in this function and dies with it
@@ -896,7 +890,6 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
-
     if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
         # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
         # script-scope alias leaked into this run. Do not reuse it, unwrap to the original command so this
@@ -1077,52 +1070,6 @@ function Invoke-MockInternal {
     }
 }
 
-function FindMock {
-    param (
-        [Parameter(Mandatory)]
-        [String] $CommandName,
-        $ModuleName,
-        [Parameter(Mandatory)]
-        [HashTable] $MockTable
-    )
-
-    $result = @{
-        Mock        = $null
-        MockFound   = $false
-        CommandName = $CommandName
-        ModuleName  = $ModuleName
-    }
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Looking for mock $($ModuleName)||$CommandName."
-    }
-    $MockTable["$($ModuleName)||$CommandName"]
-
-    if ($null -ne $mock) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Found mock $(if (-not [string]::IsNullOrEmpty($ModuleName)) {"with module name $($ModuleName)"})||$CommandName."
-        }
-        $result.MockFound = $true
-    }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "No mock found, re-trying without module name ||$CommandName."
-        }
-        $mock = $MockTable["||$CommandName"]
-        $result.ModuleName = $null
-        if ($null -ne $mock) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found mock without module name, setting the target module to empty."
-            }
-            $result.MockFound = $true
-        }
-        else {
-            $result.MockFound = $false
-        }
-    }
-
-    return $result
-}
-
 function FindMatchingBehavior {
     param (
         [Parameter(Mandatory)]
@@ -1187,22 +1134,6 @@ function FindMatchingBehavior {
     }
     return $null, $failedFilterInvocations
 }
-
-function LastThat {
-    param (
-        $Collection,
-        $Predicate
-    )
-
-    $count = $Collection.Count
-    for ($i = $count; $i -gt 0; $i--) {
-        $item = $Collection[$i]
-        if (&$Predicate $Item) {
-            return $Item
-        }
-    }
-}
-
 
 function ExecuteBehavior {
     param (
@@ -1328,6 +1259,22 @@ function Invoke-InMockScope {
     }
 }
 
+function Format-BoundParameterValueSafely {
+    # Stringify a bound-parameter value for diagnostic text (debug messages and the failed-filter
+    # summary). This is only ever used to provide context to the user, so it must fail open: some
+    # types have a ToString that throws (e.g. mocked SMO objects created via New-MockObject), and
+    # a value like that must not make the whole mock filter throw when it is not even referenced by
+    # the filter. See #2953.
+    param($Value)
+
+    try {
+        "$Value"
+    }
+    catch {
+        '<value could not be serialized>'
+    }
+}
+
 function Test-ParameterFilter {
     [CmdletBinding()]
     param (
@@ -1388,7 +1335,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $(Format-BoundParameterValueSafely $p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
@@ -1413,18 +1360,13 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    $previousIsInMockParameterFilter = $script:______isInMockParameterFilter
     $script:______isInMockParameterFilter = $true
     try {
         $result = & $wrapper $parameters
     }
     finally {
-        if ($null -eq $previousIsInMockParameterFilter) {
-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
-        }
-        else {
-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
-        }
+        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
     }
     $passed = [bool]$result
     if ($passed) {
@@ -1441,7 +1383,7 @@ function Test-ParameterFilter {
         $filterText = $scriptBlock.ToString().Trim()
         $hasContext = 0 -lt $Context.Count
         $contextText = if ($hasContext) {
-            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $($_.Value)" }) -join ', ')
+            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $(Format-BoundParameterValueSafely $_.Value)" }) -join ', ')
         }
         else {
             'no bound parameters'
@@ -1488,7 +1430,9 @@ function Get-ContextToDefine {
         [System.Collections.IDictionary] $DynamicParamAliases
     )
 
-    $conflictingParameterNames = Get-ConflictingParameterNames
+    # Inlined Get-ConflictingParameterNames (body is `$script:ConflictingParameterNames`, as already used
+    # directly further down in this same function) to drop a function call from this per-mock-invocation path.
+    $conflictingParameterNames = $script:ConflictingParameterNames
     $r = @{ }
     # key the parameters by aliases so we can resolve to
     # the param itself and define it and all of it's aliases
@@ -1516,7 +1460,7 @@ function Get-ContextToDefine {
 
     foreach ($p in $Metadata.Parameters.GetEnumerator()) {
         $aliases = $p.Value.Aliases
-        if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+        if ($null -ne $aliases -and 0 -lt $aliases.Count) {
             foreach ($a in $aliases) { $h.Add($a, $p) }
         }
     }
@@ -1895,29 +1839,6 @@ function Get-DynamicParametersForMockedFunction {
     }
 }
 
-function Test-IsClosure {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock)
-    if ($null -eq $sessionStateInternal) {
-        return $false
-    }
-
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
-
-    return (
-        $null -ne $module -and
-        $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
-        $null -ne ($matches[1] -as [guid])
-    )
-}
-
 function Remove-MockFunctionsAndAliases ($SessionState) {
     # when a test is terminated (e.g. by stopping at a breakpoint and then stopping the execution of the script)
     # the aliases and bootstrap functions for the currently mocked functions will remain in place
@@ -2090,33 +2011,6 @@ function Repair-EncodingParameters {
     $repairedMetadata
 }
 
-function Reset-ConflictingParameters {
-    [CmdletBinding()]
-    [OutputType([hashtable])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [hashtable]
-        $BoundParameters
-    )
-
-    $parameters = $BoundParameters.Clone()
-    # unnecessary function call that could be replaced by variable access, but is needed for tests
-    $names = Get-ConflictingParameterNames
-
-    foreach ($param in $names) {
-        $fixedName = "_$param"
-
-        if (-not $parameters.ContainsKey($fixedName)) {
-            continue
-        }
-
-        $parameters[$param] = $parameters[$fixedName]
-        $null = $parameters.Remove($fixedName)
-    }
-
-    $parameters
-}
-
 $script:ConflictingParameterNames = @(
     '?'
     'ConsoleFileName'
@@ -2161,50 +2055,6 @@ function Get-ScriptBlockAST {
     }
 
     return $ast
-}
-
-# TODO: Remove?
-function New-BlockWithoutParameterAliases {
-    [OutputType([scriptblock])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [System.Management.Automation.CommandMetadata]
-        $Metadata,
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [scriptblock]
-        $Block
-    )
-    try {
-        $params = $Metadata.Parameters.Values
-        $ast = Get-ScriptBlockAST $Block
-        $blockText = $ast.Extent.Text
-        $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst] }, $true))
-        [array]::Reverse($variables)
-
-        foreach ($var in $variables) {
-            $varName = $var.VariablePath.UserPath
-            $length = $varName.Length
-
-            foreach ($param in $params) {
-                if ($param.Aliases -contains $varName) {
-                    $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
-
-                    $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
-
-                    break # It is safe to stop checking for further params here, since aliases cannot be shared by parameters
-                }
-            }
-        }
-
-        $Block = [scriptblock]::Create($blockText)
-
-        $Block
-    }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
 }
 
 function Repair-EnumParameters {

@@ -1414,4 +1414,84 @@ InPesterModuleScope {
     #             }
     #         }
     #     }
+
+    Describe 'Get-ReportRoot' {
+        It 'resolves a relative CodeCoverage.ReportRoot to an absolute path (#2920)' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+            [System.IO.Path]::IsPathRooted((Get-ReportRoot)) | Should -BeTrue
+        }
+
+        It 'resolves a relative Run.RepoRoot fallback to an absolute path (#2920)' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.Run.RepoRoot = '.'
+            [System.IO.Path]::IsPathRooted((Get-ReportRoot)) | Should -BeTrue
+        }
+
+        It 'lets a relative ReportRoot still yield relative file paths in the report (#2920)' {
+            # Reproduces #2920: with a relative ReportRoot, Get-RelativePath could
+            # not strip the prefix from the absolute file paths, so the report kept
+            # the absolute paths. Get-ReportRoot now resolves to absolute first.
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+            $absRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath('.')
+            $absFile = Join-Path -Path $absRoot -ChildPath (Join-Path 'sub' 'File.ps1')
+            $expected = 'sub{0}File.ps1' -f [System.IO.Path]::DirectorySeparatorChar
+            Get-RelativePath -Path $absFile -RelativeTo (Get-ReportRoot) | Should -Be $expected
+        }
+    }
+
+    Describe 'Resolve-CodeCoverageConfiguration report root resolution (#2923)' {
+        # A relative ReportRoot (or its Run.RepoRoot fallback) must be captured against the
+        # location Invoke-Pester was called from, during configuration validation, not against
+        # whatever location a test leaves behind. The report is written after all tests ran, so
+        # resolving only then (in Get-ReportRoot) would break when a test changes the location.
+        BeforeAll {
+            $invocationDir = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'invocation-dir') -Force).FullName
+            $elsewhere = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'elsewhere') -Force).FullName
+        }
+
+        It 'captures a relative CodeCoverage.ReportRoot at configuration time so a later location change does not move it' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.CodeCoverage.ReportRoot = '.'
+
+            Push-Location -Path $invocationDir
+            try {
+                Resolve-CodeCoverageConfiguration
+            }
+            finally {
+                Pop-Location
+            }
+
+            # A test changed the current location before the report is written.
+            Push-Location -Path $elsewhere
+            try {
+                Get-ReportRoot | Should -Be $invocationDir
+            }
+            finally {
+                Pop-Location
+            }
+        }
+
+        It 'captures a relative Run.RepoRoot fallback at configuration time so a later location change does not move it' {
+            $PesterPreference = [PesterConfiguration]::Default
+            $PesterPreference.Run.RepoRoot = '.'
+
+            Push-Location -Path $invocationDir
+            try {
+                Resolve-CodeCoverageConfiguration
+            }
+            finally {
+                Pop-Location
+            }
+
+            Push-Location -Path $elsewhere
+            try {
+                Get-ReportRoot | Should -Be $invocationDir
+            }
+            finally {
+                Pop-Location
+            }
+        }
+    }
 }

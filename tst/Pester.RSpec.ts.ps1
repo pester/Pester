@@ -2138,6 +2138,55 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
         }
 
+        t "<_> and <key> expand from -ForEach data even when the test is skipped (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It "array <_>" -Skip -ForEach @("foo", "bar") { }
+                    It "hashtable <Name> <Value>" -Skip -ForEach @(@{ Name = "a"; Value = 1 }, @{ Name = "b"; Value = 2 }) { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal "Skipped"
+            $tests[0].ExpandedName | Verify-Equal "array foo"
+            $tests[1].ExpandedName | Verify-Equal "array bar"
+            $tests[2].ExpandedName | Verify-Equal "hashtable a 1"
+            $tests[3].ExpandedName | Verify-Equal "hashtable b 2"
+        }
+
+        t "a skipped test expands its name the same way a run test would, including nested data (#2427)" {
+            # The skipped name is expanded against the -ForEach data exactly like a run test, so a nested
+            # property such as <_.Length> resolves too, not just the whole item.
+            $sb = {
+                Describe "d" {
+                    It "run <_.Length>" -ForEach @("foo", "bacon") { }
+                    It "skip <_.Length>" -Skip -ForEach @("foo", "bacon") { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].ExpandedName | Verify-Equal "run 3"
+            $tests[2].Result | Verify-Equal "Skipped"
+            $tests[2].ExpandedName | Verify-Equal "skip 3"
+            $tests[3].ExpandedName | Verify-Equal "skip 5"
+        }
+
+        t "a skipped test keeps escaped angle brackets literal in its name (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It 'skip `<lit`>' -Skip -ForEach @("foo") { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "skip <lit>"
+        }
+
         t "<_> expands to `$_ in It even if It does not define any data" {
             $sb = {
                 Describe "d <_>" {
@@ -2264,6 +2313,25 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub"
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Jakub"
+        }
+
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # Referencing a whole complex object (e.g. a CommandInfo as <func> instead of <func.Name>)
+        # used to expand into an enormous property tree that took so long it looked like Pester hung.
+        # A CommandInfo is a registered type, so it must render a compact summary (its Name) and
+        # complete promptly.
+        t "a complex object like CommandInfo in the name renders a short summary instead of hanging" {
+            $sb = {
+                Describe 'd <func>' {
+                    It 'i <func>' { }
+                } -ForEach @(@{ func = (Get-Command -Name 'Invoke-Pester') })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
         }
 
         t "`$variable remains as literal text after expanding" {

@@ -65,7 +65,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
-        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when CodeCoverage is enabled, or when Run.SkipRemainingOnFailure is set to 'Run'.
+        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, using PowerShell 7+ 'ForEach-Object -Parallel'. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run on Windows PowerShell 5.1, when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.
         Type: bool
         Default value: $false
 
@@ -84,6 +84,14 @@ SECTIONS AND OPTIONS
         RepoRoot: EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.
         Type: string
         Default value: '<path of .git>'
+
+        Shuffle: EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.
+        Type: bool
+        Default value: $false
+
+        ShuffleSeed: EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.
+        Type: int
+        Default value: 0
 
     Filter:
         Tag: Tags of Describe, Context or It to be run. Use 'None' to run only tests that have no tags.

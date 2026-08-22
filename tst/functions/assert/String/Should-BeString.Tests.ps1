@@ -61,6 +61,25 @@ InPesterModuleScope {
                 Test-StringEqual -Expected $l -Actual $r -IgnoreWhiteSpace | Verify-True
             }
         }
+
+        Context "Normalizing newlines" {
+            It "strings that differ only in line ending style are equal. comparing '<lName>':'<rName>'" -TestCases @(
+                @{ l = "a`r`nb"; r = "a`nb"; lName = "CRLF"; rName = "LF" },
+                @{ l = "a`rb"; r = "a`nb"; lName = "CR"; rName = "LF" },
+                @{ l = "a`r`nb"; r = "a`rb"; lName = "CRLF"; rName = "CR" },
+                @{ l = "a$([char]0x2028)b"; r = "a`nb"; lName = "LS"; rName = "LF" }
+            ) {
+                Test-StringEqual -Expected $l -Actual $r -NormalizeLineEnding | Verify-True
+            }
+
+            It "strings that differ in more than line ending style are not equal" {
+                Test-StringEqual -Expected "a`r`nb" -Actual "a`nc" -NormalizeLineEnding | Verify-False
+            }
+
+            It "keeps newline positions, so extra blank lines still differ" {
+                Test-StringEqual -Expected "a`r`nb" -Actual "a`r`n`r`nb" -NormalizeLineEnding | Verify-False
+            }
+        }
     }
 }
 
@@ -111,7 +130,7 @@ Actual length:   3
 Strings differ at index 0.
 Expected: ''
 But was:  'abc'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
         }
     }
@@ -141,6 +160,14 @@ But was:  'abc'
         It "Trimming whitespace does not remove it from inside of the string" {
             { "a bc" | Should-BeString -Expected "abc" -TrimWhitespace } | Verify-AssertionFailed
         }
+
+        It "Can compare multi-line strings ignoring line ending style" {
+            "line1`nline2" | Should-BeString -Expected "line1`r`nline2" -NormalizeLineEnding
+        }
+
+        It "Normalizing newlines still compares indentation and blank lines" {
+            { "a`nb" | Should-BeString -Expected "a`n`nb" -NormalizeLineEnding } | Verify-AssertionFailed
+        }
     }
 
     It "Can be called with positional parameters" {
@@ -155,7 +182,7 @@ String lengths are both 3.
 Strings differ at index 0.
 Expected: 'abc'
 But was:  'bde'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -167,7 +194,7 @@ String lengths are both 11.
 Strings differ at index 0.
 Expected: 'Hello World'
 But was:  'hello world'
-          ^
+           ^
 '@ -replace "`r`n", "`n")
     }
 
@@ -180,7 +207,7 @@ Actual length:   3
 Strings differ at index 3.
 Expected: 'abcdef'
 But was:  'abc'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
     }
 
@@ -193,7 +220,7 @@ Actual length:   7
 Strings differ at index 3.
 Expected: 'abc␍␊def'
 But was:  'abc␊def'
-          ---^
+           ---^
 '@ -replace "`r`n", "`n")
     }
 }

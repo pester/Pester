@@ -1,4 +1,4 @@
-﻿function Enter-CoverageAnalysis {
+function Enter-CoverageAnalysis {
     [CmdletBinding()]
     param (
         [object[]] $CodeCoverage,
@@ -582,53 +582,6 @@ function Get-CoverageHitCommands {
     $CommandCoverage | & $SafeCommands['Where-Object'] { $_.Breakpoint.HitCount -gt 0 }
 }
 
-function Merge-CommandCoverage {
-    param ([object[]] $CommandCoverage)
-
-    # todo: this is a quick implementation of merging lists of breakpoints together, this is needed
-    # because the code coverage is stored per container and so in the end a lot of commands are missed
-    # in the container while they are hit in other, what we want is to know how many of the commands were
-    # hit in at least one file. This simple implementation does not add together the number of hits on each breakpoint
-    # so the HitCommands is not accurate, it only keeps the first breakpoint that points to that command and it's hit count
-    # this should be improved in the future.
-
-    # todo: move this implementation to the calling function so we don't need to split and merge the collection twice and we
-    # can also accumulate the hit count across the different breakpoints
-
-    $hitBps = @{}
-    $hits = [System.Collections.Generic.List[object]]@()
-    foreach ($bp in $CommandCoverage) {
-        if (0 -lt $bp.Breakpoint.HitCount) {
-            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
-            if (-not $hitBps.ContainsKey($key)) {
-                # adding to a hashtable to make sure we can look up the keys quickly
-                # and also to an array list to make sure we can later dump them in the correct order
-                $hitBps.Add($key, $bp)
-                $null = $hits.Add($bp)
-            }
-        }
-    }
-
-    $missedBps = @{}
-    $misses = [System.Collections.Generic.List[object]]@()
-    foreach ($bp in $CommandCoverage) {
-        if (0 -eq $bp.Breakpoint.HitCount) {
-            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
-            if (-not $hitBps.ContainsKey($key)) {
-                if (-not $missedBps.ContainsKey($key)) {
-                    $missedBps.Add($key, $bp)
-                    $null = $misses.Add($bp)
-                }
-            }
-        }
-    }
-
-    # this is also not very efficient because in the next step we are splitting this collection again
-    # into hit and missed breakpoints
-    $c = $hits.GetEnumerator() + $misses.GetEnumerator()
-    $c
-}
-
 function Merge-CoverageFromParallel {
     <#
     .SYNOPSIS
@@ -761,7 +714,6 @@ function Get-CoverageReport {
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
     $analyzedFiles = @(@($CommandCoverage) | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
 
-
     [pscustomobject] @{
         NumberOfCommandsAnalyzed = $CommandCoverage.Count
         NumberOfFilesAnalyzed    = $analyzedFiles.Count
@@ -775,11 +727,23 @@ function Get-CoverageReport {
 }
 
 function Get-ReportRoot {
-    if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
-        return $PesterPreference.CodeCoverage.ReportRoot.Value
+    $reportRoot = if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
+        $PesterPreference.CodeCoverage.ReportRoot.Value
+    }
+    else {
+        $PesterPreference.Run.RepoRoot.Value
     }
 
-    $PesterPreference.Run.RepoRoot.Value
+    if ([string]::IsNullOrEmpty($reportRoot)) {
+        return $reportRoot
+    }
+
+    # Resolve to an absolute path. Get-RelativePath strips this prefix off the
+    # (absolute) file paths, so a relative ReportRoot/RepoRoot would never match
+    # and the report would keep the absolute paths instead of making them
+    # relative (#2920). GetUnresolvedProviderPathFromPSPath resolves against the
+    # current location without requiring the path to exist.
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($reportRoot)
 }
 
 function Get-RelativePath {
@@ -1364,14 +1328,6 @@ function Get-TracerHitLocation ($command) {
         function Write-Host { }
     }
     # function Write-Host { }
-    function Show-ParentList ($command) {
-        $c = $command
-        "`n`nCommand: $c" | Write-Host
-        $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
-                $ast | Select-Object @{n = 'type'; e = { $_.GetType().Name } } , @{n = 'extent'; e = { $_.extent } }
-            } ) | Format-Table type, extent | Out-String | Write-Host
-    }
-
     if ($env:PESTER_CC_DEBUG -eq 1) {
         Write-Host "Processing '$command' at $($command.Extent.StartLineNumber):$($command.Extent.StartColumnNumber) which is $($command.GetType().Name)."
     }

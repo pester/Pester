@@ -8,7 +8,57 @@
         param ($PesterPath, [ScriptBlock] $ScriptBlock)
         Import-Module $PesterPath
 
-        . $ScriptBlock
+        # During a code coverage run (test.ps1 -CC) the parent process traces itself, but the code
+        # that executes here in the child process is invisible to it. When the parent asks for it
+        # (via PESTER_CC_CHILD_* env vars, which we inherit) we trace this child the same way and
+        # dump the coordinates we hit, so the parent can merge them into the single coverage report.
+        # Note: this scriptblock is stringified and passed to the child as -Command, and on Windows
+        # PowerShell (legacy native argument passing) only the user ScriptBlock is quote-escaped
+        # below, so keep this block free of double quotes to avoid mangling the child command line.
+        # Coverage collection is best-effort: any failure here must fall back to a plain run so the
+        # test behaves exactly as without coverage.
+        $ccDir = $env:PESTER_CC_CHILD_OUTPUT
+        $ccTarget = $env:PESTER_CC_CHILD_TARGET
+        $ccTracer = $null
+        $ccPatched = $false
+        if ($ccDir -and $ccTarget) {
+            try {
+                $pesterModule = Get-Module Pester
+                $enter = & $pesterModule { Get-Command Enter-CoverageAnalysis }
+                $start = & $pesterModule { Get-Command Start-TraceScript }
+                $bps = & $enter -CodeCoverage $ccTarget -UseBreakpoints $false
+                $ccPatched, $ccTracer = & $start $bps
+            }
+            catch {
+                $ccTracer = $null
+            }
+        }
+        try {
+            . $ScriptBlock
+        }
+        finally {
+            if ($null -ne $ccTracer) {
+                try {
+                    $stop = & (Get-Module Pester) { Get-Command Stop-TraceScript }
+                    & $stop -Patched $ccPatched
+                    $hitLines = [System.Collections.Generic.List[string]]::new()
+                    $tab = [char]9
+                    foreach ($path in $ccTracer.Hits.Keys) {
+                        $byKey = $ccTracer.Hits[$path]
+                        foreach ($key in $byKey.Keys) {
+                            foreach ($point in $byKey[$key]) {
+                                if ($point.Hit) { $hitLines.Add($path + $tab + $key); break }
+                            }
+                        }
+                    }
+                    $outFile = Join-Path $ccDir ('child-' + [System.Guid]::NewGuid().ToString('n') + '.tsv')
+                    [System.IO.File]::WriteAllLines($outFile, $hitLines)
+                }
+                catch {
+                    # ignore, coverage from this child is simply skipped
+                }
+            }
+        }
     }.ToString()
 
     if ($PSVersionTable.PSVersion -ge '7.3' -and $PSNativeCommandArgumentPassing -ne 'Legacy') {

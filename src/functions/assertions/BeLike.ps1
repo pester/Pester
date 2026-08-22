@@ -1,4 +1,4 @@
-﻿function Should-BeLikeAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [String] $Because) {
+function Should-BeLikeAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [String] $Because) {
     <#
     .SYNOPSIS
     Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator.
@@ -59,7 +59,3 @@
 Set-ShouldOperatorHelpMessage -OperatorName BeLike `
     -HelpMessage "Asserts that the actual value matches a wildcard pattern using PowerShell's -like operator. This comparison is not case-sensitive."
 
-function ShouldBeLikeFailureMessage() {
-}
-function NotShouldBeLikeFailureMessage() {
-}
