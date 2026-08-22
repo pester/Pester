@@ -1,4 +1,4 @@
-function Test-PesterFileIsNonParallel {
+﻿function Test-PesterFileIsNonParallel {
     <#
     .SYNOPSIS
     Returns $true when a test file opts out of parallel execution via a file-level directive.
@@ -79,6 +79,102 @@ function Split-PesterEventTape {
     }
 }
 
+function Invoke-InRunspacePool {
+    <#
+    .SYNOPSIS
+    Runs a scriptblock once per input item, concurrently, in a pool of runspaces.
+
+    .DESCRIPTION
+    The parallelism primitive behind Run.Parallel. `ForEach-Object -Parallel` does the same thing,
+    but it only exists on PowerShell 7 and Pester also supports Windows PowerShell 5.1, so this is
+    built on the runspace API that both editions have. One implementation for both keeps the two
+    editions from drifting apart.
+
+    The scriptblock is handed over as text and re-parsed inside the worker runspace, so nothing
+    with runspace affinity crosses the boundary. Values reach the worker as named parameters
+    rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
+    in this process, so the values themselves cross as live objects either way.
+
+    Each item gets its own PowerShell instance and they are all started at once; the pool is what
+    limits how many actually run, so ThrottleLimit means the same as it does on ForEach-Object.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
+    [CmdletBinding()]
+    param(
+        [object[]] $InputObject,
+
+        [Parameter(Mandatory)]
+        [scriptblock] $ScriptBlock,
+
+        [int] $ThrottleLimit = 1,
+
+        # Passed to every worker as named parameters, on top of the item itself.
+        [System.Collections.IDictionary] $Parameters = @{},
+
+        # Name of the worker parameter that receives the current input item.
+        [string] $ItemParameterName = 'item'
+    )
+
+    $items = @($InputObject)
+    if (0 -eq $items.Count) {
+        return
+    }
+
+    if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
+
+    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
+    # console reaches the same one. Pester's workers are silenced, this is for anything else.
+    $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
+    $pool.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
+    $pool.Open()
+
+    $invocations = [System.Collections.Generic.List[object]]@()
+    try {
+        foreach ($item in $items) {
+            $powershell = [System.Management.Automation.PowerShell]::Create()
+            $powershell.RunspacePool = $pool
+            $null = $powershell.AddScript($ScriptBlock.ToString())
+            $null = $powershell.AddParameter($ItemParameterName, $item)
+            foreach ($key in $Parameters.Keys) {
+                $null = $powershell.AddParameter($key, $Parameters[$key])
+            }
+
+            $invocations.Add([PSCustomObject]@{
+                    PowerShell = $powershell
+                    Handle     = $powershell.BeginInvoke()
+                })
+        }
+
+        foreach ($invocation in $invocations) {
+            try {
+                $invocation.PowerShell.EndInvoke($invocation.Handle)
+            }
+            catch {
+                # One worker failing must not take the rest of the run with it, the remaining files
+                # still have results worth reporting. Surface it and keep going.
+                & $SafeCommands['Write-Error'] -ErrorRecord $_
+            }
+
+            # The worker has no console of its own, so anything it wrote to these streams would be
+            # lost. Re-emit it here.
+            foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
+                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord
+            }
+            foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
+                & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
+            }
+        }
+    }
+    finally {
+        foreach ($invocation in $invocations) {
+            $invocation.PowerShell.Dispose()
+        }
+        $pool.Close()
+        $pool.Dispose()
+    }
+}
+
 function Invoke-TestInParallel {
     <#
     .SYNOPSIS
@@ -87,8 +183,9 @@ function Invoke-TestInParallel {
     that fired while it ran.
 
     .DESCRIPTION
-    Used by Invoke-Pester when Run.Parallel is enabled on PowerShell 7+. Each test file is
-    executed by a full Invoke-Pester run inside its own runspace via `ForEach-Object -Parallel`.
+    Used by Invoke-Pester when Run.Parallel is enabled. Each test file is executed by a full
+    Invoke-Pester run inside its own runspace, from a pool (see Invoke-InRunspacePool), which
+    works the same on Windows PowerShell 5.1 and on PowerShell 7.
     The worker runs silently (Output.Verbosity = None) so it produces no console output of its
     own; instead it records every per-container and per-test plugin step (with the live Block /
     Test / Result objects) into an ordered tape. The parent replays that tape to its reporting
@@ -96,7 +193,7 @@ function Invoke-TestInParallel {
     sequential run - only the concurrency differs.
 
     Because Pester.dll is loaded once per process (via Add-Type -Path) and shared by every
-    runspace, the [Pester.Container] objects and the recorded contexts are live objects - no
+    runspace in it, the [Pester.Container] objects and the recorded contexts are live objects - no
     serialization happens - so they can be folded straight back into a single run and replayed.
     The execution-critical plugins (Mock, TestDrive, TestRegistry, SkipRemainingOnFailure) run
     inside the worker where the test bodies execute; only the reporting plugins are replayed by
@@ -116,7 +213,7 @@ function Invoke-TestInParallel {
       report generation and file write via the CodeCoverageSkipReport module flag.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Get-Module/Import-Module run in a fresh ForEach-Object -Parallel runspace where the module-internal $SafeCommands table is unavailable.')]
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-ObjectCmdlets', '', Justification = 'ForEach-Object -Parallel is the runspace-parallelism primitive with no language-keyword equivalent; the accompanying Where-Object/Sort-Object run once over the small per-run result set.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-ObjectCmdlets', '', Justification = 'Where-Object/Sort-Object run once over the small per-run result set.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Recorder factory parameters are used inside the returned closure, which the rule does not follow.')]
     [CmdletBinding()]
     param(
@@ -193,11 +290,14 @@ function Invoke-TestInParallel {
     # every worker's hits and emit one report. A recorder plugin is injected (via the supported
     # $script:additionalPlugins channel) to capture the ordered plugin-event tape returned for replay.
     $worker = {
-        $item = $_
-        $modulePath = $using:modulePath
-        $baseConfig = $using:baseConfig
-        $recordedSteps = $using:recordedSteps
-        $collectCoverage = $using:collectCoverage
+        param($item, $modulePath, $baseConfig, $recordedSteps, $collectCoverage, $workingDirectory)
+
+        # A fresh runspace starts at the process working directory, which is not necessarily where
+        # the caller is. ForEach-Object -Parallel keeps the caller's location and test files resolve
+        # relative paths against it, so put the worker there too.
+        if (-not [string]::IsNullOrEmpty($workingDirectory)) {
+            Set-Location -LiteralPath $workingDirectory
+        }
 
         if (-not (Get-Module -Name Pester)) {
             Import-Module $modulePath
@@ -317,7 +417,13 @@ function Invoke-TestInParallel {
 
     $results = @()
     if (0 -lt $work.Count) {
-        $results = $work | & $SafeCommands['ForEach-Object'] -ThrottleLimit $throttle -Parallel $worker
+        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Parameters @{
+            modulePath       = $modulePath
+            baseConfig       = $baseConfig
+            recordedSteps    = $recordedSteps
+            collectCoverage  = $collectCoverage
+            workingDirectory = $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path
+        }
     }
 
     # Keep only well-formed worker results (defensive against stray pipeline output).

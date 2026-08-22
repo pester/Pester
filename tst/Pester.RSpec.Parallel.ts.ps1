@@ -1,4 +1,4 @@
-param ([switch] $PassThru, [switch] $NoBuild)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
@@ -151,16 +151,6 @@ Describe 'Docs' {
     $root
 }
 
-function Get-ExpectedParallelFallbackWarning {
-    # Windows PowerShell 5.1 has no 'ForEach-Object -Parallel', so every Run.Parallel run trips the
-    # PowerShell-version gate and falls back to sequential before any feature-specific check
-    # (ScriptBlock / CodeCoverage / SkipRemainingOnFailure) is reached. The run still produces
-    # identical results either way - only the warning text differs - so tests assert the
-    # feature-specific text on PowerShell 7+ and the version text on 5.1.
-    param ([Parameter(Mandatory)] [string] $Ps7Pattern)
-    if ($PSVersionTable.PSVersion.Major -ge 7) { $Ps7Pattern } else { '*requires PowerShell 7*' }
-}
-
 i -PassThru:$PassThru {
     b "Run.Parallel configuration option" {
         t "exists and defaults to disabled" {
@@ -206,33 +196,31 @@ Describe 'Slow2' {
                 $r = Invoke-Pester -Configuration $c
                 $sw.Stop()
 
-                if ($PSVersionTable.PSVersion.Major -ge 7) {
-                    # Naive sum of the overlapping container durations - the old (wrong) run total.
-                    $containerSum = [TimeSpan]::Zero
-                    foreach ($container in $r.Containers) { $containerSum += $container.Duration }
+                # Naive sum of the overlapping container durations - the old (wrong) run total.
+                $containerSum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $containerSum += $container.Duration }
 
-                    # Run total is the measured wall-clock: positive, never larger than the elapsed
-                    # time around the whole call, and well below the naive sum because the files overlap.
-                    ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
-                    ($r.Duration -le $sw.Elapsed) | Verify-True
-                    ($r.Duration -lt $containerSum) | Verify-True
+                # Run total is the measured wall-clock: positive, never larger than the elapsed
+                # time around the whole call, and well below the naive sum because the files overlap.
+                ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
+                ($r.Duration -le $sw.Elapsed) | Verify-True
+                ($r.Duration -lt $containerSum) | Verify-True
 
-                    # The per-phase run totals are blanked - a single wall-clock figure for user,
-                    # framework or discovery time is not meaningful once the files overlap.
-                    ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
-                    ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
-                    ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
+                # The per-phase run totals are blanked - a single wall-clock figure for user,
+                # framework or discovery time is not meaningful once the files overlap.
+                ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
 
-                    # Parallelism is file-level, so each container keeps its full duration breakdown.
-                    foreach ($container in $r.Containers) {
-                        ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
-                        ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
-                    }
-                    # Discovery is measured per container too (summed here only to avoid per-file flakiness).
-                    $discoverySum = [TimeSpan]::Zero
-                    foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
-                    ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
+                # Parallelism is file-level, so each container keeps its full duration breakdown.
+                foreach ($container in $r.Containers) {
+                    ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
+                    ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
                 }
+                # Discovery is measured per container too (summed here only to avoid per-file flakiness).
+                $discoverySum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
+                ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
@@ -573,6 +561,89 @@ Describe 'Compose' {
                 @($chain).Count | Verify-Equal 0
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
+    b "Invoke-InRunspacePool" {
+        # The parallelism primitive Run.Parallel is built on. It replaces ForEach-Object -Parallel,
+        # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the
+        # place a difference between them would show up first.
+
+        # Each worker counts itself in on entry and out on exit, so the run's peak concurrency is
+        # measured directly. Asserting on elapsed time instead would only infer concurrency, and it
+        # would sit on a threshold that a slow or a fast machine can cross for the wrong reason.
+        $probe = {
+            param($item, $state)
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try {
+                $state.Current++
+                if ($state.Current -gt $state.Max) { $state.Max = $state.Current }
+            }
+            finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            Start-Sleep -Milliseconds 300
+
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try { $state.Current-- } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            $item
+        }
+
+        t "runs the items concurrently" {
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            # More than one in flight at once is the whole claim. The exact peak depends on how the
+            # pool schedules, so do not pin it to 4.
+            ($state.Max -gt 1) | Verify-True
+        }
+
+        t "honours the throttle limit" {
+            # With one runspace the peak can only ever be 1, however the machine schedules them.
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 1 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            $state.Max | Verify-Equal 1
+        }
+
+        t "passes the item and the shared parameters to every worker" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @('a', 'b') -ThrottleLimit 2 -Parameters @{ prefix = 'p' } -ScriptBlock {
+                    param($item, $prefix)
+                    "$prefix-$item"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal 'p-a,p-b'
+        }
+
+        t "keeps going when one worker throws" {
+            # A failing file must not take the rest of the run with it, the others still have
+            # results worth reporting.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+            ($errors -join ' ') | Verify-Like '*worker blew up*' 
+        }
+
+        t "returns nothing for an empty input" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
+            }
+            @($r).Count | Verify-Equal 0
         }
     }
 
@@ -696,7 +767,7 @@ Describe 'S' {
 
             $r.TotalCount | Verify-Equal 1
             $r.PassedCount | Verify-Equal 1
-            ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*parallelizes only file-based runs*')
+            ($warnings -join "`n") | Verify-Like '*parallelizes only file-based runs*'
         }
 
         t "collects and merges code coverage across parallel workers" {
@@ -843,7 +914,7 @@ Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
 
                 $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
 
-                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning "*does not support Run.SkipRemainingOnFailure*")
+                ($warnings -join "`n") | Verify-Like "*does not support Run.SkipRemainingOnFailure*"
                 $r.TotalCount | Verify-Equal 3
                 $r.FailedCount | Verify-Equal 1
                 # a2 and the whole of B are skipped once the first test fails.
@@ -925,29 +996,26 @@ Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
                 # The run still executes in parallel and produces correct results.
                 $r.PassedCount | Verify-Equal 2
 
-                # PowerShell 5.1 has no ForEach-Object -Parallel and falls back to a sequential run whose
-                # output differs, so only assert the exact parallel rendering on 7+.
-                if ($PSVersionTable.PSVersion.Major -ge 7) {
-                    # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
-                    # then blank out the volatile version, temp paths and timings so the snapshot is stable.
-                    $sb = [System.Text.StringBuilder]::new()
-                    foreach ($rec in @($out)) {
-                        if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
-                        $md = $rec.MessageData
-                        if ($md -is [System.Management.Automation.HostInformationMessage]) {
-                            $null = $sb.Append($md.Message)
-                            if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
-                        }
+                # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
+                # then blank out the volatile version, temp paths and timings so the snapshot is stable.
+                $sb = [System.Text.StringBuilder]::new()
+                foreach ($rec in @($out)) {
+                    if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
+                    $md = $rec.MessageData
+                    if ($md -is [System.Management.Automation.HostInformationMessage]) {
+                        $null = $sb.Append($md.Message)
+                        if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
                     }
-                    $normalized = $sb.ToString() `
-                        -replace 'Pester v\S+', 'Pester v<version>' `
-                        -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
-                        -replace '\d+(.\d+)?m?s', '<time>'
-                    $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
+                }
+                $normalized = $sb.ToString() `
+                    -replace 'Pester v\S+', 'Pester v<version>' `
+                    -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
+                    -replace '\d+(.\d+)?m?s', '<time>'
+                $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
 
-                    # Each file's discovery is immediately followed by that same file's run (A fully, then
-                    # B fully), instead of both discoveries being dumped up front, detached from the tests.
-                    $expected = @'
+                # Each file's discovery is immediately followed by that same file's run (A fully, then
+                # B fully), instead of both discoveries being dumped up front, detached from the tests.
+                $expected = @'
 Pester v<version>
 
 Running tests from 2 files in parallel.
@@ -967,8 +1035,7 @@ Tests completed in <time>
 Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
 '@ -replace "`r`n", "`n"
 
-                    $actual | Verify-Equal $expected
-                }
+                $actual | Verify-Equal $expected
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
