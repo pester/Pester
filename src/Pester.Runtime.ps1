@@ -1,4 +1,4 @@
-# PESTER_BUILD
+﻿# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/Pester.Utility.ps1"
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
@@ -2206,9 +2206,13 @@ function Invoke-Test {
     $executedContainers = foreach ($container in $BlockContainer) {
         $containerIndex++
 
-        if ($null -ne $beforeContainerScriptBlock) {
+        if ($null -ne $beforeContainerScriptBlock -and 'File' -eq $container.Type) {
             # Dot-source so definitions land at the run session-state scope, visible to both the
             # discovery and the run of this container (and the containers after it).
+            # Files only. The convention is a file in the repository, dot-sourced before every test
+            # file, and a ScriptBlock container is not one. It also keeps the cost proportional: a
+            # test that runs Invoke-Pester over a scriptblock would otherwise pay for the repo's
+            # setup on every nested run.
             . $beforeContainerScriptBlock
         }
 

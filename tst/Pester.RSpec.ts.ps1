@@ -3448,22 +3448,19 @@ i -PassThru:$PassThru {
             # command like winrm/net in a setup block), which could not be reproduced deterministically.
             # Before #2655 that stray object was added to the strongly-typed Run.Containers list and
             # threw "Cannot find an overload for Add", taking down the whole run.
-            $sb = {
-                Describe 'd' {
-                    It 'passes' { $true | Should -Be $true }
-                }
-            }
-
             $repoRoot = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
             $null = New-Item -ItemType Directory -Path $repoRoot -Force
             Set-Content -Path (Join-Path $repoRoot 'Pester.BeforeContainer.ps1') -Value "'WinRM service is already running on this machine.'"
+            # A file container, because Pester.BeforeContainer.ps1 runs before test files.
+            $testFile = Join-Path $repoRoot 'Stray.Tests.ps1'
+            Set-Content -Path $testFile -Value "Describe 'd' { It 'passes' { `$true | Should -Be `$true } }"
 
             try {
                 $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
                         Run    = @{
-                            ScriptBlock = $sb
-                            PassThru    = $true
-                            RepoRoot    = $repoRoot
+                            Path     = $testFile
+                            PassThru = $true
+                            RepoRoot = $repoRoot
                         }
                         Output = @{ Verbosity = 'None' }
                     }) -WarningVariable warnings 3> $null

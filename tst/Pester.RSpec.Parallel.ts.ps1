@@ -252,6 +252,30 @@ Describe 'Module import' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
+        t "does not run it for a ScriptBlock container, it is a setup for test files" {
+            # The convention is a file in the repository, dot-sourced before every test file, so a
+            # ScriptBlock container is not one. It also keeps the cost proportional: a test that runs
+            # Invoke-Pester over a scriptblock would otherwise pay for the whole repo's setup on every
+            # nested run, and a suite that does that a few hundred times pays it a few hundred times.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $marker = Join-Path $folder 'ran.txt'
+                Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value "'ran' | Set-Content -LiteralPath '$marker'"
+
+                $c = [PesterConfiguration]::Default
+                $c.Run.ScriptBlock = { Describe 'd' { It 'passes' { 1 | Should -Be 1 } } }
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                (Test-Path -LiteralPath $marker) | Verify-False
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
         t "runs the repo-root Pester.BeforeContainer.ps1 inside each parallel worker" {
             $folder = New-BeforeContainerTestFolder
             try {
