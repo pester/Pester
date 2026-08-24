@@ -1,7 +1,7 @@
 // Vendored from DiffPlex 1.9.0, https://github.com/mmanela/diffplex
 // Copyright (c) Matthew Manela. Licensed under the Apache License, Version 2.0.
 // See LICENSE.txt and VENDORING.md in this folder.
-// Modified by the Pester Team: the namespace is Pester.DiffPlex instead of DiffPlex.
+// Modified by the Pester Team, see VENDORING.md. Rebuild with Update-VendoredDiffPlex.ps1.
 using System;
 using System.Collections.Generic;
 using Pester.DiffPlex.Chunkers;
@@ -9,52 +9,22 @@ using Pester.DiffPlex.Model;
 
 namespace Pester.DiffPlex
 {
-    public class Differ : IDiffer
+    internal class Differ
     {
+        // Used by the word level sub piece builder inside SideBySideDiffBuilder.
+        public static Differ Instance { get; } = new Differ();
+
         /// <summary>
         /// Gets the default singleton instance of differ instance.
         /// </summary>
-        public static Differ Instance { get; } = new Differ();
 
-        public DiffResult CreateLineDiffs(string oldText, string newText, bool ignoreWhitespace)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new LineChunker());
-        }
 
-        public DiffResult CreateLineDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new LineChunker());
-        }
 
-        public DiffResult CreateCharacterDiffs(string oldText, string newText, bool ignoreWhitespace)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new CharacterChunker());
-        }
 
-        public DiffResult CreateCharacterDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new CharacterChunker());
-        }
 
-        public DiffResult CreateWordDiffs(string oldText, string newText, bool ignoreWhitespace, char[] separators)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new DelimiterChunker(separators));
-        }
 
-        public DiffResult CreateWordDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase, char[] separators)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new DelimiterChunker(separators));
-        }
 
-        public DiffResult CreateCustomDiffs(string oldText, string newText, bool ignoreWhiteSpace, Func<string, string[]> chunker)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhiteSpace, false, new CustomFunctionChunker(chunker));
-        }
 
-        public DiffResult CreateCustomDiffs(string oldText, string newText, bool ignoreWhiteSpace, bool ignoreCase, Func<string, string[]> chunker)
-        {
-            return CreateDiffs(oldText, newText, ignoreWhiteSpace, ignoreCase, new CustomFunctionChunker(chunker));
-        }
 
         public DiffResult CreateDiffs(string oldText, string newText, bool ignoreWhiteSpace, bool ignoreCase, IChunker chunker)
         {

@@ -12,26 +12,41 @@ into `Pester.dll` rather than shipping `DiffPlex.dll` next to it.
 | Author | Matthew Manela |
 | Upstream repository | https://github.com/mmanela/diffplex |
 | Licence | Apache-2.0, the same licence as Pester. See `LICENSE.txt` in this folder. |
-| Files | 19 `.cs` files, 1080 lines |
-| Cost | 24 KB of `Pester.dll` per target framework, with embedded symbols |
+| Files | 14 `.cs` files |
+| Cost | 22 KB of `Pester.dll` per target framework, with embedded symbols |
 
 At the time of writing the upstream `DiffPlex/` folder is byte-identical between `3cb6415`, the
 "package" commit `8821ff9` (2025-09-13, matching the NuGet publish date of 1.9.0), and `master`
 (`f500e73`, 2025-11-19).
 
+## Public surface
+
+None. Every type here is `internal`, so vendoring does not add 20 types to Pester's API. Pester
+exposes one method, `Pester.StringDiff.Format`, and the tests reach the rest through
+`InternalsVisibleTo`. That means this library can be updated, trimmed further or swapped out without
+any of it being a breaking change for users.
+
 ## Modifications
 
-**One, applied to every file:** the namespace is `Pester.DiffPlex` instead of `DiffPlex`, so the
-types do not collide with a real DiffPlex that a user's session may already have loaded. That is a
-rewrite of the `namespace` and `using` lines and nothing else.
+Three mechanical rewrites and one patch, in that order:
 
-Every file also carries a four line header saying where it came from, who wrote it, under which
-licence, and that Pester changed it. Apache-2.0 section 4(b) asks for modified files to say that
-they are modified, and the upstream files carry no copyright header of their own, so the header
-does the attribution as well.
+1. **Namespace.** `Pester.DiffPlex` instead of `DiffPlex`, so the types cannot collide with a real
+   DiffPlex that a user's session already loaded.
+2. **Internal.** Every type declaration becomes `internal`.
+3. **Header.** Four lines on every file saying where it came from, who wrote it, under which
+   licence, and that Pester changed it. Apache-2.0 section 4(b) asks for modified files to say that
+   they are modified, and the upstream files carry no copyright header of their own, so the header
+   carries the attribution too.
+4. **`pester.patch`.** Removes the members Pester does not call. It touches two files, removes 99
+   lines and adds 7, and it is what lets five upstream files be dropped completely.
 
-Take the header and the namespace off and every file is byte-identical to upstream.
-`Update-VendoredDiffPlex.ps1 -Verify` checks exactly that, and `LICENSE.txt` is unmodified.
+The first three are done by the script, so they never drift. The patch is kept as a patch rather
+than applied by hand, because that is what makes an update possible: run the script against a newer
+upstream and either the patch applies or git says which hunk failed. A hand-trimmed copy would just
+diverge quietly.
+
+`Update-VendoredDiffPlex.ps1 -Verify` rebuilds all of it into a temporary folder and compares.
+`LICENSE.txt` is unmodified.
 
 ## Where the licence is
 
@@ -57,11 +72,18 @@ Roughly half the library, 991 lines: `ThreeWayDiffer.cs`, `Renderer/UnidiffRende
 `DiffBuilder/InlineDiffBuilder.cs` and the three-way model types. Pester renders its own output, see
 `../StringDiff.cs`.
 
-Three files are here only because `Differ.cs` refers to them from convenience methods Pester does
-not call: `Chunkers/LineChunker.cs`, `Chunkers/CharacterChunker.cs` and
-`Chunkers/CustomFunctionChunker.cs`, 57 lines together. `Chunkers/DelimiterChunker.cs` is here
-because `WordChunker` inherits it. Removing any of them would mean editing `Differ.cs`, which turns
-an unmodified copy into a modified one for very few bytes.
+`pester.patch` removes `Differ`'s convenience methods (`CreateLineDiffs`, `CreateCharacterDiffs`,
+`CreateWordDiffs`, `CreateCustomDiffs`), `IDiffer`, `ISideBySideDiffBuilder`, and the
+`SideBySideDiffBuilder` constructors and static helpers that default to `LineChunker`. With those
+gone, `Chunkers/LineChunker.cs`, `Chunkers/CharacterChunker.cs`, `Chunkers/CustomFunctionChunker.cs`,
+`IDiffer.cs` and `DiffBuilder/ISideBySideDiffBuilder.cs` have nothing referring to them and are not
+vendored at all.
+
+`Chunkers/DelimiterChunker.cs` stays because `WordChunker` inherits it, and `WordChunker` stays
+because `SideBySideDiffBuilder` uses it to build the word level sub pieces on a changed line.
+Pester does not render those yet. Highlighting the changed part inside a line is the obvious next
+improvement to the failure message, and cutting it would mean editing the core of
+`SideBySideDiffBuilder` rather than deleting whole members.
 
 ## How often upstream releases
 

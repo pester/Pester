@@ -1,13 +1,13 @@
 // Vendored from DiffPlex 1.9.0, https://github.com/mmanela/diffplex
 // Copyright (c) Matthew Manela. Licensed under the Apache License, Version 2.0.
 // See LICENSE.txt and VENDORING.md in this folder.
-// Modified by the Pester Team: the namespace is Pester.DiffPlex instead of DiffPlex.
+// Modified by the Pester Team, see VENDORING.md. Rebuild with Update-VendoredDiffPlex.ps1.
 namespace Pester.DiffPlex.Model
 {
     /// <summary>
     /// A block of consecutive edits from A and/or B
     /// </summary>
-    public class DiffBlock
+    internal class DiffBlock
     {
         /// <summary>
         /// Position where deletions in A begin

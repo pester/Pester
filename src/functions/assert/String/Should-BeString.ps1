@@ -179,38 +179,7 @@ function Get-StringDifferenceMessage {
         # is every differing region with its context, which needs a real diff (#3006).
         $context = 2
         $maxRegions = 5
-        $diff = [Pester.StringDiff]::Compare($Expected, $Actual, $CaseSensitive.IsPresent, $context, $maxRegions)
-
-        $lines += "Expected $($diff.ExpectedLineCount) line(s), actual $($diff.ActualLineCount) line(s)."
-
-        if ($diff.OnlyLineEndingsDiffer) {
-            # Showing the lines here would print two blocks that look identical, because what
-            # differs is not in the text. Name the endings instead.
-            $lines += "Every line is the same, only the line endings differ."
-            $lines += "Expected: $([Pester.StringDiff]::DescribeLineEndings($Expected))"
-            $lines += "But was:  $([Pester.StringDiff]::DescribeLineEndings($Actual))"
-            $lines += "Use -NormalizeLineEnding to ignore this."
-            return $lines -join "`n"
-        }
-
-        $lines += if (1 -eq $diff.RegionCount) {
-            "1 region differs."
-        }
-        elseif ($diff.ShownRegionCount -lt $diff.RegionCount) {
-            "$($diff.RegionCount) regions differ, showing the first $($diff.ShownRegionCount)."
-        }
-        else {
-            "$($diff.RegionCount) regions differ."
-        }
-
-        $lines += ""
-        $lines += $diff.Diff -split "`r`n|`n"
-
-        if ($diff.ShownRegionCount -lt $diff.RegionCount) {
-            $notShown = $diff.RegionCount - $diff.ShownRegionCount
-            $lines += "  ..."
-            $lines += "  $notShown more region(s) differ, not shown."
-        }
+        $lines += [Pester.StringDiff]::Format($Expected, $Actual, $CaseSensitive.IsPresent, $context, $maxRegions) -split "`r`n|`n"
 
         return $lines -join "`n"
     }

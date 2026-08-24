@@ -9,11 +9,10 @@ using Pester.DiffPlex.DiffBuilder.Model;
 namespace Pester
 {
     /// <summary>
-    /// The outcome of comparing two strings line by line. The counts and flags are here so the
-    /// assertion can word its own message, <see cref="Diff"/> is the rendered block of changed
-    /// regions.
+    /// The outcome of comparing two strings line by line. Internal, the only thing Pester exposes
+    /// is <see cref="StringDiff.Format"/>, which turns this into the text of a failure message.
     /// </summary>
-    public sealed class StringDiffResult
+    internal sealed class StringDiffResult
     {
         public int ExpectedLineCount { get; set; }
         public int ActualLineCount { get; set; }
@@ -33,6 +32,56 @@ namespace Pester
     /// </summary>
     public static class StringDiff
     {
+        /// <summary>
+        /// Compares two strings line by line and returns the part of the failure message that
+        /// describes how they differ: the line counts, how many regions differ, and the regions
+        /// themselves with their context.
+        ///
+        /// This is the only thing Pester exposes from the diffing. Everything under
+        /// Pester.DiffPlex is internal, so the vendored library is not part of Pester's API and
+        /// can be updated or replaced without that being a breaking change.
+        /// </summary>
+        public static string Format(string expected, string actual, bool caseSensitive, int context, int maxRegions)
+        {
+            var result = Compare(expected, actual, caseSensitive, context, maxRegions);
+            var lines = new List<string>
+            {
+                "Expected " + result.ExpectedLineCount + " line(s), actual " + result.ActualLineCount + " line(s).",
+            };
+
+            if (result.RegionCount == 0)
+            {
+                return string.Join(Environment.NewLine, lines.ToArray());
+            }
+
+            if (result.OnlyLineEndingsDiffer)
+            {
+                // Printing the lines here would show two blocks that look identical, because what
+                // differs is not in the text.
+                lines.Add("Every line is the same, only the line endings differ.");
+                lines.Add("Expected: " + DescribeLineEndings(expected));
+                lines.Add("But was:  " + DescribeLineEndings(actual));
+                lines.Add("Use -NormalizeLineEnding to ignore this.");
+            }
+
+            lines.Add(result.RegionCount == 1
+                ? "1 region differs."
+                : result.ShownRegionCount < result.RegionCount
+                    ? result.RegionCount + " regions differ, showing the first " + result.ShownRegionCount + "."
+                    : result.RegionCount + " regions differ.");
+
+            lines.Add(string.Empty);
+            lines.Add(result.Diff);
+
+            if (result.ShownRegionCount < result.RegionCount)
+            {
+                lines.Add("  ...");
+                lines.Add("  " + (result.RegionCount - result.ShownRegionCount) + " more region(s) differ, not shown.");
+            }
+
+            return string.Join(Environment.NewLine, lines.ToArray());
+        }
+
         // ignoreWhitespace has to stay false. Its default in DiffPlex is true, and with it a
         // difference that is only a trailing space is reported as no difference at all.
         private const bool IgnoreWhitespace = false;
@@ -43,7 +92,7 @@ namespace Pester
         private static readonly SideBySideDiffBuilder Builder =
             new SideBySideDiffBuilder(new Differ(), new LineEndingsPreservingChunker(), new WordChunker());
 
-        public static StringDiffResult Compare(string expected, string actual, bool caseSensitive, int context, int maxRegions)
+        internal static StringDiffResult Compare(string expected, string actual, bool caseSensitive, int context, int maxRegions)
         {
             if (expected == null) { expected = string.Empty; }
             if (actual == null) { actual = string.Empty; }
@@ -273,7 +322,7 @@ namespace Pester
         /// Counts the line endings on each side, for the message that says the text is the same and
         /// only the endings differ.
         /// </summary>
-        public static string DescribeLineEndings(string value)
+        internal static string DescribeLineEndings(string value)
         {
             if (value == null) { value = string.Empty; }
 
