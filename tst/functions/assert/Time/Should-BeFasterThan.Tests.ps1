@@ -24,8 +24,13 @@ InPesterModuleScope {
 }
 
 Describe "Should-BeFasterThan" {
+    # Measuring a scriptblock times everything around it as well: compiling it, GC, and whatever
+    # else the machine is doing. That overhead has no upper bound on a shared CI runner, so the
+    # ceiling here is deliberately far larger than the sleep it is checking. A 10ms sleep that takes
+    # 30 seconds means the machine is broken, not that the assertion is wrong. The opposite
+    # direction needs no such margin, a sleep never finishes early.
     It "Does not throw when actual is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "100ms" }
+        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
     ) {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
