@@ -562,6 +562,86 @@ Describe 'Compose' {
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
+
+        t "records a chain for every directory it passes, not only for the one asked about" {
+            # Which setup files apply is a property of the directory, not of the container, so
+            # resolving the deepest folder has to leave an answer for 'tests' and for the root as
+            # well. Without that a sibling folder would check the same directories on disk and
+            # tokenize the same setup files a second time.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $cache = @{}
+                $null = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                $rootKey = [IO.Path]::GetFullPath($folder).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $unitKey = [IO.Path]::GetFullPath((Join-Path (Join-Path $folder 'tests') 'unit')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+
+                $cache.Count | Verify-Equal 3
+                @($cache[$rootKey]).Count | Verify-Equal 1
+                @($cache[$testsKey]).Count | Verify-Equal 2
+                @($cache[$unitKey]).Count | Verify-Equal 3
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "stops walking up at the first directory that is already resolved" {
+            # The seeded entry for 'tests' stands in for a sibling folder resolved earlier in the
+            # run. The walk has to take that list and stop there, so the root setup file is neither
+            # checked on disk nor tokenized again. Seeding a value that is not a real path is what
+            # makes that observable: it can only come from the cache.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $cache = @{ $testsKey = @('resolved-earlier-in-the-run') }
+
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                @($chain).Count | Verify-Equal 2
+                $chain[0] | Verify-Equal 'resolved-earlier-in-the-run'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "caches the truncated chain under a folder marked #pester:no-inherit" {
+            # The opt-out belongs to the folder that carries it, so the shorter list is what gets
+            # cached for that folder, and a folder below it inherits the shorter list without
+            # looking above the opt-out again.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $docs = Join-Path $root 'docs'
+            $deep = Join-Path $docs 'deep'
+            $null = New-Item -ItemType Directory -Path $deep -Force
+
+            Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+            Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { }
+'@
+            Set-Content -Path (Join-Path $deep 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+
+            try {
+                $cache = @{}
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Deep, $Cache)
+                    Get-PesterBeforeContainerChain -Directory $Deep -RepoRoot $Root -Cache $Cache
+                } $root $deep $cache
+
+                @($chain).Count | Verify-Equal 2
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal 'docs'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'deep'
+
+                $docsKey = [IO.Path]::GetFullPath($docs).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                @($cache[$docsKey]).Count | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
     }
 
     b "Invoke-InRunspacePool" {
