@@ -644,6 +644,57 @@ BeforeAll { }
         }
     }
 
+    b "Lost worker results" {
+        t "fails the run instead of returning fewer files than it was given" {
+            # A worker that dies before returning its result object leaves nothing for the
+            # well-formed-result filter to keep, so without the count check the run would report
+            # success for the files that did come back and never mention the one that did not.
+            # Losing a test file silently is worse than failing, so this must throw and name it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($name in 'A', 'B', 'C') {
+                Set-Content -Path (Join-Path $folder "$name.Tests.ps1") -Value "Describe '$name' { It 'i' { 1 | Should -Be 1 } }"
+            }
+
+            try {
+                # Stand in for a worker that died: hand Invoke-TestInParallel a runspace-pool
+                # runner that drops B's result on the floor and returns the other two.
+                $err = & (Get-Module Pester) {
+                    param ($Root)
+
+                    $original = ${function:Invoke-InRunspacePool}
+                    ${function:Invoke-InRunspacePool} = {
+                        param ($InputObject, $ScriptBlock, $ThrottleLimit, $ItemParameterName = 'item', $Parameters = @{})
+                        foreach ($i in $InputObject) {
+                            if ($i.Path -like '*B.Tests.ps1') { continue }
+                            [PSCustomObject]@{ Path = $i.Path; Containers = @(); Tape = @(); Coverage = $null }
+                        }
+                    }
+
+                    try {
+                        $c = [PesterConfiguration]::Default
+                        $c.Run.Path = $Root
+                        $c.Run.Parallel = $true
+                        $c.Output.Verbosity = 'None'
+                        $containers = @(Find-File -Path $Root -Extension '.Tests.ps1' | ForEach-Object { New-BlockContainerObject -File $_ })
+
+                        try {
+                            $null = Invoke-TestInParallel -BlockContainer $containers -Configuration $c
+                            $null
+                        }
+                        catch { $_.Exception.Message }
+                    }
+                    finally { ${function:Invoke-InRunspacePool} = $original }
+                } $folder
+
+                $err | Verify-NotNull
+                $err | Verify-Like '*lost the results of 1 of 3 file(s)*'
+                $err | Verify-Like '*B.Tests.ps1*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
     b "Invoke-InRunspacePool" {
         # The parallelism primitive Run.Parallel is built on. It replaces ForEach-Object -Parallel,
         # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the

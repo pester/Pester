@@ -435,6 +435,24 @@ function Invoke-TestInParallel {
     # Keep only well-formed worker results (defensive against stray pipeline output).
     $results = @($results | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.PSCustomObject] -and $null -ne $_.PSObject.Properties['Containers'] })
 
+    # The filter above cannot tell stray output from a worker that died before it returned its
+    # result object, so on its own it would drop a whole test file and let the run report success
+    # with fewer files than it was given. Losing results silently is worse than failing, so compare
+    # what came back against what was sent and name the files that went missing. The worker's own
+    # error was already surfaced by Invoke-InRunspacePool, this says which file it cost us.
+    if ($results.Count -ne $work.Count) {
+        $returnedPaths = @{}
+        foreach ($r in $results) {
+            if ($null -ne $r.PSObject.Properties['Path']) { $returnedPaths[$r.Path] = $true }
+        }
+
+        $missing = @(foreach ($w in $work) {
+                if (-not $returnedPaths.ContainsKey($w.Path)) { $w.Path }
+            })
+
+        throw "Parallel run lost the results of $($missing.Count) of $($work.Count) file(s), the worker(s) running them did not return a result. See the errors above for why. Lost: $($missing -join ', ')"
+    }
+
     # Restore the original discovery order so replay and the merged run are deterministic
     # regardless of which worker finished first.
     $order = @{}
