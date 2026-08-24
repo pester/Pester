@@ -224,3 +224,104 @@ But was:  'abc␊def'
 '@ -replace "`r`n", "`n")
     }
 }
+
+Describe "Should-BeString big strings" {
+    It "Reports the differing line and its context instead of printing both strings" {
+        # The case from #2951: comparing whole generated files. Printing 10 000 lines twice is not
+        # something anyone can read, and a character offset into it is not actionable either.
+        $actual = (1..40 | ForEach-Object { "Line {0:D2}" -f $_ }) -join "`n"
+        $expected = $actual -replace 'Line 20', 'Line 99'
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*1 region differs.*'
+        $message | Verify-Like '*19 19 |   Line 19*'
+        $message | Verify-Like '*20    | - Line 99*'
+        $message | Verify-Like '*   20 | + Line 20*'
+        $message | Verify-Like '*21 21 |   Line 21*'
+        # lines far from the difference are not printed, the whole string is not dumped
+        if ($message -like '*Line 01*') { throw 'the whole string was printed' }
+    }
+
+    It "Shows every region that differs, not just the first" {
+        # This is what a first differing line scan cannot do, and it is what comparing a snapshot
+        # needs, because several things change at once (#3006).
+        $actual = (1..40 | ForEach-Object { "Line {0:D2}" -f $_ }) -join "`n"
+        $expected = ($actual -replace 'Line 05', 'Line 95') -replace 'Line 31', 'Line 77'
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*2 regions differ.*'
+        $message | Verify-Like '* 5    | - Line 95*'
+        $message | Verify-Like '*  5 | + Line 05*'
+        $message | Verify-Like '*31    | - Line 77*'
+        $message | Verify-Like '*   31 | + Line 31*'
+    }
+
+    It "Caps how many regions it prints and says how many were left out" {
+        $actual = (1..120 | ForEach-Object { "setting$_ = $($_ * 10)" }) -join "`n"
+        $expected = (1..120 | ForEach-Object { "setting$_ = $(if (3 -eq $_ % 10) { $_ * 10 + 1 } else { $_ * 10 })" }) -join "`n"
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*12 regions differ, showing the first 5.*'
+        $message | Verify-Like '*7 more region(s) differ, not shown.*'
+    }
+
+    It "Keeps the line numbers of both sides when lines are added" {
+        $expected = (1..12 | ForEach-Object { "Line {0:D2}" -f $_ }) -join "`n"
+        $actual = ($expected -split "`n" | ForEach-Object { if ($_ -eq 'Line 06') { 'Line 06'; 'Line 06b' } else { $_ } }) -join "`n"
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Expected 12 line(s), actual 13 line(s).*'
+        # the added line has no expected number, and everything after it is offset by one
+        $message | Verify-Like '*  7 | + Line 06b*'
+        $message | Verify-Like '* 7  8 |   Line 07*'
+    }
+
+    It "Makes a trailing space and a tab visible on the lines that differ" {
+        $expected = (@('first', '  indented', 'no trailing space') + (1..9 | ForEach-Object { "filler $_" })) -join "`n"
+        $actual = (@('first', "`tindented", 'no trailing space   ') + (1..9 | ForEach-Object { "filler $_" })) -join "`n"
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        # tab shown as its control picture, trailing spaces as middle dots
+        $message | Verify-Like "*+ $([char]0x2409)indented*"
+        $message | Verify-Like "*+ no trailing space$([char]0xB7)$([char]0xB7)$([char]0xB7)*"
+        # the context lines are left alone
+        $message | Verify-Like '*|   first*'
+    }
+
+    It "Says so when every line matches and only the line endings differ" {
+        $lf = (1..20 | ForEach-Object { "Line $_" }) -join "`n"
+        $crlf = (1..20 | ForEach-Object { "Line $_" }) -join "`r`n"
+
+        $err = { $crlf | Should-BeString $lf } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Every line is the same, only the line endings differ.*'
+        $message | Verify-Like '*Expected: 19 LF*'
+        $message | Verify-Like '*But was:  19 CRLF*'
+        $message | Verify-Like '*-NormalizeLineEnding*'
+    }
+
+    It "Truncates a long single line around the difference" {
+        $actual = ('x' * 200) + 'A' + ('y' * 200)
+        $expected = ('x' * 200) + 'B' + ('y' * 200)
+
+        $err = { $actual | Should-BeString $expected } | Verify-AssertionFailed
+        $message = $err.Exception.Message
+
+        $message | Verify-Like '*Strings differ at index 200.*'
+        $message | Verify-Like "*Expected: '...*...'*"
+        # the excerpt is far shorter than the 401 character strings it came from
+        $line = ($message -split "`n") | Where-Object { $_ -like "Expected: '*" }
+        if (200 -lt $line.Length) { throw "excerpt was not truncated, it is $($line.Length) characters" }
+    }
+}
