@@ -8,14 +8,16 @@ into `Pester.dll` rather than shipping `DiffPlex.dll` next to it.
 | | |
 |---|---|
 | Version | **1.9.0** |
-| Upstream commit | `8821ff9` ("package", 2025-09-13), the commit that published 1.9.0 |
+| Upstream commit | `3cb6415`, the commit the 1.9.0 package records in its nuspec |
+| Author | Matthew Manela |
 | Upstream repository | https://github.com/mmanela/diffplex |
 | Licence | Apache-2.0, the same licence as Pester. See `LICENSE.txt` in this folder. |
 | Files | 19 `.cs` files, 1080 lines |
-| Cost | about 19 KB of `Pester.dll` per target framework, with embedded symbols |
+| Cost | 24 KB of `Pester.dll` per target framework, with embedded symbols |
 
-At the time of writing the DiffPlex `DiffPlex/` folder is byte-identical between commit `8821ff9`
-and `master` (`f500e73`, 2025-11-19).
+At the time of writing the upstream `DiffPlex/` folder is byte-identical between `3cb6415`, the
+"package" commit `8821ff9` (2025-09-13, matching the NuGet publish date of 1.9.0), and `master`
+(`f500e73`, 2025-11-19).
 
 ## Modifications
 
@@ -23,11 +25,21 @@ and `master` (`f500e73`, 2025-11-19).
 types do not collide with a real DiffPlex that a user's session may already have loaded. That is a
 rewrite of the `namespace` and `using` lines and nothing else.
 
-Every file is otherwise byte-identical to upstream, and `LICENSE.txt` is unmodified.
-`Update-VendoredDiffPlex.ps1` in this folder verifies this, run it with `-Verify`.
+Every file also carries a four line header saying where it came from, who wrote it, under which
+licence, and that Pester changed it. Apache-2.0 section 4(b) asks for modified files to say that
+they are modified, and the upstream files carry no copyright header of their own, so the header
+does the attribution as well.
 
-Apache-2.0 requires stating significant modifications, which the paragraph above does. The upstream
-source files carry no per-file copyright header, so there are no in-file notices to preserve.
+Take the header and the namespace off and every file is byte-identical to upstream.
+`Update-VendoredDiffPlex.ps1 -Verify` checks exactly that, and `LICENSE.txt` is unmodified.
+
+## Where the licence is
+
+- `LICENSE.txt` here, next to the code.
+- The header on every file.
+- `ThirdPartyNotices.txt` in the repository root, which build.ps1 copies into the built module.
+  `Pester.dll` has this code compiled into it, so whoever installs Pester from the gallery is
+  getting DiffPlex in binary form and Apache-2.0 section 4(a) asks that they get the licence too.
 
 ## Why vendor instead of referencing the package
 

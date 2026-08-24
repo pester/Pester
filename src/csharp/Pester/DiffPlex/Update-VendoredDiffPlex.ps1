@@ -69,6 +69,35 @@ if (-not $Commit) {
     Write-Host "Using the commit recorded in VENDORING.md: $Commit"
 }
 
+# Apache-2.0 asks for modified files to say that they were modified, so every file gets this on top.
+# It also carries the attribution, because the upstream files have no copyright header of their own.
+$header = @(
+    '// Vendored from DiffPlex 1.9.0, https://github.com/mmanela/diffplex'
+    '// Copyright (c) Matthew Manela. Licensed under the Apache License, Version 2.0.'
+    '// See LICENSE.txt and VENDORING.md in this folder.'
+    '// Modified by the Pester Team: the namespace is Pester.DiffPlex instead of DiffPlex.'
+) -join "`r`n"
+
+function Add-Header ([string] $Content) {
+    # After the BOM when there is one, several upstream files start with one.
+    if ($Content.StartsWith([char]0xFEFF)) {
+        return [string]([char]0xFEFF) + $header + "`r`n" + $Content.Substring(1)
+    }
+
+    "$header`r`n$Content"
+}
+
+function Remove-Header ([string] $Content) {
+    $bom = if ($Content.StartsWith([char]0xFEFF)) { [string]([char]0xFEFF) } else { '' }
+    $body = if ($bom) { $Content.Substring(1) } else { $Content }
+    $marker = '// Modified by the Pester Team: the namespace is Pester.DiffPlex instead of DiffPlex.'
+    $index = $body.IndexOf($marker)
+    if (0 -gt $index) { return $Content }
+
+    $after = $body.Substring($index + $marker.Length)
+    $bom + ($after -replace '^\r?\n', '')
+}
+
 # The single modification. Applied to the namespace and using lines, the rest of every file is
 # untouched. The optional BOM has to be part of the match, several upstream files start with one.
 function Convert-Namespace ([string] $Content) {
@@ -115,7 +144,7 @@ try {
             if (-not (Test-Path $target)) {
                 $problems += "$file is missing here."
             }
-            elseif ((ConvertTo-Lf (Get-Content -Raw -LiteralPath $target)) -ne (ConvertTo-Lf $converted)) {
+            elseif ((ConvertTo-Lf (Remove-Header (Get-Content -Raw -LiteralPath $target))) -ne (ConvertTo-Lf $converted)) {
                 $problems += "$file differs from upstream by more than the namespace."
             }
 
@@ -124,7 +153,7 @@ try {
 
         $directory = Split-Path -Parent $target
         if (-not (Test-Path $directory)) { $null = New-Item -ItemType Directory -Path $directory }
-        Set-Content -LiteralPath $target -Value (ConvertTo-Crlf $converted) -NoNewline
+        Set-Content -LiteralPath $target -Value (Add-Header (ConvertTo-Crlf $converted)) -NoNewline
     }
 
     $licenseUpstream = Get-Content -Raw -LiteralPath (Join-Path $clone 'License.txt')
