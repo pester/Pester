@@ -1742,6 +1742,15 @@ function Invoke-ScriptBlock {
             # was absorbed by the do/while above. A labelled escape skips this assignment.
             $flowControlEscaped = $false
         }
+        catch {
+            # A real terminating error from user code, which also skips the assignment above. Without
+            # clearing the flag here the finally would throw the flow-control error record on top of
+            # it and the user would be told their code has a misspelled loop label, whatever it
+            # actually threw. A labelled break/continue escape is not catchable, so this only runs
+            # for genuine errors.
+            $flowControlEscaped = $false
+            throw
+        }
         finally {
             if ($flowControlEscaped) {
                 throw (New-EscapedFlowControlErrorRecord)

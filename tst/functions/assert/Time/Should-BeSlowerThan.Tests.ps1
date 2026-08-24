@@ -13,8 +13,11 @@ Describe "Should-BeSlowerThan" {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
 
+    # Same reasoning as in Should-BeFasterThan.Tests.ps1: this asserts the measured time stays
+    # below the expected one, and scriptblock overhead on a shared runner has no upper bound, so
+    # the margin is large on purpose.
     It "Throws when scriptblock is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "1000ms" }
+        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
     ) {
         { $Actual | Should-BeSlowerThan -Expected $Expected } | Verify-AssertionFailed
     }

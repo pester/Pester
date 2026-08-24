@@ -3662,6 +3662,46 @@ Describe "Something" {
             $tests[0].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
         }
 
+        t "a real error in a setup keeps its own message and is not reported as an escaped break (#2669)" {
+            # The guard flag starts set for user code and is cleared when the scriptblock returns.
+            # A genuine throw skips that, so without clearing it on the error path too the finally
+            # threw the flow control error record over the top of the real one, and anyone whose
+            # BeforeAll threw was told their code has a misspelled loop label.
+            $sb = {
+                Describe 'real error in setup' {
+                    BeforeAll { throw 'the database is down' }
+                    It 'is failed by the setup' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $block = $r.Containers[0].Blocks[0]
+            $block.ErrorRecord[0].Exception.Message | Verify-Equal 'the database is down'
+            if ('PesterFlowControlStatementEscaped' -eq $block.ErrorRecord[0].FullyQualifiedErrorId) {
+                throw 'the real error was replaced by the escaped flow control error'
+            }
+        }
+
+        t "a real error in a top-level setup keeps its own message (#2669)" {
+            $sb = {
+                BeforeAll { throw 'the database is down' }
+                Describe 'd' { It 'i' { $true | Should -Be $true } }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].ErrorRecord[0].Exception.Message | Verify-Equal 'the database is down'
+        }
+
         t "correctly labelled break and continue inside loops in user code are unaffected" {
             $sb = {
                 Describe 'labelled loops still work' {

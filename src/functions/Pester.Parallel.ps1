@@ -153,13 +153,19 @@ function Invoke-InRunspacePool {
             catch {
                 # One worker failing must not take the rest of the run with it, the remaining files
                 # still have results worth reporting. Surface it and keep going.
-                & $SafeCommands['Write-Error'] -ErrorRecord $_
+                #
+                # -ErrorAction Continue on purpose. Without it the caller's $ErrorActionPreference
+                # decides, and a caller that runs with 'Stop' (a CI script, or Pester's own test.ps1)
+                # turns reporting a failed worker into a terminating error that aborts this loop -
+                # which is the very thing the line above says must not happen, and it would drop the
+                # results of every file that had already finished.
+                & $SafeCommands['Write-Error'] -ErrorRecord $_ -ErrorAction Continue
             }
 
             # The worker has no console of its own, so anything it wrote to these streams would be
-            # lost. Re-emit it here.
+            # lost. Re-emit it here, non-terminating for the same reason as above.
             foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
-                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord
+                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord -ErrorAction Continue
             }
             foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
                 & $SafeCommands['Write-Warning'] -Message $warningRecord.Message

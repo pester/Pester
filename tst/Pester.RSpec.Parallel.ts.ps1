@@ -722,6 +722,26 @@ BeforeAll { }
             ($errors -join ' ') | Verify-Like '*worker blew up*' 
         }
 
+        t "keeps going when one worker throws even if the caller runs with ErrorActionPreference Stop" {
+            # Reporting a failed worker must not itself be terminating. A caller running with 'Stop'
+            # (a CI script, or Pester's own test.ps1) would otherwise abort this loop on the first
+            # failure and lose the results of every file that already finished.
+            $out = & (Get-Module Pester) {
+                $ErrorActionPreference = 'Stop'
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+        }
+
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
