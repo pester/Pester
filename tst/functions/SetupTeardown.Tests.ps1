@@ -310,3 +310,84 @@ Describe 'Duplicate setup and teardown blocks throw' {
 #}
 
 #Testing if failing setup or teardown will fail 'It' is done in the Pester.Runtime.ts.ps1 file ("failing one time block test setups and teardowns")
+
+Describe 'BeforeEach/AfterEach -Context and -Describe (#1219)' {
+    BeforeAll {
+        $blockScoped = @{
+            Order          = [System.Collections.Generic.List[string]]::new()
+            InheritedSetup = 0
+            DescribeSetup  = 0
+            Combined       = [System.Collections.Generic.List[string]]::new()
+        }
+    }
+
+    Describe 'a -Context setup and teardown wrap each Context' {
+        BeforeEach -Context { $blockScoped.Order.Add('setup') }
+        AfterEach -Context { $blockScoped.Order.Add('teardown') }
+
+        Context 'A' {
+            It 'a' { $blockScoped.Order.Add('A') }
+        }
+
+        Context 'B' {
+            It 'b' { $blockScoped.Order.Add('B') }
+        }
+    }
+
+    Describe 'the recorded -Context order' {
+        It 'ran the setup before and the teardown after each Context, in order' {
+            ($blockScoped.Order -join ',') | Should -Be 'setup,A,teardown,setup,B,teardown'
+        }
+    }
+
+    Describe 'a -Context setup does not run for a test directly in the block' {
+        BeforeEach -Context { $blockScoped.DirectContextSetupRan = $true }
+
+        It 'a test that is not inside a Context is not wrapped' {
+            $blockScoped.ContainsKey('DirectContextSetupRan') | Should -BeFalse
+        }
+    }
+
+    Describe 'a -Context setup is inherited by nested Contexts' {
+        BeforeEach -Context { $blockScoped.InheritedSetup++ }
+
+        Context 'outer' {
+            Context 'inner' {
+                It 'ran the inherited setup entering both the outer and the inner Context' {
+                    $blockScoped.InheritedSetup | Should -Be 2
+                }
+            }
+        }
+    }
+
+    Describe 'a -Describe setup targets Describe blocks, not Context blocks' {
+        BeforeEach -Describe { $blockScoped.DescribeSetup++ }
+
+        Context 'a context' {
+            It 'did not run the -Describe setup for a Context' {
+                $blockScoped.DescribeSetup | Should -Be 0
+            }
+        }
+
+        Describe 'a nested describe' {
+            It 'ran the -Describe setup for a nested Describe' {
+                $blockScoped.DescribeSetup | Should -Be 1
+            }
+        }
+    }
+
+    Describe 'a -Context -It setup runs before the Context and before each test in it' {
+        BeforeEach -Context -It { $blockScoped.Combined.Add('setup') }
+
+        Context 'c' {
+            It 'first' { $blockScoped.Combined.Add('first') }
+            It 'second' { $blockScoped.Combined.Add('second') }
+        }
+    }
+
+    Describe 'the recorded -Context -It order' {
+        It 'ran once entering the Context and once before each test' {
+            ($blockScoped.Combined -join ',') | Should -Be 'setup,setup,first,setup,second'
+        }
+    }
+}
