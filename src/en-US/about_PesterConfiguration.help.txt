@@ -81,7 +81,7 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $true
 
-        RepoRoot: EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.
+        RepoRoot: EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources every 'Pester.BeforeContainer.ps1' found from this directory down to the test file's own folder, outermost first, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. Setup shared by all tests can live at the root while setup only some tests need lives in their folder. The files run before each container and must be safe to run more than once. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs them.
         Type: string
         Default value: '<path of .git>'
 
