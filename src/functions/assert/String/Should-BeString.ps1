@@ -164,15 +164,65 @@ function Get-StringDifferenceMessage {
     else {
         $lines += "String lengths are both $($Expected.Length)."
     }
+
+    # Big strings get a compact view. Printing both in full is what makes a 10 000 line comparison
+    # useless (#2951), but for a short string the full text with a caret under the difference is
+    # more precise than anything else, so that is left exactly as it was.
+    $expectedLines = $Expected -split '\r\n|\r|\n'
+    $actualLines = $Actual -split '\r\n|\r|\n'
+    $maxLines = [Math]::Max($expectedLines.Count, $actualLines.Count)
+    $isBig = 10 -lt $maxLines -or 120 -lt $maxLength
+
+    if ($isBig -and 1 -lt $maxLines) {
+        # A first differing line scan answers "one thing changed". Comparing a whole generated file
+        # against an expected copy is usually "many things changed", and for that the useful output
+        # is every differing region with its context, which needs a real diff (#3006).
+        $context = 2
+        $maxRegions = 5
+        $lines += [Pester.StringDiff]::Format($Expected, $Actual, $CaseSensitive.IsPresent, $context, $maxRegions) -split "`r`n|`n"
+
+        return $lines -join "`n"
+    }
+
     $lines += "Strings differ at index $differenceIndex."
 
     $expectedExpanded = Expand-SpecialCharacters -InputObject $Expected
     $actualExpanded = Expand-SpecialCharacters -InputObject $Actual
 
     $prefix = "Expected: '"
-    $lines += "$prefix$expectedExpanded'"
-    $lines += "But was:  '$actualExpanded'"
-    $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
+
+    if (-not $isBig) {
+        # Short enough to print whole, which is the most precise thing we can show.
+        $lines += "$prefix$expectedExpanded'"
+        $lines += "But was:  '$actualExpanded'"
+        $lines += (' ' * $prefix.Length) + ('-' * $differenceIndex) + '^'
+        return $lines -join "`n"
+    }
+
+    # Long. Show a window around the difference rather than the whole string, the way
+    # Should -BeExactly does in v5, so it stays readable.
+    $ellipsis = "..."
+    $window = 40
+
+    $start = [Math]::Max(0, $differenceIndex - $window)
+    $caretOffset = $differenceIndex - $start
+
+    $excerpt = {
+        param ([string] $Value)
+        $end = [Math]::Min($Value.Length, $start + $window * 2)
+        $text = if ($start -lt $Value.Length) { $Value.Substring($start, $end - $start) } else { "" }
+        $head = if (0 -lt $start) { $ellipsis } else { "" }
+        $tail = if ($end -lt $Value.Length) { $ellipsis } else { "" }
+        "$head$text$tail"
+    }
+
+    $expectedExcerpt = & $excerpt $expectedExpanded
+    $actualExcerpt = & $excerpt $actualExpanded
+    $caretPad = $caretOffset + $(if (0 -lt $start) { $ellipsis.Length } else { 0 })
+
+    $lines += "$prefix$expectedExcerpt'"
+    $lines += "But was:  '$actualExcerpt'"
+    $lines += (' ' * $prefix.Length) + ('-' * $caretPad) + '^'
 
     $lines -join "`n"
 }

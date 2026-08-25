@@ -11,6 +11,12 @@
     <DefineConstants>$(DefineConstants);PESTER</DefineConstants>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- StringDiff exposes one method, everything behind it including the vendored DiffPlex is
+    internal. The unit tests assert on the structured result, so they need to see inside. -->
+    <InternalsVisibleTo Include="PesterTests" />
+  </ItemGroup>
+
   <!-- PowerShell 7.4.x is the oldest supported PowerShell version. That version is built using net8.0.  -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <!-- Versions older than 7.4.6 have security vulnerabilities. -->
