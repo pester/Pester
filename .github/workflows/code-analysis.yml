@@ -3,8 +3,10 @@ name: Code analysis
 on:
   push:
     branches: [main]
+  # No branches filter, same reason as ci.yml: a stacked pull request targets the
+  # branch below it, and PSScriptAnalyzer is a required check on main. This one was
+  # also narrower than ci.yml, so pull requests onto rel/* and dev/* never got it.
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
