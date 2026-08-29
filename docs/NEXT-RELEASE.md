@@ -1,17 +1,17 @@
 <!--
-  Release notes for the version currently in development. This file is the source of
-  truth for the body of the next GitHub release.
+  Release notes for the version in development.
 
-  How it works:
-  - Every PR that changes something a user can notice adds its entry here, in the same
-    commit. The notes grow through the alphas instead of being reconstructed at the end.
-  - When a prerelease is published, this file is copied into the release body as it is.
-    HTML comments do not render, so this block can stay.
-  - When the stable release is published, this file is copied one last time, then
-    emptied down to the skeleton for the next line.
+  These are written once, for the first alpha, which is usually already close to feature
+  complete. That way there is one set of notes to read and approve, and every prerelease
+  after it is a small diff on this file that is quick to review, instead of a fresh set of
+  unversioned notes reconstructed from the commit log every time.
+
+  Every PR that changes something a user can notice edits this file in the same commit.
+  The file is copied into the GitHub release body as it is, HTML comments do not render.
+  When the stable release ships it is copied one last time, then emptied for the next line.
 
   Anchors are prefixed with the release line (6.2.0-...) so they stay valid across the
-  alphas and so they do not collide with other releases on the /releases page.
+  prereleases and do not collide with other releases on the /releases page.
 -->
 
 # Pester 6.2.0-alpha1
@@ -28,8 +28,6 @@ long string does not match. The configuration now tells you when you handed it a
 cannot use, instead of quietly ignoring it. And the experimental parallel runner works on
 Windows PowerShell 5.1, which is the slowest edition and the one that needed it most.
 
-Pester 6 runs on **Windows PowerShell 5.1** and **PowerShell 7.4+**.
-
 - [What's new?](#6.2.0-whats-new)
   - [Setup that follows your folders](#6.2.0-setup-that-follows-your-folders)
   - [`Should-BeString` shows you the whole diff](#6.2.0-should-bestring-shows-you-the-whole-diff)
@@ -40,7 +38,6 @@ Pester 6 runs on **Windows PowerShell 5.1** and **PowerShell 7.4+**.
   - [A parallel run no longer loses a file quietly](#6.2.0-a-parallel-run-no-longer-loses-a-file-quietly)
 - [Behavior changes](#6.2.0-behavior-changes)
 - [Other improvements and fixes](#6.2.0-other-improvements-and-fixes)
-- [Repository](#6.2.0-repository)
 - [Thank you](#6.2.0-thank-you)
 - [Questions?](#6.2.0-questions)
 
@@ -64,7 +61,7 @@ reporoot/tests/unit/Pester.BeforeContainer.ps1      <- applies to tests/unit onl
 reporoot/tests/integration/Pester.BeforeContainer.ps1
 ```
 
-The root file holds what everything needs:
+The root file holds common setups and teardowns that every test needs:
 
 ```powershell
 # reporoot/Pester.BeforeContainer.ps1
@@ -390,19 +387,25 @@ runs, or 400 imports timed onto the five second `validVerbs` removal.
 
 Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
 
-- **Two `BeforeAll` (or `AfterAll`, `BeforeEach`, `AfterEach`) in one block no longer throw.**
-  They both run, setups in the order they were registered and teardowns in reverse. The
-  folder setup and the file's own `BeforeAll` both register on the container's root block and
-  have to compose rather than one of them erroring out, and once that is true for the root
-  block there is no reason to keep the restriction anywhere else.
+- **A block can have as many `BeforeAll`, `AfterAll`, `BeforeEach` and `AfterEach` as you
+  want.** They all run, setups in the order you wrote them and teardowns in reverse, so you
+  can group setup by what it sets up instead of merging everything into one block:
 
   ```powershell
-  Describe 'd' {
-      BeforeAll { $script:a = 1 }
-      BeforeAll { $script:b = 2 }   # used to throw, now both run
-      It 'i' { ($script:a + $script:b) | Should-Be 3 }
+  Describe 'Get-User' {
+      BeforeAll { Import-Module $PSScriptRoot/../src/MyModule.psd1 -Force }
+      BeforeAll { $script:user = New-TestUser -Name 'jakub' }
+      AfterAll  { Remove-TestUser -Name 'jakub' }
+      AfterAll  { Remove-Module MyModule -Force }
+
+      It 'finds the user' { (Get-User -Name 'jakub').Name | Should-BeString $script:user.Name }
   }
   ```
+
+  A second one used to throw. The folder setup and the file's own `BeforeAll` both register on
+  the container's root block and have to compose rather than one of them erroring out, and
+  once that is true for the root block there is no reason to keep the restriction anywhere
+  else.
 
 - **Top level code in `Pester.BeforeContainer.ps1` runs during discovery only.** To reach the
   tests it has to be in `BeforeAll`, which is the same rule a test file already follows, and it
@@ -437,24 +440,6 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
 - `Should-BeFasterThan` and `Should-BeSlowerThan` no longer flake on shared CI machines. Both
   assertions bound the measured time from above, and measuring a scriptblock times compiling
   it, GC, and whatever else the machine is doing, which has no upper bound on a shared runner.
-
-## <a id="6.2.0-repository"></a>Repository
-
-Nothing here changes the module, listed for contributors.
-
-- **CI moved to GitHub Actions** and `azure-pipelines.yml` is gone. Releasing stays on Azure
-  DevOps, it needs the signing service connection and the publishing variable groups. Azure
-  DevOps public projects are being retired, existing ones convert to private in 2027 and the
-  free grant drops from 10 parallel jobs to 1, GitHub Actions is free for public repos with 20.
-  The same 8 leg matrix runs, one `Done` job gates it so branch protection requires one check
-  instead of listing all 8.
-- **Coverage is analyzed once per run, not once per child process.** Every test that goes
-  through `Invoke-InNewProcess` used to rebuild the whole ~10k point tracer in the child, 32
-  times for a run with 31 such tests. `test.ps1 -CI -CC` went from 188s to 87s locally, and the
-  slowest CI leg from 15:08 to 12:07.
-- The "Requires Expected" tests check the parameter metadata reports `Mandatory` instead of
-  invoking the assertion without it. Invoking without a mandatory parameter only throws in a
-  non-interactive host, interactively it prompts and hangs forever.
 
 **Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0-alpha1
 
