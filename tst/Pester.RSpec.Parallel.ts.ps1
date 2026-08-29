@@ -440,14 +440,23 @@ Describe 'Second' {
         }
 
         t "does not overwrite a Run.RepoRoot the user set" {
-            $c = [PesterConfiguration]::Default
-            $c.Run.RepoRoot = 'TestDrive:not-a-real-path-but-mine'
-            $c.Run.ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
-            $c.Run.PassThru = $true
-            $c.Output.Verbosity = 'None'
-            $r = Invoke-Pester -Configuration $c
+            # A real directory. Resolving the chain runs the value through GetFullPath, and a made
+            # up path is not portable: on Windows something like 'TestDrive:whatever' reads as a
+            # drive qualifier and throws, while on Unix it is a legal relative file name.
+            $mine = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $mine -Force
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.RepoRoot = $mine
+                $c.Run.ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
 
-            $r.Configuration.Run.RepoRoot.Value | Verify-Equal 'TestDrive:not-a-real-path-but-mine'
+                $r.FailedCount | Verify-Equal 0
+                $r.Configuration.Run.RepoRoot.Value | Verify-Equal $mine
+            }
+            finally { Remove-Item -Path $mine -Recurse -Force }
         }
 
         t "FindRepoRoot returns the directory it started from when there is no .git above it" {
