@@ -3,8 +3,9 @@ name: Code analysis
 on:
   push:
     branches: [main]
+  # No branches filter, same reason as ci.yml: a pull request stacked on another branch would
+  # otherwise get no analysis and look like it passed.
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:

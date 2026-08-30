@@ -30,8 +30,12 @@ on:
       - 'docs/**'
       - 'images/**'
       - '**/*.md'
+  # No branches filter here on purpose. Filtering pull_request by base branch means a pull
+  # request opened against anything else gets no checks at all, and a pull request with no
+  # checks reads as fine rather than as red. That happened to #3015, which was stacked on the
+  # 6.2.0-alpha1 release branch and sat there with zero signal until the workflows were
+  # dispatched by hand. Any pull request is worth testing, whatever it targets.
   pull_request:
-    branches: [main, 'rel/*', 'dev/*']
     paths-ignore:
       - '.devcontainer/**'
       - '.vscode/**'
