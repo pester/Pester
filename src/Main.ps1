@@ -560,6 +560,16 @@ function Invoke-Pester {
             # Write-PesterDebugMessage is used regardless of WriteScreenPlugin.
             Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
+            # Resolve the repository root once for the whole run, from the location the session is
+            # actually in. The default the configuration object carries is found in C# from the
+            # process working directory, and Set-Location does not change that, so a session that
+            # started somewhere else and then changed directory into a repository kept a RepoRoot
+            # pointing at the old place, and every Pester.BeforeContainer.ps1 silently did not apply.
+            # Only when the user did not set it, an explicit RepoRoot is theirs to decide.
+            if (-not $PesterPreference.Run.RepoRoot.IsModified) {
+                $PesterPreference.Run.RepoRoot = [Pester.RunConfiguration]::FindRepoRoot($ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path)
+            }
+
             # Resolve the shuffle seed once for the whole run (#2425), so it is reported a single
             # time and shared by every container - including parallel workers, which each receive
             # this resolved configuration. ShuffleSeed 0 means "pick a new seed for this run".

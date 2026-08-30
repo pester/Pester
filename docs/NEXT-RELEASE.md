@@ -123,6 +123,14 @@ The whole chain works in a sequential run and in a parallel run. In parallel the
 resolved once in the parent and the paths are handed to the workers, because a worker is a
 separate runspace and cannot share the cache.
 
+`Run.RepoRoot` is where the chain starts, and it is found for you by walking up from the
+directory you are in until a `.git` folder shows up. That walk used to start from the process
+working directory, which `Set-Location` does not change, so a session that started somewhere
+else and then changed directory into a repository got a root pointing at the old place and
+none of the setup files applied, with nothing to say why. It starts from the location the
+session is actually in now. Set `Run.RepoRoot` yourself when your tests do not live in a git
+repository, or when the root is somewhere other than where `.git` is.
+
 Which files apply is a property of the directory, not of the container, so the run shares one
 cache keyed by directory. Each directory is checked on disk once per run and each setup file
 is tokenized once per run, however many test folders sit below them. On a tree with 60 test

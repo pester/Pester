@@ -409,6 +409,69 @@ Describe 'Second' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
+        t "finds the repository root from the session location, not the process working directory" {
+            # Run.RepoRoot's default used to be found in C# from Directory.GetCurrentDirectory(),
+            # the process working directory, which Set-Location does not change. So a session that
+            # started somewhere else and then changed directory into a repository kept a RepoRoot
+            # pointing at the old place and the whole cascade silently did not apply. Nothing here
+            # sets Run.RepoRoot, the run has to find it on its own.
+            $folder = New-CascadingBeforeContainerFolder
+            $null = New-Item -ItemType Directory -Path (Join-Path $folder '.git') -Force
+            try {
+                Push-Location -Path $folder
+                try {
+                    # The test only means something while the two locations disagree, which is the
+                    # situation the fix is about.
+                    $processDirectory = [System.IO.Directory]::GetCurrentDirectory()
+                    ($processDirectory -eq $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path) | Verify-False
+
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.Output.Verbosity = 'None'
+                    $r = Invoke-Pester -Configuration $c
+
+                    $r.FailedCount | Verify-Equal 0
+                    $r.PassedCount | Verify-Equal 2
+                }
+                finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not overwrite a Run.RepoRoot the user set" {
+            # A real directory. Resolving the chain runs the value through GetFullPath, and a made
+            # up path is not portable: on Windows something like 'TestDrive:whatever' reads as a
+            # drive qualifier and throws, while on Unix it is a legal relative file name.
+            $mine = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $mine -Force
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.RepoRoot = $mine
+                $c.Run.ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.Configuration.Run.RepoRoot.Value | Verify-Equal $mine
+            }
+            finally { Remove-Item -Path $mine -Recurse -Force }
+        }
+
+        t "FindRepoRoot returns the directory it started from when there is no .git above it" {
+            # The walk stops at the filesystem root and falls back to where it started, rather than
+            # returning null or the drive root, so RepoRoot is always a usable directory.
+            $start = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $start -Force
+            try {
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($start)
+                [Pester.RunConfiguration]::FindRepoRoot($expected) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $start -Recurse -Force }
+        }
+
         t "applies the same cascade inside each parallel worker" {
             $folder = New-CascadingBeforeContainerFolder
             try {
