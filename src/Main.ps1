@@ -997,12 +997,14 @@ function Invoke-Pester {
             }
 
             $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            $exitCode = $failedCount
             if ($PesterPreference.Run.PassThru.Value -and -not ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount)) {
                 $run
             }
 
         }
         catch {
+            $exitCode = -1
             $formatErrorParams = @{
                 Err                 = $_
                 StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
@@ -1039,7 +1041,7 @@ function Invoke-Pester {
         # - avoid inheriting a previous commands non-zero exit code
         # - setting the exit code when there were some failed tests, blocks, or containers
         $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
-        $global:LASTEXITCODE = $failedCount
+        $global:LASTEXITCODE = $exitCode
 
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
             $messages = combineNonNull_ @(
