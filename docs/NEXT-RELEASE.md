@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Release notes for the version in development.
 
   These are written once, for the first alpha, which is usually already close to feature
@@ -437,6 +437,12 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
 
 ## <a id="6.2.0-other-improvements-and-fixes"></a>Other improvements and fixes
 
+- Pester imports again on PowerShell 7.4.0 to 7.4.5. The `net8.0` assembly referenced
+  `System.Management.Automation` 7.4.5.0, and .NET resolves such a reference forward to a newer
+  version but never backward to an older one, so on any 7.4.x below 7.4.5 the import failed with
+  `Cannot convert "PesterConfigurationDeserializer" from String to Type`. The reference is on
+  7.4.0 now, the baseline of the 7.4 line, so it loads on every 7.4.x. This affected 6.0.0 and
+  6.1.0.
 - The `Run.Parallel` help no longer claims that enabling `CodeCoverage` falls back to a
   sequential run. It has not since workers started measuring their own file and the parent
   started merging the hits. The fallback that was actually missing from the list is now there,
