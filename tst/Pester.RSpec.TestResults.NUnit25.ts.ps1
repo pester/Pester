@@ -436,6 +436,29 @@ i -PassThru:$PassThru {
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
             $xmlResult.Validate( { throw $args[1].Exception })
         }
+
+        t 'Should validate against the nunit 2.5 schema when ForEach and plain tests are mixed' {
+            # https://github.com/pester/Pester/issues/2143
+            $sb = {
+                Describe 'Demonstrate NUnit Problem' {
+                    It 'Should return <Result> when type is <Type>' -ForEach @(
+                        @{ Type = 'String'; Variable = [String]'Test'; Result = $true }
+                        @{ Type = 'Int'; Variable = [Int]0; Result = $false }
+                    ) {
+                        ($Variable -is [String]) | Should -Be $Result
+                    }
+
+                    It 'A plain non-parameterized test' { 1 | Should -Be 1 }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            # verify against schema
+            $null = $xmlResult.Schemas.Add($null, $schemaPath)
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
     }
 
     b "Exporting multiple containers" {
