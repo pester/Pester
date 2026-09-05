@@ -198,8 +198,8 @@
       },
       "System.Formats.Asn1": {
         "type": "Transitive",
-        "resolved": "8.0.0",
-        "contentHash": "AJukBuLoe3QeAF+mfaRKQb2dgyrvt340iMBHYv+VdBzCUM06IxGlvl0o/uPOS7lHnXPN6u8fFRHSHudx5aTi8w=="
+        "resolved": "8.0.1",
+        "contentHash": "XqKba7Mm/koKSjKMfW82olQdmfbI5yqeoLV/tidRp7fbh5rmHAQ5raDI/7SU0swTzv+jgqtUGkzmFxuUg0it1A=="
       },
       "System.Management": {
         "type": "Transitive",
@@ -278,6 +278,7 @@
       "pester": {
         "type": "Project",
         "dependencies": {
+          "System.Formats.Asn1": "[8.0.1, )",
           "System.Management.Automation": "[7.4.0, )"
         }
       }
