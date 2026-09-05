@@ -273,16 +273,6 @@ i -PassThru:$PassThru {
 
     b "Exit codes" {
 
-        t "Invoke-InNewProcess does not leak the child's exit code to the caller" {
-            # A child that exits non-zero used to overwrite $LASTEXITCODE in this process and
-            # nothing put it back. When such a test happened to run last, test.ps1 ended with a
-            # non-zero $LASTEXITCODE while every test passed, and CI's `exit $LASTEXITCODE`
-            # turned a green run red with no failing test in it.
-            $global:LASTEXITCODE = 0
-            $null = Invoke-InNewProcess -ScriptBlock { exit 3 }
-            $LASTEXITCODE | Verify-Equal 0
-        }
-
         t "Exitcode is -1 when the test path is invalid" {
             $temp = [IO.Path]::GetTempPath()
             $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).txt"

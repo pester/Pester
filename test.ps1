@@ -286,8 +286,14 @@ if ("Failed" -eq $r.Result) {
     throw "Run failed!"
 }
 
-# Every test passed, so say so with the exit code as well. A native command run anywhere
-# in the suite leaves its exit code in $LASTEXITCODE, and CI ends the step with
-# `exit $LASTEXITCODE`. Without this a child process that exited non-zero on purpose,
-# which several tests do, turns a fully green run red with no failing test to look at.
+# Every test passed, so say so with the exit code as well.
+#
+# Invoke-InNewProcess deliberately lets the child's exit code through, and tests assert on
+# it (see "Exitcode is set to the number of failed tests..."), so the helper cannot reset it.
+# That means whichever test ran last decides what $LASTEXITCODE holds when we get here, and
+# CI ends the step with `exit $LASTEXITCODE`. Without this line a child that exited non-zero
+# on purpose turns a fully green run red with no failing test to look at.
+#
+# This sits after both failure paths above, `exit 1` for P tests and the throw for a failed
+# run, so it cannot hide a real failure.
 $global:LASTEXITCODE = 0
