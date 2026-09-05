@@ -30,14 +30,17 @@ on:
       - 'docs/**'
       - 'images/**'
       - '**/*.md'
+  # No branches filter on purpose. A pull request in a stack targets the branch
+  # below it, not main, and CI has to run there too. The filter never protected
+  # anything either: with the pull_request trigger a run from a fork gets a
+  # read-only token and no secrets whatever branch it targets, so the filter only
+  # ever skipped runs we wanted.
+  #
+  # No paths-ignore either. "Done" below is a required check on main and it lives
+  # in this workflow, so a run skipped by the filter means "Done" never reports
+  # and the pull request stays unmergeable with nothing to click. Runners are
+  # free for public repos, so always running is the cheaper mistake.
   pull_request:
-    branches: [main, 'rel/*', 'dev/*']
-    paths-ignore:
-      - '.devcontainer/**'
-      - '.vscode/**'
-      - 'docs/**'
-      - 'images/**'
-      - '**/*.md'
   workflow_dispatch:
 
 permissions:
