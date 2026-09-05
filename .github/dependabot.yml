@@ -5,7 +5,9 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      # One batched pull request a month. The actions are pinned, so nothing
+      # updates until we merge it, and a monthly review keeps the noise low.
+      interval: monthly
     groups:
       github-actions:
         patterns:
