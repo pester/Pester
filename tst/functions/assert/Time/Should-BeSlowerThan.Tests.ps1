@@ -35,6 +35,18 @@ Describe "Should-BeSlowerThan" {
         $err.Exception.Message | Verify-Like '*because I said so*'
     }
 
+    It "Throws when actual is neither a scriptblock nor a timespan" -ForEach @(
+        @{ Actual = 'a string' }
+        @{ Actual = 42 }
+        @{ Actual = $null }
+    ) {
+        # Without this the assertion returned having done nothing and the test passed. That also
+        # made a CI flake unreadable: a scriptblock that was never run looked like a scriptblock
+        # that ran impossibly fast.
+        $err = { $Actual | Should-BeSlowerThan -Expected 1ms } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a `[scriptblock`] to measure or a `[timespan`] to compare*'
+    }
+
     It "Requires Expected" {
         # Don't invoke with Expected missing to test this: a missing mandatory parameter makes
         # PowerShell prompt for it, which hangs an interactive test.ps1 run and the release build.
