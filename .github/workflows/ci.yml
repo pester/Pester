@@ -43,10 +43,12 @@ on:
   # read-only token and no secrets whatever branch it targets, so the filter only
   # ever skipped runs we wanted.
   #
-  # No paths-ignore either. "Done" below is a required check on main and it lives
-  # in this workflow, so a run skipped by the filter means "Done" never reports
-  # and the pull request stays unmergeable with nothing to click. Runners are
-  # free for public repos, so always running is the cheaper mistake.
+  # Still no paths-ignore. "Done" below is a required check and it lives in this
+  # workflow, so a run skipped by a path filter means "Done" never reports and the
+  # pull request stays Pending forever with nothing to click. A job skipped by an
+  # `if:` reports as skipped, which counts as passed, but a workflow skipped by a
+  # filter reports nothing at all. So the workflow always runs and the expensive
+  # jobs opt out instead, see the `changes` job below.
   pull_request:
   workflow_dispatch:
 
@@ -66,8 +68,135 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Classifies the pull request so a documentation-only change does not pay for the
+  # build, the 8 leg matrix and a Windows runner. Roughly ten seconds, no checkout.
+  #
+  # Fail closed on purpose. Everything downstream asks `code != 'false'` rather than
+  # `code == 'true'`, so a failed API call, a truncated file list or an event this
+  # does not understand all end up running the tests. The only way to skip them is a
+  # positive answer that every changed file is documentation.
+  changes:
+    name: Changed files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+      docs: ${{ steps.classify.outputs.docs }}
+    steps:
+      - id: classify
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -uo pipefail
+
+          run_everything() {
+            echo "$1"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
+          # push and workflow_dispatch have no base to compare against.
+          [ "$EVENT" = "pull_request" ] || run_everything "Event is $EVENT, running everything."
+
+          files=$(gh api "repos/$REPO/compare/$BASE...$HEAD" --jq '.files[].filename') \
+            || run_everything "Could not list the changed files, running everything."
+          [ -n "$files" ] || run_everything "No changed files reported, running everything."
+
+          # The compare API returns at most 300 files. At the cap the list is
+          # truncated and we cannot tell what else is in there.
+          [ "$(printf '%s\n' "$files" | wc -l)" -lt 300 ] \
+            || run_everything "Changed file list is truncated at the API cap, running everything."
+
+          # Paths that cannot affect the build or the tests.
+          docs_only='^(docs/|images/|\.vscode/|\.devcontainer/)|\.md$'
+
+          code=false
+          docs=false
+          printf '%s\n' "$files" | grep -qE  "$docs_only" && docs=true
+          printf '%s\n' "$files" | grep -qvE "$docs_only" && code=true
+
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Changed files"
+            echo
+            echo "code: \`$code\`, docs: \`$docs\`"
+            echo
+            printf '%s\n' "$files" | sed 's/^/    /'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Checks that only make sense for the documentation-only lane. Empty for now, it
+  # exists so the shape is in place and adding a markdown linter is one step.
+  docs:
+    name: Docs checks
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Nothing to check yet
+        run: echo "No documentation checks configured yet."
+
+  # PSScriptAnalyzer. Lived in code-analysis.yml until it moved here, which was
+  # only ever separate because CI ran on Azure DevOps and this one check was
+  # already on Actions, for the inline annotations on the diff.
+  #
+  # It needs nothing from `build`, so it runs in parallel with the whole matrix
+  # and adds no wall clock to a code pull request. It skips with everything else
+  # on a documentation-only one.
+  #
+  # The job keeps the name "PSScriptAnalyzer" so the check context does not move
+  # while it is still named in branch protection.
+  pssa:
+    name: PSScriptAnalyzer
+    needs: changes
+    if: needs.changes.outputs.code != 'false'
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: PowerShell Module Cache
+        uses: potatoqualitee/psmodulecache@9e4b63833c22c1768d648e115a9c849afdda22a5 # v6.3
+        with:
+          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
+
+      # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Import-Module ConvertToSARIF -Force
+
+          Get-ChildItem -Path ./src/ -Filter *.ps* -Recurse -File |
+          Where-Object { $_.Name -ne 'Sync-WithProfiler.ps1' } |
+          Invoke-ScriptAnalyzer -Settings ./.github/workflows/PSScriptAnalyzerSettings.psd1 |
+          ConvertTo-SARIF -FilePath results.sarif
+
+      # Upload the SARIF file generated in the previous step.
+      # A pull request from a fork gets a read-only token, so it cannot write code
+      # scanning results and this step would fail. The analysis above still runs, so
+      # a fork contributor sees the PSScriptAnalyzer output in the job log.
+      - name: Upload SARIF results file
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        with:
+          sarif_file: results.sarif
+
   build:
     name: Build
+    needs: changes
+    if: needs.changes.outputs.code != 'false'
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
@@ -109,7 +238,8 @@ jobs:
 
   test:
     name: ${{ matrix.name }}
-    needs: build
+    needs: [changes, build]
+    if: needs.changes.outputs.code != 'false'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -218,7 +348,7 @@ jobs:
   # page shows what broke and where (one glance at all legs).
   done:
     name: Done
-    needs: test
+    needs: [changes, docs, pssa, build, test]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -235,24 +365,35 @@ jobs:
           sparse-checkout: .github/scripts
 
       - name: Download test results
-        if: always()
+        if: always() && needs.changes.outputs.code != 'false'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: results-*
           path: results
 
       - name: Test results
-        if: always()
+        if: always() && needs.changes.outputs.code != 'false'
         shell: pwsh
         run: ./.github/scripts/Write-TestResultSummary.ps1 -Path results
 
       - name: Consolidated coverage
-        if: always()
+        if: always() && needs.changes.outputs.code != 'false'
         shell: pwsh
         run: ./.github/scripts/Write-CoverageSummary.ps1 -Path results
 
-      - name: All test legs passed
+      # The gate. Note `!= 'false'` and not `== 'true'`: only a positive
+      # "everything changed is documentation" skips the tests. Anything else,
+      # including a `changes` job that failed outright, demands real results.
+      - name: Gate
         run: |
-          echo "Test matrix result: ${{ needs.test.result }}"
-          [ "${{ needs.test.result }}" = "success" ] || exit 1
+          if [ "${{ needs.changes.outputs.code }}" != "false" ]; then
+            echo "Code changed. Build: ${{ needs.build.result }}, tests: ${{ needs.test.result }}, PSScriptAnalyzer: ${{ needs.pssa.result }}"
+            [ "${{ needs.build.result }}" = "success" ] || exit 1
+            [ "${{ needs.test.result }}" = "success" ] || exit 1
+            [ "${{ needs.pssa.result }}" = "success" ] || exit 1
+          else
+            echo "Documentation only, the build and the test matrix were skipped."
+            echo "Docs checks: ${{ needs.docs.result }}"
+            [ "${{ needs.docs.result }}" != "failure" ] || exit 1
+          fi
           echo "done"
