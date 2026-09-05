@@ -222,6 +222,18 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      # The two summary scripts live in .github/scripts so they can be edited with
+      # syntax highlighting and run locally. This job does not otherwise need the
+      # repository, so check out only that directory.
+      # Checkout runs first on purpose: it cleans the working directory, which would
+      # delete the downloaded artifacts if it ran after them.
+      - name: Checkout summary scripts
+        if: always()
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: .github/scripts
+
       - name: Download test results
         if: always()
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -229,101 +241,15 @@ jobs:
           pattern: results-*
           path: results
 
-      # Render the failed tests into this run's summary. This is what test-report.yml
-      # used to do as check runs; doing it here keeps the token read-only and works
-      # for fork pull requests, which cannot create check runs.
-      # Only failures are listed. A full pass list is thousands of lines and GitHub
-      # truncates the summary.
       - name: Test results
         if: always()
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Continue'
-          function Append-Summary([string]$text) {
-            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $text, (New-Object System.Text.UTF8Encoding($false)))
-          }
-          # Cap per leg so one badly broken leg cannot blow the 1 MB summary limit and
-          # hide the other legs. Whatever is dropped is stated, never silently cut.
-          $maxPerLeg = 50
-          try {
-            $files = Get-ChildItem -Path 'results' -Recurse -Filter 'testResults.xml' -ErrorAction SilentlyContinue
-            if (-not $files) { Append-Summary "## Test results`n`nNo test results found.`n"; return }
-            $sb = [System.Text.StringBuilder]::new()
-            [void]$sb.AppendLine("## Test results`n")
-            [void]$sb.AppendLine("| Leg | Total | Passed | Failed | Skipped |")
-            [void]$sb.AppendLine("|---|--:|--:|--:|--:|")
-            $details = [System.Text.StringBuilder]::new()
-            foreach ($f in ($files | Sort-Object FullName)) {
-              $leg = (Split-Path (Split-Path $f.FullName -Parent) -Leaf) -replace '^results-', ''
-              try {
-                [xml]$xml = Get-Content -LiteralPath $f.FullName
-                $run = $xml.'test-run'
-                $get = { param($name) $v = $run.$name; if ($v) { $v } else { 'n/a' } }
-                [void]$sb.AppendLine("| $leg | $(& $get 'total') | $(& $get 'passed') | $(& $get 'failed') | $(& $get 'skipped') |")
-                $failed = @($xml.SelectNodes("//test-case[@result='Failed']"))
-                if ($failed.Count -gt 0) {
-                  [void]$details.AppendLine("<details><summary><b>$leg</b> - $($failed.Count) failed</summary>`n")
-                  foreach ($t in ($failed | Select-Object -First $maxPerLeg)) {
-                    $name = if ($t.fullname) { $t.fullname } else { $t.name }
-                    $msgNode = $t.SelectSingleNode('failure/message')
-                    $msg = if ($msgNode) { $msgNode.InnerText } else { '' }
-                    $first = @($msg -split '\r?\n' | Where-Object { $_.Trim() })[0]
-                    if ($first -and $first.Length -gt 200) { $first = $first.Substring(0, 200) + '...' }
-                    [void]$details.AppendLine("- **$name**")
-                    if ($first) { [void]$details.AppendLine("  - $($first.Trim())") }
-                  }
-                  if ($failed.Count -gt $maxPerLeg) {
-                    [void]$details.AppendLine("`nListing the first $maxPerLeg of $($failed.Count) failures. The rest are in the job log for this leg.")
-                  }
-                  [void]$details.AppendLine("`n</details>`n")
-                }
-              } catch {
-                [void]$sb.AppendLine("| $leg | error | error | error | error |")
-              }
-            }
-            Append-Summary ($sb.ToString() + "`n" + $details.ToString() + "`n")
-          } catch {
-            Append-Summary "## Test results`n`nTest result summary failed: $($_.Exception.Message)`n"
-          }
+        run: ./.github/scripts/Write-TestResultSummary.ps1 -Path results
 
       - name: Consolidated coverage
         if: always()
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Continue'
-          function Append-Summary([string]$text) {
-            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $text, (New-Object System.Text.UTF8Encoding($false)))
-          }
-          function Get-Pct($counters, [string]$type) {
-            $c = $counters | Where-Object { $_.type -eq $type }
-            if (-not $c) { return $null }
-            $cov = [int]$c.covered; $tot = $cov + [int]$c.missed
-            $pct = if ($tot) { [math]::Round(100.0 * $cov / $tot, 2) } else { 0 }
-            ([double]$pct).ToString('0.##', [System.Globalization.CultureInfo]::InvariantCulture)
-          }
-          try {
-            $files = Get-ChildItem -Path 'results' -Recurse -Filter 'coverage.xml' -ErrorAction SilentlyContinue
-            if (-not $files) { Append-Summary "## Coverage by matrix leg`n`nNo coverage reports found.`n"; return }
-            $sb = [System.Text.StringBuilder]::new()
-            [void]$sb.AppendLine("## Coverage by matrix leg`n")
-            [void]$sb.AppendLine("| Leg | Line % | Instruction % |")
-            [void]$sb.AppendLine("|---|--:|--:|")
-            foreach ($f in ($files | Sort-Object FullName)) {
-              $leg = (Split-Path (Split-Path $f.FullName -Parent) -Leaf) -replace '^results-', ''
-              try {
-                [xml]$xml = Get-Content -LiteralPath $f.FullName
-                $counters = @($xml.report.counter)
-                $lpct = Get-Pct $counters 'LINE'
-                $ipct = Get-Pct $counters 'INSTRUCTION'
-                [void]$sb.AppendLine("| $leg | $(if ($null -ne $lpct) { "$lpct%" } else { 'n/a' }) | $(if ($null -ne $ipct) { "$ipct%" } else { 'n/a' }) |")
-              } catch {
-                [void]$sb.AppendLine("| $leg | error | error |")
-              }
-            }
-            Append-Summary ($sb.ToString() + "`n")
-          } catch {
-            Append-Summary "## Coverage by matrix leg`n`nConsolidated coverage failed: $($_.Exception.Message)`n"
-          }
+        run: ./.github/scripts/Write-CoverageSummary.ps1 -Path results
 
       - name: All test legs passed
         run: |
