@@ -17,10 +17,38 @@
     <InternalsVisibleTo Include="PesterTests" />
   </ItemGroup>
 
-  <!-- PowerShell 7.4.x is the oldest supported PowerShell version. That version is built using net8.0.  -->
+  <!-- PowerShell 7.4 is the oldest supported PowerShell line, supported until 10-Nov-2026. It is
+  built on net8.0.
+
+  This reference must stay at the BASELINE of that line, 7.4.0, not at whatever the newest patch is.
+
+  We ship Pester.dll and nothing else. System.Management.Automation is never in the package, at
+  runtime Pester binds to the one the host PowerShell already loaded. So this is a compile time
+  reference assembly, and .NET resolves such a reference forward to a newer version, never backward
+  to an older one. Referencing 7.4.6 means the module cannot load on 7.4.0 through 7.4.5, because
+  System.Management.Automation 7.4.0.0 does not satisfy a reference to 7.4.5.0.
+
+  The failure is hard to read: import fails on the first type that inherits from a type in
+  System.Management.Automation, which is PesterConfigurationDeserializer, and Update-TypeData
+  reports 'Cannot convert "PesterConfigurationDeserializer" from String to Type'. See #3013.
+
+  Microsoft only supports the latest patch of a line, so 7.4.0 itself is not a supported PowerShell,
+  7.4.19 is. Referencing the baseline anyway means Pester still loads for people who are behind on
+  their PowerShell updates. That is deliberate. Whether their PowerShell is patched is their
+  decision, and a compile time reference is the wrong place to enforce it, especially when the way
+  it enforces it is an unreadable load error. We are not shipping them anything vulnerable.
+
+  This is how it used to be done here. Before the net8 move this referenced 7.1.7, which was
+  older than 7.2.0, the oldest supported PowerShell at the time. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <!-- Versions older than 7.4.6 have security vulnerabilities. -->
-    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
+
+    <!-- System.Management.Automation 7.4.0 drags in System.Formats.Asn1 8.0.0, which has
+    CVE-2024-38095, https://github.com/advisories/GHSA-447r-wph3-92pm. That is what the bump to
+    7.4.6 was avoiding. We do not ship that assembly either, so it never reaches anyone through
+    Pester, but there is no reason to keep a package with a known advisory in the build graph.
+    Pin the patched version, restore is clean again and it does not change what we ship. -->
+    <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
   </ItemGroup>
 
   <!-- Windows PowerShell 5.1 is the only Windows PowerShell that is still in support, and it is built using .NET Framework 4.5.2.
