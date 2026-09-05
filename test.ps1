@@ -285,3 +285,9 @@ if ($CC) {
 if ("Failed" -eq $r.Result) {
     throw "Run failed!"
 }
+
+# Every test passed, so say so with the exit code as well. A native command run anywhere
+# in the suite leaves its exit code in $LASTEXITCODE, and CI ends the step with
+# `exit $LASTEXITCODE`. Without this a child process that exited non-zero on purpose,
+# which several tests do, turns a fully green run red with no failing test to look at.
+$global:LASTEXITCODE = 0

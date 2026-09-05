@@ -77,7 +77,19 @@
         $cmd = "& { $command } -PesterPath ""$PesterPath"" -ScriptBlock { $($ScriptBlock -replace '"','\"') }"
     }
 
-    & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $cmd
+    # Keep the caller's $LASTEXITCODE. Calling a native command overwrites it, and several
+    # tests here run a child that exits non-zero on purpose. They read that code from the
+    # child's own output, nobody reads it from ours. Leaving it set means test.ps1 can end
+    # with a non-zero $LASTEXITCODE while every test passed, and the CI step does
+    # `exit $LASTEXITCODE`, so the run goes red with nothing to look at. Which test runs
+    # last decides whether it happens, which is what made it intermittent.
+    $lastExitCodeBeforeChild = $global:LASTEXITCODE
+    try {
+        & $powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command $cmd
+    }
+    finally {
+        $global:LASTEXITCODE = $lastExitCodeBeforeChild
+    }
 }
 
 function Verify-PathEqual {
