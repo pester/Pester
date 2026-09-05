@@ -151,6 +151,23 @@ Describe 'Docs' {
     $root
 }
 
+function New-DiscoveryTimeBeforeContainerFolder {
+    # The setup defines the -ForEach data in BeforeDiscovery, so the file discovers 3 tests only
+    # when the chain was applied. Without it discovery finds 0, which is what #3008 was about.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $tests = Join-Path $root 'tests'
+    $null = New-Item -ItemType Directory -Path $tests -Force
+
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeDiscovery { $script:Cases = 1..3 }'
+    Set-Content -Path (Join-Path $tests 'Some.Tests.ps1') -Value @'
+Describe 'd' {
+    It 'case <_>' -ForEach $Cases { }
+}
+'@
+
+    $root
+}
+
 i -PassThru:$PassThru {
     b "Run.Parallel configuration option" {
         t "exists and defaults to disabled" {
@@ -435,6 +452,29 @@ Describe 'Second' {
                     $r.PassedCount | Verify-Equal 2
                 }
                 finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "applies the chain when only discovery runs, so Run.SkipRun sees the same tests as a run" {
+            # Run.SkipRun is the path the VS Code Test Explorer uses to populate. It went through
+            # a batch discovery that never got the map, so a file whose discovery depends on the
+            # setup came back empty. (#3008)
+            $folder = New-DiscoveryTimeBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.SkipRun = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $discoveryOnly = Invoke-Pester -Configuration $c
+
+                $c.Run.SkipRun = $false
+                $normal = Invoke-Pester -Configuration $c
+
+                $discoveryOnly.Tests.Count | Verify-Equal 3
+                $discoveryOnly.Tests.Count | Verify-Equal $normal.Tests.Count
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
