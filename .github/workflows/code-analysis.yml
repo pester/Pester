@@ -22,10 +22,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@ee5e9494714abf56f6efbfa51527b2aec5c761b8 # v6.2.1
-        with:
-          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
+      # Installed directly rather than through potatoqualitee/psmodulecache. That is a
+      # composite action and its own actions/cache reference is not pinned - v6.2.1 uses
+      # actions/cache@v4.2.0, v6.3 uses @v5.0.5 - and sha_pinning_required applies to
+      # nested references too, so the whole job fails while we depend on it. Two modules
+      # from PSGallery take seconds, so the cache was not buying much.
+      - name: Install PSScriptAnalyzer and ConvertToSARIF
+        shell: pwsh
+        run: |
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser
+          Install-Module ConvertToSARIF -RequiredVersion 1.0.0 -Force -Scope CurrentUser
 
       # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
       - name: Run PSScriptAnalyzer
