@@ -28,6 +28,8 @@
     Use this parameter to explicitly mark the block to be skipped. This is preferable to temporarily
     commenting out a block, because it remains listed in the output.
 
+    .PARAMETER Because
+    Use it with -Skip to say why this block is not running. The reason is applied to every test inside it, recorded on each result as .Reason and written to the test result file.
     .PARAMETER AllowNullOrEmptyForEach
     Allows empty or null values for -ForEach when Run.FailOnNullOrEmptyForEach is enabled.
     This might be excepted in certain scenarios like using external data.
@@ -96,6 +98,8 @@
         [ScriptBlock] $Fixture,
 
         [Switch] $Skip,
+        # Why the block is skipped. Applied to every test inside it.
+        [String] $Because,
         [Switch] $AllowNullOrEmptyForEach,
 
         [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '', Justification = 'ForEach is not used in Foreach-Object loop')]
@@ -128,10 +132,10 @@
                 return
             }
 
-            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip -Data $ForEach
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip -Reason $Because -Data $ForEach
         }
         else {
-            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip -Reason $Because
         }
     }
     else {
