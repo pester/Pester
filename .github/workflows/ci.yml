@@ -11,9 +11,16 @@
 # surface it in the run's job summaries (per leg, plus a consolidated table in
 # "Done") and keep the raw coverage.xml as an artifact.
 #
-# Test results are uploaded as artifacts and rendered by test-report.yml, which
-# runs after this workflow. That split is what makes the report work for pull
-# requests from forks, where this workflow's token cannot create check runs.
+# Test results and coverage are rendered into this run's job summaries, by this
+# workflow, with a read-only token. Nothing renders them from a privileged
+# context. A `workflow_run` workflow would run in the base repository with a
+# writable token while reading artifacts a fork pull request produced, which is
+# a privilege boundary we do not want to have. Writing to GITHUB_STEP_SUMMARY
+# needs no token, so the summary works the same for fork pull requests.
+#
+# Keep it that way: no `pull_request_target`, no `workflow_run`, and no job that
+# consumes fork-produced artifacts with write permissions. That is what lets
+# fork pull requests run without a maintainer approving each one.
 #
 # Image policy: GA only. We float `*-latest` for the newest GA image and pin the
 # one previous GA image ("latest + reasonably recent"). No preview images
@@ -64,12 +71,12 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 1
 
       - name: Setup .NET (global.json)
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           global-json-file: global.json
           cache: true
@@ -84,7 +91,7 @@ jobs:
       # Publish the built tree so every test leg runs the exact same build.
       # Mirrors Azure's `publish: $(Build.SourcesDirectory)` + .artifactignore.
       - name: Upload build output
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: pester-build
           retention-days: 1
@@ -123,7 +130,7 @@ jobs:
       # No checkout: the legs run against the artifact from Build, so they test
       # the exact same build.
       - name: Download build output
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: pester-build
           path: .
@@ -184,7 +191,7 @@ jobs:
       # CODECOV_TOKEN secret, if set, makes uploads more reliable.
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           files: ./coverage.xml
           disable_search: true
@@ -195,7 +202,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: results-${{ matrix.id }}
           retention-days: 7
@@ -207,58 +214,42 @@ jobs:
   # Single gate after the matrix so branch protection and auto-merge only need to
   # require "Done" instead of listing all 8 legs. This is the check to require on
   # main and on the release branches.
-  # It also renders a consolidated coverage table (one glance at all legs).
+  # It also renders the failed tests and a consolidated coverage table, so one
+  # page shows what broke and where (one glance at all legs).
   done:
     name: Done
     needs: test
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Download coverage reports
+      # The two summary scripts live in .github/scripts so they can be edited with
+      # syntax highlighting and run locally. This job does not otherwise need the
+      # repository, so check out only that directory.
+      # Checkout runs first on purpose: it cleans the working directory, which would
+      # delete the downloaded artifacts if it ran after them.
+      - name: Checkout summary scripts
         if: always()
-        uses: actions/download-artifact@v8
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 1
+          sparse-checkout: .github/scripts
+
+      - name: Download test results
+        if: always()
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: results-*
-          path: coverage-reports
+          path: results
+
+      - name: Test results
+        if: always()
+        shell: pwsh
+        run: ./.github/scripts/Write-TestResultSummary.ps1 -Path results
 
       - name: Consolidated coverage
         if: always()
         shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Continue'
-          function Append-Summary([string]$text) {
-            [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, $text, (New-Object System.Text.UTF8Encoding($false)))
-          }
-          function Get-Pct($counters, [string]$type) {
-            $c = $counters | Where-Object { $_.type -eq $type }
-            if (-not $c) { return $null }
-            $cov = [int]$c.covered; $tot = $cov + [int]$c.missed
-            $pct = if ($tot) { [math]::Round(100.0 * $cov / $tot, 2) } else { 0 }
-            ([double]$pct).ToString('0.##', [System.Globalization.CultureInfo]::InvariantCulture)
-          }
-          try {
-            $files = Get-ChildItem -Path 'coverage-reports' -Recurse -Filter 'coverage.xml' -ErrorAction SilentlyContinue
-            if (-not $files) { Append-Summary "## Coverage by matrix leg`n`nNo coverage reports found.`n"; return }
-            $sb = [System.Text.StringBuilder]::new()
-            [void]$sb.AppendLine("## Coverage by matrix leg`n")
-            [void]$sb.AppendLine("| Leg | Line % | Instruction % |")
-            [void]$sb.AppendLine("|---|--:|--:|")
-            foreach ($f in ($files | Sort-Object FullName)) {
-              $leg = (Split-Path (Split-Path $f.FullName -Parent) -Leaf) -replace '^results-', ''
-              try {
-                [xml]$xml = Get-Content -LiteralPath $f.FullName
-                $counters = @($xml.report.counter)
-                $lpct = Get-Pct $counters 'LINE'
-                $ipct = Get-Pct $counters 'INSTRUCTION'
-                [void]$sb.AppendLine("| $leg | $(if ($null -ne $lpct) { "$lpct%" } else { 'n/a' }) | $(if ($null -ne $ipct) { "$ipct%" } else { 'n/a' }) |")
-              } catch {
-                [void]$sb.AppendLine("| $leg | error | error |")
-              }
-            }
-            Append-Summary ($sb.ToString() + "`n")
-          } catch {
-            Append-Summary "## Coverage by matrix leg`n`nConsolidated coverage failed: $($_.Exception.Message)`n"
-          }
+        run: ./.github/scripts/Write-CoverageSummary.ps1 -Path results
 
       - name: All test legs passed
         run: |
