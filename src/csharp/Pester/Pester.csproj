@@ -17,10 +17,25 @@
     <InternalsVisibleTo Include="PesterTests" />
   </ItemGroup>
 
-  <!-- PowerShell 7.4.x is the oldest supported PowerShell version. That version is built using net8.0.  -->
+  <!-- PowerShell 7.4.x is the oldest supported PowerShell version. That version is built using net8.0.
+
+  This reference must stay at the LOWEST PowerShell version we support, currently 7.4.0.
+
+  We ship Pester.dll and nothing else. System.Management.Automation is never in the package, at
+  runtime Pester binds to the one that the host PowerShell already loaded. So this is a compile
+  time reference assembly, and .NET resolves such a reference forward to a newer version, never
+  backward to an older one. Referencing 7.4.6 means the module cannot load on 7.4.0 through 7.4.5,
+  because System.Management.Automation 7.4.0.0 does not satisfy a reference to 7.4.5.0.
+
+  The failure is hard to read: import fails on the first type that inherits from a type in
+  System.Management.Automation, which is PesterConfigurationDeserializer, and Update-TypeData
+  reports 'Cannot convert "PesterConfigurationDeserializer" from String to Type'. See #3013.
+
+  Security advisories for System.Management.Automation do not apply to this number. People get
+  that assembly from their PowerShell installation, so raising the reference here patches nothing
+  for them, it only drops support for the patch releases below it. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <!-- Versions older than 7.4.6 have security vulnerabilities. -->
-    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.0" />
   </ItemGroup>
 
   <!-- Windows PowerShell 5.1 is the only Windows PowerShell that is still in support, and it is built using .NET Framework 4.5.2.
