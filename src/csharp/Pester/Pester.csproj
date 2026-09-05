@@ -5,6 +5,19 @@
     <LangVersion>latest</LangVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <DebugType>embedded</DebugType>
+
+    <!-- Rewrite the source paths the embedded PDB carries, so a stack trace from Pester's own C#
+    code reads /_/src/csharp/Pester/PesterConfiguration.cs instead of the path the build ran from.
+    6.1.0 shipped D:\a\1\s\src\csharp\Pester\..., which is the Azure agent's working directory.
+    That is noise for users and it says more about our build machine than it needs to. It also
+    makes the build reproducible, the same source in two folders produced two different
+    Pester.dll files before this. See #3009.
+
+    Only on a build server. Locally the real path is what you want, so the stack trace points at a
+    file your editor can open. TF_BUILD is Azure DevOps, which is where we release from
+    (azure-pipelines-publish.yml), GITHUB_ACTIONS is CI. Both, because normalizing only CI would
+    leave the released binaries carrying the path, which is the case this is about. -->
+    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'true' or '$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <PropertyGroup>
