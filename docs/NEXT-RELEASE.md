@@ -437,6 +437,12 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
 
 ## <a id="6.2.0-other-improvements-and-fixes"></a>Other improvements and fixes
 
+- A stack trace from Pester's own C# code no longer carries the path the release was built
+  from. 6.1.0 showed `D:\a\1\s\src\csharp\Pester\...`, the build agent's working directory,
+  and it now reads `/_/src/csharp/Pester/...`. Line numbers are unchanged, and a local build
+  still uses the real path so the trace points at a file you can open. A side effect is that
+  the build is reproducible now, the same source in two folders used to produce two different
+  `Pester.dll` files.
 - Pester imports again on PowerShell 7.4.0 to 7.4.5. The `net8.0` assembly referenced
   `System.Management.Automation` 7.4.5.0, and .NET resolves such a reference forward to a newer
   version but never backward to an older one, so on any 7.4.x below 7.4.5 the import failed with
