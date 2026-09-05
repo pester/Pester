@@ -16,7 +16,8 @@ function New-MockBehavior {
         [Parameter(Mandatory)]
         $Hook,
         [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation
+        [string[]]$RemoveParameterValidation,
+        [Switch] $Aggregate
     )
 
     [PSCustomObject] @{
@@ -26,6 +27,9 @@ function New-MockBehavior {
         IsDefault   = $null -eq $ParameterFilter
         IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
+        # When set the whole pipeline is collected and MockWith runs once from the end block over
+        # all the input, instead of once per piped item. See the -End switch on Mock. (#2154)
+        Aggregate   = [bool]$Aggregate
         Executed    = $false
         ScriptBlock = $MockWith
         Hook        = $Hook
@@ -948,6 +952,32 @@ function Resolve-Command {
     }
 }
 
+function Get-PipelineParameterName {
+    # Return the names of the parameters that take pipeline input (ValueFromPipeline or
+    # ValueFromPipelineByPropertyName). Used by -End (aggregate) mocks to bind the whole collected
+    # pipeline to the pipeline parameter, so a parameter filter can assert on all the input. Native
+    # applications have no metadata and no such parameters, so this returns nothing for them. (#2154)
+    param ($Metadata)
+
+    if ($null -eq $Metadata -or $null -eq $Metadata.Parameters) {
+        return
+    }
+
+    foreach ($parameter in $Metadata.Parameters.Values) {
+        $takesPipeline = $false
+        foreach ($parameterSet in $parameter.ParameterSets.Values) {
+            if ($parameterSet.ValueFromPipeline -or $parameterSet.ValueFromPipelineByPropertyName) {
+                $takesPipeline = $true
+                break
+            }
+        }
+
+        if ($takesPipeline) {
+            $parameter.Name
+        }
+    }
+}
+
 function Invoke-MockInternal {
     [CmdletBinding()]
     param (
@@ -1006,6 +1036,21 @@ function Invoke-MockInternal {
         }
 
         Process {
+            # -End (aggregate) mock: do not match or execute per piped item. Collect the whole pipeline
+            # and defer a single behavior match and a single execution to the end block. Behaviors are
+            # homogeneous per command (guarded in Mock), so the first one tells us the type. We stash the
+            # resolved behaviors and call history so the end block can reuse them without resolving again. (#2154)
+            $firstBehavior = @($Behaviors)[0]
+            if ($null -ne $firstBehavior -and $firstBehavior.Aggregate) {
+                $MockCallState['Aggregate'] = $true
+                $MockCallState['AggregateBehaviors'] = $Behaviors
+                $MockCallState['AggregateCallHistory'] = $CallHistory
+                if ($null -ne $InputObject) {
+                    $null = $MockCallState['InputObjects'].AddRange(@($InputObject))
+                }
+                return
+            }
+
             # the incoming caller session state is the place from where
             # the mock hook is invoked, this does not have to be the same as
             # the test "caller scope" that we saved earlier, we won't use the
@@ -1050,6 +1095,58 @@ function Invoke-MockInternal {
         }
 
         End {
+            # -End (aggregate) mock: the whole pipeline was collected in the process block. Now match a
+            # single behavior against the collected input and run it once, piping the input in so MockWith
+            # sees it as $input (and its own process/end blocks work). One call is recorded per pipeline. (#2154)
+            if ($MockCallState['Aggregate']) {
+                $SessionState = if ($CallerSessionState) { $CallerSessionState } else { $Hook.SessionState }
+                $collected = $MockCallState['InputObjects']
+
+                # Build the bound parameters the filter and the call history see: the parameters bound
+                # up front (everything except the pipeline) plus the pipeline parameter(s) set to the whole
+                # collection, so a filter can assert on all the piped input at once.
+                $aggregateBound = if ($null -ne $MockCallState['BeginBoundParameters']) { $MockCallState['BeginBoundParameters'].Clone() } else { @{} }
+                foreach ($pipelineParameterName in (Get-PipelineParameterName -Metadata $Hook.Metadata)) {
+                    if (-not $aggregateBound.ContainsKey($pipelineParameterName)) {
+                        $aggregateBound[$pipelineParameterName] = $collected.ToArray()
+                    }
+                }
+
+                $behavior, $failedFilterInvocations = FindMatchingBehavior -Behaviors @($MockCallState['AggregateBehaviors']) -BoundParameters $aggregateBound -ArgumentList @($MockCallState['BeginArgumentList']) -SessionState $SessionState -Hook $Hook -DynamicParamAliases $MockCallState['DynamicParamAliases']
+
+                if ($null -ne $behavior) {
+                    $call = @{
+                        BoundParams         = $aggregateBound
+                        Args                = $MockCallState['BeginArgumentList']
+                        Hook                = $Hook
+                        Behavior            = $behavior
+                        DynamicParamAliases = $MockCallState['DynamicParamAliases']
+                    }
+                    $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
+                    $aggregateCallHistory = $MockCallState['AggregateCallHistory']
+                    if (-not $aggregateCallHistory.ContainsKey($key)) {
+                        $aggregateCallHistory.Add($key, [Collections.Generic.List[object]]@($call))
+                    }
+                    else {
+                        $aggregateCallHistory[$key].Add($call)
+                    }
+
+                    ExecuteBehavior -Behavior $behavior `
+                        -Hook $Hook `
+                        -BoundParameters $MockCallState['BeginBoundParameters'] `
+                        -ArgumentList @($MockCallState['BeginArgumentList']) `
+                        -InputObject $collected `
+                        -PipeInput
+
+                    return
+                }
+                else {
+                    $failedFilterInvocations = @($failedFilterInvocations)
+                    $filterList = ($failedFilterInvocations | & $SafeCommands['ForEach-Object'] { "    $_" }) -join [System.Environment]::NewLine
+                    throw "No mock for command '$($Hook.CommandName)' matched the call: none of the parameter filters matched, and there is no default mock to fall back to. Add a default mock (e.g. ``Mock $($Hook.CommandName) { ... } -End``) or adjust an existing -ParameterFilter.$([System.Environment]::NewLine)$([System.Environment]::NewLine)The following parameter filters were evaluated and did not match:$([System.Environment]::NewLine)$filterList"
+                }
+            }
+
             if ($MockCallState['MatchedNoBehavior']) {
                 if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                     Write-PesterDebugMessage -Scope Mock "The mock did not match any filtered behavior, and there was no default behavior. Failing."
@@ -1140,7 +1237,11 @@ function ExecuteBehavior {
         $Behavior,
         $Hook,
         [hashtable] $BoundParameters = @{ },
-        [object[]] $ArgumentList = @()
+        [object[]] $ArgumentList = @(),
+        # -End (aggregate) mocks pass the collected pipeline here and set -PipeInput so MockWith runs
+        # once with the whole pipeline as its $input, reproducing the real command's end-block behaviour. (#2154)
+        [object] $InputObject,
+        [switch] $PipeInput
     )
 
     $ModuleName = $Behavior.ModuleName
@@ -1173,7 +1274,11 @@ function ExecuteBehavior {
 
             ${M o d u l e N a m e},
 
-            ${Set Dynamic Parameter Variable}
+            ${Set Dynamic Parameter Variable},
+
+            ${I n p u t O b j e c t},
+
+            [switch] ${Pipe Input}
         )
 
         # This script block exists to hold variables without polluting the test script's current scope.
@@ -1192,7 +1297,14 @@ function ExecuteBehavior {
             }) -ScriptBlock ${Script Block}
         # define this in the current scope to be used instead of $PSBoundParameter if needed
         $PesterBoundParameters = if ($null -ne $___BoundParameters___) { $___BoundParameters___ } else { @{} }
-        & ${Script Block} @___BoundParameters___ @___ArgumentList___
+        if (${Pipe Input}) {
+            # -End (aggregate) mock: pipe the whole collected input into MockWith so it runs once and
+            # sees the pipeline as $input, the same way the real command's end block would. (#2154)
+            ${I n p u t O b j e c t} | & ${Script Block} @___BoundParameters___ @___ArgumentList___
+        }
+        else {
+            & ${Script Block} @___BoundParameters___ @___ArgumentList___
+        }
     }
 
     if ($null -eq $Hook) {
@@ -1217,6 +1329,8 @@ function ExecuteBehavior {
             }
         }
         'Set Dynamic Parameter Variable' = $SafeCommands['Set-DynamicParameterVariable']
+        'I n p u t O b j e c t'          = $InputObject
+        'Pipe Input'                     = [switch]$PipeInput
     }
 
     # the real scriptblock is passed to the other one, we are interested in the mock, not the wrapper, so I pass $block.ScriptBlock, and not $scriptBlock
