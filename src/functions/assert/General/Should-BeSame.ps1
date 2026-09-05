@@ -35,6 +35,10 @@
     .NOTES
     The `Should-BeSame` assertion is the opposite of the `Should-NotBeSame` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeSame
 
@@ -51,17 +55,15 @@
         [String]$Because
     )
 
-    $null = Ensure-ExpectedIsNotCollection $Expected
+    $null = Ensure-ExpectedIsNotCollection -InputObject $Expected -Assertion $PSCmdlet.MyInvocation.MyCommand.Name
 
     if ($Expected -is [ValueType] -or $Expected -is [string]) {
         throw [ArgumentException]"Should-BeSame compares objects by reference. You provided a value type or a string, those are not reference types and you most likely don't need to compare them by reference, see https://github.com/nohwnd/Assert/issues/6.`n`nAre you trying to compare two values to see if they are equal? Use Should-BeEqual instead."
     }
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
     if (-not ([object]::ReferenceEquals($Expected, $Actual))) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected>,<because> to be the same instance but it was not. Actual: <actualType> <actual>"
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected <expectedType> <expected>,<because> to be the same instance but it was not. Actual: <actualType> <actual>", @{ Expected = $Expected; Because = $Because })
     }
-    Set-AssertionPassResult
 }

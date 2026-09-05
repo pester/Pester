@@ -111,4 +111,22 @@ The `$Expected` accepts input that has the same type as the assertion type. E.g.
 
 
 
+## Hashtable and dictionary assertions
+
+`Should-BeHashtable` asserts on the *shape* of a hashtable or dictionary. It checks that the value is a dictionary (a `[hashtable]`, an `[ordered]@{}`, or any `System.Collections.IDictionary`), and optionally that it has a given number of entries (`-Count`), that it is ordered (`-Ordered`), or that it contains specific keys (`-Key`):
+
+```powershell
+# Asserts the value is a hashtable / dictionary:
+@{ Name = 'Jakub'; Age = 30 } | Should-BeHashtable
+
+# Optional shape checks:
+@{ Name = 'Jakub'; Age = 30 } | Should-BeHashtable -Count 2
+@{ Name = 'Jakub'; Age = 30 } | Should-BeHashtable -Key Name, Age
+[ordered]@{ a = 1; b = 2 } | Should-BeHashtable -Ordered -Key a, b
+```
+
+A dictionary is received as a single object, so it is piped in directly without being unwrapped, the same way a value assertion receives its input.
+
+`Should-BeHashtable` deliberately does not compare the *values* of the entries. To compare the keys and values of a dictionary against an expected dictionary, use `Should-BeEquivalent`, which performs a deep, order-insensitive comparison.
+
 These assertions are exported from the module as Assert-* functions and aliased to Should-*, this is because of PowerShell restricting multi word functions to a list of predefined approved verbs.

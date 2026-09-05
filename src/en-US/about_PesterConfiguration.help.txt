@@ -65,6 +65,14 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $false
 
+        Parallel: EXPERIMENTAL: Run test files in parallel, each file in its own runspace, on both Windows PowerShell 5.1 and PowerShell 7. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.
+        Type: bool
+        Default value: $false
+
+        ParallelThrottleLimit: EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled. Setting it to 1 does not turn parallel off, the files still go through the parallel machinery one at a time, each in its own runspace, so a breakpoint set in the calling session still does not hit inside a worker.
+        Type: int
+        Default value: 0
+
         SkipRemainingOnFailure: Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.
         Type: string
         Default value: 'None'
@@ -73,16 +81,24 @@ SECTIONS AND OPTIONS
         Type: bool
         Default value: $true
 
-        RepoRoot: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.
+        RepoRoot: EXPERIMENTAL: Root directory of the repository. Found when the run starts, by searching for the .git directory upwards from the current location. When not found, the current location is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources every 'Pester.BeforeContainer.ps1' found from this directory down to the test file's own folder, outermost first, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. Setup shared by all tests can live at the root while setup only some tests need lives in their folder. The files run before each container and must be safe to run more than once. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs them.
         Type: string
         Default value: '<path of .git>'
 
+        Shuffle: EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.
+        Type: bool
+        Default value: $false
+
+        ShuffleSeed: EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.
+        Type: int
+        Default value: 0
+
     Filter:
-        Tag: Tags of Describe, Context or It to be run.
+        Tag: Tags of Describe, Context or It to be run. Use 'None' to run only tests that have no tags.
         Type: string[]
         Default value: @()
 
-        ExcludeTag: Tags of Describe, Context or It to be excluded from the run.
+        ExcludeTag: Tags of Describe, Context or It to be excluded from the run. Use 'None' to exclude tests that have no tags.
         Type: string[]
         Default value: @()
 
@@ -215,9 +231,17 @@ SECTIONS AND OPTIONS
         Type: string
         Default value: 'Error'
 
+        CIDebugOutput: Whether to automatically surface verbose and debug output when a CI system has its debug switch enabled (Azure DevOps 'System.Debug', GitHub Actions runner debug logging), options are None and Auto.
+        Type: string
+        Default value: 'Auto'
+
         RenderMode: The mode used to render console output, options are Auto, Ansi, ConsoleColor and Plaintext.
         Type: string
         Default value: 'Auto'
+
+        ShowTags: Append the tags of each Describe, Context and It to its console output line, e.g. 'Describing Get-Planet [Tags: Slow, Unix]'.
+        Type: bool
+        Default value: $false
 
     TestDrive:
         Enabled: Enable TestDrive.
@@ -228,6 +252,11 @@ SECTIONS AND OPTIONS
         Enabled: Enable TestRegistry.
         Type: bool
         Default value: $true
+
+    Mock:
+        Global: EXPERIMENTAL: Make every mock a global mock, so it is applied to calls of the command from any module or script in the runspace. ModuleName is then used only as a hint to resolve the command, not to scope where the mock applies. Use at your own risk!
+        Type: bool
+        Default value: $false
 
 SEE ALSO
     Pester website: https://pester.dev

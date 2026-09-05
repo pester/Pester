@@ -26,6 +26,7 @@ Describe "Should-BeTrue" {
     }
 
     It "Can be called with positional parameters" {
-        { Should-BeTrue $false } | Verify-AssertionFailed
+        $err = { Should-BeTrue $false } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "Expected [bool] `$true, but got: [bool] `$false."
     }
 }

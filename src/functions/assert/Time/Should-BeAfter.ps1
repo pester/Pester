@@ -58,6 +58,10 @@
     .NOTES
     The `Should-BeAfter` assertion is the opposite of the `Should-BeBefore` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeAfter
 
@@ -67,7 +71,7 @@
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding(DefaultParameterSetName = "Now")]
     param (
-        [Parameter(Position = 2, ValueFromPipeline = $true)]
+        [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
 
         [Parameter(ParameterSetName = "Now")]
@@ -89,8 +93,8 @@
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     # Now is just a syntax marker, we don't need to do anything with it.
     $Now = $Now
@@ -111,9 +115,20 @@
         }
     }
 
-    if ($Actual -le $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the provided [datetime] to be after <expectedType> <expected>,<because> but it was before: <actual>"
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    # A relational operator throws a native conversion error when $Actual is not a comparable single
+    # value, which is what happens when a multi-item collection is piped in and unwrapped to [object[]].
+    # Catch it so we can show the input hint instead of a cryptic "Could not compare" error; when it is
+    # not a piped-collection gotcha we have nothing to add, so the original error is rethrown.
+    $failed = $false
+    $comparisonError = $null
+    try {
+        $failed = $Actual -le $Expected
     }
-    Set-AssertionPassResult
+    catch {
+        $comparisonError = $_
+    }
+    if ($comparisonError -or $failed) {
+        if ($comparisonError -and -not $assert.Hint()) { throw $comparisonError }
+        $assert.Fail("Expected the provided [datetime] to be after <expectedType> <expected>,<because> but it was before: <actual>", @{ Expected = $Expected; Because = $Because })
+    }
 }

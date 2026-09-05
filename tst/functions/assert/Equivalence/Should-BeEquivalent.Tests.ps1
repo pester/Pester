@@ -199,7 +199,10 @@ InPesterModuleScope {
 
         It "Given collection '<expected>' on the expected side and non-collection '<actual>' on the actual side it prints the correct message '<message>'" -TestCases @(
             @{ Actual = 3; Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." },
-            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." }
+            @{ Actual = ([PSCustomObject]@{ Name = 'Jakub' }); Expected = (1, 2, 3, 4); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got PSObject{Name='Jakub'}." },
+            # A collection without a scalar .Length (e.g. List<T>) must still report its
+            # real size via .Count, not enumerate .Length into a bogus value like "1 1 1 1".
+            @{ Actual = 3; Expected = ([System.Collections.Generic.List[int]]@(1, 2, 3, 4)); Message = "Expected collection @(1, 2, 3, 4) with length 4, but got 3." }
         ) {
             param ($Actual, $Expected, $Message)
             Compare-CollectionEquivalent -Actual $Actual -Expected $Expected | Verify-Equal $Message
@@ -473,8 +476,6 @@ InPesterModuleScope {
             $ActualDeserialized = SerializeDeserialize $Actual
             Should-BeEquivalent -Actual $ActualDeserialized -Expected $ExpectedDeserialized
             Should-BeEquivalent -Actual $Actual -Expected $ExpectedDeserialized
-
-            { Should-BeEquivalent -Actual $Actual -Expected $Expected -StrictOrder } | Should -Throw
 
             $Actual.Rows[1].Name = 'D'
             { Should-BeEquivalent -Actual $Actual -Expected $Expected } | Should -Throw

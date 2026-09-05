@@ -57,85 +57,89 @@
 
     .EXAMPLE
     ```powershell
-    Mock Set-Content {}
+    function Save-Report ($Path, $Content) {
+        Set-Content -Path $Path -Value $Content
+    }
 
-    {... Some Code ...}
+    Describe 'Save-Report' {
+        It 'writes the report to disk' {
+            Mock Set-Content
 
-    Should-Invoke Set-Content
-    ```
+            Save-Report -Path 'report.txt' -Content 'All systems green'
 
-    This will throw an exception and cause the test to fail if Set-Content is not called in Some Code.
-
-    .EXAMPLE
-    ```powershell
-    Mock Set-Content -parameterFilter {$path.StartsWith("$env:temp\")}
-
-    {... Some Code ...}
-
-    Should-Invoke Set-Content 2 { $path -eq "$env:temp\test.txt" }
-    ```
-
-    This will throw an exception if some code calls Set-Content on $path=$env:temp\test.txt less than 2 times
-
-    .EXAMPLE
-    ```powershell
-    Mock Set-Content {}
-
-    {... Some Code ...}
-
-    Should-Invoke Set-Content 0
-    ```
-
-    This will throw an exception if some code calls Set-Content at all
-
-    .EXAMPLE
-    Mock Set-Content {}
-
-    {... Some Code ...}
-
-    Should-Invoke Set-Content -Exactly 2
-
-    This will throw an exception if some code does not call Set-Content Exactly two times.
-
-    .EXAMPLE
-    ```powershell
-    Describe 'Should-Invoke Scope behavior' {
-        Mock Set-Content { }
-
-        It 'Calls Set-Content at least once in the It block' {
-            {... Some Code ...}
-
-            Should-Invoke Set-Content -Exactly 0 -Scope It
+            Should-Invoke Set-Content -Times 1 -Exactly
         }
     }
     ```
 
-    Checks for calls only within the current It block.
+    Asserts that `Save-Report` wrote to disk by calling the mocked `Set-Content` exactly once. The test fails if `Set-Content` was not called, or was called more than once.
 
     .EXAMPLE
     ```powershell
-    Describe 'Describe' {
-        Mock -ModuleName SomeModule Set-Content { }
+    Mock Set-Content
 
-        {... Some Code ...}
+    Save-Report -Path 'report.txt' -Content 'All systems green'
 
-        It 'Calls Set-Content at least once in the Describe block' {
-            Should-Invoke -ModuleName SomeModule Set-Content
+    Should-Invoke Set-Content -ParameterFilter { $Path -eq 'report.txt' }
+    ```
+
+    Only the calls where `-Path` was `report.txt` are counted. The assertion passes, because `Save-Report` wrote to that path.
+
+    .EXAMPLE
+    ```powershell
+    function Get-Weather ($City) {
+        Invoke-RestMethod -Uri "https://api.example.com/weather?city=$City"
+    }
+
+    Mock Invoke-RestMethod
+
+    Get-Weather -City 'Oslo'
+
+    Should-Invoke Invoke-RestMethod -Times 1 -Exactly -ParameterFilter { $Uri -match 'city=Oslo' }
+    ```
+
+    Asserts that the weather API was queried exactly once, and that the request was made for the city of Oslo.
+
+    .EXAMPLE
+    ```powershell
+    Describe 'Save-Report' {
+        BeforeAll { Mock Set-Content }
+
+        It 'writes exactly once per call' {
+            Save-Report -Path 'a.txt' -Content 'x'
+
+            Should-Invoke Set-Content -Times 1 -Exactly -Scope It
         }
     }
     ```
 
-    Checks for calls to the mock within the SomeModule module.  Note that both the Mock
-    and Should-Invoke commands use the same module name.
+    `-Scope It` counts only the calls made in the current `It` block, even though the mock is shared by the whole `Describe`.
 
     .EXAMPLE
     ```powershell
-    Should-Invoke Get-ChildItem -ExclusiveFilter { $Path -eq 'C:\' }
+    Describe 'Publish-Thing' {
+        It 'writes from inside the module' {
+            Mock -ModuleName Toolbox Set-Content
+
+            Publish-Thing
+
+            Should-Invoke -ModuleName Toolbox Set-Content -Times 1 -Exactly
+        }
+    }
     ```
 
-    Checks to make sure that Get-ChildItem was called at least one time with
-    the -Path parameter set to 'C:\', and that it was not called at all with
-    the -Path parameter set to any other value.
+    When the command under test lives in a module, both `Mock` and `Should-Invoke` must use the same `-ModuleName` so the recorded call is found.
+
+    .EXAMPLE
+    ```powershell
+    Mock Remove-Item
+
+    Remove-TempFile -Path "$env:TEMP/old.log"
+
+    Should-Invoke Remove-Item -ExclusiveFilter { $Path -like "$env:TEMP*" }
+    ```
+
+    `-ExclusiveFilter` passes only if *every* recorded call matches the filter. Here it asserts that `Remove-Item` was called at least once, and only ever for paths inside the temp folder. It is a shorthand for pairing a `Should-Invoke` and a `Should-NotInvoke`.
 
     .NOTES
     The parameter filter passed to Should-Invoke does not necessarily have to match the parameter filter
@@ -145,6 +149,10 @@
     being executed instead of a mock), these calls to the original command are not tracked in the call history.
     In other words, Should-Invoke can only be used to check for calls to the mocked implementation, not
     to the original.
+
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
 
     .LINK
     https://pester.dev/docs/commands/Should-Invoke
@@ -181,11 +189,14 @@
         [switch] $Verifiable
     )
 
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Buffer $local:Input
+
     if ($PSBoundParameters.ContainsKey('Verifiable')) {
         $PSBoundParameters.Remove('Verifiable')
         $testResult = Should-InvokeVerifiable @PSBoundParameters
-        Test-AssertionResult $testResult
-        Set-AssertionPassResult
+        if (-not $testResult.Succeeded) {
+            $assert.Fail($testResult.FailureMessage)
+        }
         return
     }
 
@@ -194,8 +205,10 @@
     $PSBoundParameters["ActualValue"] = $null
     $PSBoundParameters["Negate"] = $false
     $PSBoundParameters["CallerSessionState"] = $PSCmdlet.SessionState
+    $PSBoundParameters["CommandDisplayName"] = 'Should-Invoke'
     $testResult = Should-InvokeAssertion @PSBoundParameters
 
-    Test-AssertionResult $testResult
-    Set-AssertionPassResult
+    if (-not $testResult.Succeeded) {
+        $assert.Fail($testResult.FailureMessage)
+    }
 }

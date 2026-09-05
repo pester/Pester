@@ -28,9 +28,6 @@
         Forces inlining the module into a single file. This is how real build is
         done, but makes local debugging difficult. When -CI is used, inlining is
         forced.
-
-    .NOTES
-        Tests are excluded with Tags VersionChecks, StyleRules, Help.
 #>
 param (
     # force P to fail when I leave `dt` in the tests
@@ -64,6 +61,15 @@ if ($CC) {
     Write-Host "Running Code Coverage"
     $env:PESTER_CC_DEBUG = 0
     $env:PESTER_CC_IN_CC = 1
+    # Tests that spawn a child process via Invoke-InNewProcess (e.g. the Output and InNewProcess
+    # tests) execute Pester code the parent tracer cannot see. Point those children at a shared
+    # drop folder and hand them the tracer points we compute below; each child traces itself and
+    # writes the coordinates it hit there, and we merge them into $measure below before the report
+    # is generated.
+    $ccChildDir = Join-Path ([System.IO.Path]::GetTempPath()) "pester-cc-child-$PID"
+    if (Test-Path $ccChildDir) { Remove-Item $ccChildDir -Recurse -Force }
+    $null = New-Item -ItemType Directory -Path $ccChildDir -Force
+    $env:PESTER_CC_CHILD_OUTPUT = $ccChildDir
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $here = {}
     $bp = Set-PSBreakpoint -Script $PSCommandPath -Line $here.StartPosition.StartLine -Action {}
@@ -75,8 +81,25 @@ if ($CC) {
     else {
         $breakpoints = & $Enter_CoverageAnalysis -CodeCoverage "$PSScriptRoot/src/*" -UseBreakpoints $false
     }
+    $Get_TracerPoint = & (Get-Module Pester) { Get-Command Get-TracerPoint }
+    $points = & $Get_TracerPoint -Breakpoints $breakpoints
+
+    # Write the points out once for the children to read. Analyzing the source tree to arrive at
+    # this list is the expensive part of a coverage run (about 10k points, inlined or not), and
+    # every child used to redo it. A child only ever reports back path + 'line:column', so it needs the
+    # coordinates and nothing else; the command text is left out because only the parent's report
+    # uses it.
+    $ccPointsFile = Join-Path ([System.IO.Path]::GetTempPath()) "pester-cc-points-$PID.tsv"
+    $tab = [char] 9
+    $pointLines = [System.Collections.Generic.List[string]]::new($points.Count)
+    foreach ($point in $points) {
+        $pointLines.Add($point.Path + $tab + $point.Line + $tab + $point.Column + $tab + $point.BpLine + $tab + $point.BpColumn)
+    }
+    [System.IO.File]::WriteAllLines($ccPointsFile, $pointLines)
+    $env:PESTER_CC_CHILD_POINTS = $ccPointsFile
+
     $Start_TraceScript = & (Get-Module Pester) { Get-Command Start-TraceScript }
-    $patched, $tracer = & $Start_TraceScript $breakpoints
+    $patched, $tracer = & $Start_TraceScript -Points $points
 }
 
 # remove pester because we will be reimporting it in multiple other places
@@ -176,8 +199,6 @@ else {
 $configuration.Run.ExcludePath = '*/demo/*', '*/examples/*', '*/testProjects/*'
 $configuration.Run.PassThru = $true
 
-$configuration.Filter.ExcludeTag = 'VersionChecks', 'StyleRules'
-
 if ($CI) {
     $configuration.Run.Exit = $true
 
@@ -185,6 +206,10 @@ if ($CI) {
     $configuration.CodeCoverage.Enabled = $false
 
     $configuration.TestResult.Enabled = $true
+
+    # Modern NUnit3 schema, which is what dorny/test-reporter reads in
+    # .github/workflows/test-report.yml.
+    $configuration.TestResult.OutputFormat = 'NUnit3'
 }
 
 $r = Invoke-Pester -Configuration $configuration
@@ -198,12 +223,58 @@ if ($CC) {
 
         & $Stop_TraceScript -Patched $patched
         $measure = $tracer.Hits
+
+        # Merge the hits collected in child processes (Invoke-InNewProcess) into the in-process
+        # measure. Parent and child trace the same target, so a child hit at path + "line:column"
+        # maps onto the same not-yet-hit point here; flip it to Hit (the point is a struct, so we
+        # copy-modify-write back, exactly like the tracer does on a live hit).
+        $childFiles = @(Get-ChildItem -Path $ccChildDir -Filter '*.tsv' -File -ErrorAction SilentlyContinue)
+        $mergedPoints = 0
+        foreach ($cf in $childFiles) {
+            foreach ($rawLine in [System.IO.File]::ReadAllLines($cf.FullName)) {
+                if ([string]::IsNullOrWhiteSpace($rawLine)) { continue }
+                $tab = $rawLine.IndexOf("`t")
+                if ($tab -lt 0) { continue }
+                $path = $rawLine.Substring(0, $tab)
+                $key = $rawLine.Substring($tab + 1)
+                if (-not $measure.ContainsKey($path)) { continue }
+                $byKey = $measure[$path]
+                if (-not $byKey.ContainsKey($key)) { continue }
+                $list = $byKey[$key]
+                for ($i = 0; $i -lt $list.Count; $i++) {
+                    if (-not $list[$i].Hit) {
+                        $point = $list[$i]
+                        $point.Hit = $true
+                        $list[$i] = $point
+                        $mergedPoints++
+                    }
+                }
+            }
+        }
+        Write-Host "Merged code coverage from $($childFiles.Count) child process run(s), marking $mergedPoints additional point(s) as hit."
+
+        # The children collect coverage without being able to report a failure, they fall back to a
+        # plain run so the test itself still passes. So if the plumbing between us breaks, the only
+        # symptom is coverage quietly dropping. Say so instead. P tests are the ones that spawn
+        # children, so only check when they ran.
+        if (-not $SkipPTests -and 0 -eq $childFiles.Count) {
+            throw "Code coverage from child processes is missing, expected at least one file in '$ccChildDir'. Invoke-InNewProcess in tst/PTestHelpers.psm1 did not collect it."
+        }
+
         $coverageReport = & $Get_CoverageReport -CommandCoverage $breakpoints -Measure $measure
     }
     finally {
         if ($null -ne $bp) {
             $bp | Remove-PSBreakpoint
         }
+        if ($ccChildDir -and (Test-Path $ccChildDir)) {
+            Remove-Item $ccChildDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        if ($ccPointsFile -and (Test-Path $ccPointsFile)) {
+            Remove-Item $ccPointsFile -Force -ErrorAction SilentlyContinue
+        }
+        $env:PESTER_CC_CHILD_OUTPUT = $null
+        $env:PESTER_CC_CHILD_POINTS = $null
     }
 
     [xml] $jaCoCoReport = [xml] (& $Get_JaCoCoReportXml -CommandCoverage $breakpoints -TotalMilliseconds $sw.ElapsedMilliseconds -CoverageReport $coverageReport -ReportRoot $PSScriptRoot)

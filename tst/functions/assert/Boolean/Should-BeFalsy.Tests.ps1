@@ -30,6 +30,7 @@ Describe "Should-BeFalsy" {
     }
 
     It "Can be called with positional parameters" {
-        { Should-BeFalsy $true } | Verify-AssertionFailed
+        $err = { Should-BeFalsy $true } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Equal "Expected [bool] `$false or a falsy value: 0, `"`", `$null or @(), but got: [bool] `$true."
     }
 }

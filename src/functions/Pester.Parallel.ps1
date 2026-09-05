@@ -1,0 +1,467 @@
+﻿function Test-PesterFileIsNonParallel {
+    <#
+    .SYNOPSIS
+    Returns $true when a test file opts out of parallel execution via a file-level directive.
+
+    .DESCRIPTION
+    EXPERIMENTAL. A test file can opt out of parallelization (when Run.Parallel is enabled)
+    with a comment directive that is parsed similarly to PowerShell's `#requires`:
+
+        #pester:no-parallel
+
+    The colon-style marker is matched against real comment tokens using the PowerShell tokenizer,
+    so the marker is recognized only inside comments and never inside strings or here-strings.
+    It may appear anywhere in the file. Files marked this way run sequentially, after the
+    parallel batch has finished.
+    #>
+    [OutputType([bool])]
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    $tokens = $null
+    $parseErrors = $null
+    $null = [System.Management.Automation.Language.Parser]::ParseFile($Path, [ref] $tokens, [ref] $parseErrors)
+
+    foreach ($token in $tokens) {
+        if ($token.Kind -eq [System.Management.Automation.Language.TokenKind]::Comment -and
+            $token.Text -match '^#\s*pester:no-parallel\b') {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Split-PesterEventTape {
+    <#
+    .SYNOPSIS
+    Splits a recorded parallel event tape into its discovery and run segments.
+
+    .DESCRIPTION
+    EXPERIMENTAL. A parallel worker records the plugin steps it fires while discovering and
+    running a single file (see Invoke-TestInParallel). The parent replays those steps to its
+    reporting plugins so the emitted events match a sequential run. To fire the global
+    DiscoveryEnd/RunStart steps at the right moment, the parent needs the per-container steps
+    grouped by phase: everything up to and including ContainerDiscoveryEnd is discovery, the
+    rest (ContainerRunStart onward) is the run.
+
+    The tape may also carry host/debug output entries (Step = $null) captured while the file ran.
+    Splitting positionally at ContainerDiscoveryEnd - rather than by step name - keeps each of those
+    entries in the phase it was produced in, so debug written during discovery replays with discovery
+    and debug written during the run replays interleaved with the tests.
+    #>
+    [CmdletBinding()]
+    param(
+        [object[]] $Tape
+    )
+
+    $discovery = [System.Collections.Generic.List[object]]@()
+    $run = [System.Collections.Generic.List[object]]@()
+
+    $inRun = $false
+    foreach ($entry in $Tape) {
+        if ($inRun) {
+            $run.Add($entry)
+            continue
+        }
+        $discovery.Add($entry)
+        if ('ContainerDiscoveryEnd' -eq $entry.Step) {
+            $inRun = $true
+        }
+    }
+
+    [PSCustomObject]@{
+        Discovery = $discovery.ToArray()
+        Run       = $run.ToArray()
+    }
+}
+
+function Invoke-InRunspacePool {
+    <#
+    .SYNOPSIS
+    Runs a scriptblock once per input item, concurrently, in a pool of runspaces.
+
+    .DESCRIPTION
+    The parallelism primitive behind Run.Parallel. `ForEach-Object -Parallel` does the same thing,
+    but it only exists on PowerShell 7 and Pester also supports Windows PowerShell 5.1, so this is
+    built on the runspace API that both editions have. One implementation for both keeps the two
+    editions from drifting apart.
+
+    The scriptblock is handed over as text and re-parsed inside the worker runspace, so nothing
+    with runspace affinity crosses the boundary. Values reach the worker as named parameters
+    rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
+    in this process, so the values themselves cross as live objects either way.
+
+    Each item gets its own PowerShell instance and they are all started at once; the pool is what
+    limits how many actually run, so ThrottleLimit means the same as it does on ForEach-Object.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
+    [CmdletBinding()]
+    param(
+        [object[]] $InputObject,
+
+        [Parameter(Mandatory)]
+        [scriptblock] $ScriptBlock,
+
+        [int] $ThrottleLimit = 1,
+
+        # Passed to every worker as named parameters, on top of the item itself.
+        [System.Collections.IDictionary] $Parameters = @{},
+
+        # Name of the worker parameter that receives the current input item.
+        [string] $ItemParameterName = 'item'
+    )
+
+    $items = @($InputObject)
+    if (0 -eq $items.Count) {
+        return
+    }
+
+    if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
+
+    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
+    # console reaches the same one. Pester's workers are silenced, this is for anything else.
+    $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
+    $pool.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
+    $pool.Open()
+
+    $invocations = [System.Collections.Generic.List[object]]@()
+    try {
+        foreach ($item in $items) {
+            $powershell = [System.Management.Automation.PowerShell]::Create()
+            $powershell.RunspacePool = $pool
+            $null = $powershell.AddScript($ScriptBlock.ToString())
+            $null = $powershell.AddParameter($ItemParameterName, $item)
+            foreach ($key in $Parameters.Keys) {
+                $null = $powershell.AddParameter($key, $Parameters[$key])
+            }
+
+            $invocations.Add([PSCustomObject]@{
+                    PowerShell = $powershell
+                    Handle     = $powershell.BeginInvoke()
+                })
+        }
+
+        foreach ($invocation in $invocations) {
+            try {
+                $invocation.PowerShell.EndInvoke($invocation.Handle)
+            }
+            catch {
+                # One worker failing must not take the rest of the run with it, the remaining files
+                # still have results worth reporting. Surface it and keep going.
+                #
+                # -ErrorAction Continue on purpose. Without it the caller's $ErrorActionPreference
+                # decides, and a caller that runs with 'Stop' (a CI script, or Pester's own test.ps1)
+                # turns reporting a failed worker into a terminating error that aborts this loop -
+                # which is the very thing the line above says must not happen, and it would drop the
+                # results of every file that had already finished.
+                & $SafeCommands['Write-Error'] -ErrorRecord $_ -ErrorAction Continue
+            }
+
+            # The worker has no console of its own, so anything it wrote to these streams would be
+            # lost. Re-emit it here, non-terminating for the same reason as above.
+            foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
+                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord -ErrorAction Continue
+            }
+            foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
+                & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
+            }
+        }
+    }
+    finally {
+        foreach ($invocation in $invocations) {
+            $invocation.PowerShell.Dispose()
+        }
+        $pool.Close()
+        $pool.Dispose()
+    }
+}
+
+function Invoke-TestInParallel {
+    <#
+    .SYNOPSIS
+    EXPERIMENTAL. Runs file-based test containers in parallel, one runspace per file, and
+    returns each file's executed containers together with a recorded tape of the plugin events
+    that fired while it ran.
+
+    .DESCRIPTION
+    Used by Invoke-Pester when Run.Parallel is enabled. Each test file is executed by a full
+    Invoke-Pester run inside its own runspace, from a pool (see Invoke-InRunspacePool), which
+    works the same on Windows PowerShell 5.1 and on PowerShell 7.
+    The worker runs silently (Output.Verbosity = None) so it produces no console output of its
+    own; instead it records every per-container and per-test plugin step (with the live Block /
+    Test / Result objects) into an ordered tape. The parent replays that tape to its reporting
+    plugins (screen output + IDE adapters), so the events emitted for a parallel run match a
+    sequential run - only the concurrency differs.
+
+    Because Pester.dll is loaded once per process (via Add-Type -Path) and shared by every
+    runspace in it, the [Pester.Container] objects and the recorded contexts are live objects - no
+    serialization happens - so they can be folded straight back into a single run and replayed.
+    The execution-critical plugins (Mock, TestDrive, TestRegistry, SkipRemainingOnFailure) run
+    inside the worker where the test bodies execute; only the reporting plugins are replayed by
+    the parent.
+
+    Files marked with the `#pester:no-parallel` directive are partitioned out by the caller
+    (Invoke-Pester) and are not passed to this function.
+
+    .NOTES
+    Prototype limitations:
+    - TestResult is disabled inside workers to avoid output-file collisions; it is produced once by
+      the parent from the merged result tree.
+    - CodeCoverage, when enabled, is collected inside every worker using breakpoints (the default
+      profiler/tracer uses a process-global static and is not concurrency-safe across the worker
+      runspaces). Each worker returns its measured locations with per-location hit counts; the parent
+      merges them and produces the single coverage report and output file. Workers skip their own
+      report generation and file write via the CodeCoverageSkipReport module flag.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Get-Module/Import-Module run in a fresh ForEach-Object -Parallel runspace where the module-internal $SafeCommands table is unavailable.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-ObjectCmdlets', '', Justification = 'Where-Object/Sort-Object run once over the small per-run result set.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '', Justification = 'Recorder factory parameters are used inside the returned closure, which the rule does not follow.')]
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [Pester.ContainerInfo[]] $BlockContainer,
+
+        [Parameter(Mandatory)]
+        $Configuration
+    )
+
+    # Which Pester.BeforeContainer.ps1 files apply depends on where the file sits, from
+    # Run.RepoRoot down to the file's own folder. Resolved once here in the parent, not in the workers. Workers are separate runspaces that
+    # cannot share a cache, so letting each one resolve would mean rediscovering the same folders
+    # over and over, in parallel. They receive the answer as plain paths instead.
+    $beforeContainerMap = Resolve-PesterBeforeContainerMap -BlockContainer $BlockContainer -Configuration $Configuration
+    $work = @(foreach ($c in $BlockContainer) {
+            [PSCustomObject]@{
+                Path = $c.Item.FullName
+                Data = $c.Data
+                Init = @($beforeContainerMap[$c.Item.FullName])
+            }
+        })
+
+    # Path to the currently loaded Pester so each worker imports the exact same build.
+    # Use the module manifest (.psd1), not the root module (.psm1) that Module.Path points to:
+    # importing the bare .psm1 loads Pester without its manifest metadata, so its ModuleVersion
+    # becomes 0.0.0.0. That then fails to satisfy any module a test imports whose manifest lists
+    # Pester in RequiredModules (e.g. @{ ModuleName = 'Pester'; ModuleVersion = '5.7.1' }),
+    # because the loaded 0.0.0.0 is below the required version (#2816).
+    $pesterModuleInfo = $ExecutionContext.SessionState.Module
+    $modulePath = $pesterModuleInfo.Path
+    $manifestPath = & $SafeCommands['Join-Path'] $pesterModuleInfo.ModuleBase "$($pesterModuleInfo.Name).psd1"
+    if (& $SafeCommands['Test-Path'] -LiteralPath $manifestPath -PathType Leaf) {
+        $modulePath = $manifestPath
+    }
+
+    # Cap concurrency at Run.ParallelThrottleLimit when set (> 0); otherwise use all processors.
+    $requestedThrottle = [int]$Configuration.Run.ParallelThrottleLimit.Value
+    if ($requestedThrottle -gt 0) {
+        $throttle = $requestedThrottle
+    }
+    else {
+        $throttle = [Environment]::ProcessorCount
+    }
+    if ($throttle -lt 1) { $throttle = 1 }
+
+    # Sanitize the configuration handed to workers: strip the options that hold scriptblocks so
+    # nothing with runspace affinity is sent across the boundary. The BeforeContainer setup is
+    # already resolved to text per work item above; ScriptBlock/Container are unused for file runs.
+    $baseConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $Configuration)
+    $baseConfig.Run.ScriptBlock = [scriptblock[]]@()
+    $baseConfig.Run.Container = @()
+
+    # Whether this run measures code coverage. When enabled the workers collect breakpoint-based
+    # coverage (see the .NOTES) and the parent merges it. When disabled coverage stays off entirely.
+    $collectCoverage = [bool] $Configuration.CodeCoverage.Enabled.Value
+
+    # The per-container and per-test plugin steps each worker records and the parent replays.
+    # Global steps (Start/DiscoveryStart/DiscoveryEnd/RunStart/RunEnd/End) are intentionally
+    # excluded - the parent fires those once for the whole run.
+    $recordedSteps = @(
+        'ContainerDiscoveryStart', 'BlockDiscoveryStart', 'TestDiscoveryStart', 'TestDiscoveryEnd',
+        'BlockDiscoveryEnd', 'ContainerDiscoveryEnd', 'ContainerRunStart', 'OneTimeBlockSetupStart',
+        'EachBlockSetupStart', 'OneTimeTestSetupStart', 'EachTestSetupStart', 'EachTestTeardownEnd',
+        'OneTimeTestTeardownEnd', 'EachBlockTeardownEnd', 'OneTimeBlockTeardownEnd', 'ContainerRunEnd'
+    )
+
+    # Worker body. Imports Pester, runs the per-container initialization (so helper
+    # modules/functions the parent provided are available), clones the base configuration (via
+    # Merge so unset options keep their defaults), points it at a single file, disables
+    # parallel/exit/throw to avoid recursion and process exits, disables the TestResult file write
+    # (the parent produces it), and silences the worker's own console output. When coverage is on it
+    # is measured with breakpoints and the report/file write is suppressed, so the parent can merge
+    # every worker's hits and emit one report. A recorder plugin is injected (via the supported
+    # $script:additionalPlugins channel) to capture the ordered plugin-event tape returned for replay.
+    $worker = {
+        param($item, $modulePath, $baseConfig, $recordedSteps, $collectCoverage, $workingDirectory)
+
+        # A fresh runspace starts at the process working directory, which is not necessarily where
+        # the caller is. ForEach-Object -Parallel keeps the caller's location and test files resolve
+        # relative paths against it, so put the worker there too.
+        if (-not [string]::IsNullOrEmpty($workingDirectory)) {
+            Set-Location -LiteralPath $workingDirectory
+        }
+
+        if (-not (Get-Module -Name Pester)) {
+            Import-Module $modulePath
+        }
+
+        $workerConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $baseConfig)
+        # Pass the file together with its -Data so parametrized containers (New-PesterContainer
+        # -Path ... -Data @{ ... }) bind the file's param() block the same way they do sequentially.
+        # Run them by reference - ForEach-Object -Parallel uses runspaces in the same process, so the
+        # Data values (including live objects) cross unchanged. When there is no Data, point at the
+        # path directly, which behaves identically to a plain file run.
+        if (($item.Data -is [System.Collections.IDictionary]) -and 0 -lt $item.Data.Count) {
+            $workerConfig.Run.Container = New-PesterContainer -Path $item.Path -Data $item.Data
+        }
+        else {
+            $workerConfig.Run.Path = $item.Path
+        }
+        $workerConfig.Run.Parallel = $false
+        $workerConfig.Run.PassThru = $true
+        $workerConfig.Run.Exit = $false
+        $workerConfig.Run.Throw = $false
+        $workerConfig.TestResult.Enabled = $false
+        if ($collectCoverage) {
+            # Measure coverage with breakpoints, not the default profiler/tracer: the tracer keeps its
+            # state in a process-global static, so concurrent workers would overwrite each other's hits.
+            # Set-PSBreakpoint is per-runspace, so every worker measures its own file in isolation.
+            $workerConfig.CodeCoverage.Enabled = $true
+            $workerConfig.CodeCoverage.UseBreakpoints = $true
+        }
+        else {
+            $workerConfig.CodeCoverage.Enabled = $false
+        }
+        # The parent already resolved which Pester.BeforeContainer.ps1 files apply to this file and
+        # passed them as $item.Init; they are handed to the worker's run below so it dot-sources them
+        # into the container's own scope, exactly like a sequential run does. Clear RepoRoot so the
+        # worker does not resolve them a second time. RepoRoot is otherwise only used for CodeCoverage
+        # report roots, which the parent applies when it generates the merged report.
+        $workerConfig.Run.RepoRoot = ''
+        # The worker stays silent; the parent renders all output by replaying the recorded tape.
+        $workerConfig.Output.Verbosity = 'None'
+        # Keep the raw result object in the worker. At the end of a run Pester strips internal,
+        # non-public state (including each block's FrameworkData) off the result tree. The tape
+        # holds live references to those same Block/Test objects, so that cleanup would blank out
+        # FrameworkData.CommandUsed (Describe/Context) before the parent replays the tape, and the
+        # reporting plugins would then fail to render the "Describing"/"Context" headers in
+        # Detailed/Diagnostic output (#2824). The parent runs the same cleanup itself after folding
+        # the worker's containers into its own run (Remove-RSpecNonPublicProperties in Main.ps1,
+        # after the tape has been replayed), so the user still receives a cleaned result. Keeping the
+        # raw object also preserves PluginData.Coverage so the worker's measured hits reach the parent.
+        $workerConfig.Debug.ReturnRawResultObject = $true
+
+        $pesterModule = Get-Module -Name Pester
+
+        # Build a recorder plugin whose step scriptblocks append (step name + live context) to a
+        # worker-local tape. The plugin is created in the module scope so it can call the internal
+        # New-PluginObject, and each step closes over the same $tape list.
+        $tape = [System.Collections.Generic.List[object]]::new()
+        $recorder = & $pesterModule {
+            param($tape, $steps)
+            $h = @{ Name = 'ParallelRecorder' }
+            foreach ($s in $steps) {
+                $makeStep = {
+                    param($stepName, $tapeRef)
+                    { param($Context) $tapeRef.Add([PSCustomObject]@{ Step = $stepName; Context = $Context }) }.GetNewClosure()
+                }
+                $h[$s] = & $makeStep $s $tape
+            }
+            New-PluginObject @h
+        } $tape $recordedSteps
+
+        # Inject the recorder via the supported additional-plugins channel and point the module's
+        # parallel output tape at the same list, so both the recorded plugin steps and any host/debug
+        # output the run writes are appended to one ordered tape. Run, then clear both. The tape is
+        # wrapped in a hashtable when handed across the module boundary: passing the (still empty) list
+        # positionally coerces it to a fixed-size array, which then throws on .Add during the run.
+        # When coverage is on, also tell the Coverage plugin's End step to skip report generation and
+        # the output-file write in this worker, the parent merges every worker's raw hits and emits the
+        # single report/file.
+        & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
+        & $pesterModule { param($f, $p) $script:additionalBeforeContainer = @{ $f = @($p) } } $item.Path $item.Init
+        & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }
+        if ($collectCoverage) {
+            & $pesterModule { $script:CodeCoverageSkipReport = $true }
+        }
+        try {
+            $out = Invoke-Pester -Configuration $workerConfig
+        }
+        finally {
+            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null; $script:additionalBeforeContainer = $null }
+            if ($collectCoverage) {
+                & $pesterModule { $script:CodeCoverageSkipReport = $null }
+            }
+        }
+
+        $runObject = $null
+        foreach ($o in $out) {
+            if ($o -is [Pester.Run]) { $runObject = $o; break }
+        }
+
+        # Project the measured breakpoint locations to a light shape (no Ast / live Breakpoint refs)
+        # carrying just the metadata and hit count the parent needs to merge and report coverage.
+        # Convert-CommandCoverageToProjection is module-internal, so call it in the module scope.
+        $coverage = if ($collectCoverage -and $null -ne $runObject -and $null -ne $runObject.PluginData -and $runObject.PluginData.ContainsKey('Coverage')) {
+            @(& $pesterModule { param($cc) Convert-CommandCoverageToProjection -CommandCoverage $cc } @($runObject.PluginData.Coverage.CommandCoverage))
+        }
+        else {
+            @()
+        }
+
+        [PSCustomObject]@{
+            Path       = $item.Path
+            Containers = @($runObject.Containers)
+            Tape       = $tape.ToArray()
+            Coverage   = $coverage
+        }
+    }
+
+    $results = @()
+    if (0 -lt $work.Count) {
+        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Parameters @{
+            modulePath       = $modulePath
+            baseConfig       = $baseConfig
+            recordedSteps    = $recordedSteps
+            collectCoverage  = $collectCoverage
+            workingDirectory = $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path
+        }
+    }
+
+    # Keep only well-formed worker results (defensive against stray pipeline output).
+    $results = @($results | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.PSCustomObject] -and $null -ne $_.PSObject.Properties['Containers'] })
+
+    # The filter above cannot tell stray output from a worker that died before it returned its
+    # result object, so on its own it would drop a whole test file and let the run report success
+    # with fewer files than it was given. Losing results silently is worse than failing, so compare
+    # what came back against what was sent and name the files that went missing. The worker's own
+    # error was already surfaced by Invoke-InRunspacePool, this says which file it cost us.
+    if ($results.Count -ne $work.Count) {
+        $returnedPaths = @{}
+        foreach ($r in $results) {
+            if ($null -ne $r.PSObject.Properties['Path']) { $returnedPaths[$r.Path] = $true }
+        }
+
+        $missing = @(foreach ($w in $work) {
+                if (-not $returnedPaths.ContainsKey($w.Path)) { $w.Path }
+            })
+
+        throw "Parallel run lost the results of $($missing.Count) of $($work.Count) file(s), the worker(s) running them did not return a result. See the errors above for why. Lost: $($missing -join ', ')"
+    }
+
+    # Restore the original discovery order so replay and the merged run are deterministic
+    # regardless of which worker finished first.
+    $order = @{}
+    for ($i = 0; $i -lt $BlockContainer.Count; $i++) {
+        $order[$BlockContainer[$i].Item.FullName] = $i
+    }
+    @($results | & $SafeCommands['Sort-Object'] -Property @{ Expression = {
+                if ($order.ContainsKey($_.Path)) { $order[$_.Path] } else { [int]::MaxValue }
+            }
+        })
+}
+

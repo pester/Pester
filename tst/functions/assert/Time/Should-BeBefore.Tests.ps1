@@ -64,6 +64,13 @@ Describe "Should-BeBefore" {
         $err.Exception.Message | Verify-Like '*because I said so*'
     }
 
+    It "Fails with an input hint when a multi-item collection is piped, which the pipeline unwraps before comparing" {
+        # A piped multi-item collection is unwrapped to [Object[]], which cannot be compared to a
+        # [datetime]. Instead of a cryptic native error the assertion now fails with a hint. #2801
+        $err = { @([DateTime]::Now.AddDays(1), [DateTime]::Now.AddDays(1)) | Should-BeBefore -Expected ([DateTime]::Now) } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a*into a single-value assertion*'
+    }
+
     It "Can check file creation date" {
         New-Item -ItemType Directory -Path "TestDrive:\MyFolder" -Force | Out-Null
         $path = "TestDrive:\MyFolder\test.txt"

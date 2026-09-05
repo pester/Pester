@@ -32,9 +32,13 @@ namespace Pester
         private BoolOption _throw;
         private BoolOption _passThru;
         private BoolOption _skipRun;
+        private BoolOption _parallel;
+        private IntOption _parallelThrottleLimit;
         private StringOption _skipRemainingOnFailure;
         private BoolOption _failOnNullOrEmptyForEach;
         private StringOption _repoRoot;
+        private BoolOption _shuffle;
+        private IntOption _shuffleSeed;
 
         public static RunConfiguration Default { get { return new RunConfiguration(); } }
         public static RunConfiguration ShallowClone(RunConfiguration configuration)
@@ -55,9 +59,13 @@ namespace Pester
                 configuration.AssignValueIfNotNull<bool>(nameof(Throw), v => Throw = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(PassThru), v => PassThru = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(SkipRun), v => SkipRun = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Parallel), v => Parallel = v);
+                configuration.AssignValueIfNotNull<int>(nameof(ParallelThrottleLimit), v => ParallelThrottleLimit = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(SkipRemainingOnFailure), v => SkipRemainingOnFailure = v);
                 configuration.AssignValueIfNotNull<bool>(nameof(FailOnNullOrEmptyForEach), v => FailOnNullOrEmptyForEach = v);
                 configuration.AssignObjectIfNotNull<string>(nameof(RepoRoot), v => RepoRoot = v);
+                configuration.AssignValueIfNotNull<bool>(nameof(Shuffle), v => Shuffle = v);
+                configuration.AssignValueIfNotNull<int>(nameof(ShuffleSeed), v => ShuffleSeed = v);
             }
         }
 
@@ -72,9 +80,13 @@ namespace Pester
             Throw = new BoolOption("Throw an exception when test run fails. When used together with Exit, throwing an exception is preferred.", false);
             PassThru = new BoolOption("Return result object to the pipeline after finishing the test run.", false);
             SkipRun = new BoolOption("Runs the discovery phase but skips run. Use it with PassThru to get object populated with all tests.", false);
+            Parallel = new BoolOption("EXPERIMENTAL: Run test files in parallel, each file in its own runspace, on both Windows PowerShell 5.1 and PowerShell 7. Files that contain the '#pester:no-parallel' directive run sequentially after the parallel batch. Falls back to a sequential run when non-file containers (ScriptBlock) are used, when Run.SkipRemainingOnFailure is set to 'Run', or when every file opts out of parallel. CodeCoverage is supported: each worker measures its own file and Pester merges the results into a single report.", false);
+            ParallelThrottleLimit = new IntOption("EXPERIMENTAL: Maximum number of test files to run at the same time when Run.Parallel is enabled. The default 0 uses all available processors ([Environment]::ProcessorCount). Set a lower number to cap how many runspaces run concurrently. Only used when Run.Parallel is enabled. Setting it to 1 does not turn parallel off, the files still go through the parallel machinery one at a time, each in its own runspace, so a breakpoint set in the calling session still does not hit inside a worker.", 0);
             SkipRemainingOnFailure = new StringOption("Skips remaining tests after failure for selected scope, options are None, Run, Container and Block.", "None");
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
-            RepoRoot = new StringOption("Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used.", FindRepoRoot());
+            Shuffle = new BoolOption("EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.", false);
+            ShuffleSeed = new IntOption("EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.", 0);
+            RepoRoot = new StringOption("EXPERIMENTAL: Root directory of the repository. Found when the run starts, by searching for the .git directory upwards from the current location. When not found, the current location is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources every 'Pester.BeforeContainer.ps1' found from this directory down to the test file's own folder, outermost first, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. Setup shared by all tests can live at the root while setup only some tests need lives in their folder. The files run before each container and must be safe to run more than once. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs them.", FindRepoRoot());
         }
 
         public StringArrayOption Path
@@ -221,6 +233,38 @@ namespace Pester
             }
         }
 
+        public BoolOption Parallel
+        {
+            get { return _parallel; }
+            set
+            {
+                if (_parallel == null)
+                {
+                    _parallel = value;
+                }
+                else
+                {
+                    _parallel = new BoolOption(_parallel, value.Value);
+                }
+            }
+        }
+
+        public IntOption ParallelThrottleLimit
+        {
+            get { return _parallelThrottleLimit; }
+            set
+            {
+                if (_parallelThrottleLimit == null)
+                {
+                    _parallelThrottleLimit = value;
+                }
+                else
+                {
+                    _parallelThrottleLimit = new IntOption(_parallelThrottleLimit, value.Value);
+                }
+            }
+        }
+
         public StringOption SkipRemainingOnFailure
         {
             get { return _skipRemainingOnFailure; }
@@ -269,21 +313,69 @@ namespace Pester
             }
         }
 
-        private static string FindRepoRoot()
+        public BoolOption Shuffle
         {
-            var originalDir = Directory.GetCurrentDirectory();
-            var currentDir = originalDir;
+            get { return _shuffle; }
+            set
+            {
+                if (_shuffle == null)
+                {
+                    _shuffle = value;
+                }
+                else
+                {
+                    _shuffle = new BoolOption(_shuffle, value.Value);
+                }
+            }
+        }
+
+        public IntOption ShuffleSeed
+        {
+            get { return _shuffleSeed; }
+            set
+            {
+                if (_shuffleSeed == null)
+                {
+                    _shuffleSeed = value;
+                }
+                else
+                {
+                    _shuffleSeed = new IntOption(_shuffleSeed, value.Value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Walks up from startDirectory looking for a .git directory and returns the first directory
+        /// that has one, or startDirectory when there is none above it.
+        /// </summary>
+        public static string FindRepoRoot(string startDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(startDirectory))
+            {
+                return startDirectory;
+            }
+
+            var currentDir = startDirectory;
             while (!Directory.Exists(System.IO.Path.Combine(currentDir, ".git")))
             {
                 var parentDir = Directory.GetParent(currentDir);
                 if (parentDir == null)
                 {
-                    return originalDir;
+                    return startDirectory;
                 }
                 currentDir = parentDir.FullName;
             }
             return currentDir;
+        }
 
+        private static string FindRepoRoot()
+        {
+            // The process working directory, which is not the caller's PowerShell location: Set-Location
+            // changes the location without changing this. So this is only a placeholder for a configuration
+            // object that has not been used for a run yet, Invoke-Pester resolves RepoRoot again from the
+            // session's own location before the run starts.
+            return FindRepoRoot(Directory.GetCurrentDirectory());
         }
     }
 }

@@ -206,9 +206,12 @@ function Copy-Content ($Content) {
 
 $content = @(
     , ("$PSScriptRoot/src/en-US/*.txt", "$PSScriptRoot/bin/en-US/")
-    , ("$PSScriptRoot/src/Pester.ps1", "$PSScriptRoot/bin/")
+    , ("$PSScriptRoot/src/Pester.ScriptScope.ps1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.psd1", "$PSScriptRoot/bin/")
     , ("$PSScriptRoot/src/Pester.Format.ps1xml", "$PSScriptRoot/bin/")
+    # Pester.dll has DiffPlex compiled into it, and Apache-2.0 asks that whoever gets the binary
+    # gets the licence with it, so the notices file has to be in the module, not only in the repo.
+    , ("$PSScriptRoot/ThirdPartyNotices.txt", "$PSScriptRoot/bin/")
 )
 
 if ($Clean) {

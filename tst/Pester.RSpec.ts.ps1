@@ -280,6 +280,42 @@ i -PassThru:$PassThru {
         }
     }
 
+    b "Excluding directories from a run" {
+        try {
+            $path = $pwd
+            $c = 'Describe "d1" { It "i1" { $true } }'
+            $root = Join-Path ([IO.Path]::GetTempPath()) "excludepath-dir-$([Guid]::NewGuid().Guid)"
+            $includedDir = Join-Path $root "included"
+            $excludedDir = Join-Path $root "excluded"
+            New-Item -ItemType Directory -Path $includedDir -Force | Out-Null
+            New-Item -ItemType Directory -Path $excludedDir -Force | Out-Null
+
+            $includedFile = Join-Path $includedDir "included.Tests.ps1"
+            $excludedFile = Join-Path $excludedDir "excluded.Tests.ps1"
+            $c | Set-Content $includedFile
+            $c | Set-Content $excludedFile
+
+            t "Excluding a directory excludes the tests underneath it but keeps sibling tests" {
+                $result = Invoke-Pester -Path $root -ExcludePath $excludedDir -PassThru
+
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Item.FullName | Verify-Equal $includedFile
+            }
+
+            t "Excluding a directory with a trailing separator excludes the tests underneath it" {
+                $excludedWithSeparator = $excludedDir + [System.IO.Path]::DirectorySeparatorChar
+                $result = Invoke-Pester -Path $root -ExcludePath $excludedWithSeparator -PassThru
+
+                $result.Containers.Count | Verify-Equal 1
+                $result.Containers[0].Item.FullName | Verify-Equal $includedFile
+            }
+        }
+        finally {
+            cd $path
+            Remove-Item $root -Recurse -Force -Confirm:$false -ErrorAction Stop
+        }
+    }
+
     b "Terminating and non-terminating Should" {
         t "Non-terminating assertion fails the test after running to completion" {
             $sb = {
@@ -1829,6 +1865,8 @@ i -PassThru:$PassThru {
             $r.Result = 'Failed'
             $r.Containers[0].Result = 'Failed'
             $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[0].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
+            $r.Containers[0].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
             $r.Containers[1].Result = 'Failed'
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -1950,6 +1988,8 @@ i -PassThru:$PassThru {
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[2].Result = 'Failed'
             $r.Containers[2].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
+            $r.Containers[2].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
+            $r.Containers[2].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
             $r.Containers[3].Result = 'Failed'
             $r.Containers[3].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -2098,6 +2138,55 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d 1"
         }
 
+        t "<_> and <key> expand from -ForEach data even when the test is skipped (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It "array <_>" -Skip -ForEach @("foo", "bar") { }
+                    It "hashtable <Name> <Value>" -Skip -ForEach @(@{ Name = "a"; Value = 1 }, @{ Name = "b"; Value = 2 }) { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal "Skipped"
+            $tests[0].ExpandedName | Verify-Equal "array foo"
+            $tests[1].ExpandedName | Verify-Equal "array bar"
+            $tests[2].ExpandedName | Verify-Equal "hashtable a 1"
+            $tests[3].ExpandedName | Verify-Equal "hashtable b 2"
+        }
+
+        t "a skipped test expands its name the same way a run test would, including nested data (#2427)" {
+            # The skipped name is expanded against the -ForEach data exactly like a run test, so a nested
+            # property such as <_.Length> resolves too, not just the whole item.
+            $sb = {
+                Describe "d" {
+                    It "run <_.Length>" -ForEach @("foo", "bacon") { }
+                    It "skip <_.Length>" -Skip -ForEach @("foo", "bacon") { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].ExpandedName | Verify-Equal "run 3"
+            $tests[2].Result | Verify-Equal "Skipped"
+            $tests[2].ExpandedName | Verify-Equal "skip 3"
+            $tests[3].ExpandedName | Verify-Equal "skip 5"
+        }
+
+        t "a skipped test keeps escaped angle brackets literal in its name (#2427)" {
+            $sb = {
+                Describe "d" {
+                    It 'skip `<lit`>' -Skip -ForEach @("foo") { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "skip <lit>"
+        }
+
         t "<_> expands to `$_ in It even if It does not define any data" {
             $sb = {
                 Describe "d <_>" {
@@ -2128,8 +2217,8 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
-            # <_> expands $null to an empty string, not to 'System.Collections.Hashtable'
-            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i '
+            # <_> renders the $null item as '$null' (Format-Nicely2), not the parent hashtable
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i $null'
         }
 
         t "Describe and Context -ForEach @(`$null) set `$_ to `$null (#2320)" {
@@ -2145,9 +2234,9 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
-            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd '
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal 'd $null'
             $r.Containers[0].Blocks[1].Tests[0].Result | Verify-Equal 'Passed'
-            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'c '
+            $r.Containers[0].Blocks[1].ExpandedName | Verify-Equal 'c $null'
         }
 
         t "a `$null entry in -ForEach generates its own test with `$_ set to `$null (#2320)" {
@@ -2166,8 +2255,8 @@ i -PassThru:$PassThru {
             $tests[0].Result | Verify-Equal 'Passed'
             $tests[1].Result | Verify-Equal 'Passed'
             $tests[2].Result | Verify-Equal 'Passed'
-            # the middle entry is the $null one and renders as empty
-            $tests[1].ExpandedName | Verify-Equal 'i '
+            # the middle entry is the $null one and renders as '$null'
+            $tests[1].ExpandedName | Verify-Equal 'i $null'
         }
 
         t "ExpandedPath is expanded for parent blocks when block setup fails" {
@@ -2226,6 +2315,25 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Jakub"
         }
 
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # Referencing a whole complex object (e.g. a CommandInfo as <func> instead of <func.Name>)
+        # used to expand into an enormous property tree that took so long it looked like Pester hung.
+        # A CommandInfo is a registered type, so it must render a compact summary (its Name) and
+        # complete promptly.
+        t "a complex object like CommandInfo in the name renders a short summary instead of hanging" {
+            $sb = {
+                Describe 'd <func>' {
+                    It 'i <func>' { }
+                } -ForEach @(@{ func = (Get-Command -Name 'Invoke-Pester') })
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "d Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+        }
+
         t "`$variable remains as literal text after expanding" {
             $sb = {
                 Describe "d `$abc" {
@@ -2264,7 +2372,29 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru -Output Detailed
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
-            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is string"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "i Jakub is [string]"
+        }
+
+        t 'template values are formatted with Format-Nicely2 (#2744)' {
+            $sb = {
+                Describe 'd' {
+                    It 'bool <_>'      -ForEach @($true) { }
+                    It 'int <_>'       -ForEach @(42) { }
+                    It 'array <_>'     -ForEach @(, @(1, 2, 3)) { }
+                    It 'hashtable <_>' -ForEach @(@{ Name = 'Jakub' }) { }
+                    It 'string <_>'    -ForEach @('Jakub') { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $t = $r.Containers[0].Blocks[0].Tests
+            $t[0].ExpandedName | Verify-Equal 'bool $true'
+            $t[1].ExpandedName | Verify-Equal 'int 42'
+            $t[2].ExpandedName | Verify-Equal 'array @(1, 2, 3)'
+            $t[3].ExpandedName | Verify-Equal "hashtable @{Name='Jakub'}"
+            # a top-level string is rendered without quotes, so the common case stays clean
+            $t[4].ExpandedName | Verify-Equal 'string Jakub'
         }
 
         t 'literal backticks in a name are kept and do not break expansion (#2044)' {
@@ -3306,6 +3436,311 @@ i -PassThru:$PassThru {
 
             $r.Result | Verify-Equal 'Passed'
             $r.Containers[0].Result | Verify-Equal 'Passed'
+        }
+    }
+
+    b 'Stray output during the run does not crash Pester (#2655)' {
+        t 'a real run with stray output finishes, keeps its results, and warns instead of crashing' {
+            # Something writes to the success stream while the run is in progress. Before #2655 a
+            # stray object could reach Invoke-Test's output next to the real [Pester.Container], get
+            # added to the strongly-typed Run.Containers list, and throw "Cannot find an overload for
+            # Add", taking down the whole run.
+            #
+            # A repo-root Pester.BeforeContainer.ps1 used to be the reliable stand-in for that,
+            # because it was dot-sourced at the Invoke-Test level where its output could escape.
+            # Setup files are now dot-sourced inside the container, the same place a test file's own
+            # top-level code runs, so their stray output is swallowed there exactly like a test
+            # file's is and can no longer reach Invoke-Test at all. This asserts the run is
+            # untouched by it; Split-RSpecResult below still covers the filtering itself.
+            $sb = {
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $repoRoot = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $repoRoot -Force
+            Set-Content -Path (Join-Path $repoRoot 'Pester.BeforeContainer.ps1') -Value "'WinRM service is already running on this machine.'"
+
+            try {
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{
+                            ScriptBlock = $sb
+                            PassThru    = $true
+                            RepoRoot    = $repoRoot
+                        }
+                        Output = @{ Verbosity = 'None' }
+                    }) -WarningVariable warnings 3> $null
+
+                # The run completed instead of crashing, and the real results came through untouched.
+                $r | Verify-NotNull
+                $r.Result | Verify-Equal 'Passed'
+                $r.Containers.Count | Verify-Equal 1
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+
+                # The stray output never escaped the container, so there is nothing to warn about.
+                @($warnings).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $repoRoot -Recurse -Force }
+        }
+
+        t 'Split-RSpecResult keeps containers and collects stray output separately' {
+            # Get a real [Pester.Container] to mix with stray output
+            $real = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = { Describe 'd' { It 'i' { $true | Should -Be $true } } }; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+            $container = $real.Containers[0]
+
+            $split = & (Get-Module Pester) {
+                param($c)
+                # Native command output that leaks into the run pipeline (e.g. an unredirected
+                # winrm/net command in BeforeAll) arrives here as plain strings next to the container.
+                Split-RSpecResult -Result (@($c, 'WinRM service is already running on this machine.', $null))
+            } $container
+
+            $split.Containers.Count | Verify-Equal 1
+            ($split.Containers[0] -is [Pester.Container]) | Verify-True
+            $split.StrayOutput.Count | Verify-Equal 1
+            $split.StrayOutput[0] | Verify-Equal 'WinRM service is already running on this machine.'
+        }
+    }
+
+    # Migrated from the removed Pester v4 suite TestsRunningInCleanRunspace.Tests.ps1,
+    # which used Start-Job to run Pester in a clean runspace. Pester 6 isolates each run,
+    # so these scenarios can be exercised in-process via Invoke-Pester.
+    b "Invoke-Pester swallows pipeline output from the system under test" {
+        t "with -PassThru it returns only the result object, not leaked output" {
+            $sb = {
+                # System under test writes to the pipeline while the container runs.
+                Write-Output 'leaked system-under-test output'
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $output = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            # Only the single Run object comes back; the stray string is swallowed.
+            @($output).Count | Verify-Equal 1
+            ($output -is [Pester.Run]) | Verify-True
+            $output.TotalCount | Verify-Equal 1
+        }
+
+        t "without -PassThru it returns nothing" {
+            $sb = {
+                Describe 'd' {
+                    It 'passes' { $true | Should -Be $true }
+                }
+            }
+
+            $output = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $false }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $output | Verify-Null
+        }
+    }
+
+    b "Invalid test definitions fail the run gracefully" {
+        t "It without a ScriptBlock fails the run" {
+            $sb = {
+                Describe 'It without ScriptBlock' {
+                    It 'has no scriptblock'
+                    It 'would pass if it ran' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "a test file with a syntax error fails the run without throwing" {
+            try {
+                $tmp = "$([IO.Path]::GetTempPath())/$([Guid]::NewGuid())"
+                $null = New-Item $tmp -Force -ItemType Container
+                $file = "$tmp/Broken.Tests.ps1"
+                # Deliberately missing the closing brace to trigger a parse error.
+                Set-Content -Path $file -Value @'
+Describe "Something" {
+    It "Works" {
+        $true | Should -Be $true
+    }
+# missing closing brace
+'@
+
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{ Path = $file; PassThru = $true }
+                        Output = @{ Verbosity = 'None' }
+                    })
+
+                # The unparseable file fails the run instead of throwing out of Invoke-Pester.
+                $r.Result | Verify-Equal 'Failed'
+                $r.Containers[0].Result | Verify-Equal 'Failed'
+            }
+            finally {
+                if ($null -ne $tmp -and (Test-Path $tmp)) {
+                    Remove-Item $tmp -Recurse -Force
+                }
+            }
+        }
+
+        t "an unmatched-label break escaping user code fails the test instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'unmatched break' {
+                    BeforeAll { function Invoke-StrayBreak { break outerLoop } }
+                    It 'first passes' { $true | Should -Be $true }
+                    It 'stray break fails' { Invoke-StrayBreak }
+                    It 'later test still runs' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            # The run completed with a result and summary instead of silently aborting.
+            $r.Result | Verify-Equal 'Failed'
+            $r.TotalCount | Verify-Equal 3
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Passed'
+            $tests[1].Result | Verify-Equal 'Failed'
+            # The sibling test after the offending one still ran.
+            $tests[2].Result | Verify-Equal 'Passed'
+            $tests[1].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+            $tests[1].ErrorRecord[0].Exception.Message | Verify-Like '*does not match any enclosing loop*'
+        }
+
+        t "an unmatched-label continue escaping user code fails the test instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'unmatched continue' {
+                    It 'stray continue fails' { continue outerLoop }
+                    It 'later test still runs' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.TotalCount | Verify-Equal 2
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Failed'
+            $tests[0].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+            $tests[1].Result | Verify-Equal 'Passed'
+        }
+
+        t "an unmatched-label break in a setup fails the block instead of aborting the run (#2669)" {
+            $sb = {
+                Describe 'stray break in setup' {
+                    BeforeEach { break outerLoop }
+                    It 'is failed by the setup break' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $tests = $r.Containers[0].Blocks[0].Tests
+            $tests[0].Result | Verify-Equal 'Failed'
+            $tests[0].ErrorRecord[0].FullyQualifiedErrorId | Verify-Equal 'PesterFlowControlStatementEscaped'
+        }
+
+        t "a real error in a setup keeps its own message and is not reported as an escaped break (#2669)" {
+            # The guard flag starts set for user code and is cleared when the scriptblock returns.
+            # A genuine throw skips that, so without clearing it on the error path too the finally
+            # threw the flow control error record over the top of the real one, and anyone whose
+            # BeforeAll threw was told their code has a misspelled loop label.
+            $sb = {
+                Describe 'real error in setup' {
+                    BeforeAll { throw 'the database is down' }
+                    It 'is failed by the setup' { $true | Should -Be $true }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $block = $r.Containers[0].Blocks[0]
+            $block.ErrorRecord[0].Exception.Message | Verify-Equal 'the database is down'
+            if ('PesterFlowControlStatementEscaped' -eq $block.ErrorRecord[0].FullyQualifiedErrorId) {
+                throw 'the real error was replaced by the escaped flow control error'
+            }
+        }
+
+        t "a real error in a top-level setup keeps its own message (#2669)" {
+            $sb = {
+                BeforeAll { throw 'the database is down' }
+                Describe 'd' { It 'i' { $true | Should -Be $true } }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Failed'
+            $r.Containers[0].ErrorRecord[0].Exception.Message | Verify-Equal 'the database is down'
+        }
+
+        t "correctly labelled break and continue inside loops in user code are unaffected" {
+            $sb = {
+                Describe 'labelled loops still work' {
+                    It 'labelled break stays inside its loop' {
+                        $sum = 0
+                        :outer foreach ($i in 1..5) {
+                            foreach ($j in 1..5) {
+                                if ($j -eq 3) { break outer }
+                                $sum += 1
+                            }
+                        }
+                        $sum | Should -Be 2
+                    }
+                    It 'labelled continue stays inside its loop' {
+                        $collected = @()
+                        :top foreach ($i in 1..3) {
+                            foreach ($j in 1..3) {
+                                if ($j -eq 2) { continue top }
+                                $collected += "$i$j"
+                            }
+                        }
+                        ($collected -join ',') | Should -Be '11,21,31'
+                    }
+                    It 'a plain break exiting user code is still absorbed' {
+                        break
+                        # unreachable: the plain break exits the test body without failing it
+                        $false | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                    Run    = @{ ScriptBlock = $sb; PassThru = $true }
+                    Output = @{ Verbosity = 'None' }
+                })
+
+            $r.Result | Verify-Equal 'Passed'
+            $r.PassedCount | Verify-Equal 3
+            $r.FailedCount | Verify-Equal 0
         }
     }
 }

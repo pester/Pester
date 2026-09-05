@@ -58,7 +58,9 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
     if (-not (Is-Collection -Value $Actual)) {
         Write-EquivalenceResult -Difference "`$Actual is not a collection it is a $(Format-Nicely2 $Actual.GetType()), so they are not equivalent."
         $expectedFormatted = Format-Collection2 -Value $Expected
-        $expectedLength = $expected.Length
+        # Use .Count for collections (List, etc.) that don't expose a scalar .Length,
+        # otherwise .Length enumerates the items and yields a bogus value like "1 1 1".
+        $expectedLength = if ($Expected.Length -is [int]) { $Expected.Length } else { $Expected.Count }
         $actualFormatted = Format-Nicely2 -Value $actual
         return "Expected collection $expectedFormatted with length $expectedLength, but got $actualFormatted."
     }
@@ -75,40 +77,29 @@ function Compare-CollectionEquivalent ($Expected, $Actual, $Property, $Options) 
     $notFound = @()
     $anyDifferent = $false
     for ($e = 0; $e -lt $eEnd; $e++) {
-        # todo: retest strict order
         Write-EquivalenceResult "`nSearching for `$Expected[$e]:"
         $currentExpected = $Expected[$e]
         $found = $false
-        if ($StrictOrder) {
-            $currentActual = $Actual[$e]
-            if ($taken -notcontains $e -and (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options))) {
-                $taken += $e
-                $found = $true
-                Write-EquivalenceResult -Equivalence "`Found `$Expected[$e]."
+        for ($a = 0; $a -lt $aEnd; $a++) {
+            # we already took this item as equivalent to an item
+            # in the expected collection, skip it
+            if ($taken -contains $a) {
+                Write-EquivalenceResult "Skipping `$Actual[$a] because it is already taken."
+                continue
             }
-        }
-        else {
-            for ($a = 0; $a -lt $aEnd; $a++) {
-                # we already took this item as equivalent to an item
-                # in the expected collection, skip it
-                if ($taken -contains $a) {
-                    Write-EquivalenceResult "Skipping `$Actual[$a] because it is already taken."
-                    continue
-                }
-                $currentActual = $Actual[$a]
-                # -not, because $null means no differences, and some strings means there are differences
-                Write-EquivalenceResult "Comparing `$Actual[$a] to `$Expected[$e] to see if they are equivalent."
-                if (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) {
-                    # add the index to the list of taken items so we can skip it
-                    # in the search, this way we can compare collections with
-                    # arrays multiple same items
-                    $taken += $a
-                    $found = $true
-                    Write-EquivalenceResult -Equivalence "`Found equivalent item for `$Expected[$e] at `$Actual[$a]."
-                    # we already found the item we
-                    # can move on to the next item in Expected array
-                    break
-                }
+            $currentActual = $Actual[$a]
+            # -not, because $null means no differences, and some strings means there are differences
+            Write-EquivalenceResult "Comparing `$Actual[$a] to `$Expected[$e] to see if they are equivalent."
+            if (-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) {
+                # add the index to the list of taken items so we can skip it
+                # in the search, this way we can compare collections with
+                # arrays multiple same items
+                $taken += $a
+                $found = $true
+                Write-EquivalenceResult -Equivalence "`Found equivalent item for `$Expected[$e] at `$Actual[$a]."
+                # we already found the item we
+                # can move on to the next item in Expected array
+                break
             }
         }
         if (-not $found) {
@@ -157,20 +148,11 @@ function Compare-DataTableEquivalent ($Expected, $Actual, $Property, $Options) {
     for ($e = 0; $e -lt $eEnd; $e++) {
         $currentExpected = $Expected.Rows[$e]
         $found = $false
-        if ($StrictOrder) {
-            $currentActual = $Actual.Rows[$e]
-            if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $e) {
-                $taken += $e
+        for ($a = 0; $a -lt $aEnd; $a++) {
+            $currentActual = $Actual.Rows[$a]
+            if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $a) {
+                $taken += $a
                 $found = $true
-            }
-        }
-        else {
-            for ($a = 0; $a -lt $aEnd; $a++) {
-                $currentActual = $Actual.Rows[$a]
-                if ((-not (Compare-Equivalent -Expected $currentExpected -Actual $currentActual -Path $Property -Options $Options)) -and $taken -notcontains $a) {
-                    $taken += $a
-                    $found = $true
-                }
             }
         }
         if (-not $found) {
@@ -648,7 +630,7 @@ function Should-BeEquivalent {
     This example generates an equivalency option object that excludes the 'Id' and 'Timestamp' properties from the comparison and uses a simple equality comparison strategy.
 
     .EXAMPLE
-    ```powereshell
+    ```powershell
     Should-BeEquivalent ... -ExcludePathsNotOnExpected
     ```
 
@@ -685,6 +667,11 @@ function Should-BeEquivalent {
 
     This will pass because the actual object has the same properties as the expected object and the Name values are equivalent.
 
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeEquivalent
 
@@ -702,26 +689,25 @@ function Should-BeEquivalent {
         [switch] $ExcludePathsNotOnExpected,
         [ValidateSet('Equivalency', 'Equality')]
         [string] $Comparator = 'Equivalency'
-        # TODO: I am not sure this works.
-        # [Switch] $StrictOrder
     )
 
     $options = Get-EquivalencyOption -ExcludePath:$ExcludePath -ExcludePathsNotOnExpected:$ExcludePathsNotOnExpected -Comparator:$Comparator
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'None'
+    $Actual = $assert.Actual()
 
     $areDifferent = Compare-Equivalent -Actual $Actual -Expected $Expected -Options $Options | & $SafeCommands['Out-String']
 
     if ($areDifferent) {
         $optionsFormatted = Format-EquivalencyOptions -Options $Options
-        # the parameter is -Option not -Options
-        $message = Get-AssertionMessage -Actual $actual -Expected $Expected -Option $optionsFormatted -Pretty -CustomMessage "Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n<options>"
-        Invoke-AssertionFailed -Message $message -CallerCmdlet $PSCmdlet
+        $optionsText = $null
+        if ($null -ne $optionsFormatted -and $optionsFormatted.Length -gt 0) {
+            $optionsText = "Used options:$(foreach ($o in $optionsFormatted) { "`n$o" })."
+        }
+        $assert.Fail("Expected and actual are not equivalent!`nExpected:`n<expected>`n`nActual:`n<actual>`n`nSummary:`n$areDifferent`n$optionsText", @{ Expected = $Expected }, $true)
     }
 
     Write-EquivalenceResult -Equivalence "`$Actual and `$Expected are equivalent."
-    Set-AssertionPassResult
 }
 
 function Get-EquivalencyOption {

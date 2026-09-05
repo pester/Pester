@@ -202,79 +202,17 @@ Describe 'Unbound scriptsblocks as input' {
     }
 }
 
-Describe 'Duplicate setup and teardown blocks throw' {
-    It 'Throws when two BeforeAll are defined in the same block' {
+Describe 'Multiple setup and teardown blocks in the same block' {
+    # A block used to allow only one of each. That made it impossible to combine a file's own
+    # BeforeAll with setup coming from a Pester.BeforeContainer.ps1 higher up the folder tree, so
+    # they are collected into a list instead. Setups run in the order they were registered and
+    # teardowns run in reverse, so the last one registered undoes its work first.
+    It 'Runs every BeforeAll in the order they are declared' {
         $sb = {
             Describe 'd' {
-                BeforeAll { }
-                BeforeAll { }
-                It 'i' { }
-            }
-        }
-        $c = New-PesterConfiguration
-        $c.Run.ScriptBlock = $sb
-        $c.Run.PassThru = $true
-        $c.Output.Verbosity = 'None'
-        $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeAll is already defined*'
-    }
-
-    It 'Throws when two AfterAll are defined in the same block' {
-        $sb = {
-            Describe 'd' {
-                AfterAll { }
-                AfterAll { }
-                It 'i' { }
-            }
-        }
-        $c = New-PesterConfiguration
-        $c.Run.ScriptBlock = $sb
-        $c.Run.PassThru = $true
-        $c.Output.Verbosity = 'None'
-        $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterAll is already defined*'
-    }
-
-    It 'Throws when two BeforeEach are defined in the same block' {
-        $sb = {
-            Describe 'd' {
-                BeforeEach { }
-                BeforeEach { }
-                It 'i' { }
-            }
-        }
-        $c = New-PesterConfiguration
-        $c.Run.ScriptBlock = $sb
-        $c.Run.PassThru = $true
-        $c.Output.Verbosity = 'None'
-        $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*BeforeEach is already defined*'
-    }
-
-    It 'Throws when two AfterEach are defined in the same block' {
-        $sb = {
-            Describe 'd' {
-                AfterEach { }
-                AfterEach { }
-                It 'i' { }
-            }
-        }
-        $c = New-PesterConfiguration
-        $c.Run.ScriptBlock = $sb
-        $c.Run.PassThru = $true
-        $c.Output.Verbosity = 'None'
-        $r = Invoke-Pester -Configuration $c
-        $r.Containers[0].ErrorRecord[0].Exception.Message | Should -BeLike '*AfterEach is already defined*'
-    }
-
-    It 'Allows same hook type in different blocks' {
-        $sb = {
-            Describe 'd' {
-                BeforeAll { $script:x = 1 }
-                Context 'c' {
-                    BeforeAll { $script:y = 2 }
-                    It 'i' { $script:x + $script:y | Should -Be 3 }
-                }
+                BeforeAll { $script:order = @('first') }
+                BeforeAll { $script:order += 'second' }
+                It 'i' { $script:order -join '>' | Should -Be 'first>second' }
             }
         }
         $c = New-PesterConfiguration
@@ -283,30 +221,64 @@ Describe 'Duplicate setup and teardown blocks throw' {
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
         $r.FailedCount | Should -Be 0
+        $r.PassedCount | Should -Be 1
+    }
+
+    It 'Runs every BeforeEach in the order they are declared' {
+        $sb = {
+            Describe 'd' {
+                BeforeEach { $script:order = @('first') }
+                BeforeEach { $script:order += 'second' }
+                It 'i' { $script:order -join '>' | Should -Be 'first>second' }
+            }
+        }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+        $r.FailedCount | Should -Be 0
+        $r.PassedCount | Should -Be 1
+    }
+
+    It 'Runs every AfterAll in reverse order' {
+        $script:afterAllOrder = $null
+        $sb = {
+            Describe 'd' {
+                AfterAll { $global:PesterTestAfterAllOrder += 'first' }
+                AfterAll { $global:PesterTestAfterAllOrder += 'second' }
+                It 'i' { $true | Should -BeTrue }
+            }
+        }
+        $global:PesterTestAfterAllOrder = @()
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+
+        $r.FailedCount | Should -Be 0
+        $global:PesterTestAfterAllOrder -join '>' | Should -Be 'second>first'
+        Remove-Variable -Name PesterTestAfterAllOrder -Scope Global -ErrorAction Ignore
+    }
+
+    It 'Runs every AfterEach in reverse order' {
+        $sb = {
+            Describe 'd' {
+                AfterEach { $global:PesterTestAfterEachOrder += 'first' }
+                AfterEach { $global:PesterTestAfterEachOrder += 'second' }
+                It 'i' { $true | Should -BeTrue }
+            }
+        }
+        $global:PesterTestAfterEachOrder = @()
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+
+        $r.FailedCount | Should -Be 0
+        $global:PesterTestAfterEachOrder -join '>' | Should -Be 'second>first'
+        Remove-Variable -Name PesterTestAfterEachOrder -Scope Global -ErrorAction Ignore
     }
 }
-#     # TODO: this depends on the old pester internals it would be easier to test in P
-#     $thisTestScriptFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PSCommandPath)
-
-#     Describe 'Script Blocks and file association (testing automatic variables)' {
-#         BeforeEach {
-#             $commandPath = $PSCommandPath
-#         }
-
-#         $beforeEachBlock = InPesterModuleScope {
-#             $pester.CurrentTestGroup.BeforeEach[0]
-#         }
-
-#         It 'Creates script block objects associated with the proper file' {
-#             $scriptBlockFilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($beforeEachBlock.File)
-
-#             $scriptBlockFilePath | Should -Be $thisTestScriptFilePath
-#         }
-
-#         It 'Has the correct automatic variable values inside the BeforeEach block' {
-#             $commandPath | Should -Be $PSCommandPath
-#         }
-#     }
-#}
-
-#Testing if failing setup or teardown will fail 'It' is done in the TestsRunningInCleanRunspace.Tests.ps1 file

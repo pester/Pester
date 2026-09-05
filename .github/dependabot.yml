@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used by the workflows current — in particular so we
+  # stay ahead of Node.js runtime deprecations, which land as major bumps.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - major
+          - minor
+          - patch

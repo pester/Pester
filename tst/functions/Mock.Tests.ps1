@@ -337,6 +337,30 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 }
 
+Describe 'When a bound parameter value has a ToString that throws' {
+    # The parameter filter serializer only builds diagnostic text, so a value whose ToString throws
+    # (e.g. a mocked SMO type) must not make the mock throw when the value is not even referenced by
+    # the filter. See #2953.
+    BeforeAll {
+        function Get-Thing {
+            param (
+                [object] $InputObject,
+                [switch] $Other
+            )
+        }
+    }
+
+    It 'Does not throw when a non-matching parameter filter is present' {
+        $throwingToString = [pscustomobject]@{ Name = 'demo' }
+        $throwingToString | Add-Member -MemberType ScriptMethod -Name ToString -Value { throw 'ToString should not be called by the parameter filter serializer' } -Force
+
+        Mock Get-Thing { 'default' }
+        Mock Get-Thing -ParameterFilter { $Other.IsPresent } { 'other' }
+
+        { Get-Thing -InputObject $throwingToString } | Should -Not -Throw
+    }
+}
+
 Describe "When calling Mock on existing function without matching bound params" {
     It "Should throw because no parameter filter matched the call" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
@@ -743,7 +767,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 times*'
+        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -757,7 +781,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 time*'
     }
 }
 
@@ -775,7 +799,36 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 1 time*"
+    }
+
+    It "Should throw and report the call count using plural 'times' when called more than once" {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 2 times*"
+    }
+
+    It 'Should include reason when -Because is used' {
+        Mock FunctionUnderTest {}
+        FunctionUnderTest "one"
+
+        try {
+            Should -Not -Invoke FunctionUnderTest -Because 'of reasons'
+        }
+        Catch {
+            $failure = $_
+        }
+
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -817,7 +870,9 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $Times times, but was called $MockCalls times*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $callsText = if ($MockCalls -eq 1) { '1 time' } else { "$MockCalls times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $timesText, but was called $callsText*"
     }
 
     It 'Should include reason when -Because is used' {
@@ -830,7 +885,7 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 times, because of reasons, but was called 2 times*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 time, because of reasons, but was called 2 times*'
     }
 }
 
@@ -871,7 +926,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 times, but it was*"
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 time, but it was*"
     }
 
     It "Should not throw if mock was not called" {
@@ -885,7 +940,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 times, because of reasons, but it was*'
+        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 time, because of reasons, but it was*'
     }
 }
 
@@ -924,7 +979,8 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
             $result = $_
         }
 
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $Times times, but it was*"
+        $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
+        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $timesText, but it was*"
     }
 }
 
@@ -1009,7 +1065,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 times*
+        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 time*
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
@@ -1046,7 +1102,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 times exactly, but was called 0 times
+        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 time exactly, but was called 0 times
 Performed invocations:
   <none>' -replace "`r`n", "`n")
     }
@@ -1339,6 +1395,30 @@ Describe 'Mocking Cmdlets with dynamic parameters' {
         It 'Allows calls to be made with dynamic parameters (including parameter filters)' {
             Get-ChildItem -Path Cert:\ -CodeSigningCert
             Should -Invoke Get-ChildItem
+        }
+    }
+}
+
+Describe 'Mocking Cmdlets with typed provider dynamic parameters' {
+    # Copy-Item gets the ToSession and FromSession dynamic parameters from the FileSystem provider,
+    # and those only exist on Windows. Mocking Copy-Item used to drop them, so calling the mock with
+    # -ToSession / -FromSession failed with "A parameter cannot be found that matches parameter name".
+    # https://github.com/pester/Pester/issues/1137
+    if ((InPesterModuleScope { GetPesterOs }) -eq 'Windows') {
+        BeforeAll {
+            Mock Copy-Item { 'mocked' }
+        }
+
+        It 'Exposes the <Name> dynamic parameter on the mocked cmdlet' -ForEach @(
+            @{ Name = 'ToSession' }
+            @{ Name = 'FromSession' }
+        ) {
+            # Bind a value of the wrong type to the dynamic parameter. When the parameter is present on
+            # the mock we get a type-conversion binding error; when it is missing (the #1137 bug) we get
+            # a NamedParameterNotFound error instead. We assert the former to prove the parameter exists.
+            $splat = @{ Path = 'TestDrive:\a'; Destination = 'TestDrive:\b'; $Name = 'not-a-session' }
+            $err = { Copy-Item @splat } | Should -Throw -PassThru
+            $err.FullyQualifiedErrorId | Should -Not -BeLike 'NamedParameterNotFound*' -Because "the $Name dynamic parameter should be available on the mocked Copy-Item (#1137)"
         }
     }
 }
@@ -1693,6 +1773,75 @@ Describe 'Mocking functions with dynamic parameters' {
             $hash.Result | Should -Be 'Mocked'
         }
     }
+
+    Context 'When the mocked command''s dynamicparam block cannot produce its dynamic parameters (#619)' {
+        It 'falls back to no dynamic parameters instead of failing the mock' {
+            # Mimics Set-PSRepository, whose -Location dynamic parameter is built (and validated) from the
+            # package provider and throws while resolving when the command is mocked.
+            function Get-ThingWithFailingDynamicParam {
+                [CmdletBinding()]
+                param ()
+                dynamicparam { throw 'dynamic parameters are not available here' }
+                process { 'real' }
+            }
+
+            Mock Get-ThingWithFailingDynamicParam { 'mocked' }
+            { Get-ThingWithFailingDynamicParam } | Should -Not -Throw
+            Get-ThingWithFailingDynamicParam | Should -Be 'mocked'
+        }
+    }
+
+    Context 'When a dynamic parameter has an alias (#1275)' {
+        BeforeAll {
+            function Get-DynamicAliasThing {
+                [CmdletBinding()]
+                param ()
+
+                DynamicParam {
+                    $Attributes = New-Object Management.Automation.ParameterAttribute
+                    $Attributes.ParameterSetName = '__AllParameterSets'
+                    $Attributes.Mandatory = $false
+
+                    $AliasAttribute = New-Object System.Management.Automation.AliasAttribute('Location')
+
+                    $AttributeCollection = New-Object Collections.ObjectModel.Collection[Attribute]
+                    $AttributeCollection.Add($Attributes)
+                    $AttributeCollection.Add($AliasAttribute)
+
+                    $Dynamic = New-Object System.Management.Automation.RuntimeDefinedParameter('Path', [string], $AttributeCollection)
+
+                    $ParamDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+                    $ParamDictionary.Add('Path', $Dynamic)
+                    $ParamDictionary
+                }
+
+                end { 'real' }
+            }
+        }
+
+        It 'matches the parameter filter using the alias of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Location -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here' | Should -Be 'mocked'
+        }
+
+        It 'matches the parameter filter using the name of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' } -ParameterFilter { $Path -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here' | Should -Be 'mocked'
+        }
+
+        It 'uses the dynamic-parameter alias to choose between behaviors' {
+            Mock Get-DynamicAliasThing { 'default' }
+            Mock Get-DynamicAliasThing { 'matched' } -ParameterFilter { $Location -eq 'Here' }
+            Get-DynamicAliasThing -Location 'Here'  | Should -Be 'matched'
+            Get-DynamicAliasThing -Location 'There' | Should -Be 'default'
+        }
+
+        It 'matches Should -Invoke -ParameterFilter using the alias of a dynamic parameter' {
+            Mock Get-DynamicAliasThing { 'mocked' }
+            $null = Get-DynamicAliasThing -Location 'Here'
+            Should -Invoke Get-DynamicAliasThing -Times 1 -Exactly -ParameterFilter { $Location -eq 'Here' }
+        }
+    }
 }
 
 
@@ -1931,6 +2080,23 @@ Describe 'Mocking commands with potentially ambiguous parameter sets' {
         $object = New-Object psobject -Property @{ p1 = 'Whatever' }
         { $object | SomeFunction } | Should -Not -Throw
         Should -Invoke SomeFunction -ParameterFilter { $p1 -eq 'Whatever' }
+    }
+}
+
+Describe 'Mocking a cmdlet with multiple non-default parameter sets and no DefaultParameterSetName (#1531)' {
+    # Get-PackageSource has two provider-specific parameter sets (NuGet and PowerShellGet) with no
+    # default, and its dynamic parameters introduce those sets. Without a DefaultParameterSetName in
+    # the generated bootstrap proxy, PowerShell cannot resolve the parameter set when the mock is
+    # called with no arguments, producing "Parameter set cannot be resolved". The fix injects
+    # DefaultParameterSetName='__AllParameterSets' into the proxy [CmdletBinding()] for any cmdlet
+    # whose metadata has an empty DefaultParameterSetName.
+
+    It 'Can mock Get-PackageSource and call it with no arguments' -Skip:($null -eq (Get-Command Get-PackageSource -ErrorAction SilentlyContinue)) {
+        Mock Get-PackageSource { [PSCustomObject]@{ Name = 'MockedSource'; ProviderName = 'NuGet' } }
+
+        $result = Get-PackageSource
+        $result.Name | Should -Be 'MockedSource'
+        Should -Invoke Get-PackageSource -Times 1
     }
 }
 
@@ -2746,6 +2912,49 @@ Describe 'RemoveParameterValidation' {
 
         Test-Validation -Count -1 | Should -Be "mock"
     }
+
+    Context 'When the validated parameter is a dynamic parameter (#1557)' {
+        BeforeAll {
+            # Mimics commands such as Get-AzContext, whose -Name parameter is a dynamic parameter
+            # carrying a (dynamic) ValidateSet. Repair-ConflictingParameters skips dynamic parameters,
+            # so -RemoveParameterValidation has to reach them through Get-MockDynamicParameter.
+            function Test-DynamicValidation {
+                [CmdletBinding()]
+                param ()
+
+                dynamicparam {
+                    $dictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+
+                    foreach ($paramName in 'Name', 'Color') {
+                        $attributes = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+                        $attributes.Add([System.Management.Automation.ParameterAttribute]::new())
+                        $attributes.Add([System.Management.Automation.ValidateSetAttribute]::new(@('a', 'b')))
+                        $dictionary.Add($paramName, [System.Management.Automation.RuntimeDefinedParameter]::new($paramName, [string], $attributes))
+                    }
+
+                    $dictionary
+                }
+
+                end { 'real' }
+            }
+        }
+
+        It 'still validates the dynamic parameter when validation is not removed' {
+            Mock Test-DynamicValidation { 'mock' }
+            { Test-DynamicValidation -Name 'zzz' } | Should -Throw -ErrorId '*ParameterArgumentValidationError*'
+        }
+
+        It 'passes when mock removes the validation from the dynamic parameter' {
+            Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
+            Test-DynamicValidation -Name 'zzz' | Should -Be 'mock'
+        }
+
+        It 'only removes validation from the named dynamic parameter' {
+            Mock Test-DynamicValidation { 'mock' } -RemoveParameterValidation Name
+            Test-DynamicValidation -Name 'zzz' | Should -Be 'mock'
+            { Test-DynamicValidation -Color 'zzz' } | Should -Throw -ErrorId '*ParameterArgumentValidationError*'
+        }
+    }
 }
 
 Describe 'Removing multiple attributes for same parameter' {
@@ -2827,6 +3036,85 @@ Describe 'Mocking command with ValidateRange-attributes' {
         It 'mocked cmdlet does not throw' {
             Mock -CommandName 'Start-BitsTransfer' -MockWith { 'mock' }
             Start-BitsTransfer -Source "/nonexistingpath" | Should -Be 'mock'
+        }
+    }
+}
+
+Describe 'Mocking command with OrderedDictionary-parameters' {
+    # https://github.com/pester/Pester/issues/2370
+    # Bug in PowerShell. ProxyCommand-generation serializes [System.Collections.Specialized.OrderedDictionary]
+    # parameters using the [ordered] type accelerator on PowerShell 7+, which is invalid as a parameter type
+    # constraint and makes the mock bootstrap function fail to compile. Needs Repair-OrderedType.
+
+    It 'mocked function does not throw when param is <Name>' -TestCases @(
+        @{
+            Name      = 'a scalar OrderedDictionary'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary]$Context'
+        },
+        @{
+            Name      = 'an OrderedDictionary with other params'
+            Parameter = '[string]$Name, [System.Collections.Specialized.OrderedDictionary]$Context, [int]$Count'
+        },
+        @{
+            Name      = 'an OrderedDictionary array'
+            Parameter = '[System.Collections.Specialized.OrderedDictionary[]]$Contexts'
+        }
+    ) {
+        Set-Item -Path 'function:Test-OrderedParameter' -Value ('param ( {0} )' -f $Parameter)
+
+        Mock -CommandName 'Test-OrderedParameter' -MockWith { 'mock' }
+        Test-OrderedParameter | Should -Be 'mock'
+    }
+
+    It 'mocked function is invoked and captures the OrderedDictionary argument' {
+        function Get-OrderedThing { param([System.Collections.Specialized.OrderedDictionary]$Context) 'real' }
+        function Invoke-OrderedWrapper { Get-OrderedThing -Context ([ordered]@{ a = 1 }) }
+
+        Mock -CommandName 'Get-OrderedThing' -MockWith { 'mock' }
+
+        Invoke-OrderedWrapper | Should -Be 'mock'
+        Should -Invoke Get-OrderedThing -Times 1 -Exactly
+    }
+}
+
+Describe 'Mocking command with an Encoding parameter' {
+    # https://github.com/pester/Pester/issues/1877
+    # On PowerShell 6+ Out-File (and Export-Csv, Import-Csv, Export-Clixml, ...) declare -Encoding
+    # as [System.Text.Encoding] and rely on an internal transformation attribute to convert friendly
+    # names such as 'utf8NoBOM' into a System.Text.Encoding value. ProxyCommand-generation cannot
+    # reproduce that internal attribute, so mocking such a command and calling it with a friendly
+    # encoding name used to throw a ParameterBindingArgumentTransformationException. Repair-EncodingParameters
+    # relaxes the parameter type to [object] so the mock accepts any value the real command accepts.
+
+    # Self-gating: Windows PowerShell declares -Encoding as an enum, so the bug and fix only apply
+    # where Out-File uses [System.Text.Encoding].
+    if ((Get-Command Out-File).Parameters['Encoding'].ParameterType -eq [System.Text.Encoding]) {
+
+        It 'does not throw and returns the mock when called with a friendly encoding name' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'records the invocation with the friendly encoding name available to the parameter filter' {
+            Mock Out-File { 'mocked' }
+            'data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM
+            Should -Invoke Out-File -Times 1 -Exactly -ParameterFilter { $Encoding -eq 'utf8NoBOM' }
+        }
+
+        It 'still routes to the mock when called with a System.Text.Encoding object' {
+            Mock Out-File { 'mocked' }
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding ([System.Text.Encoding]::UTF8)) | Should -Be 'mocked'
+            Should -Invoke Out-File -Times 1 -Exactly
+        }
+
+        It 'applies to other cmdlets that use the encoding transformation (Export-Csv)' {
+            Mock Export-Csv { 'mocked' }
+            ([pscustomobject]@{ A = 1 } | Export-Csv -Path 'TestDrive:/f.csv' -Encoding utf8NoBOM) | Should -Be 'mocked'
+        }
+
+        It 'still supports the -RemoveParameterType Encoding workaround' {
+            Mock Out-File { 'mocked' } -RemoveParameterType Encoding
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
         }
     }
 }
@@ -3003,7 +3291,166 @@ Describe 'Mocking in manifest modules' {
     }
 }
 
-Describe 'Mocking with nested Pester runs' {
+Describe "Mocking using 'RootModule/NestedModule' slash notation" {
+    # Primary use-case: two simultaneously loaded root modules that each have a nested module
+    # with the same name (e.g. two REST clients both exposing a 'Repository' sub-module).
+    # Slash notation lets you target the correct one unambiguously.
+
+    BeforeAll {
+        $nestedName = 'SlashNotationNested'
+        $rootName = 'SlashNotationRoot'
+        $manifestPath = "TestDrive:/$rootName.psd1"
+        $nestedPath = "TestDrive:/$nestedName.psm1"
+
+        Set-Content -Path $nestedPath -Value {
+            function Get-InternalData {
+                'real'
+            }
+
+            function Get-PublicData {
+                Get-InternalData
+            }
+        }
+        New-ModuleManifest -Path $manifestPath -NestedModules ".\$nestedName.psm1" -FunctionsToExport 'Get-PublicData'
+        Import-Module $manifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $rootName -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'Should mock an internal command in the nested module using slash notation' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $result = Get-PublicData
+        $result | Should -Be 'mocked'
+    }
+
+    It 'Should-Invoke matches call history when using slash notation' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $null = Get-PublicData
+        Should -Invoke -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -Exactly -Times 1
+    }
+
+    It 'Should-NotInvoke passes when command was not called' {
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        Should -Not -Invoke -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName"
+    }
+
+    It 'Should-Invoke accepts plain nested module name after mock was set up with slash notation' {
+        # The mock was set up targeting the nested module; its TargetModule is the plain nested name.
+        Mock -CommandName 'Get-InternalData' -ModuleName "$rootName/$nestedName" -MockWith { 'mocked' }
+        $null = Get-PublicData
+        Should -Invoke -CommandName 'Get-InternalData' -ModuleName $nestedName -Exactly -Times 1
+    }
+
+    It 'Mock cleanup removes the bootstrap function from the nested module session state' {
+        # After the It block completes the mock is torn down; calling the real function returns 'real'.
+        Get-PublicData | Should -Be 'real'
+    }
+}
+
+Describe "Mocking using deep module path notation 'Root/Mid/Leaf'" {
+    BeforeAll {
+        $rootName = 'DeepSlashRoot'
+        $midName = 'DeepSlashMid'
+        $leafName = 'DeepSlashLeaf'
+
+        $rootManifestPath = "TestDrive:/$rootName.psd1"
+        $midManifestPath = "TestDrive:/$midName.psd1"
+        $leafScriptPath = "TestDrive:/$leafName.psm1"
+
+        Set-Content -Path $leafScriptPath -Value {
+            function Get-DeepInternalData {
+                'real-deep'
+            }
+
+            function Get-DeepPublicData {
+                Get-DeepInternalData
+            }
+        }
+
+        New-ModuleManifest -Path $midManifestPath -NestedModules ".\$leafName.psm1"
+        New-ModuleManifest -Path $rootManifestPath -NestedModules ".\$midName.psd1"
+
+        Import-Module $rootManifestPath -Force
+    }
+
+    AfterAll {
+        Get-Module $rootName -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'Should mock an internal command in the deeply nested module using slash notation' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $result = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        $result | Should -Be 'mocked-deep'
+    }
+
+    It 'Should-Invoke matches call history when using deep slash notation' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $null = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        Should -Invoke -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -Exactly -Times 1
+    }
+
+    It 'Should-Invoke accepts plain leaf module name after deep-path mock setup' {
+        Mock -CommandName 'Get-DeepInternalData' -ModuleName "$rootName/$midName/$leafName" -MockWith { 'mocked-deep' }
+        $null = InModuleScope "$rootName/$midName/$leafName" { Get-DeepPublicData }
+        Should -Invoke -CommandName 'Get-DeepInternalData' -ModuleName $leafName -Exactly -Times 1
+    }
+}
+
+Describe "Disambiguating nested modules with the same name across two root modules using slash notation" {
+    # Scenario from PR #2412: ClientA and ClientB each have a nested module named 'Repository'
+    # (same name, loaded from different folders). With two same-named modules loaded a plain
+    # -ModuleName 'Repository' throws 'Multiple script or manifest modules named Repository';
+    # slash notation targets exactly one of them.
+
+    BeforeAll {
+        $sharedName = 'Repository'
+        $rootA = 'ClientA'
+        $rootB = 'ClientB'
+
+        # Same base name, different folders, so both load as 'Repository'.
+        $null = New-Item -ItemType Directory -Path "TestDrive:/A", "TestDrive:/B"
+        Set-Content -Path "TestDrive:/A/$sharedName.psm1" -Value {
+            function Get-Data { 'dataA' }
+            function Invoke-Api { Get-Data }
+        }
+        Set-Content -Path "TestDrive:/B/$sharedName.psm1" -Value {
+            function Get-Data { 'dataB' }
+            function Invoke-Api { Get-Data }
+        }
+
+        New-ModuleManifest -Path "TestDrive:/$rootA.psd1" -NestedModules ".\A\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        New-ModuleManifest -Path "TestDrive:/$rootB.psd1" -NestedModules ".\B\$sharedName.psm1" -FunctionsToExport 'Invoke-Api'
+        Import-Module "TestDrive:/$rootA.psd1" -Force
+        Import-Module "TestDrive:/$rootB.psd1" -Force
+    }
+
+    AfterAll {
+        Get-Module $rootA -ErrorAction SilentlyContinue | Remove-Module -Force
+        Get-Module $rootB -ErrorAction SilentlyContinue | Remove-Module -Force
+    }
+
+    It 'loads both nested modules under the same name, so a plain name is ambiguous' {
+        # Guard: confirms the scenario genuinely exercises disambiguation.
+        @(Get-Module $sharedName -All).Count | Should -BeGreaterThan 1
+    }
+
+    It 'mocks Get-Data in the ClientA copy, leaving the identically-named ClientB copy untouched' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Should -Be 'mockedA'
+        # the mock must not bleed into the same-named nested module under ClientB
+        InModuleScope "$rootB/$sharedName" { Invoke-Api } | Should -Be 'dataB'
+    }
+
+    It 'Should-Invoke uses slash notation to check the ClientA copy call history' {
+        Mock -CommandName 'Get-Data' -ModuleName "$rootA/$sharedName" -MockWith { 'mockedA' }
+        InModuleScope "$rootA/$sharedName" { Invoke-Api } | Out-Null
+        Should -Invoke 'Get-Data' -ModuleName "$rootA/$sharedName" -Exactly -Times 1
+    }
+}
+
+Describe 'Mocking in nested Invoke-Pester runs' {
     BeforeAll {
         Mock Get-Date { 1 }
 

@@ -22,6 +22,12 @@ function Should-NotBeString {
     .PARAMETER IgnoreWhitespace
     Indicates that the comparison should ignore whitespace.
 
+    .PARAMETER TrimWhitespace
+    Trims whitespace at the start and end of the string.
+
+    .PARAMETER NormalizeLineEnding
+    Normalizes line endings before comparison, so that `\r\n`, `\r`, and the Unicode line separator are all treated as `\n`. Use this to compare multi-line strings across platforms without failing on line-ending style. Unlike `-IgnoreWhitespace`, the newlines and their positions are kept, so indentation and blank lines are still compared.
+
     .PARAMETER Because
     The reason why the actual value should not be equal to the expected value.
 
@@ -42,6 +48,10 @@ function Should-NotBeString {
     .NOTES
     The `Should-NotBeString` assertion is the opposite of the `Should-BeString` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-NotBeString
 
@@ -53,21 +63,23 @@ function Should-NotBeString {
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory)]
         [String]$Expected,
         [String]$Because,
         [switch]$CaseSensitive,
-        [switch]$IgnoreWhitespace
+        [switch]$IgnoreWhitespace,
+        [switch]$TrimWhitespace,
+        [switch]$NormalizeLineEnding
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -isnot [string]) {
         throw [ArgumentException]"Actual is expected to be string, to avoid confusing behavior that -ne operator exhibits with collections. To assert on collections use Should-Any, Should-All or some other collection assertion."
     }
 
-    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace) {
+    if (Test-StringEqual -Expected $Expected -Actual $Actual -CaseSensitive:$CaseSensitive -IgnoreWhitespace:$IgnoreWhiteSpace -TrimWhitespace:$TrimWhitespace -NormalizeLineEnding:$NormalizeLineEnding) {
         if (-not $CustomMessage) {
             $formattedMessage = Get-StringNotEqualDefaultFailureMessage -Expected $Expected -Actual $Actual
         }
@@ -75,7 +87,6 @@ function Should-NotBeString {
             $formattedMessage = Get-CustomFailureMessage -Expected $Expected -Actual $Actual -Because $Because
         }
 
-        Invoke-AssertionFailed -Message $formattedMessage -CallerCmdlet $PSCmdlet -Expected $Expected -Actual $Actual -Because $Because
+        $assert.Fail($formattedMessage, @{ Expected = $Expected; Actual = $Actual; Because = $Because })
     }
-    Set-AssertionPassResult
 }

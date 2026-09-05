@@ -1,6 +1,7 @@
 $script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
+        ShuffleMessage = "Shuffling execution order using seed {0}. Set 'Run.ShuffleSeed = {0}' to repeat this order."
 
         CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
@@ -14,6 +15,7 @@ $script:ReportStrings = DATA {
         Context           = 'Context {0}'
         Margin            = ' '
         Timing            = 'Tests completed in {0}'
+        Tags              = ' [Tags: {0}]'
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -125,6 +127,23 @@ function Write-PesterHostMessage {
     }
 
     process {
+        # In a parallel worker the whole run is silenced (Output.Verbosity = 'None') and its output is
+        # captured into the shared event tape (see Invoke-TestInParallel) so the parent can replay it in
+        # order. In a ForEach-Object -Parallel runspace writing to the host right away surfaces live and
+        # detached from the test that produced it (#2825), so instead append the message to the tape. The
+        # worker runs one file synchronously, so append order is already the correct order, and host/debug
+        # entries land interleaved with the per-test steps the recorder captured around them.
+        # Read the tape via GetValue, not the 'defined' helper: 'defined' returns the value through a
+        # function output, which enumerates a collection and hands back its first element instead of the
+        # list itself. GetValue returns the list object and tolerates the variable being unset ($null).
+        $parallelOutputTape = $ExecutionContext.SessionState.PSVariable.GetValue('parallelOutputTape')
+        if ($null -ne $parallelOutputTape) {
+            $captured = @{}
+            foreach ($k in $PSBoundParameters.Keys) { $captured[$k] = $PSBoundParameters[$k] }
+            $null = $parallelOutputTape.Add([PSCustomObject]@{ Step = $null; Host = $captured })
+            return
+        }
+
         if (-not $HostSupportsOutput) { return }
 
         if ($RenderMode -eq 'Ansi') {
@@ -435,12 +454,9 @@ function ConvertTo-FailureLines {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
                 [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*/Pester.psm1: line [0-9]*$'
-                # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
                 [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
             # PESTER_BUILD
@@ -449,26 +465,42 @@ function ConvertTo-FailureLines {
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands['Split-Path']))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
-                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
             # end PESTER_BUILD
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
-            # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
-            # what we don't want to do here is shorten the stack on the Should or Invoke-Assertion. That would remove any
-            # lines describing potential functions that are invoked in the test. e.g. doing function a() { 1 | Should -Be 2 }; a
-            # we want to be able to see that we invoked the assertion inside of function a
-            # the internal calls to Should and Invoke-Assertion are filtered out later by the second match
+            # whole test script itself. This is achieved by shortening the stack trace when a Pester frame is hit after we already
+            # collected at least one frame from the user code.
+            # the frames below the user code are Pester as well, e.g. Should, or Ensure-ExpectedIsNotCollection when the error is
+            # thrown from an assertion, or Mock when the error comes from Mock. We skip those, but we must not stop on them,
+            # otherwise we throw away the whole trace, including the line in the test file that the user needs. Skipping instead of
+            # stopping also keeps any function that the user invoked in the test, e.g. doing function a() { 1 | Should -Be 2 }; a
+            # shows that we invoked the assertion inside of function a.
+            # an assertion failure already has the line with the assertion itself, taken from TargetObject above,
+            # skip the first frame of the trace when it points at the same place so we don't print it twice
+            $skipFrame = if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
+                "$($ErrorRecord.TargetObject.File):$($ErrorRecord.TargetObject.Line)"
+            }
+
+            $userFrameFound = $false
             foreach ($line in $traceLines) {
-                if ($line -match $isPesterFunction -and $line -notmatch $isShould) {
-                    break
+                if ($line -match $isPesterFunction) {
+                    if ($userFrameFound) {
+                        break
+                    }
+
+                    continue
                 }
 
-                $isPesterInternalFunction = $line -match $isPesterFunction
+                if (-not $userFrameFound) {
+                    $userFrameFound = $true
 
-                if (-not $isPesterInternalFunction) {
-                    $lines.Trace += $line
+                    if ($null -ne $skipFrame -and $line -replace '^at [^,]*, ' -replace ':\s*line\s*(\d+)\s*$', ':$1' -eq $skipFrame) {
+                        continue
+                    }
                 }
+
+                $lines.Trace += $line
             }
         }
 
@@ -497,7 +529,24 @@ function Get-WriteScreenPlugin ($Verbosity) {
     $p.DiscoveryStart = {
         param ($Context)
 
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        if ($PesterPreference.Run.SkipRun.Value) {
+            # Discovery-only mode (e.g. populating an IDE Test Explorer); we are not
+            # going to run anything, so announce discovery instead of the run.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "`nStarting discovery in $(@($Context.BlockContainers).Length) files."
+        }
+        else {
+            # A single banner for the whole run. In the interleaved run model the rest of
+            # the discovery/run framing ("Discovery found ...", "Running tests.") is kept
+            # off the screen; the matching plugin events still fire so IDE adapters keep
+            # the full contract. The parent sets Parallel on the context for a parallel run.
+            $parallelSuffix = if ($Context.Parallel) { ' in parallel' } else { '' }
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from $(@($Context.BlockContainers).Length) files$parallelSuffix."
+        }
+
+        if ($PesterPreference.Run.Shuffle.Value) {
+            # Report the resolved seed so a randomized run (#2425) can be repeated.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery ($ReportStrings.ShuffleMessage -f $PesterPreference.Run.ShuffleSeed.Value)
+        }
     }
 
     $p.ContainerDiscoveryEnd = {
@@ -526,7 +575,14 @@ function Get-WriteScreenPlugin ($Verbosity) {
         param ($Context)
 
         $discoveredTests = @(View-Flat -Block $Context.BlockContainers)
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
+
+        if ($PesterPreference.Run.SkipRun.Value) {
+            # Only announce the discovery result on screen when we are not going to run
+            # the tests. During a normal run this is collapsed into the run banner and
+            # the final summary to keep the output quiet; the DiscoveryEnd event still
+            # fires for plugins/IDE adapters.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery "Discovery found $($discoveredTests.Count) tests in $(Get-HumanTime $Context.Duration)."
+        }
 
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
             $activeFilters = $Context.Filter.psobject.Properties | & $SafeCommands['Where-Object'] { $_.Value }
@@ -550,10 +606,6 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
     }
 
-
-    $p.RunStart = {
-        Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "Running tests."
-    }
 
     if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
         $p.ContainerRunStart = {
@@ -586,11 +638,16 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
 
         if ('Normal' -eq $PesterPreference.Output.Verbosity.Value) {
-            $humanTime = "$(Get-HumanTime ($Context.Result.Duration)) ($(Get-HumanTime $Context.Result.UserDuration)|$(Get-HumanTime $Context.Result.FrameworkDuration))"
+            # UserDuration and FrameworkDuration are kept on the result object for profiling,
+            # but we only show the combined Duration here to keep the output easy to read.
+            $humanTime = "$(Get-HumanTime ($Context.Result.Duration))"
 
             if ($Context.Result.Passed) {
+                $testCount = $Context.Result.TotalCount
+                $testCountText = if (1 -eq $testCount) { '1 test' } else { "$testCount tests" }
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " ($testCountText)"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
@@ -654,7 +711,13 @@ function Get-WriteScreenPlugin ($Verbosity) {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
         }
 
-        $humanTime = "$(Get-HumanTime ($_test.Duration)) ($(Get-HumanTime $_test.UserDuration)|$(Get-HumanTime $_test.FrameworkDuration))"
+        if ($PesterPreference.Output.ShowTags.Value -and $null -ne $_test.Tag -and 0 -lt @($_test.Tag).Count) {
+            $out += $ReportStrings.Tags -f ($_test.Tag -join ', ')
+        }
+
+        # UserDuration and FrameworkDuration are kept on the result object for profiling,
+        # but we only show the combined Duration here to keep the output easy to read.
+        $humanTime = "$(Get-HumanTime ($_test.Duration))"
 
         if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
             $out += ", $($_test.ScriptBlock.File):$($_Test.StartLine)"
@@ -1027,6 +1090,10 @@ function Write-BlockToScreen {
     $name = if (-not [string]::IsNullOrWhiteSpace($Block.ExpandedName)) { $Block.ExpandedName } else { $Block.Name }
     $text = $ReportStrings.$commandUsed -f $name
 
+    if ($PesterPreference.Output.ShowTags.Value -and $null -ne $Block.Tag -and 0 -lt @($Block.Tag).Count) {
+        $text += $ReportStrings.Tags -f ($Block.Tag -join ', ')
+    }
+
     if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
         $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
     }
@@ -1105,6 +1172,19 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
     $supportedCILogLevels = 'Error', 'Warning'
     if ($PesterPreference.Output.CILogLevel.Value -notin $supportedCILogLevels) {
         throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
+    }
+
+    $supportedCIDebugOutput = 'None', 'Auto'
+    if ($PesterPreference.Output.CIDebugOutput.Value -notin $supportedCIDebugOutput) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIDebugOutput' -SupportedValues $supportedCIDebugOutput -Value $PesterPreference.Output.CIDebugOutput.Value)
+    }
+    elseif ((-not $PesterPreference.Output.Verbosity.IsModified) -and (Test-CIDebugOutputEnabled -PesterPreference $PesterPreference)) {
+        # A CI system has its debug switch enabled and the user did not set a verbosity. Raise it to
+        # Diagnostic so the run shows detailed output and Pester's debug messages, the same way e.g.
+        # Azure DevOps' System.Debug makes the rest of the pipeline verbose. The user's own
+        # Write-Verbose and Write-Debug in tests is surfaced separately during the run, see
+        # Invoke-ContainerRun in Pester.Runtime.ps1.
+        $PesterPreference.Output.Verbosity = 'Diagnostic'
     }
 
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {

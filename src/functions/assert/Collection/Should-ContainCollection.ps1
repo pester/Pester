@@ -1,16 +1,21 @@
 ﻿function Should-ContainCollection {
     <#
     .SYNOPSIS
-    Compares collections to see if the expected collection is present in the provided collection. It does not compare the types of the input collections.
+    Checks that the expected collection is present in the actual collection as an ordered subsequence. It does not compare the types of the input collections.
 
     .DESCRIPTION
-    This assertion uses PowerShell containment to check whether the actual collection contains the expected value. The comparison uses the contained value's own equality semantics.
+    The items of the expected collection must appear in the actual collection in the same order. Gaps between the matched items are allowed, but each actual item is used at most once, so repeated expected items need at least as many matching items in the actual collection. A single value is treated as a one-item collection. Items are compared using PowerShell equality, the same as the `-contains` operator.
+
+    Use `-IgnoreOrder` to check that the expected items are present in any order. Each actual item is still used at most once, so repeated expected items need at least as many matching items in the actual collection.
 
     .PARAMETER Expected
-    A collection of items.
+    One or more items to look for. By default they must appear as an ordered subsequence; with `-IgnoreOrder` the order does not matter. A single value is treated as a one-item collection.
 
     .PARAMETER Actual
-    A collection of items.
+    The collection to search in.
+
+    .PARAMETER IgnoreOrder
+    Ignores the order of the items, so the expected items only need to be present in the actual collection, in any order.
 
     .PARAMETER Because
     The reason why the input should be the expected value.
@@ -18,19 +23,35 @@
     .EXAMPLE
     ```powershell
     1, 2, 3 | Should-ContainCollection @(1, 2)
+    1, 2, 3 | Should-ContainCollection @(1, 3)
     @(1) | Should-ContainCollection @(1)
+    1, 2, 3 | Should-ContainCollection 2
     ```
 
-    This assertion will pass, because all items are present in the collection, in the right order.
+    These assertions pass, because the expected items are present in the same order. Gaps between them, as in `@(1, 3)`, are allowed, and a single value is treated as a one-item collection.
+
+    .EXAMPLE
+    ```powershell
+    'b', 3, 2, 'a' | Should-ContainCollection @('a', 2) -IgnoreOrder
+    1, 2, 3 | Should-ContainCollection @(3, 2, 1) -IgnoreOrder
+    ```
+
+    These assertions pass, because with `-IgnoreOrder` the expected items only need to be present, not in any particular order.
 
     .EXAMPLE
     ```powershell
     1, 2, 3 | Should-ContainCollection @(3, 4)
     1, 2, 3 | Should-ContainCollection @(3, 2, 1)
+    1, 2 | Should-ContainCollection @(1, 1)
     @(1) | Should-ContainCollection @(2)
     ```
 
-    This assertion will fail, because not all items are present in the collection, or are not in the right order.
+    These assertions fail, because an expected item is missing (`@(3, 4)`), the items are not in the right order (`@(3, 2, 1)`), or the actual collection does not have enough matching items (`@(1, 1)` needs two 1s).
+
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
 
     .LINK
     https://pester.dev/docs/commands/Should-ContainCollection
@@ -46,14 +67,21 @@
         $Actual,
         [Parameter(Position = 0, Mandatory)]
         $Expected,
+        [switch]$IgnoreOrder,
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
-    if ($Actual -notcontains $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but it was not there."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
+    $Actual = $assert.Actual()
+
+    if ($IgnoreOrder) {
+        if (-not (Is-CollectionSubset -Expected $Expected -Actual $Actual)) {
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in any order,<because> but it was not there.", @{ Expected = $Expected; Because = $Because })
+        }
     }
-    Set-AssertionPassResult
+    else {
+        if (-not (Is-CollectionSubsequence -Expected $Expected -Actual $Actual)) {
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but it was not there.", @{ Expected = $Expected; Because = $Because })
+        }
+    }
 }

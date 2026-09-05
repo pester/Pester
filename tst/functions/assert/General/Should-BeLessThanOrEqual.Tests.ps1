@@ -71,9 +71,11 @@ Describe "Should-BeLessThanOrEqual" {
         }
     }
 
-    It "Fails for array input even if the last item is less than then expected value" {
-        $err = { 4, 3, 2, 1 | Should-BeLessThanOrEqual 3 } | Verify-Throw
-        $err.Exception | Verify-Type ([System.Management.Automation.RuntimeException])
+    It "Fails with an input hint for array input, which the pipeline unwraps before comparing" {
+        # A piped multi-item collection is unwrapped to [Object[]], which the comparison operators
+        # cannot compare. Instead of a cryptic native error the assertion now fails with a hint. #2801
+        $err = { 4, 3, 2, 1 | Should-BeLessThanOrEqual 3 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a*into a single-value assertion*'
     }
 
     Context "Validate messages" {

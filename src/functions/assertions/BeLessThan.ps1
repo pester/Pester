@@ -1,4 +1,4 @@
-﻿function Should-BeLessThanAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-BeLessThanAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a number (or other comparable value) is lower than an expected value.
@@ -29,7 +29,6 @@
         Succeeded = $true
     }
 }
-
 
 function Should-BeGreaterOrEqual($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
@@ -85,12 +84,3 @@ Set-ShouldOperatorHelpMessage -OperatorName BeGreaterOrEqual `
     -HelpMessage "Asserts that a number (or other comparable value) is greater than or equal to an expected value. Uses PowerShell's -ge operator to compare the two values."
 
 #keeping tests happy
-function ShouldBeLessThanFailureMessage() {
-}
-function NotShouldBeLessThanFailureMessage() {
-}
-
-function ShouldBeGreaterOrEqualFailureMessage() {
-}
-function NotShouldBeGreaterOrEqualFailureMessage() {
-}

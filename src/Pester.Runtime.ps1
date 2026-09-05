@@ -1,4 +1,4 @@
-﻿# PESTER_BUILD
+# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/Pester.Utility.ps1"
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
@@ -45,14 +45,13 @@ else {
 # 'New-PluginObject'
 # 'New-BlockContainerObject'
 
-
 # instances
 $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
 $script:SessionStateInternalProperty = [System.Management.Automation.SessionState].GetProperty('Internal', $flags)
 $script:ScriptBlockSessionStateInternalProperty = [System.Management.Automation.ScriptBlock].GetProperty('SessionStateInternal', $flags)
 $script:ScriptBlockSessionStateProperty = [System.Management.Automation.ScriptBlock].GetProperty("SessionState", $flags)
 
-if (notDefined PesterPreference) {
+if (notDefined_ PesterPreference) {
     $PesterPreference = [PesterConfiguration]::Default
 }
 else {
@@ -70,6 +69,7 @@ function New-PesterState {
         CurrentTest         = $null
 
         Plugin              = $null
+        PluginSteps         = $null
         PluginConfiguration = $null
         PluginData          = $null
         Configuration       = $null
@@ -79,6 +79,22 @@ function New-PesterState {
         FrameworkStopWatch  = [Diagnostics.Stopwatch]::StartNew()
 
         Stack               = [Collections.Stack]@()
+
+        # [System.Random] used to shuffle the execution order of containers, blocks and tests
+        # when Run.Shuffle is enabled. Seeded from Run.ShuffleSeed so a run can be repeated.
+        # Stays $null when Run.Shuffle is disabled.
+        ShuffleRandom       = $null
+
+        # Set of block containers that opt out of shuffling via a '#pester:no-shuffle' comment.
+        # Their blocks and tests keep declaration order even when Run.Shuffle is enabled.
+        NoShuffleContainers = $null
+
+        # Captured here so the <> template expansion (which runs in the user's session state) can
+        # invoke it via "& $____Pester.FormatNicelyForTemplate" while the function itself stays bound
+        # to the Pester module session state, where Format-Nicely2 is available (#2744).
+        # Format-NicelyForTemplate lives in Format2.ps1, which is not loaded when the runtime is
+        # tested in isolation (Pester.Runtime.ts.ps1); fall back to plain interpolation there.
+        FormatNicelyForTemplate = $(if ($null -ne ${function:Format-NicelyForTemplate}) { ${function:Format-NicelyForTemplate} } else { { param($____PesterFallbackValue) "$($____PesterFallbackValue)" } })
     }
 
     $o.TotalStopWatch.Restart()
@@ -120,7 +136,7 @@ function Find-Test {
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
-    if (notDefined state) {
+    if (notDefined_ state) {
         $state = New-PesterState
     }
 
@@ -164,7 +180,6 @@ function New-ParametrizedBlock {
         [int] $StartColumn = $MyInvocation.OffsetInLine,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
-        [Switch] $Focus,
         [Switch] $Skip,
         $Data
     )
@@ -176,7 +191,7 @@ function New-ParametrizedBlock {
     foreach ($d in @($Data)) {
         # shallow clone to give every block it's own copy
         $fmwData = $FrameworkData.Clone()
-        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Focus:$Focus -Skip:$Skip -Data $d
+        New-Block -GroupId $groupId -Name $Name -ScriptBlock $ScriptBlock -StartLine $StartLine -Tag $Tag -FrameworkData $fmwData -Skip:$Skip -Data $d
     }
 }
 
@@ -191,7 +206,6 @@ function New-Block {
         [int] $StartLine = $MyInvocation.ScriptLineNumber,
         [String[]] $Tag = @(),
         [HashTable] $FrameworkData = @{ },
-        [Switch] $Focus,
         [String] $GroupId,
         [Switch] $Skip,
         $Data
@@ -229,7 +243,6 @@ function New-Block {
     $block.ScriptBlock = $ScriptBlock
     $block.StartLine = $StartLine
     $block.FrameworkData = $FrameworkData
-    $block.Focus = $Focus
     $block.GroupId = $GroupId
     $block.Skip = $Skip
     $block.Data = $Data
@@ -330,9 +343,9 @@ function Invoke-Block ($previousBlock) {
                 # no callbacks are provided because we are not transitioning between any states
                 $frameworkSetupResult = Invoke-ScriptBlock `
                     -OuterSetup @(
-                    if ($block.First) { $state.Plugin.OneTimeBlockSetupStart }
+                    if ($block.First) { $state.PluginSteps.OneTimeBlockSetupStart }
                 ) `
-                    -Setup @( $state.Plugin.EachBlockSetupStart ) `
+                    -Setup $state.PluginSteps.EachBlockSetupStart `
                     -Context @{
                     Context = @{
                         # context that is visible to plugins
@@ -399,7 +412,7 @@ function Invoke-Block ($previousBlock) {
                                         $private:____PesterExpandedPos = 0
                                         foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                             $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
                                             elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                             else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                             $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
@@ -424,7 +437,12 @@ function Invoke-Block ($previousBlock) {
                             })
                     ) `
                         -OuterTeardown $( if (-not (Is-Discovery) -and (-not $Block.Skip)) {
-                            @($block.OneTimeTestTeardown) + @($previousBlock.EachBlockTeardown)
+                            # Mirror the setups: the last AfterAll registered runs first.
+                            $oneTimeTeardowns = @($block.OneTimeTestTeardown)
+                            [Array]::Reverse($oneTimeTeardowns)
+                            $eachBlockTeardowns = @($previousBlock.EachBlockTeardown)
+                            [Array]::Reverse($eachBlockTeardowns)
+                            $oneTimeTeardowns + $eachBlockTeardowns
                         } ) `
                         -Context $context `
                         -MoveBetweenScopes `
@@ -439,12 +457,9 @@ function Invoke-Block ($previousBlock) {
                     }
                 }
 
-                $frameworkEachBlockTeardowns = @($state.Plugin.EachBlockTeardownEnd )
-                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.Plugin.OneTimeBlockTeardownEnd } )
-                # reverse the teardowns so they run in opposite order to setups
-                [Array]::Reverse($frameworkEachBlockTeardowns)
-                [Array]::Reverse($frameworkOneTimeBlockTeardowns)
-
+                # the cached teardown steps are stored already reversed, so they run in the opposite order to setups
+                $frameworkEachBlockTeardowns = $state.PluginSteps.EachBlockTeardownEndReversed
+                $frameworkOneTimeBlockTeardowns = @( if ($block.Last) { $state.PluginSteps.OneTimeBlockTeardownEndReversed } )
 
                 # setting those values here so they are available for the teardown
                 # BUT they are then set again at the end of the block to make them accurate
@@ -496,7 +511,6 @@ function New-Test {
         [String[]] $Tag = @(),
         $Data,
         [String] $GroupId,
-        [Switch] $Focus,
         [Switch] $Skip
     )
 
@@ -508,9 +522,11 @@ function New-Test {
         throw "Test cannot be directly in the root."
     }
 
-    # avoid managing state by not pushing to the stack only to pop out in finally
-    # simply concatenate the arrays
-    $path = @(<# Get full name #> $history = $state.Stack.ToArray(); [Array]::Reverse($history); $history + $name)
+    # The test's path is its parent block's path plus the test name. The parent is always the current
+    # block (a test cannot be directly in the root, guarded above), and CurrentBlock.Path already holds
+    # the reversed stack captured when the block was entered, so reuse it instead of rebuilding the path
+    # from the stack (Stack.ToArray() + [Array]::Reverse) on every one of the many New-Test calls.
+    $path = @($state.CurrentBlock.Path) + $name
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Runtime "Entering path $($path -join '.')"
@@ -529,7 +545,6 @@ function New-Test {
     $test.ExpandedPath = $path -join '.'
     $test.StartLine = $StartLine
     $test.Tag = $Tag
-    $test.Focus = $Focus
     $test.Skip = $Skip
     $test.Data = $Data
     $test.FrameworkData.Runtime.Phase = 'Discovery'
@@ -540,6 +555,71 @@ function New-Test {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope DiscoveryCore "Added test '$Name'"
+    }
+}
+
+function Expand-NameForSkippedTest {
+    # A skipped test never runs its setup, which is where <template> names are normally expanded
+    # (see the expansion setup in Invoke-TestItem). So a skipped data-driven test used to show the
+    # raw template, e.g. 'Value <_>' three times instead of 'Value foo' / 'Value bar' / ... (#2427).
+    #
+    # We expand the same way an executed test does: build the same #2044-safe expandable string and
+    # evaluate the <template> expressions against the -ForEach data, in the test's session state, so a
+    # skipped test gets the same name it would get when run (<_>, <Name>, but also <_.Length> etc.).
+    # The only thing we don't have is the setup state, so if a template refers to something that only
+    # setup would define the expansion throws just like it would for a run, and we fall back to the raw
+    # template name rather than failing the skipped test.
+    param (
+        [string] $Name,
+        $Data,
+        # SessionStateInternal of the test's scriptblock, so <template> resolves against user scope
+        # exactly like it does when the test runs.
+        $SessionStateInternal,
+        # The FormatNicelyForTemplate scriptblock captured on the state ($State.FormatNicelyForTemplate),
+        # so skipped and executed tests format the same values identically, and so this keeps working
+        # when the runtime is tested in isolation without Format2.ps1 loaded.
+        $FormatNicelyForTemplate
+    )
+
+    if ($Name -notlike '*<*') { return $Name }
+
+    # Build the same expandable string the executed expansion builds: each <template> becomes an
+    # evaluated $(& $fmt ($template)) and every other character is escaped so literal backticks, $ and "
+    # stay inert and cannot break parsing or inject code (#2044). `< and `> escape a literal bracket.
+    $builder = [System.Text.StringBuilder]::new($Name.Length)
+    $pos = 0
+    foreach ($match in [regex]::Matches($Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
+        $null = $builder.Append($Name.Substring($pos, $match.Index - $pos))
+        if ($match.Groups[1].Success) { $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($match.Groups[1].Value).Append('))') }
+        elseif ($match.Groups[2].Success) { $null = $builder.Append($match.Groups[2].Value) }
+        else { $null = $builder.Append('`').Append($match.Groups[3].Value) }
+        $pos = $match.Index + $match.Length
+    }
+    $null = $builder.Append($Name.Substring($pos))
+
+    $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    if ($null -ne $SessionStateInternal) {
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($expandScriptBlock, $SessionStateInternal)
+    }
+
+    # Bind the -ForEach data ($_ and, for a dictionary, its keys) and the formatter, the same variables
+    # the executed expansion sees. Prefixed and private names so they can't shadow user variables.
+    $variables = [System.Collections.Generic.List[System.Management.Automation.PSVariable]]::new()
+    $variables.Add([System.Management.Automation.PSVariable]::new('____PesterFormatNicelyForTemplate', $FormatNicelyForTemplate))
+    $dataContext = @{ }
+    Add-DataToContext -Destination $dataContext -Data $Data
+    foreach ($pair in $dataContext.GetEnumerator()) {
+        $variables.Add([System.Management.Automation.PSVariable]::new($pair.Key, $pair.Value))
+    }
+
+    try {
+        $expanded = $expandScriptBlock.InvokeWithContext($null, $variables)
+        if ($null -ne $expanded -and 0 -lt @($expanded).Count) { [string]$expanded[0] } else { $Name }
+    }
+    catch {
+        # A skipped test's name must never fail the run. If a template needs something only setup would
+        # provide, keep the raw template rather than throwing, same visible result as before the fix.
+        $Name
     }
 }
 
@@ -585,9 +665,9 @@ function Invoke-TestItem {
         # no callbacks are provided because we are not transitioning between any states
         $frameworkSetupResult = Invoke-ScriptBlock `
             -OuterSetup @(
-            if ($Test.First) { $state.Plugin.OneTimeTestSetupStart }
+            if ($Test.First) { $state.PluginSteps.OneTimeTestSetupStart }
         ) `
-            -Setup @( $state.Plugin.EachTestSetupStart ) `
+            -Setup $state.PluginSteps.EachTestSetupStart `
             -Context @{
             Context = @{
                 # context visible to Plugins
@@ -604,6 +684,15 @@ function Invoke-TestItem {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 $path = $Test.Path -join '.'
                 Write-PesterDebugMessage -Scope Skip "($path) Test is skipped."
+            }
+
+            # A skipped test never runs the setup that expands <template> names, so expand them here
+            # against the -ForEach data, the same way an executed test would. Same guard as the executed
+            # path uses before binding data (#2427).
+            if (($null -ne $Test.Data -or -not [string]::IsNullOrEmpty($Test.GroupId)) -and ($Test.Name -like '*<*')) {
+                $testSessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($Test.ScriptBlock, $null)
+                $Test.ExpandedName = Expand-NameForSkippedTest -Name $Test.Name -Data $Test.Data -SessionStateInternal $testSessionStateInternal -FormatNicelyForTemplate $State.FormatNicelyForTemplate
+                $Test.ExpandedPath = "$($block.ExpandedPath).$($Test.ExpandedName)"
             }
 
             # setting the test as passed here, this is by choice
@@ -632,16 +721,24 @@ function Invoke-TestItem {
                 }
 
                 # recurse up Recurse-Up $Block { param ($b) $b.EachTestSetup }
+                # A block can hold more than one BeforeEach. Emit each block's own setups reversed,
+                # because the whole collection is reversed below to make the parent's setups run
+                # first, and that would otherwise also flip the order within a single block.
                 $i = $Block
                 $eachTestSetups = while ($null -ne $i) {
-                    $i.EachTestSetup
+                    $blockSetups = @($i.EachTestSetup)
+                    for ($j = $blockSetups.Count - 1; $j -ge 0; $j--) { $blockSetups[$j] }
                     $i = $i.Parent
                 }
 
                 # recurse up Recurse-Up $Block { param ($b) $b.EachTestTeardown }
+                # Teardowns are not reversed as a whole (the child's run before the parent's), so a
+                # block's own teardowns are emitted reversed here to mirror its setups: last
+                # AfterEach registered runs first.
                 $i = $Block
                 $eachTestTeardowns = while ($null -ne $i) {
-                    $i.EachTestTeardown
+                    $blockTeardowns = @($i.EachTestTeardown)
+                    for ($j = $blockTeardowns.Count - 1; $j -ge 0; $j--) { $blockTeardowns[$j] }
                     $i = $i.Parent
                 }
 
@@ -677,7 +774,7 @@ function Invoke-TestItem {
                                 $private:____PesterExpandedPos = 0
                                 foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                     $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append(')') }
+                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
                                     elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                     else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                     $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
@@ -733,7 +830,6 @@ function Invoke-TestItem {
             }
         }
 
-
         # setting those values here so they are available for the teardown
         # BUT they are then set again at the end of the block to make them accurate
         # so the value on the screen vs the value in the object is slightly different
@@ -741,10 +837,9 @@ function Invoke-TestItem {
         $Test.UserDuration = $state.UserCodeStopWatch.Elapsed - $testStartTime
         $Test.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
 
-        $frameworkEachTestTeardowns = @( $state.Plugin.EachTestTeardownEnd )
-        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.Plugin.OneTimeTestTeardownEnd })
-        [array]::Reverse($frameworkEachTestTeardowns)
-        [array]::Reverse($frameworkOneTimeTestTeardowns)
+        # the cached teardown steps are stored already reversed, so they run in the opposite order to setups
+        $frameworkEachTestTeardowns = $state.PluginSteps.EachTestTeardownEndReversed
+        $frameworkOneTimeTestTeardowns = @(if ($Test.Last) { $state.PluginSteps.OneTimeTestTeardownEndReversed })
 
         $frameworkTeardownResult = Invoke-ScriptBlock `
             -Teardown $frameworkEachTestTeardowns `
@@ -790,10 +885,7 @@ function New-EachTestSetup {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.EachTestSetup) {
-            throw "BeforeEach is already defined in this block. Each block can only have one BeforeEach. Combine the code into a single BeforeEach block."
-        }
-        $state.CurrentBlock.EachTestSetup = $ScriptBlock
+        $state.CurrentBlock.EachTestSetup.Add($ScriptBlock)
     }
 }
 
@@ -805,10 +897,7 @@ function New-EachTestTeardown {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.EachTestTeardown) {
-            throw "AfterEach is already defined in this block. Each block can only have one AfterEach. Combine the code into a single AfterEach block."
-        }
-        $state.CurrentBlock.EachTestTeardown = $ScriptBlock
+        $state.CurrentBlock.EachTestTeardown.Add($ScriptBlock)
     }
 }
 
@@ -821,10 +910,7 @@ function New-OneTimeTestSetup {
     )
 
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.OneTimeTestSetup) {
-            throw "BeforeAll is already defined in this block. Each block can only have one BeforeAll. Combine the code into a single BeforeAll block."
-        }
-        $state.CurrentBlock.OneTimeTestSetup = $ScriptBlock
+        $state.CurrentBlock.OneTimeTestSetup.Add($ScriptBlock)
     }
 }
 
@@ -836,10 +922,7 @@ function New-OneTimeTestTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        if ($null -ne $state.CurrentBlock.OneTimeTestTeardown) {
-            throw "AfterAll is already defined in this block. Each block can only have one AfterAll. Combine the code into a single AfterAll block."
-        }
-        $state.CurrentBlock.OneTimeTestTeardown = $ScriptBlock
+        $state.CurrentBlock.OneTimeTestTeardown.Add($ScriptBlock)
     }
 }
 
@@ -850,7 +933,7 @@ function New-EachBlockSetup {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockSetup = $ScriptBlock
+        $state.CurrentBlock.EachBlockSetup.Add($ScriptBlock)
     }
 }
 
@@ -861,22 +944,11 @@ function New-EachBlockTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.EachBlockTeardown = $ScriptBlock
+        $state.CurrentBlock.EachBlockTeardown.Add($ScriptBlock)
     }
 }
 
 # endpoint for adding a setup for all blocks in the current block
-function New-OneTimeBlockSetup {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [ScriptBlock] $ScriptBlock
-    )
-    if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockSetup = $ScriptBlock
-    }
-}
-
 # endpoint for adding a teardown for all clocks in the current block
 function New-OneTimeBlockTeardown {
     [CmdletBinding()]
@@ -885,7 +957,7 @@ function New-OneTimeBlockTeardown {
         [ScriptBlock] $ScriptBlock
     )
     if (Is-Discovery) {
-        $state.CurrentBlock.OneTimeBlockTeardown = $ScriptBlock
+        $state.CurrentBlock.OneTimeBlockTeardown.Add($ScriptBlock)
     }
 }
 
@@ -903,17 +975,6 @@ function Get-CurrentTest {
     $state.CurrentTest
 }
 
-function Set-CurrentBlock {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        $Block
-    )
-
-    $state.CurrentBlock = $Block
-}
-
-
 function Set-CurrentTest {
     [CmdletBinding()]
     param (
@@ -924,9 +985,259 @@ function Set-CurrentTest {
     $state.CurrentTest = $Test
 }
 
-
 function Is-Discovery {
     $state.Discovery
+}
+
+function Invoke-ContainerDiscovery {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject] $Container,
+        $Filter,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState,
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
+    )
+
+    # Discovers the tests in a single container and returns its root block, ready to
+    # run. The caller is responsible for setting $state.Discovery = $true before
+    # calling. This fires the per-container ContainerDiscoveryStart/ContainerDiscoveryEnd
+    # steps and runs PostProcess-DiscoveredBlock; the global DiscoveryStart/DiscoveryEnd
+    # steps are fired by the caller (so they fire once for the whole run).
+    $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
+
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($Container.Item)"
+    }
+
+    # this is a block object that we add so we can capture
+    # OneTime* and Each* setups, and capture multiple blocks in a
+    # container
+    $root = [Pester.Block]::Create()
+    $root.ExpandedName = $root.Name = "Root"
+
+    $root.IsRoot = $true
+    $root.ExpandedPath = $root.Path = "Path"
+
+    $root.First = $true
+    $root.Last = $true
+
+    # set the data from the container to get them
+    # set correctly as if we provided -Data to New-Block
+    $root.Data = $Container.Data
+
+    Reset-PerContainerState -RootBlock $root
+
+    $steps = $state.Plugin.ContainerDiscoveryStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
+            BlockContainer = $Container
+            Configuration  = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    try {
+        $null = Invoke-BlockContainer -BlockContainer $Container -SessionState $SessionState -BeforeContainerFile $BeforeContainerFile
+    }
+    catch {
+        $root.Passed = $false
+        $root.Result = "Failed"
+        $root.ErrorRecord.Add($_)
+    }
+
+    $steps = $state.Plugin.ContainerDiscoveryEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
+            BlockContainer = $Container
+            Block          = $root
+            Duration       = $perContainerDiscoveryDuration.Elapsed
+            Configuration  = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds)ms" }
+        Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
+    }
+
+    # link children to parents, filter blocks and tests to determine which should
+    # run, etc. This takes non-trivial time, so measure it and add it to the discovery
+    # duration to get a more accurate total time.
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    PostProcess-DiscoveredBlock -Block $root -Filter $Filter -BlockContainer $Container -RootBlock $root
+    $root.DiscoveryDuration += $sw.Elapsed
+
+    $root
+}
+
+function Invoke-ContainerRun {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [PSObject] $RootBlock,
+        [Parameter(Mandatory = $true)]
+        [Management.Automation.SessionState] $SessionState
+    )
+
+    # Runs a single, already-discovered container (root block) and returns the
+    # executed [Pester.Container]. The caller is responsible for setting
+    # $state.Discovery = $false before calling. This fires the per-container
+    # ContainerRunStart/ContainerRunEnd steps; the global RunStart/RunEnd steps are
+    # fired by the caller (so they fire once for the whole run).
+    $blockStartTime = $state.UserCodeStopWatch.Elapsed
+    $overheadStartTime = $state.FrameworkStopWatch.Elapsed
+    Switch-Timer -Scope Framework
+
+    if (-not $RootBlock.ShouldRun) {
+        ConvertTo-ExecutedBlockContainer -Block $RootBlock
+        return
+    }
+    # this resets the timers so keep that before measuring the time
+    Reset-PerContainerState -RootBlock $RootBlock
+
+    $RootBlock.Executed = $true
+    $RootBlock.ExecutedAt = [DateTime]::now
+
+    $steps = $state.Plugin.ContainerRunStart
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
+            Block         = $RootBlock
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    try {
+        # if ($null -ne $rootBlock.OneTimeBlockSetup) {
+        #    throw "One time block setup is not supported in root (directly in the block container)."
+        #}
+
+        # if ($null -ne $rootBlock.EachBlockSetup) {
+        #     throw "Each block setup is not supported in root (directly in the block container)."
+        # }
+
+        if (0 -lt $RootBlock.EachTestSetup.Count) {
+            throw "Each test setup is not supported in root (directly in the block container)."
+        }
+
+        if (
+            0 -lt $RootBlock.EachTestTeardown.Count
+            #-or $null -ne $rootBlock.OneTimeBlockTeardown `
+            #-or $null -ne $rootBlock.EachBlockTeardown `
+        ) {
+            throw "Each test Teardown is not supported in root (directly in the block container)."
+        }
+
+        # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
+        # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
+        # before all script, but it might be better to make this a plugin, because there we can pass data.
+
+        # When a CI system has its debug switch enabled (e.g. Azure DevOps System.Debug or GitHub
+        # Actions runner debug logging) and the user did not opt out, surface Write-Verbose and
+        # Write-Debug from tests and setup blocks by raising the preferences in the user's root scope
+        # below. This is scoped to the run and does not leak into the caller's session afterwards (#1694).
+        $surfaceCIDebugOutput = Test-CIDebugOutputEnabled -PesterPreference $PesterPreference
+
+        $setVariables = {
+            param($private:____parameters)
+
+            if ($____parameters.SurfaceCIDebugOutput) {
+                $VerbosePreference = 'Continue'
+                $DebugPreference = 'Continue'
+            }
+
+            if ($null -eq $____parameters.Data) {
+                return
+            }
+
+            foreach ($private:____d in $____parameters.Data.GetEnumerator()) {
+                & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
+            }
+        }
+
+        $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
+
+        $setVariablesAndThenRunOneTimeSetupIfAny = & {
+            $action = $setVariables
+            # There can be more than one BeforeAll on the root block: the test file's own, plus one
+            # from every Pester.BeforeContainer.ps1 that applied to this container. They run in the
+            # order they were registered, after the container's parameters have been set.
+            $setups = @($RootBlock.OneTimeTestSetup)
+            $parameters = @{
+                Data                 = $RootBlock.BlockContainer.Data
+                Set_Variable         = $SafeCommands["Set-Variable"]
+                SurfaceCIDebugOutput = $surfaceCIDebugOutput
+            }
+
+            {
+                # Pester internal. This wrapper replaces the root block's BeforeAll: it sets the
+                # container's parameters first, then runs the BeforeAll blocks registered on this
+                # container - the test file's own, plus any that came from a Pester.BeforeContainer.ps1.
+                . $action $parameters
+                foreach ($private:____setup in $setups) {
+                    . $private:____setup
+                }
+            }.GetNewClosure()
+        }
+
+        # Construct rather than cast. PowerShell will not convert an object[] to a type derived
+        # from List<ScriptBlock>, it only knows how to build the generic list itself.
+        $rootSetups = [Pester.ScriptBlockCollection]::new()
+        $rootSetups.Add($setVariablesAndThenRunOneTimeSetupIfAny)
+        $RootBlock.OneTimeTestSetup = $rootSetups
+
+        $RootBlock.ScriptBlock = {}
+        $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
+        $script:ScriptBlockSessionStateInternalProperty.SetValue($RootBlock.ScriptBlock, $SessionStateInternal, $null)
+
+        # we add one more artificial block so the root can run
+        # all of it's setups and teardowns
+        $Pester___parent = [Pester.Block]::Create()
+        $Pester___parent.Name = "ParentBlock"
+        $Pester___parent.Path = "Path"
+
+        $Pester___parent.First = $false
+        $Pester___parent.Last = $false
+
+        $Pester___parent.Order.Add($RootBlock)
+
+        $wrapper = {
+            $null = Invoke-Block -previousBlock $Pester___parent
+        }
+
+        Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
+    }
+    catch {
+        $RootBlock.ErrorRecord.Add($_)
+    }
+
+    PostProcess-ExecutedBlock -Block $RootBlock
+    $result = ConvertTo-ExecutedBlockContainer -Block $RootBlock
+    $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+    $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+
+    $steps = $state.Plugin.ContainerRunEnd
+    if ($null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
+            Result        = $result
+            Block         = $RootBlock
+            Configuration = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
+
+    # set this again so the plugins have some data but that we also include the plugin invocation to the
+    # overall time to keep the actual timing correct
+    $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
+    $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
+    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+        Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
+        Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
+    }
+
+    $result
 }
 
 function Discover-Test {
@@ -954,121 +1265,13 @@ function Discover-Test {
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
-        $perContainerDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
-
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery "Discovering tests in $($container.Item)"
-        }
-
-        # this is a block object that we add so we can capture
-        # OneTime* and Each* setups, and capture multiple blocks in a
-        # container
-        $root = [Pester.Block]::Create()
-        $root.ExpandedName = $root.Name = "Root"
-
-        $root.IsRoot = $true
-        $root.ExpandedPath = $root.Path = "Path"
-
-        $root.First = $true
-        $root.Last = $true
-
-        # set the data from the container to get them
-        # set correctly as if we provided -Data to New-Block
-        $root.Data = $container.Data
-
-        Reset-PerContainerState -RootBlock $root
-
-        $steps = $state.Plugin.ContainerDiscoveryStart
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryStart -Context @{
-                BlockContainer = $container
-                Configuration  = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        try {
-            $null = Invoke-BlockContainer -BlockContainer $container -SessionState $SessionState
-        }
-        catch {
-            $root.Passed = $false
-            $root.Result = "Failed"
-            $root.ErrorRecord.Add($_)
-        }
-
-        [PSCustomObject] @{
-            Container = $container
-            Block     = $root
-        }
-
-        $steps = $state.Plugin.ContainerDiscoveryEnd
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerDiscoveryEnd -Context @{
-                BlockContainer = $container
-                Block          = $root
-                Duration       = $perContainerDiscoveryDuration.Elapsed
-                Configuration  = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        $root.DiscoveryDuration = $perContainerDiscoveryDuration.Elapsed
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Discovery -LazyMessage { "Found $(@(View-Flat -Block $root).Count) tests in $([int]$root.DiscoveryDuration.TotalMilliseconds) ms" }
-            Write-PesterDebugMessage -Scope DiscoveryCore "Discovery done in this container."
-        }
-    }
-
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Discovery "Processing discovery result objects, to set root, parents, filters etc."
-    }
-
-    # focusing is removed from the public api
-    # # if any tests / block in the suite have -Focus parameter then all filters are disregarded
-    # # and only those tests / blocks should run
-    # $focusedTests = [System.Collections.Generic.List[Object]]@()
-    # foreach ($f in $found) {
-    #     Fold-Container -Container $f.Block `
-    #         -OnTest {
-    #             # add all focused tests
-    #             param($t)
-    #             if ($t.Focus) {
-    #                 $focusedTests.Add("$(if($null -ne $t.ScriptBlock.File) { $t.ScriptBlock.File } else { $t.ScriptBlock.Id }):$($t.ScriptBlock.StartPosition.StartLine)")
-    #             }
-    #         } `
-    #         -OnBlock {
-    #             param($b) if ($b.Focus) {
-    #                 # add all tests in the current block, no matter if they are focused or not
-    #                 Fold-Block -Block $b -OnTest {
-    #                     param ($t)
-    #                     $focusedTests.Add("$(if($null -ne $t.ScriptBlock.File) { $t.ScriptBlock.File } else { $t.ScriptBlock.Id }):$($t.ScriptBlock.StartPosition.StartLine)")
-    #                 }
-    #             }
-    #         }
-    # }
-
-    # if ($focusedTests.Count -gt 0) {
-    #     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-    #         Write-PesterDebugMessage -Scope Discovery  -LazyMessage { "There are some ($($focusedTests.Count)) focused tests '$($(foreach ($p in $focusedTests) { $p -join "." }) -join ",")' running just them." }
-    #     }
-    #     $Filter =  New-FilterObject -Line $focusedTests
-    # }
-
-    foreach ($f in $found) {
-        # this takes non-trivial time, measure how long it takes and add it to the discovery
-        # so we get more accurate total time
-        $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        PostProcess-DiscoveredBlock -Block $f.Block -Filter $Filter -BlockContainer $f.Container -RootBlock $f.Block
-        $overhead = $sw.Elapsed
-        $f.Block.DiscoveryDuration += $overhead
-        # Write-Host "disc $($f.Block.DiscoveryDuration.totalmilliseconds) $($overhead.totalmilliseconds) ms" #TODO
-        $f.Block
+        Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState
     }
 
     $steps = $state.Plugin.DiscoveryEnd
     if ($null -ne $steps -and 0 -lt @($steps).Count) {
         Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
-            BlockContainers = $found.Block
-            AnyFocusedTests = $focusedTests.Count -gt 0
-            FocusedTests    = $focusedTests
+            BlockContainers = $found
             Duration        = $totalDiscoveryDuration.Elapsed
             Configuration   = $state.PluginConfiguration
             Filter          = $Filter
@@ -1078,168 +1281,8 @@ function Discover-Test {
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         Write-PesterDebugMessage -Scope Discovery "Test discovery finished."
     }
-}
 
-function Run-Test {
-    param (
-        [Parameter(Mandatory = $true)]
-        [PSObject[]] $Block,
-        [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
-    )
-
-    $state.Discovery = $false
-    $steps = $state.Plugin.RunStart
-    if ($null -ne $steps -and 0 -lt @($steps).Count) {
-        Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
-            Blocks                   = $Block
-            Configuration            = $state.PluginConfiguration
-            Data                     = $state.PluginData
-            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
-        } -ThrowOnFailure
-    }
-    foreach ($rootBlock in $Block) {
-        $blockStartTime = $state.UserCodeStopWatch.Elapsed
-        $overheadStartTime = $state.FrameworkStopWatch.Elapsed
-        Switch-Timer -Scope Framework
-
-        if (-not $rootBlock.ShouldRun) {
-            ConvertTo-ExecutedBlockContainer -Block $rootBlock
-            continue
-        }
-        # this resets the timers so keep that before measuring the time
-        Reset-PerContainerState -RootBlock $rootBlock
-
-        $rootBlock.Executed = $true
-        $rootBlock.ExecutedAt = [DateTime]::now
-
-        $steps = $state.Plugin.ContainerRunStart
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunStart -Context @{
-                Block         = $rootBlock
-                Configuration = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        try {
-            # if ($null -ne $rootBlock.OneTimeBlockSetup) {
-            #    throw "One time block setup is not supported in root (directly in the block container)."
-            #}
-
-            # if ($null -ne $rootBlock.EachBlockSetup) {
-            #     throw "Each block setup is not supported in root (directly in the block container)."
-            # }
-
-            if ($null -ne $rootBlock.EachTestSetup) {
-                throw "Each test setup is not supported in root (directly in the block container)."
-            }
-
-            if (
-                $null -ne $rootBlock.EachTestTeardown
-                #-or $null -ne $rootBlock.OneTimeBlockTeardown `
-                #-or $null -ne $rootBlock.EachBlockTeardown `
-            ) {
-                throw "Each test Teardown is not supported in root (directly in the block container)."
-            }
-
-            # add OneTimeTestSetup to set variables, by having $setVariables script that will invoke in the user scope
-            # and $setVariablesWithContext that carries the data as is closure, this way we avoid having to provide parameters to
-            # before all script, but it might be better to make this a plugin, because there we can pass data.
-            $setVariables = {
-                param($private:____parameters)
-
-                if ($null -eq $____parameters.Data) {
-                    return
-                }
-
-                foreach ($private:____d in $____parameters.Data.GetEnumerator()) {
-                    & $____parameters.Set_Variable -Name $private:____d.Key -Value $private:____d.Value
-                }
-            }
-
-            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
-            $script:ScriptBlockSessionStateInternalProperty.SetValue($setVariables, $SessionStateInternal, $null)
-
-            $setVariablesAndThenRunOneTimeSetupIfAny = & {
-                $action = $setVariables
-                $setup = $rootBlock.OneTimeTestSetup
-                $parameters = @{
-                    Data         = $rootBlock.BlockContainer.Data
-                    Set_Variable = $SafeCommands["Set-Variable"]
-                }
-
-                {
-                    . $action $parameters
-                    if ($null -ne $setup) {
-                        . $setup
-                    }
-                }.GetNewClosure()
-            }
-
-            $rootBlock.OneTimeTestSetup = $setVariablesAndThenRunOneTimeSetupIfAny
-
-            $rootBlock.ScriptBlock = {}
-            $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
-            $script:ScriptBlockSessionStateInternalProperty.SetValue($rootBlock.ScriptBlock, $SessionStateInternal, $null)
-
-            # we add one more artificial block so the root can run
-            # all of it's setups and teardowns
-            $Pester___parent = [Pester.Block]::Create()
-            $Pester___parent.Name = "ParentBlock"
-            $Pester___parent.Path = "Path"
-
-            $Pester___parent.First = $false
-            $Pester___parent.Last = $false
-
-            $Pester___parent.Order.Add($rootBlock)
-
-            $wrapper = {
-                $null = Invoke-Block -previousBlock $Pester___parent
-            }
-
-            Invoke-InNewScriptScope -ScriptBlock $wrapper -SessionState $SessionState
-        }
-        catch {
-            $rootBlock.ErrorRecord.Add($_)
-        }
-
-        PostProcess-ExecutedBlock -Block $rootBlock
-        $result = ConvertTo-ExecutedBlockContainer -Block $rootBlock
-        $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-
-        $steps = $state.Plugin.ContainerRunEnd
-        if ($null -ne $steps -and 0 -lt @($steps).Count) {
-            Invoke-PluginStep -Plugins $state.Plugin -Step ContainerRunEnd -Context @{
-                Result        = $result
-                Block         = $rootBlock
-                Configuration = $state.PluginConfiguration
-            } -ThrowOnFailure
-        }
-
-        # set this again so the plugins have some data but that we also include the plugin invocation to the
-        # overall time to keep the actual timing correct
-        $result.FrameworkDuration = $state.FrameworkStopWatch.Elapsed - $overheadStartTime
-        $result.UserDuration = $state.UserCodeStopWatch.Elapsed - $blockStartTime
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Timing "Container duration $($result.UserDuration.TotalMilliseconds)ms"
-            Write-PesterDebugMessage -Scope Timing "Container framework duration $($result.FrameworkDuration.TotalMilliseconds)ms"
-        }
-
-        $result
-    }
-
-    $steps = $state.Plugin.RunEnd
-    if ($null -ne $steps -and 0 -lt @($steps).Count) {
-        Invoke-PluginStep -Plugins $state.Plugin -Step RunEnd -Context @{
-            Blocks                   = $Block
-            Configuration            = $state.PluginConfiguration
-            Data                     = $state.PluginData
-            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
-            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
-        } -ThrowOnFailure
-    }
+    $found
 }
 
 function Invoke-PluginStep {
@@ -1311,14 +1354,14 @@ function Invoke-PluginStep {
             } while ($false)
 
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms"
+                Write-PesterDebugMessage -Scope Plugin "Success $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds)ms"
             }
         }
         catch {
             $failed = $true
             $err.Add($_)
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds) ms" -ErrorRecord $_
+                Write-PesterDebugMessage -Scope Plugin "Failed $($p.Name) step $Step in $($stepSw.ElapsedMilliseconds)ms" -ErrorRecord $_
             }
         }
     }
@@ -1366,6 +1409,21 @@ function Assert-Success {
         $Message = $Message + ":$err"
         throw $Message
     }
+}
+
+function New-EscapedFlowControlErrorRecord {
+    # User code can run `break` or `continue` with a label that matches no enclosing loop,
+    # usually a typo. PowerShell raises a flow-control exception (BreakException / ContinueException)
+    # that a normal try/catch does not see, and it unwinds past the whole Pester runner and aborts
+    # the run with no result (#2669). Invoke-ScriptBlock catches that escape and calls this helper
+    # to build a normal terminating error, so the current test or block just fails with a clear
+    # message. At that point we cannot recover the label or tell break from continue, so the
+    # message names both keywords.
+    $message = "A 'break' or 'continue' statement with a label that does not match any enclosing loop escaped from your code. " +
+    "This is usually a misspelled or undefined loop label. Left unhandled it silently aborts the whole Pester run with no result (see https://github.com/pester/Pester/issues/2669), so Pester failed this test or block instead."
+
+    $exception = [System.InvalidOperationException]::new($message)
+    [Management.Automation.ErrorRecord]::new($exception, 'PesterFlowControlStatementEscaped', [Management.Automation.ErrorCategory]::InvalidOperation, $null)
 }
 
 function Invoke-ScriptBlock {
@@ -1426,10 +1484,6 @@ function Invoke-ScriptBlock {
         }
     }
 
-
-
-
-
     # this is what the code below does
     # . $OuterSetup
     # & {
@@ -1444,7 +1498,6 @@ function Invoke-ScriptBlock {
     # }
     # . $OuterTeardown
 
-
     $wrapperScriptBlock = {
         # THIS RUNS (MOST OF THE TIME) IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME!
         param($______parameters)
@@ -1455,8 +1508,6 @@ function Invoke-ScriptBlock {
             # so we can use it for Teardowns and to forward errors that happened after test teardown
             $______parametersForward = $______parameters
         }
-
-
 
         try {
             if ($______parameters.ContextInOuterScope) {
@@ -1662,16 +1713,49 @@ function Invoke-ScriptBlock {
                 & $OnUserScopeTransition
             }
         }
-        do {
-            $standardOutput = if ($NoNewScope) {
-                . $wrapperScriptBlock $parameters
+        # User code can run `break` or `continue` with a label that matches no enclosing loop,
+        # usually a typo. PowerShell raises a flow-control exception (BreakException / ContinueException)
+        # that a normal try/catch does not see, and left unhandled it unwinds past the whole Pester
+        # runner and aborts the run with no result (#2669).
+        #
+        # The do/while ($false) below already absorbs a plain, unlabelled break/continue, those just
+        # end the scriptblock as before. A labelled break/continue whose label matches no enclosing
+        # loop escapes the do/while, and for user code we rethrow it from the finally as a normal
+        # terminating error, so the outer catch records it as a failed test or block instead of
+        # tearing down the run. Correctly labelled break/continue inside a loop stays in that loop
+        # and never reaches here, so it is unaffected. We only guard user code ($MoveBetweenScopes),
+        # framework invocations run unchanged.
+        $flowControlEscaped = $MoveBetweenScopes
+        try {
+            do {
+                $standardOutput = if ($NoNewScope) {
+                    . $wrapperScriptBlock $parameters
+                }
+                else {
+                    & $wrapperScriptBlock $parameters
+                }
+                # if the code reaches here we did not break
+                #$break = $false
+            } while ($false)
+
+            # Reached when the wrapper returned normally or a plain unlabelled break/continue
+            # was absorbed by the do/while above. A labelled escape skips this assignment.
+            $flowControlEscaped = $false
+        }
+        catch {
+            # A real terminating error from user code, which also skips the assignment above. Without
+            # clearing the flag here the finally would throw the flow-control error record on top of
+            # it and the user would be told their code has a misspelled loop label, whatever it
+            # actually threw. A labelled break/continue escape is not catchable, so this only runs
+            # for genuine errors.
+            $flowControlEscaped = $false
+            throw
+        }
+        finally {
+            if ($flowControlEscaped) {
+                throw (New-EscapedFlowControlErrorRecord)
             }
-            else {
-                & $wrapperScriptBlock $parameters
-            }
-            # if the code reaches here we did not break
-            #$break = $false
-        } while ($false)
+        }
     }
     catch {
         $err = $_
@@ -1694,10 +1778,6 @@ function Invoke-ScriptBlock {
     $r = [Pester.InvocationResult]::Create((0 -eq $parameters.ErrorRecord.Count), $parameters. ErrorRecord, $standardOutput)
 
     return $r
-}
-
-function Reset-TestSuiteTimer ($o) {
-
 }
 
 function Switch-Timer {
@@ -1736,6 +1816,29 @@ function Switch-Timer {
     }
 }
 
+function Test-HasNoEffectiveTag {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Item
+    )
+
+    # An item has no effective tag when neither the item itself nor any of its
+    # parent blocks has a tag. Tags inherit downwards in Pester (a tag on a block
+    # applies to everything inside it), so we walk from the item up to the root
+    # block and stop as soon as we find any tag.
+    $node = $Item
+    while ($null -ne $node -and -not $node.IsRoot) {
+        if ($null -ne $node.Tag -and 0 -ne $node.Tag.Count) {
+            return $false
+        }
+
+        $node = if ('Test' -eq $node.ItemType) { $node.Block } else { $node.Parent }
+    }
+
+    return $true
+}
+
 function Test-ShouldRun {
     [CmdletBinding()]
     param (
@@ -1753,7 +1856,11 @@ function Test-ShouldRun {
     }
 
     $anyIncludeFilters = $false
-    $fullDottedPath = $Item.Path -join "."
+    # $fullDottedPath is consumed only by the debug messages and by the FullName filter below,
+    # so skip the per-item -join when neither can read it (the common case).
+    $fullDottedPath = if ($PesterPreference.Debug.WriteDebugMessages.Value -or ($null -ne $Filter -and $Filter.FullName)) {
+        $Item.Path -join "."
+    }
     if ($null -eq $Filter) {
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because there is no filters."
@@ -1782,6 +1889,17 @@ function Test-ShouldRun {
     # item is excluded when any of the exclude tags match
     $tagFilter = $Filter.ExcludeTag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
+        # the special 'None' filter excludes tests that have no tags on themselves
+        # or on any of their parent blocks. It only applies to tests (leaf items),
+        # so that a tagged test inside an otherwise untagged block is kept.
+        if (('Test' -eq $Item.ItemType) -and ($tagFilter -contains 'None') -and (Test-HasNoEffectiveTag -Item $Item)) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is excluded, because it has no tags and the exclude tag filter contains 'None'."
+            }
+            $result.Exclude = $true
+            return $result
+        }
+
         foreach ($f in $tagFilter) {
             foreach ($t in $Item.Tag) {
                 if ($t -like $f) {
@@ -1799,8 +1917,14 @@ function Test-ShouldRun {
     }
 
     $excludeLineFilter = $Filter.ExcludeLine
+    $lineFilter = $Filter.Line
 
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    # The path:line key is only consumed by the exclude-line and line filters below; building it
+    # (a string interpolation plus a regex -replace) on every item when neither filter is set - the
+    # common case - is wasted work, so compute it once and only when one of those filters is present.
+    $line = if (($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) -or ($lineFilter -and 0 -ne $lineFilter.Count)) {
+        "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    }
     if ($excludeLineFilter -and 0 -ne $excludeLineFilter.Count) {
         foreach ($l in $excludeLineFilter -replace '\\', '/') {
             if ($l -eq $line) {
@@ -1816,14 +1940,12 @@ function Test-ShouldRun {
 
     # - place exclude filters above this line and include below this line
 
-    $lineFilter = $Filter.Line
     # use File for saved files or Id for ScriptBlocks without files
     # this filter has the ability to set the test to "explicit" so we can run
     # the test even if it is marked as skipped run this include as first so we figure it out
     # in one place and check if parent was included after this one to short circuit the other
     # filters in case parent already knows that it will run
-
-    $line = "$(if ($Item.ScriptBlock.File) { $Item.ScriptBlock.File } else { $Item.ScriptBlock.Id }):$($Item.StartLine)" -replace '\\', '/'
+    # $lineFilter and $line are computed once above, before the exclude-line filter.
     if ($lineFilter -and 0 -ne $lineFilter.Count) {
         $anyIncludeFilters = $true
         foreach ($l in $lineFilter -replace '\\', '/') {
@@ -1849,11 +1971,25 @@ function Test-ShouldRun {
         return $result
     }
 
-    # test is included when it has tags and the any of the tags match
+    # test is included when it has tags and any of the tags match,
+    # or when the filter contains the special 'None' value and the test has no
+    # tags on itself or on any of its parent blocks
     $tagFilter = $Filter.Tag
     if ($tagFilter -and 0 -ne $tagFilter.Count) {
         $anyIncludeFilters = $true
-        if ($null -eq $Item.Tag -or 0 -eq $Item.Tag) {
+
+        # the special 'None' filter includes tests that have no tags on themselves
+        # or on any of their parent blocks. It only applies to tests (leaf items),
+        # so that an untagged block does not force-include its tagged children.
+        if (('Test' -eq $Item.ItemType) -and ($tagFilter -contains 'None') -and (Test-HasNoEffectiveTag -Item $Item)) {
+            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+                Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) is included, because it has no tags and the tag filter contains 'None'."
+            }
+            $result.Include = $true
+            return $result
+        }
+
+        if ($null -eq $Item.Tag -or 0 -eq $Item.Tag.Count) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope Filter "($fullDottedPath) $($Item.ItemType) has no tags, moving to next include filter."
             }
@@ -1947,7 +2083,17 @@ function Invoke-Test {
         $Plugin,
         $PluginConfiguration,
         $PluginData,
-        $Configuration
+        $Configuration,
+        # When set, the global framework steps (DiscoveryStart/DiscoveryEnd/RunStart/RunEnd)
+        # are not fired. The parallel orchestrator uses this so the parent fires those
+        # global steps once for the whole run while this call handles only the
+        # non-parallel containers' per-container/per-test steps.
+        [switch] $SkipFrameworkGlobalSteps,
+        # Pester.BeforeContainer.ps1 files per container, keyed by container path (empty string for
+        # containers that have no path), each list ordered outermost first. Built by
+        # Resolve-PesterBeforeContainerMap, because which files apply depends on where the container
+        # sits. They are dot-sourced into the container's own scope when it is discovered.
+        [System.Collections.IDictionary] $BeforeContainerInit
     )
 
     # set the incoming value for all the child scopes
@@ -1963,14 +2109,64 @@ function Invoke-Test {
     # define the state if we don't have it yet, this will happen when we call this function directly
     # but normally the parent invoker (most often Invoke-Pester) will set the state. So we don't want to reset
     # it here.
-    if (notDefined state) {
+    if (notDefined_ state) {
         $state = New-PesterState
     }
 
     $state.Plugin = $Plugin
+    # The plugin set cannot change during the run (this is the only assignment to $state.Plugin), so
+    # precompute the framework step arrays that Invoke-TestItem and Invoke-Block would otherwise rebuild
+    # from it for every test and block via member enumeration. The teardown arrays are stored already
+    # reversed - they run in the opposite order to setups - so the per-test [array]::Reverse goes away too.
+    $eachTestTeardownEndReversed = @( $Plugin.EachTestTeardownEnd )
+    [Array]::Reverse($eachTestTeardownEndReversed)
+    $oneTimeTestTeardownEndReversed = @( $Plugin.OneTimeTestTeardownEnd )
+    [Array]::Reverse($oneTimeTestTeardownEndReversed)
+    $eachBlockTeardownEndReversed = @( $Plugin.EachBlockTeardownEnd )
+    [Array]::Reverse($eachBlockTeardownEndReversed)
+    $oneTimeBlockTeardownEndReversed = @( $Plugin.OneTimeBlockTeardownEnd )
+    [Array]::Reverse($oneTimeBlockTeardownEndReversed)
+    $state.PluginSteps = @{
+        OneTimeTestSetupStart           = @( $Plugin.OneTimeTestSetupStart )
+        EachTestSetupStart              = @( $Plugin.EachTestSetupStart )
+        EachTestTeardownEndReversed     = $eachTestTeardownEndReversed
+        OneTimeTestTeardownEndReversed  = $oneTimeTestTeardownEndReversed
+        OneTimeBlockSetupStart          = @( $Plugin.OneTimeBlockSetupStart )
+        EachBlockSetupStart             = @( $Plugin.EachBlockSetupStart )
+        EachBlockTeardownEndReversed    = $eachBlockTeardownEndReversed
+        OneTimeBlockTeardownEndReversed = $oneTimeBlockTeardownEndReversed
+    }
     $state.PluginConfiguration = $PluginConfiguration
     $state.PluginData = $PluginData
     $state.Configuration = $Configuration
+
+    # Shuffled execution order (#2425). The seed is normally resolved once in Invoke-Pester
+    # and written back to the configuration so it can be reported and repeated. When Invoke-Test
+    # is called directly (e.g. from tests) with Run.Shuffle enabled but no seed, pick one here.
+    if ($PesterPreference.Run.Shuffle.Value) {
+        $shuffleSeed = $PesterPreference.Run.ShuffleSeed.Value
+        if (0 -eq $shuffleSeed) {
+            $shuffleSeed = [System.Random]::new().Next(1, [int]::MaxValue)
+            $PesterPreference.Run.ShuffleSeed = $shuffleSeed
+        }
+
+        $state.ShuffleRandom = [System.Random]::new($shuffleSeed)
+
+        # A file or script block can opt out with a '#pester:no-shuffle' comment. Collect those
+        # containers so their blocks and tests keep declaration order during discovery post-processing.
+        $state.NoShuffleContainers = [System.Collections.Generic.HashSet[object]]::new()
+        foreach ($container in $BlockContainer) {
+            if (Test-BlockContainerIsNoShuffle -Container $container) {
+                $null = $state.NoShuffleContainers.Add($container)
+            }
+        }
+
+        # Shuffle the order the containers (test files / script blocks) run in. The blocks and
+        # tests inside each container are shuffled later, during discovery post-processing.
+        if (@($BlockContainer).Count -gt 1) {
+            $BlockContainer = Get-ShuffledOrder -Random $state.ShuffleRandom -InputObject $BlockContainer
+        }
+    }
 
     # # TODO: this it potentially unreliable, because suppressed errors are written to Error as well. And the errors are captured only from the caller state. So let's use it only as a useful indicator during migration and see how it works in production code.
 
@@ -1979,45 +2175,171 @@ function Invoke-Test {
     # $originalLastError = $originalErrors[0]
     # $originalErrorCount = $originalErrors.Count
 
-    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
-
     if ($PesterPreference.Run.SkipRun.Value) {
+        # Discovery-only mode (e.g. populating the VS Code Test Explorer). Run a full
+        # batch discovery over all containers and return the discovered tree without
+        # executing anything.
+        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+
         foreach ($f in $found) {
             ConvertTo-DiscoveredBlockContainer -Block $f
         }
 
         return
     }
-    # $errs = $SessionState.PSVariable.Get("Error").Value
-    # $errsCount = $errs.Count
-    # if ($errsCount -lt $originalErrorCount) {
-    #     # it would be possible to detect that there are 0 errors, in the array and continue,
-    #     # but this still indicates the user code is running where it should not, so let's throw anyway
-    #     throw "Test discovery failed. The error count ($errsCount) after running discovery is lower than the error count before discovery ($originalErrorCount). Is some of your code running outside Pester controlled blocks and it clears the `$error array by calling `$error.Clear()?"
 
-    # }
+    # Interleaved discover -> run. Each container is discovered and then immediately
+    # run before moving on to the next one (instead of discovering all containers and
+    # only then running them). This is the single run model for both sequential and
+    # parallel runs; only the concurrency differs, so the emitted plugin events are
+    # identical in both modes. The global Discovery/Run steps still fire exactly once
+    # each, but at interleaved times:
+    #   DiscoveryStart - once, up front.
+    #   per container  - ContainerDiscoveryStart/End then ContainerRunStart/End.
+    #   RunStart       - once, right before the first container runs.
+    #   DiscoveryEnd   - once, right after the last container finishes discovery (this
+    #                    fires late compared to Pester v5, by which time the earlier
+    #                    containers have already run).
+    #   RunEnd         - once, at the very end.
+    $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
+    $steps = $state.Plugin.DiscoveryStart
+    if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryStart -Context @{
+            BlockContainers = $BlockContainer
+            Configuration   = $state.PluginConfiguration
+        } -ThrowOnFailure
+    }
 
-    # if ($originalErrorCount -lt $errsCount) {
-    #     # probably the most usual case,  there are more errors then there were before,
-    #     # so some were written to the screen, this also runs when the user cleared the
-    #     # array and wrote more errors than there originally were
-    #     $i = $errsCount - $originalErrorCount
-    # }
-    # else {
-    #     # there is equal amount of errors, the array was probably full and so the original
-    #     # error shifted towards the end of the array, we try to find it and see how many new
-    #     # errors are there
-    #     for ($i = 0 ; $i -lt $errsLength; $i++) {
-    #         if ([object]::referenceEquals($errs[$i], $lastError)) {
-    #             break
-    #         }
-    #     }
-    # }
-    # if (0 -ne $i) {
-    #     throw "Test discovery failed. There were $i non-terminating errors during test discovery. This indicates that some of your code is invoked outside of Pester controlled blocks and fails. No tests will be run."
-    # }
-    Run-Test -Block $found -SessionState $SessionState
+    $containerCount = @($BlockContainer).Count
+    $containerIndex = 0
+    $discoveredBlocks = [System.Collections.Generic.List[object]]@()
+
+    $executedContainers = foreach ($container in $BlockContainer) {
+        $containerIndex++
+
+        # Named apart from the $BeforeContainerInit parameter on purpose. PowerShell variable names
+        # are case-insensitive, so a local $beforeContainerInit would assign onto the typed
+        # [IDictionary] parameter and fail to convert.
+        $containerSetupFiles = if ($null -ne $BeforeContainerInit) {
+            $containerKey = if ('File' -eq $container.Type) { $container.Item.FullName } else { '' }
+            @($BeforeContainerInit[$containerKey])
+        }
+        else {
+            @()
+        }
+
+        # --- discover this container ---
+        $state.Discovery = $true
+        $rootBlock = Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState -BeforeContainerFile $containerSetupFiles
+        $discoveredBlocks.Add($rootBlock)
+
+        if ($containerIndex -eq $containerCount) {
+            # the last container just finished discovery, so global discovery is now
+            # complete - fire the global DiscoveryEnd once.
+            $steps = $state.Plugin.DiscoveryEnd
+            if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $state.Plugin -Step DiscoveryEnd -Context @{
+                    BlockContainers = $discoveredBlocks
+                    Duration        = $totalDiscoveryDuration.Elapsed
+                    Configuration   = $state.PluginConfiguration
+                    Filter          = $Filter
+                } -ThrowOnFailure
+            }
+        }
+
+        if ($containerIndex -eq 1) {
+            # about to run the first container - fire the global RunStart once.
+            $steps = $state.Plugin.RunStart
+            if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+                Invoke-PluginStep -Plugins $state.Plugin -Step RunStart -Context @{
+                    Blocks                   = $discoveredBlocks
+                    Configuration            = $state.PluginConfiguration
+                    Data                     = $state.PluginData
+                    WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+                    Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
+                } -ThrowOnFailure
+            }
+        }
+
+        # --- run this container ---
+        $state.Discovery = $false
+        Invoke-ContainerRun -RootBlock $rootBlock -SessionState $SessionState
+    }
+
+    $steps = $state.Plugin.RunEnd
+    if (-not $SkipFrameworkGlobalSteps -and $null -ne $steps -and 0 -lt @($steps).Count) {
+        Invoke-PluginStep -Plugins $state.Plugin -Step RunEnd -Context @{
+            Blocks                   = $discoveredBlocks
+            Configuration            = $state.PluginConfiguration
+            Data                     = $state.PluginData
+            WriteDebugMessages       = $PesterPreference.Debug.WriteDebugMessages.Value
+            Write_PesterDebugMessage = if ($PesterPreference.Debug.WriteDebugMessages.Value) { $script:SafeCommands['Write-PesterDebugMessage'] }
+        } -ThrowOnFailure
+    }
+
+    $executedContainers
+}
+
+function Get-ShuffledOrder {
+    # Fisher-Yates shuffle. Returns a new array with the items in a random but
+    # deterministic order for a given seeded [System.Random], so a run can be repeated.
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Random] $Random,
+        $InputObject
+    )
+
+    $items = [object[]]@($InputObject)
+    for ($i = $items.Length - 1; $i -gt 0; $i--) {
+        $j = $Random.Next(0, $i + 1)
+        if ($i -ne $j) {
+            $tmp = $items[$i]
+            $items[$i] = $items[$j]
+            $items[$j] = $tmp
+        }
+    }
+
+    # comma to return the array as a single object, preventing pipeline unrolling
+    , $items
+}
+
+function Test-BlockContainerIsNoShuffle {
+    # Returns $true when a container opts out of shuffling (#2425) via a file-level comment directive,
+    # parsed similarly to PowerShell's #requires:
+    #
+    #     #pester:no-shuffle
+    #
+    # The marker is matched against real comment tokens using the PowerShell tokenizer, so it is
+    # recognized only inside comments and never inside strings or here-strings. It may appear anywhere
+    # in the file or script block. Blocks and tests in a marked container keep their declaration order.
+    [OutputType([bool])]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Container
+    )
+
+    $tokens = $null
+    $parseErrors = $null
+
+    if ('File' -eq $Container.Type) {
+        $null = [System.Management.Automation.Language.Parser]::ParseFile($Container.Item.FullName, [ref] $tokens, [ref] $parseErrors)
+    }
+    elseif ('ScriptBlock' -eq $Container.Type) {
+        $null = [System.Management.Automation.Language.Parser]::ParseInput($Container.Item.ToString(), [ref] $tokens, [ref] $parseErrors)
+    }
+    else {
+        return $false
+    }
+
+    foreach ($token in $tokens) {
+        if ($token.Kind -eq [System.Management.Automation.Language.TokenKind]::Comment -and
+            $token.Text -match '^#\s*pester:no-shuffle\b') {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function PostProcess-DiscoveredBlock {
@@ -2044,6 +2366,30 @@ function PostProcess-DiscoveredBlock {
         $b.IsRoot = $b -eq $RootBlock
         $b.Root = $RootBlock
         $b.BlockContainer = $BlockContainer
+
+        # Shuffle the order of this block's direct children (its child blocks and tests, kept
+        # together in .Order) when Run.Shuffle is enabled. This shuffles same-level items only:
+        # the Describes in a file, the Describes/Contexts in a Describe, and the Its in a block.
+        # We do it here, before First/Last are marked below, and rebuild .Blocks and .Tests to
+        # follow the shuffled .Order so the one-time setup/teardown boundaries match the real
+        # execution order. Uses the run's seeded RNG so the order is repeatable (#2425). Containers
+        # that opt out with '#pester:no-shuffle' are skipped and keep their declaration order.
+        $containerOptedOut = $null -ne $state.NoShuffleContainers -and $state.NoShuffleContainers.Contains($BlockContainer)
+        if ($null -ne $state.ShuffleRandom -and -not $containerOptedOut -and $b.Order.Count -gt 1) {
+            $shuffledOrder = Get-ShuffledOrder -Random $state.ShuffleRandom -InputObject $b.Order
+            $b.Order.Clear()
+            $b.Blocks.Clear()
+            $b.Tests.Clear()
+            foreach ($item in $shuffledOrder) {
+                $null = $b.Order.Add($item)
+                if ('Test' -eq $item.ItemType) {
+                    $null = $b.Tests.Add($item)
+                }
+                else {
+                    $null = $b.Blocks.Add($item)
+                }
+            }
+        }
 
         $tests = $b.Tests
 
@@ -2171,7 +2517,6 @@ function PostProcess-DiscoveredBlock {
                 }
             }
 
-
             # if we determined that the block should run we can still make it not run if
             # none of it's children will run
             if ($b.ShouldRun) {
@@ -2257,7 +2602,6 @@ function PostProcess-ExecutedBlock {
         $Block
     )
 
-
     # traverses the block structure after a block was executed and
     # and sets the failures correctly so the aggreagatted failures
     # propagate towards the root so if a child test fails it's block
@@ -2306,16 +2650,13 @@ function PostProcess-ExecutedBlock {
             $childBlocks = $b.Blocks
             $anyChildBlockFailed = $false
             $aggregatedChildDuration = [TimeSpan]::Zero
-            if (none $childBlocks) {
+            if (none_ $childBlocks) {
                 # one thing to consider here is what happens when a block fails, in the current
                 # execution model the block can fail when a setup or teardown fails, with failed
                 # setup it is easy all the tests in the block are considered failed, with teardown
                 # not so much, when all tests pass and the teardown itself fails what should be the result?
 
-
-
                 # todo: there are two concepts mixed with the "own", because the duration and the test counts act differently. With the counting we are using own as "the count of the tests in this block", but with duration the "own" means "self", that is how long this block itself has run, without the tests. This information might not be important but this should be cleared up before shipping. Same goes with the relation to failure, ownPassed means that the block itself passed (that is no setup or teardown failed in it), even though the underlying tests might fail.
-
 
                 $b.OwnDuration = $b.Duration - $testDuration
 
@@ -2460,16 +2801,18 @@ function Invoke-BlockContainer {
         [Parameter(Mandatory)]
         $BlockContainer,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
     )
 
     if ($null -ne $BlockContainer.Data -and 0 -lt $BlockContainer.Data.Count) {
         foreach ($d in $BlockContainer.Data) {
             switch ($BlockContainer.Type) {
                 "ScriptBlock" {
-                    Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item @d } -SessionState $SessionState
+                    Invoke-InNewScriptScope -ScriptBlock { foreach ($private:setupFile in $BeforeContainerFile) { . $private:setupFile }; & $BlockContainer.Item @d } -SessionState $SessionState
                 }
-                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d }
+                "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -Data $d -BeforeContainerFile $BeforeContainerFile }
                 default { throw [System.ArgumentOutOfRangeException]"" }
             }
         }
@@ -2477,9 +2820,9 @@ function Invoke-BlockContainer {
     else {
         switch ($BlockContainer.Type) {
             "ScriptBlock" {
-                Invoke-InNewScriptScope -ScriptBlock { & $BlockContainer.Item } -SessionState $SessionState
+                Invoke-InNewScriptScope -ScriptBlock { foreach ($private:setupFile in $BeforeContainerFile) { . $private:setupFile }; & $BlockContainer.Item } -SessionState $SessionState
             }
-            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState }
+            "File" { Invoke-File -Path $BlockContainer.Item.PSPath -SessionState $SessionState -BeforeContainerFile $BeforeContainerFile }
             default { throw [System.ArgumentOutOfRangeException]"" }
         }
     }
@@ -2532,27 +2875,6 @@ function New-BlockContainerObject {
     $c
 }
 
-function New-DiscoveredBlockContainerObject {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        $BlockContainer,
-        [Parameter(Mandatory)]
-        $Block
-    )
-
-    [PSCustomObject] @{
-        Type   = $BlockContainer.Type
-        Item   = $BlockContainer.Item
-        # I create a Root block to keep the discovery unaware of containers,
-        # but I don't want to publish that root block because it contains properties
-        # that do not make sense on container level like Name and Parent,
-        # so here we don't want to take the root block but the blocks inside of it
-        # and copy the rest of the meaningful properties
-        Blocks = $Block.Blocks
-    }
-}
-
 function Invoke-File {
     [CmdletBinding()]
     param(
@@ -2561,11 +2883,21 @@ function Invoke-File {
         $Path,
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
-        [Collections.IDictionary] $Data = @{}
+        [Collections.IDictionary] $Data = @{},
+        # Pester.BeforeContainer.ps1 files that apply to this container, outermost first.
+        [String[]] $BeforeContainerFile = @()
     )
 
     $sb = {
-        param ($private:p, $private:d)
+        param ($private:p, $private:d, $private:setupFiles)
+        # Dot-sourced into the same scope the test file is dot-sourced into, and before it, so the
+        # setup behaves as if it were written at the top of the file: code at its top level runs
+        # during discovery, and BeforeAll/AfterAll it declares register on this container's root
+        # block. The scope goes away with the container, so a folder's setup does not leak sideways
+        # into the next container.
+        foreach ($private:setupFile in $private:setupFiles) {
+            . $private:setupFile
+        }
         . $private:p @d
     }
 
@@ -2575,7 +2907,7 @@ function Invoke-File {
     $SessionStateInternal = $script:SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($sb, $SessionStateInternal, $null)
 
-    & $sb $Path $Data
+    & $sb $Path $Data $BeforeContainerFile
 }
 
 function New-ParametrizedTest () {
@@ -2590,7 +2922,6 @@ function New-ParametrizedTest () {
         [String[]] $Tag = @(),
         # do not use [hashtable[]] because that throws away the order if user uses [ordered] hashtable
         [object[]] $Data,
-        [Switch] $Focus,
         [Switch] $Skip
     )
 
@@ -2598,7 +2929,7 @@ function New-ParametrizedTest () {
     # TODO: Id is used by NUnit2.5 and 3 testresults to group. A better way to solve this?
     $groupId = "${StartLine}:${StartColumn}"
     foreach ($d in $Data) {
-        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Focus:$Focus -Skip:$Skip
+        New-Test -GroupId $groupId -Name $Name -Tag $Tag -ScriptBlock $ScriptBlock -StartLine $StartLine -Data $d -Skip:$Skip
     }
 }
 
@@ -2608,7 +2939,8 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     # correct session state, and then invoke the file. We can also pass a script block tied
     # to the current module to invoke internal function in the newly pushed script scope.
 
-    $Path = "$PSScriptRoot/Pester.ps1"
+    # Invoked as a standalone script file (not Pester.ps1; see Pester.ScriptScope.ps1 for why).
+    $Path = "$PSScriptRoot/Pester.ScriptScope.ps1"
     $Data = @{ ScriptBlock = $ScriptBlock }
 
     $wrapper = {

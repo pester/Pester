@@ -1,0 +1,1260 @@
+﻿param ([switch] $PassThru, [switch] $NoBuild)
+
+Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
+
+Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+
+if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
+Import-Module $PSScriptRoot\..\bin\Pester.psd1
+
+$global:PesterPreference = @{
+    Debug  = @{
+        ShowFullErrors = $true
+    }
+    Output = @{
+        Verbosity = 'None'
+    }
+}
+$PSDefaultParameterValues = @{}
+
+function New-ParallelTestFolder {
+    # Creates a temp folder with a known mix of test files and returns its path.
+    # Totals across the folder: 8 tests => 6 passed, 1 failed, 1 skipped.
+    $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $null = New-Item -ItemType Directory -Path $folder -Force
+
+    Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' {
+    It 'a1 passes' { 1 | Should -Be 1 }
+    It 'a2 passes' { 2 | Should -Be 2 }
+    It 'a3 fails'  { 1 | Should -Be 2 }
+}
+'@
+
+    Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+Describe 'B' {
+    It 'b1 passes' { 'x' | Should -Be 'x' }
+    It 'b2 skipped' -Skip { 1 | Should -Be 1 }
+}
+'@
+
+    Set-Content -Path (Join-Path $folder 'C.Tests.ps1') -Value @'
+Describe 'C' {
+    It 'c1 passes' { $true | Should -BeTrue }
+}
+'@
+
+    # Marked as non-parallel; runs sequentially after the parallel batch.
+    Set-Content -Path (Join-Path $folder 'D.Tests.ps1') -Value @'
+#pester:no-parallel
+Describe 'D' {
+    It 'd1 passes' { 10 | Should -Be 10 }
+    It 'd2 passes' { 20 | Should -Be 20 }
+}
+'@
+
+    $folder
+}
+
+function New-BeforeContainerTestFolder {
+    # Creates a temp folder with a Pester.BeforeContainer.ps1 that defines a helper function and a
+    # test file whose only test calls that helper. Without BeforeContainer running first the test
+    # errors (command not found); with it, the test passes. Returns the folder path.
+    $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $null = New-Item -ItemType Directory -Path $folder -Force
+
+    Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
+BeforeAll { function Get-BeforeContainerMarker { 'before-container-ran' } }
+'@
+
+    Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
+Describe 'Marker' {
+    It 'can call the helper from Pester.BeforeContainer.ps1' {
+        Get-BeforeContainerMarker | Should -Be 'before-container-ran'
+    }
+}
+'@
+
+    $folder
+}
+
+function New-CascadingBeforeContainerFolder {
+    # Creates a repo-shaped tree with a Pester.BeforeContainer.ps1 at three levels:
+    #
+    #   <root>/Pester.BeforeContainer.ps1                 -> 'root'
+    #   <root>/tests/Pester.BeforeContainer.ps1           -> 'tests'
+    #   <root>/tests/unit/Pester.BeforeContainer.ps1      -> 'unit'
+    #   <root>/tests/unit/Unit.Tests.ps1                  -> expects root>tests>unit
+    #   <root>/tests/integration/Integration.Tests.ps1    -> expects root>tests
+    #
+    # Each setup file appends its own name to $global:PesterCascade, so the test can assert both
+    # which files ran and the order they ran in. The integration folder deliberately has no setup
+    # file, to prove the walk only picks up the levels that actually have one. Returns the root.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $unit = Join-Path (Join-Path $root 'tests') 'unit'
+    $integration = Join-Path (Join-Path $root 'tests') 'integration'
+    $null = New-Item -ItemType Directory -Path $unit -Force
+    $null = New-Item -ItemType Directory -Path $integration -Force
+
+    # The root file resets the list, so the assertion does not depend on what a previously run
+    # container left behind in the shared session state.
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade = @(''root'') }'
+    Set-Content -Path (Join-Path (Join-Path $root 'tests') 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''tests'' }'
+    Set-Content -Path (Join-Path $unit 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''unit'' }'
+
+    Set-Content -Path (Join-Path $unit 'Unit.Tests.ps1') -Value @'
+Describe 'Unit' {
+    It 'ran root, tests and unit setup in order' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests>unit'
+    }
+}
+'@
+
+    Set-Content -Path (Join-Path $integration 'Integration.Tests.ps1') -Value @'
+Describe 'Integration' {
+    It 'ran only the setup files that exist on its own path' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests'
+    }
+}
+'@
+
+    $root
+}
+
+function New-NoInheritBeforeContainerFolder {
+    # Root has setup, and a 'docs' folder underneath declares #pester:no-inherit because its tests
+    # need their own cheap setup and should not pay for the expensive one the rest of the repo uses.
+    # The docs test asserts it got only its own setup; the normal test asserts it got the root one.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $docs = Join-Path $root 'docs'
+    $null = New-Item -ItemType Directory -Path $docs -Force
+
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterChain = @(''root'') }'
+    Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { $script:PesterChain = @('docs') }
+'@
+
+    Set-Content -Path (Join-Path $root 'Normal.Tests.ps1') -Value @'
+Describe 'Normal' {
+    It 'gets the root setup' { ($script:PesterChain -join '>') | Should -Be 'root' }
+}
+'@
+
+    Set-Content -Path (Join-Path $docs 'Docs.Tests.ps1') -Value @'
+Describe 'Docs' {
+    It 'gets only its own setup, not the root one' { ($script:PesterChain -join '>') | Should -Be 'docs' }
+}
+'@
+
+    $root
+}
+
+i -PassThru:$PassThru {
+    b "Run.Parallel configuration option" {
+        t "exists and defaults to disabled" {
+            $c = [PesterConfiguration]::Default
+            $c.Run.Parallel.Value | Verify-False
+        }
+
+        t "can be enabled" {
+            $c = [PesterConfiguration]::Default
+            $c.Run.Parallel = $true
+            $c.Run.Parallel.Value | Verify-True
+        }
+    }
+
+    b "Run.Parallel durations" {
+        t "uses wall-clock for the run total and blanks the per-phase run totals (#2794)" {
+            # Two files that each sleep ~1s would total ~2s if their container durations were summed.
+            # Running them in parallel overlaps that time, so the run's actual wall-clock is closer to
+            # a single file. Summing the container durations therefore overstates Run.Duration; the
+            # run total must instead be the orchestrator's measured wall-clock.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            Set-Content -Path (Join-Path $folder 'Slow1.Tests.ps1') -Value @'
+Describe 'Slow1' {
+    BeforeAll { Start-Sleep -Milliseconds 1000 }
+    It 'passes' { 1 | Should -Be 1 }
+}
+'@
+            Set-Content -Path (Join-Path $folder 'Slow2.Tests.ps1') -Value @'
+Describe 'Slow2' {
+    BeforeAll { Start-Sleep -Milliseconds 1000 }
+    It 'passes' { 1 | Should -Be 1 }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+
+                $sw = [System.Diagnostics.Stopwatch]::StartNew()
+                $r = Invoke-Pester -Configuration $c
+                $sw.Stop()
+
+                # Naive sum of the overlapping container durations - the old (wrong) run total.
+                $containerSum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $containerSum += $container.Duration }
+
+                # Run total is the measured wall-clock: positive, never larger than the elapsed
+                # time around the whole call, and well below the naive sum because the files overlap.
+                ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
+                ($r.Duration -le $sw.Elapsed) | Verify-True
+                ($r.Duration -lt $containerSum) | Verify-True
+
+                # The per-phase run totals are blanked - a single wall-clock figure for user,
+                # framework or discovery time is not meaningful once the files overlap.
+                ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
+
+                # Parallelism is file-level, so each container keeps its full duration breakdown.
+                foreach ($container in $r.Containers) {
+                    ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
+                    ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
+                }
+                # Discovery is measured per container too (summed here only to avoid per-file flakiness).
+                $discoverySum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
+                ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel data passing" {
+        t "passes container -Data to each parallel worker's param() block" {
+            # New-PesterContainer -Path ... -Data must bind the file's param() block under parallel
+            # the same way it does sequentially. (#2793)
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($n in 1..2) {
+                Set-Content -Path (Join-Path $folder "Data$n.Tests.ps1") -Value @'
+param([Parameter(Mandatory)][ValidateNotNullOrEmpty()][string] $Module, $Data)
+Describe 'D' { It 'sees data' { $Module | Should -Be 'hello'; $Data.k | Should -Be 42 } }
+'@
+            }
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Container = New-PesterContainer -Path $folder -Data @{ Module = 'hello'; Data = @{ k = 42 } }
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 2
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel module loading" {
+        t "imports a module that lists Pester in RequiredModules (#2816)" {
+            # Each parallel worker imports Pester so test bodies can use it. The worker must import
+            # Pester *via its manifest* so the loaded module keeps its real ModuleVersion. Importing
+            # the bare root module instead would load Pester as 0.0.0.0, and any module a test imports
+            # whose manifest lists Pester in RequiredModules (e.g. @{ ModuleName = 'Pester';
+            # ModuleVersion = '5.0.0' }) would then fail to resolve that requirement against the
+            # loaded 0.0.0.0 Pester - the bug reported in #2816.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $moduleDir = Join-Path $folder 'RequiresPester'
+                $null = New-Item -ItemType Directory -Path $moduleDir -Force
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psm1') -Value 'function Get-RequiresPester { ''ok'' }'
+                Set-Content -Path (Join-Path $moduleDir 'RequiresPester.psd1') -Value @'
+@{
+    RootModule        = 'RequiresPester.psm1'
+    ModuleVersion     = '1.0.0'
+    GUID              = 'b3c4d5e6-f7a8-4901-b2c3-d4e5f6a7b8c9'
+    RequiredModules   = @( @{ ModuleName = 'Pester'; ModuleVersion = '5.0.0' } )
+    FunctionsToExport = @('Get-RequiresPester')
+}
+'@
+                $manifest = Join-Path $moduleDir 'RequiresPester.psd1'
+                Set-Content -Path (Join-Path $folder 'Import.Tests.ps1') -Value @"
+Describe 'Module import' {
+    It 'imports a module that requires Pester' {
+        { Import-Module '$manifest' -Force -ErrorAction Stop } | Should -Not -Throw
+    }
+}
+"@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally {
+                # Import.Tests.ps1 imports RequiresPester, which takes a dependency on Pester. When
+                # Run.Parallel falls back to sequential (e.g. Windows PowerShell 5.1) that import runs
+                # in this process, so the module leaks into the shared P-test session and the next
+                # *.ts.ps1 file's `Remove-Module Pester` fails with "required by 'RequiresPester'".
+                # Unload it first - this also releases the lock on its .psm1 so the folder can be removed.
+                Get-Module RequiresPester | Remove-Module -Force
+                Remove-Item -Path $folder -Recurse -Force
+            }
+        }
+    }
+
+    b "Pester.BeforeContainer.ps1 convention" {
+        t "runs the repo-root Pester.BeforeContainer.ps1 before each file in a sequential run" {
+            $folder = New-BeforeContainerTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "runs the repo-root Pester.BeforeContainer.ps1 inside each parallel worker" {
+            $folder = New-BeforeContainerTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 1
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "shares a single bootstrap across many files in parallel, anchored on the stable `$PSScriptRoot" {
+            # A real-world case: instead of repeating an Import-Module + mock defaults setup in every
+            # test file, put it once in Pester.BeforeContainer.ps1. Because it is a real file it always
+            # has a stable `$PSScriptRoot` to resolve the module relative to, unlike the removed
+            # Run.BeforeContainer scriptblock option, which only had the unstable `$pwd` (#2838). Each
+            # parallel worker starts from a clean runspace and re-runs the bootstrap, so the shared
+            # helpers are available to every file without duplication.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+
+            Set-Content -Path (Join-Path $folder 'Helpers.psm1') -Value @'
+function Get-Answer { 42 }
+'@
+
+            # Resolve the module relative to $PSScriptRoot (the folder of this bootstrap file), which
+            # is stable regardless of the working directory Invoke-Pester was called from.
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
+Import-Module -Name (Join-Path $PSScriptRoot 'Helpers.psm1') -Force
+'@
+
+            Set-Content -Path (Join-Path $folder 'First.Tests.ps1') -Value @'
+Describe 'First' {
+    It 'uses the shared helper' { Get-Answer | Should -Be 42 }
+}
+'@
+            Set-Content -Path (Join-Path $folder 'Second.Tests.ps1') -Value @'
+Describe 'Second' {
+    It 'uses the shared helper too' { Get-Answer | Should -Be 42 }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                # Call from a different working directory to prove the bootstrap does not depend on $pwd.
+                Push-Location ([IO.Path]::GetTempPath())
+                try { $r = Invoke-Pester -Configuration $c } finally { Pop-Location }
+
+                $r.PassedCount | Verify-Equal 2
+                $r.FailedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Pester.BeforeContainer.ps1 folder cascade" {
+        t "applies every Pester.BeforeContainer.ps1 from the repo root down to the file's folder, outermost first" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # unit/Unit.Tests.ps1 sees root + tests + unit, in that order.
+                # integration/Integration.Tests.ps1 sees only root + tests, because there is no
+                # Pester.BeforeContainer.ps1 in the integration folder.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "finds the repository root from the session location, not the process working directory" {
+            # Run.RepoRoot's default used to be found in C# from Directory.GetCurrentDirectory(),
+            # the process working directory, which Set-Location does not change. So a session that
+            # started somewhere else and then changed directory into a repository kept a RepoRoot
+            # pointing at the old place and the whole cascade silently did not apply. Nothing here
+            # sets Run.RepoRoot, the run has to find it on its own.
+            $folder = New-CascadingBeforeContainerFolder
+            $null = New-Item -ItemType Directory -Path (Join-Path $folder '.git') -Force
+            try {
+                Push-Location -Path $folder
+                try {
+                    # The test only means something while the two locations disagree, which is the
+                    # situation the fix is about.
+                    $processDirectory = [System.IO.Directory]::GetCurrentDirectory()
+                    ($processDirectory -eq $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path) | Verify-False
+
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.Output.Verbosity = 'None'
+                    $r = Invoke-Pester -Configuration $c
+
+                    $r.FailedCount | Verify-Equal 0
+                    $r.PassedCount | Verify-Equal 2
+                }
+                finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not overwrite a Run.RepoRoot the user set" {
+            # A real directory. Resolving the chain runs the value through GetFullPath, and a made
+            # up path is not portable: on Windows something like 'TestDrive:whatever' reads as a
+            # drive qualifier and throws, while on Unix it is a legal relative file name.
+            $mine = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $mine -Force
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.RepoRoot = $mine
+                $c.Run.ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.Configuration.Run.RepoRoot.Value | Verify-Equal $mine
+            }
+            finally { Remove-Item -Path $mine -Recurse -Force }
+        }
+
+        t "FindRepoRoot returns the directory it started from when there is no .git above it" {
+            # The walk stops at the filesystem root and falls back to where it started, rather than
+            # returning null or the drive root, so RepoRoot is always a usable directory.
+            $start = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $start -Force
+            try {
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($start)
+                [Pester.RunConfiguration]::FindRepoRoot($expected) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $start -Recurse -Force }
+        }
+
+        t "applies the same cascade inside each parallel worker" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not look above the repo root" {
+            # The setup file sits one level above Run.RepoRoot, so the walk must not pick it up even
+            # though it is an ancestor of the test folder on disk. Asserted on the resolved chain
+            # rather than on a global the setup would set, because globals survive from one
+            # container to the next within a run and would make this depend on test order.
+            $outer = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $repoRoot = Join-Path $outer 'repo'
+            $null = New-Item -ItemType Directory -Path $repoRoot -Force
+            Set-Content -Path (Join-Path $outer 'Pester.BeforeContainer.ps1') -Value '$global:PesterCascadeAbove = $true'
+
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $repoRoot
+
+                @($chain).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $outer -Recurse -Force }
+        }
+
+        t "stops at a setup file marked #pester:no-inherit" {
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "honours #pester:no-inherit inside a parallel worker too" {
+            # The worker receives the chain the parent resolved, so a truncated chain has to survive
+            # the trip across the runspace boundary as well as it does sequentially.
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "the folder setup composes with the test file's own BeforeAll, folder first" {
+            # The reason the block model had to allow more than one BeforeAll per block. The folder
+            # setup and the file's own setup both register on the container's root block, and the
+            # folder's has to run first so the file can build on it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterOrder = @(''folder'') }'
+            Set-Content -Path (Join-Path $folder 'Compose.Tests.ps1') -Value @'
+BeforeAll { $script:PesterOrder += 'file' }
+
+Describe 'Compose' {
+    It 'ran the folder setup before the file setup' {
+        ($script:PesterOrder -join '>') | Should -Be 'folder>file'
+    }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a folder's setup does not leak into a container in a sibling folder" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # Integration has no setup file of its own, so it sees root>tests and never the
+                # 'unit' entry, no matter which of the two containers ran first.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "resolves the chain for a directory" {
+            # Get-PesterBeforeContainerChain is the lookup the run uses. Assert the order directly,
+            # so a regression in the walk is not hidden behind a passing end-to-end run.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 3
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal (Split-Path $folder -Leaf)
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'tests'
+                (Split-Path (Split-Path $chain[2] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "returns nothing when the repo root has no setup file and neither does the folder" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "records a chain for every directory it passes, not only for the one asked about" {
+            # Which setup files apply is a property of the directory, not of the container, so
+            # resolving the deepest folder has to leave an answer for 'tests' and for the root as
+            # well. Without that a sibling folder would check the same directories on disk and
+            # tokenize the same setup files a second time.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $cache = @{}
+                $null = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                $rootKey = [IO.Path]::GetFullPath($folder).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $unitKey = [IO.Path]::GetFullPath((Join-Path (Join-Path $folder 'tests') 'unit')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+
+                $cache.Count | Verify-Equal 3
+                @($cache[$rootKey]).Count | Verify-Equal 1
+                @($cache[$testsKey]).Count | Verify-Equal 2
+                @($cache[$unitKey]).Count | Verify-Equal 3
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "stops walking up at the first directory that is already resolved" {
+            # The seeded entry for 'tests' stands in for a sibling folder resolved earlier in the
+            # run. The walk has to take that list and stop there, so the root setup file is neither
+            # checked on disk nor tokenized again. Seeding a value that is not a real path is what
+            # makes that observable: it can only come from the cache.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $cache = @{ $testsKey = @('resolved-earlier-in-the-run') }
+
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                @($chain).Count | Verify-Equal 2
+                $chain[0] | Verify-Equal 'resolved-earlier-in-the-run'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "caches the truncated chain under a folder marked #pester:no-inherit" {
+            # The opt-out belongs to the folder that carries it, so the shorter list is what gets
+            # cached for that folder, and a folder below it inherits the shorter list without
+            # looking above the opt-out again.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $docs = Join-Path $root 'docs'
+            $deep = Join-Path $docs 'deep'
+            $null = New-Item -ItemType Directory -Path $deep -Force
+
+            Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+            Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { }
+'@
+            Set-Content -Path (Join-Path $deep 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+
+            try {
+                $cache = @{}
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Deep, $Cache)
+                    Get-PesterBeforeContainerChain -Directory $Deep -RepoRoot $Root -Cache $Cache
+                } $root $deep $cache
+
+                @($chain).Count | Verify-Equal 2
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal 'docs'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'deep'
+
+                $docsKey = [IO.Path]::GetFullPath($docs).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                @($cache[$docsKey]).Count | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+    }
+
+    b "Lost worker results" {
+        t "fails the run instead of returning fewer files than it was given" {
+            # A worker that dies before returning its result object leaves nothing for the
+            # well-formed-result filter to keep, so without the count check the run would report
+            # success for the files that did come back and never mention the one that did not.
+            # Losing a test file silently is worse than failing, so this must throw and name it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($name in 'A', 'B', 'C') {
+                Set-Content -Path (Join-Path $folder "$name.Tests.ps1") -Value "Describe '$name' { It 'i' { 1 | Should -Be 1 } }"
+            }
+
+            try {
+                # Stand in for a worker that died: hand Invoke-TestInParallel a runspace-pool
+                # runner that drops B's result on the floor and returns the other two.
+                $err = & (Get-Module Pester) {
+                    param ($Root)
+
+                    $original = ${function:Invoke-InRunspacePool}
+                    ${function:Invoke-InRunspacePool} = {
+                        param ($InputObject, $ScriptBlock, $ThrottleLimit, $ItemParameterName = 'item', $Parameters = @{})
+                        foreach ($i in $InputObject) {
+                            if ($i.Path -like '*B.Tests.ps1') { continue }
+                            [PSCustomObject]@{ Path = $i.Path; Containers = @(); Tape = @(); Coverage = $null }
+                        }
+                    }
+
+                    try {
+                        $c = [PesterConfiguration]::Default
+                        $c.Run.Path = $Root
+                        $c.Run.Parallel = $true
+                        $c.Output.Verbosity = 'None'
+                        $containers = @(Find-File -Path $Root -Extension '.Tests.ps1' | ForEach-Object { New-BlockContainerObject -File $_ })
+
+                        try {
+                            $null = Invoke-TestInParallel -BlockContainer $containers -Configuration $c
+                            $null
+                        }
+                        catch { $_.Exception.Message }
+                    }
+                    finally { ${function:Invoke-InRunspacePool} = $original }
+                } $folder
+
+                $err | Verify-NotNull
+                $err | Verify-Like '*lost the results of 1 of 3 file(s)*'
+                $err | Verify-Like '*B.Tests.ps1*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Invoke-InRunspacePool" {
+        # The parallelism primitive Run.Parallel is built on. It replaces ForEach-Object -Parallel,
+        # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the
+        # place a difference between them would show up first.
+
+        # Each worker counts itself in on entry and out on exit, so the run's peak concurrency is
+        # measured directly. Asserting on elapsed time instead would only infer concurrency, and it
+        # would sit on a threshold that a slow or a fast machine can cross for the wrong reason.
+        $probe = {
+            param($item, $state)
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try {
+                $state.Current++
+                if ($state.Current -gt $state.Max) { $state.Max = $state.Current }
+            }
+            finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            Start-Sleep -Milliseconds 300
+
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try { $state.Current-- } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            $item
+        }
+
+        t "runs the items concurrently" {
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            # More than one in flight at once is the whole claim. The exact peak depends on how the
+            # pool schedules, so do not pin it to 4.
+            ($state.Max -gt 1) | Verify-True
+        }
+
+        t "honours the throttle limit" {
+            # With one runspace the peak can only ever be 1, however the machine schedules them.
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 1 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            $state.Max | Verify-Equal 1
+        }
+
+        t "passes the item and the shared parameters to every worker" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @('a', 'b') -ThrottleLimit 2 -Parameters @{ prefix = 'p' } -ScriptBlock {
+                    param($item, $prefix)
+                    "$prefix-$item"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal 'p-a,p-b'
+        }
+
+        t "keeps going when one worker throws" {
+            # A failing file must not take the rest of the run with it, the others still have
+            # results worth reporting.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+            ($errors -join ' ') | Verify-Like '*worker blew up*' 
+        }
+
+        t "keeps going when one worker throws even if the caller runs with ErrorActionPreference Stop" {
+            # Reporting a failed worker must not itself be terminating. A caller running with 'Stop'
+            # (a CI script, or Pester's own test.ps1) would otherwise abort this loop on the first
+            # failure and lose the results of every file that already finished.
+            $out = & (Get-Module Pester) {
+                $ErrorActionPreference = 'Stop'
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+        }
+
+        t "returns nothing for an empty input" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
+            }
+            @($r).Count | Verify-Equal 0
+        }
+    }
+
+    b "#pester:no-parallel directive parsing" {
+        t "detects the directive when written as a comment" {
+            $folder = New-ParallelTestFolder
+            try {
+                $path = Join-Path $folder 'D.Tests.ps1'
+                $result = & (Get-Module Pester) { param($p) Test-PesterFileIsNonParallel -Path $p } $path
+                $result | Verify-True
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "ignores files without the directive" {
+            $folder = New-ParallelTestFolder
+            try {
+                $path = Join-Path $folder 'A.Tests.ps1'
+                $result = & (Get-Module Pester) { param($p) Test-PesterFileIsNonParallel -Path $p } $path
+                $result | Verify-False
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not match the marker inside a string literal" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $path = Join-Path $folder 'String.Tests.ps1'
+                Set-Content -Path $path -Value @'
+Describe 'S' {
+    It 'has the marker in a string' { '#pester:no-parallel' | Should -Be '#pester:no-parallel' }
+}
+'@
+                $result = & (Get-Module Pester) { param($p) Test-PesterFileIsNonParallel -Path $p } $path
+                $result | Verify-False
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Parallel execution" {
+        t "merges aggregate counts across files" {
+            $folder = New-ParallelTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $r = Invoke-Pester -Configuration $c
+
+                $r.TotalCount | Verify-Equal 8
+                $r.PassedCount | Verify-Equal 6
+                $r.FailedCount | Verify-Equal 1
+                $r.SkippedCount | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "produces the same counts as a sequential run" {
+            $folder = New-ParallelTestFolder
+            try {
+                $sequential = [PesterConfiguration]::Default
+                $sequential.Run.Path = $folder
+                $sequential.Run.Parallel = $false
+                $sequential.Run.PassThru = $true
+                $s = Invoke-Pester -Configuration $sequential
+
+                $parallel = [PesterConfiguration]::Default
+                $parallel.Run.Path = $folder
+                $parallel.Run.Parallel = $true
+                $parallel.Run.PassThru = $true
+                $p = Invoke-Pester -Configuration $parallel
+
+                $p.TotalCount | Verify-Equal $s.TotalCount
+                $p.PassedCount | Verify-Equal $s.PassedCount
+                $p.FailedCount | Verify-Equal $s.FailedCount
+                $p.SkippedCount | Verify-Equal $s.SkippedCount
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "preserves discovery order of containers" {
+            $folder = New-ParallelTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $r = Invoke-Pester -Configuration $c
+
+                $names = $r.Containers | ForEach-Object { $_.Item.Name }
+                ($names -join ',') | Verify-Equal 'A.Tests.ps1,B.Tests.ps1,C.Tests.ps1,D.Tests.ps1'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "runs and merges a file marked #pester:no-parallel" {
+            $folder = New-ParallelTestFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $r = Invoke-Pester -Configuration $c
+
+                $d = $r.Containers | Where-Object { $_.Item.Name -eq 'D.Tests.ps1' }
+                $d | Verify-NotNull
+                $d.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "falls back to sequential with a warning for ScriptBlock containers" {
+            $c = [PesterConfiguration]::Default
+            $c.Run.ScriptBlock = { Describe 'SB' { It 'passes' { 1 | Should -Be 1 } } }
+            $c.Run.Parallel = $true
+            $c.Run.PassThru = $true
+
+            $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
+
+            $r.TotalCount | Verify-Equal 1
+            $r.PassedCount | Verify-Equal 1
+            ($warnings -join "`n") | Verify-Like '*parallelizes only file-based runs*'
+        }
+
+        t "collects and merges code coverage across parallel workers" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                # A shared code file to measure coverage on, plus two parallelizable test files that
+                # each exercise a different function in it. The parallel run must collect coverage
+                # from every worker and merge it into one report, matching a sequential run exactly.
+                Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
+function Get-One { 1 }
+function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
+'@
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
+'@
+                $newConfig = {
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.CodeCoverage.Enabled = $true
+                    $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
+                    $c
+                }
+
+                $sequential = & $newConfig
+                $sequential.Run.Parallel = $false
+                $seq = Invoke-Pester -Configuration $sequential
+
+                $parallel = & $newConfig
+                $parallel.Run.Parallel = $true
+                $par = Invoke-Pester -Configuration $parallel
+
+                # Two of the four functions are covered, parallel must match sequential exactly.
+                $par.PassedCount | Verify-Equal 2
+                $par.CodeCoverage | Verify-NotNull
+                $par.CodeCoverage.CommandsAnalyzedCount | Verify-Equal $seq.CodeCoverage.CommandsAnalyzedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal $seq.CodeCoverage.CommandsExecutedCount
+                $par.CodeCoverage.CommandsMissedCount | Verify-Equal $seq.CodeCoverage.CommandsMissedCount
+                $par.CodeCoverage.CommandsExecutedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "merges code coverage from a file marked #pester:no-parallel" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                # A and B run in parallel, C opts out and runs in the parent. Coverage from the in-parent
+                # (non-parallel) file must be merged with the worker coverage.
+                Set-Content -Path (Join-Path $folder 'lib.ps1') -Value @'
+function Get-One { 1 }
+function Get-Two { 2 }
+function Get-Three { 3 }
+function Get-Four { 4 }
+'@
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'A' { It 'a1 passes' { Get-One | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'B' { It 'b1 passes' { Get-Two | Should -Be 2 } }
+'@
+                Set-Content -Path (Join-Path $folder 'C.Tests.ps1') -Value @'
+#pester:no-parallel
+BeforeAll { . $PSScriptRoot/lib.ps1 }
+Describe 'C' { It 'c1 passes' { Get-Three | Should -Be 3 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.CodeCoverage.Enabled = $true
+                $c.CodeCoverage.Path = (Join-Path $folder 'lib.ps1')
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.PassedCount | Verify-Equal 3
+                $r.CodeCoverage | Verify-NotNull
+                # Get-One, Get-Two (workers) and Get-Three (#pester:no-parallel) were executed.
+                $r.CodeCoverage.CommandsExecutedCount | Verify-Equal 3
+                $r.CodeCoverage.CommandsMissedCount | Verify-Equal 1
+                $executedLines = $r.CodeCoverage.CommandsExecuted.StartLine
+                $executedLines -contains 3 | Verify-True
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "runs sequentially when every file opts out of parallel" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+#pester:no-parallel
+Describe 'A' { It 'a1 passes' { 1 | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+#pester:no-parallel
+Describe 'B' { It 'b1 passes' { 2 | Should -Be 2 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+
+                $r = Invoke-Pester -Configuration $c
+
+                $r.TotalCount | Verify-Equal 2
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "falls back to sequential with a warning for Run.SkipRemainingOnFailure = 'Run'" {
+            # 'Run' scope must stop the whole run after the first failure, which means a failure
+            # in the first file skips every later file. That cannot work across isolated worker
+            # runspaces, so parallel must fall back to sequential. Proof: the second file's test
+            # ends up Skipped (not Passed, which is what a real parallel run would have produced).
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' {
+    It 'a1 fails' { 1 | Should -Be 2 }
+    It 'a2 never runs' { 1 | Should -Be 1 }
+}
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Run.SkipRemainingOnFailure = 'Run'
+
+                $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
+
+                ($warnings -join "`n") | Verify-Like "*does not support Run.SkipRemainingOnFailure*"
+                $r.TotalCount | Verify-Equal 3
+                $r.FailedCount | Verify-Equal 1
+                # a2 and the whole of B are skipped once the first test fails.
+                $r.SkippedCount | Verify-Equal 2
+                $r.PassedCount | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel output" {
+        t "renders Describing/Context block headers in Detailed output" {
+            # In parallel each file runs in a silent worker whose result tree is replayed to the
+            # parent's reporting plugins. The worker's end-of-run cleanup used to strip every block's
+            # FrameworkData (which carries the Describe/Context command name), and because the replay
+            # tape holds live references to those same block objects the parent was then left without
+            # a CommandUsed to render - so the "Describing"/"Context" headers silently vanished from
+            # Detailed/Diagnostic output (#2824). Assert they are present in a parallel run.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'One.Tests.ps1') -Value @'
+Describe 'OuterOne' {
+    Context 'CtxA' { It 'a1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                Set-Content -Path (Join-Path $folder 'Two.Tests.ps1') -Value @'
+Describe 'OuterTwo' {
+    Context 'CtxB' { It 'b1 passes' { 1 | Should -Be 1 } }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # Write-PesterHostMessage uses Write-Host, so console output lands on the
+                # information stream (6) and can be captured in-process.
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                $output | Verify-Like '*Describing OuterOne*'
+                $output | Verify-Like '*Context CtxA*'
+                $output | Verify-Like '*Describing OuterTwo*'
+                $output | Verify-Like '*Context CtxB*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel debug output" {
+        t "captures debug output and replays it interleaved with each file's tests" {
+            # Each worker writes nothing to the host directly and records its screen and debug output into
+            # the shared tape, and the parent replays that tape in order. So debug output must come back
+            # interleaved with the per-test output of the file that produced it, not dumped up front
+            # detached from it (#2825).
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' { It 'a1 passes' { 1 | Should -Be 1 } }
+'@
+                Set-Content -Path (Join-Path $folder 'B.Tests.ps1') -Value @'
+Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Diagnostic'
+                $c.Output.RenderMode = 'Plaintext'
+
+                # 6>&1 folds the host output (written as information records) into the pipeline so we can
+                # replay it exactly as it was rendered; the Pester.Run object comes out alongside it.
+                $out = Invoke-Pester -Configuration $c 3>$null 6>&1
+                $r = @($out).Where({ $_ -is [Pester.Run] })[0]
+
+                # The run still executes in parallel and produces correct results.
+                $r.PassedCount | Verify-Equal 2
+
+                # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
+                # then blank out the volatile version, temp paths and timings so the snapshot is stable.
+                $sb = [System.Text.StringBuilder]::new()
+                foreach ($rec in @($out)) {
+                    if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
+                    $md = $rec.MessageData
+                    if ($md -is [System.Management.Automation.HostInformationMessage]) {
+                        $null = $sb.Append($md.Message)
+                        if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
+                    }
+                }
+                $normalized = $sb.ToString() `
+                    -replace 'Pester v\S+', 'Pester v<version>' `
+                    -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
+                    -replace '\d+(.\d+)?m?s', '<time>'
+                $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
+
+                # Each file's discovery is immediately followed by that same file's run (A fully, then
+                # B fully), instead of both discoveries being dumped up front, detached from the tests.
+                $expected = @'
+Pester v<version>
+
+Running tests from 2 files in parallel.
+Discovery: Discovering tests in A.Tests.ps1
+Discovery: Found 1 tests in <time>
+
+Running tests from 'A.Tests.ps1'
+Describing A
+  [+] a1 passes <time>
+Discovery: Discovering tests in B.Tests.ps1
+Discovery: Found 1 tests in <time>
+
+Running tests from 'B.Tests.ps1'
+Describing B
+  [+] b1 passes <time>
+Tests completed in <time>
+Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
+'@ -replace "`r`n", "`n"
+
+                $actual | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+}

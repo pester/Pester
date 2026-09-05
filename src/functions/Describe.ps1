@@ -95,7 +95,6 @@
         [ValidateNotNull()]
         [ScriptBlock] $Fixture,
 
-        # [Switch] $Focus,
         [Switch] $Skip,
         [Switch] $AllowNullOrEmptyForEach,
 
@@ -103,7 +102,6 @@
         $ForEach
     )
 
-    $Focus = $false
     if ($null -eq $Fixture) {
         if ($Name.Contains("`n")) {
             throw "Test fixture name has multiple lines and no test fixture is provided. (Have you provided a name for the test group?)"
@@ -124,16 +122,16 @@
         if ($PSBoundParameters.ContainsKey('ForEach')) {
             if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
                 if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
-                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+                    throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach on this Describe, or set the Run.FailOnNullOrEmptyForEach configuration option to $false to allow it for the whole run.', 'ForEach')
                 }
                 # @() or $null is provided and allowed, do nothing
                 return
             }
 
-            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip -Data $ForEach
+            New-ParametrizedBlock -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip -Data $ForEach
         }
         else {
-            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Focus:$Focus -Skip:$Skip
+            New-Block -Name $Name -ScriptBlock $Fixture -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -FrameworkData @{ CommandUsed = 'Describe'; WrittenToScreen = $false } -Skip:$Skip
         }
     }
     else {

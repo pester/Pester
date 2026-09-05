@@ -137,11 +137,7 @@
 
         # [Parameter(ParameterSetName = 'Skip')]
         # [String] $SkipBecause,
-
-        # [Switch]$Focus
     )
-
-    $Focus = $false
 
     if ($null -eq $Test) {
         if ($Name.Contains("`n")) {
@@ -157,15 +153,15 @@
     if ($PSBoundParameters.ContainsKey('ForEach')) {
         if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
             if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
-                throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach', 'ForEach')
+                throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach on this It, or set the Run.FailOnNullOrEmptyForEach configuration option to $false to allow it for the whole run.', 'ForEach')
             }
             # @() or $null is provided and allowed, do nothing
             return
         }
 
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Focus:$Focus -Skip:$Skip
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip
     }
 }

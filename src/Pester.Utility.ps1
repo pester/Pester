@@ -1,4 +1,4 @@
-﻿function or {
+function or_ {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -16,7 +16,7 @@
 }
 
 # looks for a property on object that might be null
-function tryGetProperty {
+function tryGetProperty_ {
     [CmdletBinding()]
     param (
         [Parameter(Position = 0)]
@@ -39,29 +39,10 @@ function tryGetProperty {
     # }
 }
 
-function trySetProperty {
-    [CmdletBinding()]
-    param (
-        [Parameter(Position = 0)]
-        $InputObject,
-        [Parameter(Mandatory = $true, Position = 1)]
-        $PropertyName,
-        [Parameter(Mandatory = $true, Position = 2)]
-        $Value
-    )
-
-    if ($null -eq $InputObject) {
-        return
-    }
-
-    $InputObject.$PropertyName = $Value
-}
-
-
 # combines collections that are not null or empty, but does not remove null values
 # from collections so e.g. combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
 # returns 1, $null, 1, 2, 3, 10
-function combineNonNull ($Array) {
+function combineNonNull_ ($Array) {
     foreach ($i in $Array) {
 
         $arr = @($i)
@@ -73,15 +54,14 @@ function combineNonNull ($Array) {
     }
 }
 
-
-filter selectNonNull {
+filter selectNonNull_ {
     param($Collection)
     @(foreach ($i in $Collection) {
             if ($i) { $i }
         })
 }
 
-function any ($InputObject) {
+function any_ ($InputObject) {
     # inlining version
     $(<# any #> if (-not ($s = $InputObject)) { return $false } else { @($s).Length -gt 0 })
     # if (-not $InputObject) {
@@ -91,11 +71,11 @@ function any ($InputObject) {
     # @($InputObject).Length -gt 0
 }
 
-function none ($InputObject) {
-    -not (any $InputObject)
+function none_ ($InputObject) {
+    -not (any_ $InputObject)
 }
 
-function defined {
+function defined_ {
     param(
         [Parameter(Mandatory)]
         [String] $Name
@@ -109,7 +89,7 @@ function defined {
     $ExecutionContext.SessionState.PSVariable.GetValue($Name)
 }
 
-function notDefined {
+function notDefined_ {
     param(
         [Parameter(Mandatory)]
         [String] $Name
@@ -121,72 +101,22 @@ function notDefined {
     $null -eq ($ExecutionContext.SessionState.PSVariable.GetValue($Name))
 }
 
-
-function sum ($InputObject, $PropertyName, $Zero) {
-    if (none $InputObject.Length) {
-        return $Zero
-    }
-
-    $acc = $Zero
-    foreach ($i in $InputObject) {
-        $acc += $i.$PropertyName
-    }
-
-    $acc
+function Get-CIDebugFlag {
+    # Returns $true when a known CI system has its debug/verbose logging switch enabled.
+    # Mirrors the CI detection used for Output.CIFormat so more CI systems can be added here later.
+    # - Azure DevOps: enabling the 'System.Debug' pipeline variable sets $env:SYSTEM_DEBUG to the
+    #   literal string 'true'.
+    # - GitHub Actions: enabling step debug logging (secret/variable ACTIONS_STEP_DEBUG=true) sets
+    #   $env:RUNNER_DEBUG to '1' inside a step. This is the same signal actions/toolkit core.isDebug() uses.
+    # -eq is case-insensitive in PowerShell, so 'True'/'TRUE'/'true' all match.
+    ('true' -eq $env:SYSTEM_DEBUG) -or ('1' -eq $env:RUNNER_DEBUG)
 }
 
-function tryGetValue {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key
-    )
-
-    if ($Hashtable.ContainsKey($Key)) {
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
-    }
-}
-
-function tryAddValue {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key,
-        $Value
-    )
-
-    if (-not $Hashtable.ContainsKey($Key)) {
-        $null = $Hashtable.Add($Key, $Value)
-    }
-}
-
-function getOrUpdateValue {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key,
-        $DefaultValue
-    )
-
-    if ($Hashtable.ContainsKey($Key)) {
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
-    }
-    else {
-        $Hashtable.Add($Key, $DefaultValue)
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($DefaultValue, $false)
-    }
-}
-
-function tryRemoveKey ($Hashtable, $Key) {
-    if ($Hashtable.ContainsKey($Key)) {
-        $Hashtable.Remove($Key)
-    }
+function Test-CIDebugOutputEnabled ([PesterConfiguration]$PesterPreference) {
+    # CI debug-output surfacing is enabled when the user has not opted out (Output.CIDebugOutput is
+    # not 'None') and a known CI system has its debug switch enabled. Lives here in Pester.Utility so it
+    # is available both to Resolve-OutputConfiguration and to the runtime (Invoke-ContainerRun).
+    ('None' -ne $PesterPreference.Output.CIDebugOutput.Value) -and (Get-CIDebugFlag)
 }
 
 function Add-DataToContext ($Destination, $Data) {
@@ -214,7 +144,6 @@ function Merge-Hashtable ($Source, $Destination) {
     }
 }
 
-
 function Merge-HashtableOrObject ($Source, $Destination) {
     if ($Source -isnot [Collections.IDictionary] -and $Source -isnot [PSObject]) {
         throw "Source must be a Hashtable, IDictionary or a PSObject."
@@ -223,7 +152,6 @@ function Merge-HashtableOrObject ($Source, $Destination) {
     if ($Destination -isnot [PSObject]) {
         throw "Destination must be a PSObject."
     }
-
 
     $sourceIsPSObject = $Source -is [PSObject]
     $sourceIsDictionary = $Source -is [Collections.IDictionary]
@@ -415,24 +343,6 @@ function Contain-AnyStringLike ($Filter, $Collection) {
         }
     }
     return $false
-}
-
-# TODO: Remove?
-function Recurse-Up {
-    param(
-        [Parameter(Mandatory)]
-        $InputObject,
-        [ScriptBlock] $Action
-    )
-
-    $i = $InputObject
-    $level = 0
-    while ($null -ne $i) {
-        &$Action $i
-
-        $level--
-        $i = $i.Parent
-    }
 }
 
 function View-Flat {

@@ -88,3 +88,30 @@ catch { `$_.FullyQualifiedErrorId + '||' + (`$_.Exception.Message -split [Enviro
         $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
     }
 }
+
+Describe "Should-All input hint" {
+    It 'Hints when a single hashtable is piped' {
+        $err = { @{ Name = 'Jakub' } | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*GetEnumerator*'
+    }
+
+    It 'Hints when a hashtable is passed via -Actual' {
+        $err = { Should-All -Actual @{ Name = 'Jakub' } -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: -Actual is a single*which is not a collection*'
+    }
+
+    It 'Does not hint for a genuine collection that fails the filter' {
+        $err = { @(3, 4, 5) | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for a piped scalar, which is a valid one-item collection' {
+        $err = { 2 | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for piped $null, which is a valid one-item collection' {
+        $err = { $null | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}

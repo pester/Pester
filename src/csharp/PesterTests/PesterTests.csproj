@@ -1,20 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="MSTest.Sdk/4.2.3">
+  <!-- Uses the latest MSTest via MSTest.Sdk, which runs tests on Microsoft.Testing.Platform (MTP) by default. -->
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- The library targets net8.0 (PowerShell 7.4). Allow the test app to roll forward
+    onto a newer runtime when net8.0 isn't installed, so it runs on the latest SDK too. -->
+    <RollForward>Major</RollForward>
     <!-- Workaround for NETSDK1206 warning about version-specific RIDs in
     Microsoft.Management.Infrastructure dependency. Resolved in PowerShell 7.4 SDK -->
     <UseRidGraph>true</UseRidGraph>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageReference Include="xunit" Version="2.9.2" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Pester\Pester.csproj" />

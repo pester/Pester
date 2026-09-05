@@ -1,5 +1,5 @@
 ﻿@(
-    'Pester.ps1'
+    'Pester.ScriptScope.ps1'
     'Pester.psd1'
     'Pester.psm1'
     'Pester.Format.ps1xml'

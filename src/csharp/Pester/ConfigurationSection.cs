@@ -15,6 +15,7 @@
 // to have in "type accelerator" form, but without the hassle of actually adding it as a type accelerator
 // that way you can easily do `[PesterConfiguration]::Default` and then inspect it, or cast a hashtable to it
 
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace Pester
@@ -30,6 +31,22 @@ namespace Pester
         public override string ToString()
         {
             return _description;
+        }
+
+        /// <summary>
+        /// Names of the options this section has. A method and not a property so it stays out of the
+        /// section's console output, which lists the options and their documentation.
+        /// </summary>
+        public string[] GetOptionNames()
+        {
+            var names = new List<string>();
+            foreach (var property in GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (typeof(Option).IsAssignableFrom(property.PropertyType))
+                    names.Add(property.Name);
+            }
+
+            return names.ToArray();
         }
 
         /// <summary>

@@ -35,17 +35,56 @@
 
     .EXAMPLE
     ```powershell
-    Get-Command "Invoke-WebRequest" | Should -HaveParameter Uri -Mandatory
+    Get-Command Invoke-WebRequest | Should-HaveParameter Uri -Type ([uri]) -Mandatory
     ```
 
-    This test passes, because it expected the parameter URI to exist and to
-    be mandatory.
+    This assertion passes, because `Invoke-WebRequest` has a mandatory `-Uri` parameter of type `[uri]`.
 
+    .EXAMPLE
+    ```powershell
+    function Get-Cat {
+        [CmdletBinding(DefaultParameterSetName = 'ByName')]
+        param(
+            [Parameter(ParameterSetName = 'ByName', Mandatory)]
+            [Alias('Id')]
+            [string] $Name,
+
+            [Parameter(ParameterSetName = 'ByIndex', Mandatory)]
+            [int] $Index,
+
+            [ValidateSet('Json', 'Xml')]
+            [string] $Format = 'Json'
+        )
+    }
+
+    Describe 'Get-Cat public contract' {
+        It 'requires a Name' {
+            Get-Command Get-Cat | Should-HaveParameter Name -Type ([string]) -Mandatory -Alias 'Id'
+        }
+
+        It 'defaults Format to Json' {
+            Get-Command Get-Cat | Should-HaveParameter Format -Type ([string]) -DefaultValue 'Json'
+        }
+    }
+    ```
+
+    A typical real-life use is locking down the public API of your own command. These assertions pass, because `-Name` is a mandatory `[string]` with the alias `Id`, and `-Format` is an optional `[string]` that defaults to `Json`.
+
+    .EXAMPLE
+    ```powershell
+    Get-Command Get-Cat | Should-HaveParameter Index -InParameterSet 'ByIndex'
+    ```
+
+    This assertion passes, because the `-Index` parameter (from the `Get-Cat` function above) belongs to the `ByIndex` parameter set.
 
     .NOTES
     The attribute [ArgumentCompleter] was added with PSv5. Previously this
     assertion will not be able to use the -HasArgumentCompleter parameter
     if the attribute does not exist.
+
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
 
     .LINK
     https://pester.dev/docs/commands/Should-HaveParameter
@@ -69,14 +108,15 @@
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     $PSBoundParameters["ActualValue"] = $Actual
     $PSBoundParameters.Remove("Actual")
 
     $testResult = Should-HaveParameterAssertion @PSBoundParameters
 
-    Test-AssertionResult $testResult
-    Set-AssertionPassResult
+    if (-not $testResult.Succeeded) {
+        $assert.Fail($testResult.FailureMessage)
+    }
 }
