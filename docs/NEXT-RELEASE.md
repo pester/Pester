@@ -22,7 +22,7 @@
   prereleases and do not collide with other releases on the /releases page.
 -->
 
-# Pester 6.2.0-alpha1
+# Pester 6.2.0-alpha2
 
 > 🙋 Want to share feedback or report a bug? Open an [issue](https://github.com/pester/Pester/issues/new/choose)
 > or start a [discussion](https://github.com/pester/Pester/discussions).
@@ -143,6 +143,20 @@ Which files apply is a property of the directory, not of the container, so the r
 cache keyed by directory. Each directory is checked on disk once per run and each setup file
 is tokenized once per run, however many test folders sit below them. On a tree with 60 test
 folders and a 26 KB root setup file that is 23.6 ms instead of 845 ms.
+
+A container reports which setup files applied to it, outermost first, in the order they ran:
+
+```
+U.Tests.ps1:
+    <root>/Pester.BeforeContainer.ps1
+    <root>/tests/Pester.BeforeContainer.ps1
+    <root>/tests/unit/Pester.BeforeContainer.ps1
+D.Tests.ps1:
+    <root>/tests/docs/Pester.BeforeContainer.ps1
+```
+
+`D.Tests.ps1` sits under a folder marked `#pester:no-inherit`, so only its own file applied. The
+folder tree cannot tell you that, which is why the list is on the result.
 
 Requested by @johlju in [#2772](https://github.com/pester/Pester/issues/2772), where he
 estimated it removes around a thousand lines of duplication in SqlServerDsc.
@@ -443,6 +457,24 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
   to `-Expected`" error instead of saying "this assertion". If you match on that message
   somewhere, it changed.
 
+- **`Should-BeFasterThan` and `Should-BeSlowerThan` fail when they get something they cannot
+  measure.** Both take a `[scriptblock]` to run or a `[timespan]` to compare. Anything else fell
+  through the function, so the assertion returned having asserted nothing and the test passed:
+
+  ```powershell
+  'a string' | Should-BeFasterThan 1s   # 6.1.0: passed
+  42         | Should-BeFasterThan 1s   # 6.1.0: passed
+  $null      | Should-BeFasterThan 1s   # 6.1.0: passed
+  ```
+
+  They throw now:
+
+  ```
+  Expected a [scriptblock] to measure or a [timespan] to compare, but got [string] 'a string'.
+  ```
+
+  If a test of yours passed on one of those, it was not asserting anything, and it fails now.
+
 ## <a id="6.2.0-other-improvements-and-fixes"></a>Other improvements and fixes
 
 - A stack trace from Pester's own C# code no longer carries the path the release was built
@@ -469,7 +501,16 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
   assertions bound the measured time from above, and measuring a scriptblock times compiling
   it, GC, and whatever else the machine is doing, which has no upper bound on a shared runner.
 
-**Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0-alpha1
+- `Run.SkipRun` applies the `Pester.BeforeContainer.ps1` cascade. Discovery-only runs, which is
+  the path the VS Code Test Explorer uses to populate the tree, went through a batch discovery
+  that never received the setup files. A file whose discovery depends on a folder setup, a
+  `-ForEach` over a variable set in `BeforeDiscovery`, found its cases in a normal run and came
+  back empty in the Test Explorer.
+- `Invoke-Pester` keeps its `-1` exit code when it fails internally. It could overwrite that with
+  `$null` when the failure happened before the run was created, or with `0` when a plugin failed
+  after an otherwise successful run.
+
+**Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0-alpha2
 
 ## <a id="6.2.0-thank-you"></a>Thank you
 
