@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Release notes for the version in development.
 
   These are written once, for the first alpha, which is usually already close to feature
@@ -437,6 +437,11 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
 
 ## <a id="6.2.0-other-improvements-and-fixes"></a>Other improvements and fixes
 
+- `Pester.BeforeContainer.ps1` is applied when only discovery runs, `Run.SkipRun`. That is the
+  path the VS Code Test Explorer uses to populate, and it went through a batch discovery that
+  never got the per container map, so a file whose discovery depends on the setup, one that
+  calls a helper to build `-ForEach` data for example, came back with no tests or failed with
+  `The term '...' is not recognized`.
 - The `Run.Parallel` help no longer claims that enabling `CodeCoverage` falls back to a
   sequential run. It has not since workers started measuring their own file and the parent
   started merging the hits. The fallback that was actually missing from the list is now there,

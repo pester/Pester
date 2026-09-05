@@ -1,4 +1,4 @@
-# PESTER_BUILD
+﻿# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/Pester.Utility.ps1"
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
@@ -126,7 +126,8 @@ function Find-Test {
         [PSObject[]] $BlockContainer,
         $Filter,
         [Parameter(Mandatory = $true)]
-        [Management.Automation.SessionState] $SessionState
+        [Management.Automation.SessionState] $SessionState,
+        [System.Collections.IDictionary] $BeforeContainerInit
     )
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
@@ -140,7 +141,7 @@ function Find-Test {
         $state = New-PesterState
     }
 
-    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+    $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState -BeforeContainerInit $BeforeContainerInit
 
     foreach ($f in $found) {
         ConvertTo-DiscoveredBlockContainer -Block $f
@@ -1240,6 +1241,25 @@ function Invoke-ContainerRun {
     $result
 }
 
+function Get-BeforeContainerFile {
+    # Which Pester.BeforeContainer.ps1 files apply to this container, outermost first. The map is
+    # keyed by container path and built once per run by Get-PesterBeforeContainerMap, because which
+    # files apply depends on where the container is. A non-file container (a scriptblock) keys on ''.
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        $Container,
+        [System.Collections.IDictionary] $BeforeContainerInit
+    )
+
+    if ($null -eq $BeforeContainerInit) {
+        return @()
+    }
+
+    $containerKey = if ('File' -eq $Container.Type) { $Container.Item.FullName } else { '' }
+    @($BeforeContainerInit[$containerKey])
+}
+
 function Discover-Test {
     [CmdletBinding()]
     param (
@@ -1247,7 +1267,10 @@ function Discover-Test {
         [PSObject[]] $BlockContainer,
         [Parameter(Mandatory = $true)]
         [Management.Automation.SessionState] $SessionState,
-        $Filter
+        $Filter,
+        # Pester.BeforeContainer.ps1 files per container, keyed by container path. Same map the
+        # interleaved discover -> run path uses, see Invoke-Test.
+        [System.Collections.IDictionary] $BeforeContainerInit
     )
     $totalDiscoveryDuration = [Diagnostics.Stopwatch]::StartNew()
 
@@ -1265,7 +1288,8 @@ function Discover-Test {
 
     $state.Discovery = $true
     $found = foreach ($container in $BlockContainer) {
-        Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState
+        $containerSetupFiles = Get-BeforeContainerFile -Container $container -BeforeContainerInit $BeforeContainerInit
+        Invoke-ContainerDiscovery -Container $container -Filter $Filter -SessionState $SessionState -BeforeContainerFile $containerSetupFiles
     }
 
     $steps = $state.Plugin.DiscoveryEnd
@@ -2179,7 +2203,7 @@ function Invoke-Test {
         # Discovery-only mode (e.g. populating the VS Code Test Explorer). Run a full
         # batch discovery over all containers and return the discovered tree without
         # executing anything.
-        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState
+        $found = Discover-Test -BlockContainer $BlockContainer -Filter $Filter -SessionState $SessionState -BeforeContainerInit $BeforeContainerInit
 
         foreach ($f in $found) {
             ConvertTo-DiscoveredBlockContainer -Block $f
@@ -2218,16 +2242,7 @@ function Invoke-Test {
     $executedContainers = foreach ($container in $BlockContainer) {
         $containerIndex++
 
-        # Named apart from the $BeforeContainerInit parameter on purpose. PowerShell variable names
-        # are case-insensitive, so a local $beforeContainerInit would assign onto the typed
-        # [IDictionary] parameter and fail to convert.
-        $containerSetupFiles = if ($null -ne $BeforeContainerInit) {
-            $containerKey = if ('File' -eq $container.Type) { $container.Item.FullName } else { '' }
-            @($BeforeContainerInit[$containerKey])
-        }
-        else {
-            @()
-        }
+        $containerSetupFiles = Get-BeforeContainerFile -Container $container -BeforeContainerInit $BeforeContainerInit
 
         # --- discover this container ---
         $state.Discovery = $true
