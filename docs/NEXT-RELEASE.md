@@ -449,11 +449,6 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
   `Cannot convert "PesterConfigurationDeserializer" from String to Type`. The reference is on
   7.4.0 now, the baseline of the 7.4 line, so it loads on every 7.4.x. This affected 6.0.0 and
   6.1.0.
-- `Pester.BeforeContainer.ps1` is applied when only discovery runs, `Run.SkipRun`. That is the
-  path the VS Code Test Explorer uses to populate, and it went through a batch discovery that
-  never got the per container map, so a file whose discovery depends on the setup, one that
-  calls a helper to build `-ForEach` data for example, came back with no tests or failed with
-  `The term '...' is not recognized`.
 - The `Run.Parallel` help no longer claims that enabling `CodeCoverage` falls back to a
   sequential run. It has not since workers started measuring their own file and the parent
   started merging the hits. The fallback that was actually missing from the list is now there,
