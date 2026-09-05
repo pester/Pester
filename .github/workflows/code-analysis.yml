@@ -18,10 +18,10 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@v6.2.1
+        uses: potatoqualitee/psmodulecache@ee5e9494714abf56f6efbfa51527b2aec5c761b8 # v6.2.1
         with:
           modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
 
@@ -36,8 +36,12 @@ jobs:
           ConvertTo-SARIF -FilePath results.sarif
 
       # Upload the SARIF file generated in the previous step
+      # A pull request from a fork gets a read-only token, so it cannot write code
+      # scanning results and this step would fail. The analysis above still runs, so
+      # a fork contributor sees the PSScriptAnalyzer output in the job log.
       - name: Upload SARIF results file
-        uses: github/codeql-action/upload-sarif@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
         with:
           sarif_file: results.sarif
   # codeql:
