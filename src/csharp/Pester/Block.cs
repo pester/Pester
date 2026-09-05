@@ -57,6 +57,10 @@ namespace Pester
         public string ItemType { get; } = "Block";
 
         public ContainerInfo BlockContainer { get; set; }
+        // Every Pester.BeforeContainer.ps1 that applied to this container, outermost first.
+        // Reading the folder tree is not enough to work this out, because #pester:no-inherit can
+        // cut the chain short.
+        public List<string> BeforeContainerFile { get; set; } = new List<string>();
         public object Root { get; set; }
         public bool IsRoot { get; set; }
         public object Parent { get; set; }
