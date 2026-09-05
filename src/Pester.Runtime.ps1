@@ -1029,6 +1029,11 @@ function Invoke-ContainerDiscovery {
     # set correctly as if we provided -Data to New-Block
     $root.Data = $Container.Data
 
+    # Record which Pester.BeforeContainer.ps1 files applied, so the result says where a
+    # container's setup came from. The folder tree alone does not answer it, #pester:no-inherit
+    # can cut the chain short.
+    $root.BeforeContainerFile = [System.Collections.Generic.List[string]]@($BeforeContainerFile)
+
     Reset-PerContainerState -RootBlock $root
 
     $steps = $state.Plugin.ContainerDiscoveryStart

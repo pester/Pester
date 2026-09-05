@@ -479,6 +479,54 @@ Describe 'Second' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
+        t "reports which Pester.BeforeContainer.ps1 files applied to each container" {
+            # The folder tree alone does not answer this, #pester:no-inherit can cut the chain
+            # short, so the applied files are on the container. (#3007)
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+
+                $unit = $r.Containers | Where-Object { $_.Item.FullName -like '*unit*' }
+                $integration = $r.Containers | Where-Object { $_.Item.FullName -like '*integration*' }
+
+                # unit sees root + tests + unit, integration sees root + tests, outermost first.
+                $unit.BeforeContainerFile.Count | Verify-Equal 3
+                $integration.BeforeContainerFile.Count | Verify-Equal 2
+                (Split-Path $unit.BeforeContainerFile[0] -Parent) | Verify-Equal $folder
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "reports only the files that survived #pester:no-inherit" {
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+
+                $docs = $r.Containers | Where-Object { $_.Item.FullName -like '*docs*' }
+                $normal = $r.Containers | Where-Object { $_.Item.FullName -notlike '*docs*' }
+
+                # docs cut the chain, so it reports only its own file, not the root one.
+                $docs.BeforeContainerFile.Count | Verify-Equal 1
+                $normal.BeforeContainerFile.Count | Verify-Equal 1
+                (Split-Path $docs.BeforeContainerFile[0] -Parent) | Verify-Equal (Join-Path $folder 'docs')
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
         t "does not overwrite a Run.RepoRoot the user set" {
             # A real directory. Resolving the chain runs the value through GetFullPath, and a made
             # up path is not portable: on Windows something like 'TestDrive:whatever' reads as a
