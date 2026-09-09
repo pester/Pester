@@ -129,6 +129,18 @@ function Mock {
     validation requirements, and allows functions that are strict about their
     parameter validation to be mocked more easily.
 
+    .PARAMETER End
+    Makes the mock aggregate the whole pipeline and run MockWith once from the end
+    block, instead of once per piped item. Use it when the mocked command collects
+    pipeline input and produces its result once (a command with a process block that
+    accumulates and an end block that returns). Inside MockWith the collected input is
+    available as $input, and MockWith may define its own begin/process/end blocks.
+    Should -Invoke then counts one call per pipeline, and the parameter filter sees the
+    whole collected input bound to the pipeline parameter.
+
+    All mocks for a single command must be the same type. You cannot mix an -End mock and
+    a per-call mock for the same command in the same scope.
+
     .EXAMPLE
     Mock Get-ChildItem { return @{FullName = "A_File.TXT"} }
 
@@ -248,6 +260,20 @@ function Mock {
     Forward the caller's arguments with @PesterBoundParameters, a hashtable of
     the parameters that were bound on the mocked command.
 
+    .EXAMPLE
+    ```powershell
+    # Save-State collects the pipeline and writes once from its end block.
+    Mock Save-State { "saved $(@($input).Count) items" } -End
+
+    1..3 | Save-State | Should -Be "saved 3 items"
+    Should -Invoke Save-State -Times 1 -Exactly
+    ```
+
+    Without -End the mock would run once per piped item and return three objects. With
+    -End the whole pipeline is collected and MockWith runs once, matching how a command
+    with an aggregating end block behaves, and Should -Invoke counts one call for the
+    whole pipeline.
+
     .LINK
     https://pester.dev/docs/commands/Mock
 
@@ -262,7 +288,8 @@ function Mock {
         [ScriptBlock]$ParameterFilter,
         [string]$ModuleName,
         [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation
+        [string[]]$RemoveParameterValidation,
+        [switch]$End
     )
     if (Is-Discovery) {
         # this is to allow mocks in between Describe and It which is discouraged but common
@@ -330,9 +357,19 @@ function Mock {
         $mockData.Behaviors[$contextInfo.Command.Name] = $behaviors
     }
 
-    $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook
+    # All behaviors for one command must be the same type. A per-call mock records one call per piped
+    # item, an -End mock records one call per pipeline. Mixing them in the same scope would make the
+    # call history hold two different granularities and Should -Invoke could not count it coherently,
+    # so we reject it at definition time. (#2154)
+    if ($behaviors.Count -gt 0 -and [bool]$behaviors[0].Aggregate -ne [bool]$End) {
+        $existingType = if ($behaviors[0].Aggregate) { 'an -End (aggregate)' } else { 'a per-call' }
+        $newType = if ($End) { 'an -End (aggregate)' } else { 'a per-call' }
+        throw "Cannot add $newType mock for '$($contextInfo.Command.Name)' because $existingType mock is already defined for it in this scope. All mocks for a command must be the same type. Remove -End from the other mock, or add it here."
+    }
+
+    $behavior = New-MockBehavior -ContextInfo $contextInfo -MockWith $MockWith -Verifiable:$Verifiable -ParameterFilter $ParameterFilter -Hook $hook -Aggregate:$End
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"}) behavior to $(if ($behavior.ModuleName) { "$($behavior.ModuleName) - "})$($behavior.CommandName)."
+        Write-PesterDebugMessage -Scope Mock -Message "Adding a new $(if ($behavior.IsDefault) {"default"} else {"parametrized"})$(if ($behavior.Aggregate) {" aggregate (end)"}) behavior to $(if ($behavior.ModuleName) { "$($behavior.ModuleName) - "})$($behavior.CommandName)."
     }
     $behaviors.Add($behavior)
 }
@@ -1094,6 +1131,13 @@ function Invoke-Mock {
     }
 
     if ('End' -eq $FromBlock) {
+        # -End (aggregate) mock: the process block collected the pipeline and stashed the resolved
+        # behaviors and call history. Forward to the core so the end block can match once and run once
+        # over the whole input. (#2154)
+        if ($MockCallState['Aggregate']) {
+            Invoke-MockInternal @PSBoundParameters -Behaviors $MockCallState['AggregateBehaviors'] -CallHistory $MockCallState['AggregateCallHistory']
+            return
+        }
         if (-not $MockCallState.MatchedNoBehavior) {
             if ($PesterPreference.Debug.WriteDebugMessages.Value) {
                 Write-PesterDebugMessage -Scope MockCore "Mock for $CommandName was invoked from block $FromBlock, and matched at least one behavior, returning."
