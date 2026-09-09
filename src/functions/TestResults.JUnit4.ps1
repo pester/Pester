@@ -172,7 +172,11 @@ function Write-JUnitTestCaseMessageElements {
     $XmlWriter.WriteStartElement($StatusElementName)
 
     $result = Get-ErrorForXmlReport -TestResult $TestResult
-    $XmlWriter.WriteAttributeString('message', $result.FailureMessage)
+
+    # An explicit reason (from -Skip -Because, or Set-ItResult -Because) wins over the error message,
+    # it is the thing the user wrote to explain why this test is not running.
+    $message = if (-not [string]::IsNullOrEmpty($TestResult.Reason)) { $TestResult.Reason } else { $result.FailureMessage }
+    $XmlWriter.WriteAttributeString('message', $message)
     $XmlWriter.WriteString($result.StackTrace)
 
     $XmlWriter.WriteEndElement()
