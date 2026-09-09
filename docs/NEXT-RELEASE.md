@@ -22,19 +22,19 @@
   prereleases and do not collide with other releases on the /releases page.
 -->
 
-# Pester 6.2.0-alpha2
+# Pester 6.2.0
 
 > 🙋 Want to share feedback or report a bug? Open an [issue](https://github.com/pester/Pester/issues/new/choose)
 > or start a [discussion](https://github.com/pester/Pester/discussions).
 
-This is a prerelease. Install it with `Install-Module Pester -AllowPrerelease`.
-
 `Pester.BeforeContainer.ps1` grew from one file at the repository root into a chain that
 follows your folder structure, so unit tests and integration tests can each have their own
-setup without repeating it in every test file. `Should-BeString` prints a real diff when a
-long string does not match. The configuration now tells you when you handed it a value it
-cannot use, instead of quietly ignoring it. And the experimental parallel runner works on
-Windows PowerShell 5.1, which is the slowest edition and the one that needed it most.
+setup without repeating it in every test file. A block can have more than one `BeforeAll`
+now, so setup can be grouped by what it sets up instead of merged into a single block.
+`Should-BeString` prints a real diff when a long string does not match. The configuration
+now tells you when you handed it a value it cannot use, instead of quietly ignoring it. And
+the experimental parallel runner works on Windows PowerShell 5.1, which is the slowest
+edition and the one that needed it most.
 
 - [What's new?](#6.2.0-whats-new)
   - [Setup that follows your folders](#6.2.0-setup-that-follows-your-folders)
@@ -129,7 +129,8 @@ BeforeAll { Import-Module $PSScriptRoot/../../src/MyModule.psd1 }
 
 The whole chain works in a sequential run and in a parallel run. In parallel the chain is
 resolved once in the parent and the paths are handed to the workers, because a worker is a
-separate runspace and cannot share the cache.
+separate runspace and cannot share the cache. The files run before every container, so what
+they do has to be safe to run more than once.
 
 `Run.RepoRoot` is where the chain starts, and it is found for you by walking up from the
 directory you are in until a `.git` folder shows up. That walk used to start from the process
@@ -144,15 +145,24 @@ cache keyed by directory. Each directory is checked on disk once per run and eac
 is tokenized once per run, however many test folders sit below them. On a tree with 60 test
 folders and a 26 KB root setup file that is 23.6 ms instead of 845 ms.
 
-A container reports which setup files applied to it, outermost first, in the order they ran:
+A container reports which setup files applied to it, outermost first, in the order they ran.
+The list is on the container in the result object, as `BeforeContainerFile`:
+
+```powershell
+$result = Invoke-Pester -Path ./tests -PassThru
+foreach ($container in $result.Containers) {
+    "$($container.Item.Name):"
+    $container.BeforeContainerFile | ForEach-Object { "    $_" }
+}
+```
 
 ```
+D.Tests.ps1:
+    <root>/tests/docs/Pester.BeforeContainer.ps1
 U.Tests.ps1:
     <root>/Pester.BeforeContainer.ps1
     <root>/tests/Pester.BeforeContainer.ps1
     <root>/tests/unit/Pester.BeforeContainer.ps1
-D.Tests.ps1:
-    <root>/tests/docs/Pester.BeforeContainer.ps1
 ```
 
 `D.Tests.ps1` sits under a folder marked `#pester:no-inherit`, so only its own file applied. The
@@ -510,7 +520,7 @@ Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
   `$null` when the failure happened before the run was created, or with `0` when a plugin failed
   after an otherwise successful run.
 
-**Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0-alpha2
+**Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0
 
 ## <a id="6.2.0-thank-you"></a>Thank you
 
