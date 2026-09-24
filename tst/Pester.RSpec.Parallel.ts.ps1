@@ -944,6 +944,45 @@ BeforeAll { }
             ($errors.Count -gt 0) | Verify-True
         }
 
+        t "does not re-emit a worker's warnings, the shared host already showed them (#3044)" {
+            # The pool shares the caller's host, so a worker's Write-Warning reaches the console
+            # live. Re-emitting Streams.Warning on top of that printed every warning a second time.
+            # The live copy goes straight to the host and never touches this pipeline's warning
+            # stream, so anything 3>&1 captures here is a re-emitted duplicate.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Warning "worker-warning-$item"
+                    $item
+                }
+            } 3>&1
+
+            $warnings = @($out | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $warnings.Count | Verify-Equal 0
+        }
+
+        t "still re-emits a worker's errors, those never reach the host on their own" {
+            # The counterpart to the test above. Unlike warnings, a worker's non-terminating errors
+            # only land in Streams.Error, so dropping this re-emit would lose them entirely.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Error -Message "worker-error-$item" -ErrorAction Continue
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $errors.Count | Verify-Equal 2
+            (($errors | Sort-Object { "$_" }) -join ',') | Verify-Equal 'worker-error-1,worker-error-2'
+        }
+
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }

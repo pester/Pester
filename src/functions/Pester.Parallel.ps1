@@ -162,13 +162,13 @@ function Invoke-InRunspacePool {
                 & $SafeCommands['Write-Error'] -ErrorRecord $_ -ErrorAction Continue
             }
 
-            # The worker has no console of its own, so anything it wrote to these streams would be
-            # lost. Re-emit it here, non-terminating for the same reason as above.
+            # Only the error stream needs re-emitting. The pool shares the caller's host (see
+            # above), so a worker's warning, verbose and Write-Host output already reached the
+            # console live, while its errors only landed in Streams.Error. Re-emitting the
+            # warning stream as well printed every warning a second time, which is why this loop
+            # covers the error stream alone. Non-terminating for the same reason as above.
             foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
                 & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord -ErrorAction Continue
-            }
-            foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
-                & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
             }
         }
     }
