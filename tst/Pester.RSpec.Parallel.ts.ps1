@@ -4,6 +4,7 @@ Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -983,6 +984,26 @@ BeforeAll { }
             (($errors | Sort-Object { "$_" }) -join ',') | Verify-Equal 'worker-error-1,worker-error-2'
         }
 
+        t "defines the given variables in every worker runspace" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -Variable @{ WarningPreference = 'SilentlyContinue' } -ScriptBlock {
+                    param($item)
+                    "$item-$WarningPreference"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1-SilentlyContinue,2-SilentlyContinue'
+        }
+
+        t "leaves the worker on its defaults when no variables are given" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    "$WarningPreference"
+                }
+            }
+            @($r)[0] | Verify-Equal 'Continue'
+        }
+
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
@@ -1307,6 +1328,48 @@ Describe 'OuterTwo' {
                 $output | Verify-Like '*Context CtxB*'
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel preference variables" {
+        t "a worker prints what a sequential run prints, not what its own defaults say (#3044)" {
+            # A worker runspace starts with every preference variable at its default, so on its own it
+            # printed a warning the caller had silenced and swallowed the verbose output the caller had
+            # asked for. Both differ from a sequential run of the same files. The worker writes to the
+            # shared host directly, which no redirection in this process can capture, so run it in a
+            # child process and read its console output.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' {
+    It 'writes to both streams' {
+        Write-Warning 'warning-from-test'
+        Write-Verbose 'verbose-from-test'
+        1 | Should -Be 1
+    }
+}
+'@
+                $run = {
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'Continue'
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = '<folder>'
+                    $c.Run.Parallel = $true
+                    $c.Output.RenderMode = 'Plaintext'
+                    Invoke-Pester -Configuration $c
+                }
+                $sb = [scriptblock]::Create($run.ToString().Replace('<folder>', $folder))
+                $output = @(Invoke-InNewProcess -ScriptBlock $sb) -join "`n"
+
+                # The caller silenced warnings, so the worker must not print one.
+                ($output -match 'warning-from-test') | Verify-False
+                # The caller asked for verbose, so the worker must print it.
+                ($output -match 'verbose-from-test') | Verify-True
+            }
+            finally {
+                Remove-Item -Path $folder -Recurse -Force -ErrorAction Ignore
+            }
         }
     }
 

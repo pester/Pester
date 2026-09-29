@@ -112,7 +112,11 @@ function Invoke-InRunspacePool {
         [System.Collections.IDictionary] $Parameters = @{},
 
         # Name of the worker parameter that receives the current input item.
-        [string] $ItemParameterName = 'item'
+        [string] $ItemParameterName = 'item',
+
+        # Variables to define in every worker runspace, before the scriptblock runs. Used to carry
+        # the caller's preference variables in, see Invoke-TestInParallel.
+        [System.Collections.IDictionary] $Variable = @{}
     )
 
     $items = @($InputObject)
@@ -123,6 +127,14 @@ function Invoke-InRunspacePool {
     if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
 
     $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    # A fresh runspace starts with every preference variable at its default, so without this the
+    # worker would decide on its own what to print, no matter what the caller asked for. Define
+    # them in the worker's global scope, which is where a sequential run resolves them from too.
+    foreach ($key in $Variable.Keys) {
+        $sessionState.Variables.Add(
+            [System.Management.Automation.Runspaces.SessionStateVariableEntry]::new($key, $Variable[$key], ''))
+    }
+
     # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
     # console reaches the same one. Pester's workers are silenced, this is for anything else.
     $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
@@ -181,6 +193,41 @@ function Invoke-InRunspacePool {
     }
 }
 
+function Get-CallerPreferenceVariable {
+    <#
+    .SYNOPSIS
+    Reads the output preference variables the caller of Invoke-Pester was running with.
+
+    .DESCRIPTION
+    A worker runspace starts with every preference variable at its default, so on its own it
+    prints what the defaults say and not what the caller asked for. A run where the caller had
+    silenced warnings still printed them, and one where the caller had asked for verbose output
+    got none. Both differ from what the same files print in a sequential run, where the test body
+    resolves these variables from the caller's scope.
+
+    Only the preferences that decide what is printed are read. ErrorActionPreference is left out
+    on purpose, it decides how a command behaves on error and not only what reaches the screen.
+    #>
+    [CmdletBinding()]
+    param(
+        [System.Management.Automation.SessionState] $SessionState
+    )
+
+    $preferences = @{}
+    if ($null -eq $SessionState) {
+        return $preferences
+    }
+
+    foreach ($name in 'WarningPreference', 'VerbosePreference', 'DebugPreference', 'InformationPreference', 'ProgressPreference') {
+        $value = $SessionState.PSVariable.GetValue($name)
+        if ($null -ne $value) {
+            $preferences[$name] = $value
+        }
+    }
+
+    $preferences
+}
+
 function Invoke-TestInParallel {
     <#
     .SYNOPSIS
@@ -227,7 +274,11 @@ function Invoke-TestInParallel {
         [Pester.ContainerInfo[]] $BlockContainer,
 
         [Parameter(Mandatory)]
-        $Configuration
+        $Configuration,
+
+        # The caller's session state, captured by Invoke-Pester. Used to read the preference
+        # variables the caller was running with, so the workers print what a sequential run prints.
+        [System.Management.Automation.SessionState] $CallerSessionState
     )
 
     # Which Pester.BeforeContainer.ps1 files apply depends on where the file sits, from
@@ -423,7 +474,7 @@ function Invoke-TestInParallel {
 
     $results = @()
     if (0 -lt $work.Count) {
-        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Parameters @{
+        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Variable (Get-CallerPreferenceVariable -SessionState $CallerSessionState) -Parameters @{
             modulePath       = $modulePath
             baseConfig       = $baseConfig
             recordedSteps    = $recordedSteps
