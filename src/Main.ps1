@@ -773,7 +773,7 @@ function Invoke-Pester {
                 # file's discovery segment then run segment, in discovery order, firing the global
                 # RunStart/DiscoveryEnd steps at the interleaved points a sequential run would.
                 if (0 -lt $parallelContainers.Count) {
-                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference)
+                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference -CallerSessionState $sessionState)
                     for ($pri = 0; $pri -lt $parallelResults.Count; $pri++) {
                         $parallelResult = $parallelResults[$pri]
                         $segments = Split-PesterEventTape -Tape $parallelResult.Tape
