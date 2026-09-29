@@ -27,15 +27,17 @@
 > 🙋 Want to share feedback or report a bug? Open an [issue](https://github.com/pester/Pester/issues/new/choose)
 > or start a [discussion](https://github.com/pester/Pester/discussions).
 
-A patch release with one fix. The experimental parallel runner printed the warnings from your
-test files two or three times.
+A patch release for the experimental parallel runner. It printed warnings your test files did not
+ask for, several times over, and swallowed the verbose output they did ask for.
 
 ## <a id="6.2.1-fixes"></a>Fixes
 
-- A warning written from a test file shows up once in a parallel run. `Run.Parallel` runs each
-  file in a runspace pool that shares your console, so a `Write-Warning` from a test already
-  reached the console while the file ran. Pester then wrote the worker's warning stream out a
-  second time after the file finished, and a third time for the files that started first:
+- A parallel run prints what a sequential run of the same files prints. Two things made it differ.
+
+  Every warning was printed twice, and three times for the files that started first. `Run.Parallel`
+  runs each file in a runspace pool that shares your console, so a `Write-Warning` from a test
+  already reached the console while the file ran, and Pester wrote the file's warning stream out
+  again when the file finished:
 
   ```powershell
   $c = New-PesterConfiguration
@@ -49,16 +51,23 @@ test files two or three times.
   # WARNING: cleaning up the cache failed
   ```
 
-  Errors are not affected. A worker's errors never reach the console on their own, so those are
-  still written out once when the file finishes. Reported in
+  A worker also ran with default preference variables rather than yours, so a run that had
+  `$WarningPreference = 'SilentlyContinue'` still printed warnings, and one that had
+  `$VerbosePreference = 'Continue'` got no verbose output. Workers now take `WarningPreference`,
+  `VerbosePreference`, `DebugPreference`, `InformationPreference` and `ProgressPreference` from the
+  session that called `Invoke-Pester`. This half is not new in 6.2.0, 6.1.0 lost the verbose output
+  the same way.
+
+  `Write-Host` and errors are unchanged, both already printed once in either mode. Reported in
   [pester/Pester#3044](https://github.com/pester/Pester/issues/3044) - *Warning stream is visible
-  when running tests in parallel on Pester 6.2.0*, a regression from 6.2.0.
+  when running tests in parallel on Pester 6.2.0*.
 
 **Full Changelog**: https://github.com/pester/Pester/compare/6.2.0...6.2.1
 
 ## <a id="6.2.1-thank-you"></a>Thank you
 
-Thank you to @kborowinski for reporting the duplicate warnings with a repro.
+Thank you to @kborowinski for reporting the duplicate warnings with a repro, and for pushing back
+when the first fix only removed the duplicates.
 
 ## <a id="6.2.1-questions"></a>Questions?
 
