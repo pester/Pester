@@ -2972,7 +2972,9 @@ function Invoke-InNewScriptScope ([ScriptBlock] $ScriptBlock, $SessionState) {
     $script:SessionStateInternal = $SessionStateInternalProperty.GetValue($SessionState, $null)
     $script:ScriptBlockSessionStateInternalProperty.SetValue($wrapper, $SessionStateInternal, $null)
 
-    . $wrapper $Path $Data
+    # Called, not dot-sourced: dot-sourcing binds $p and $d in the caller's own scope, replacing
+    # any $p or $d the caller had. The script file still pushes its new script scope.
+    & $wrapper $Path $Data
 }
 
 function Add-MissingContainerParameters ($RootBlock, $Container, $CallingFunction) {

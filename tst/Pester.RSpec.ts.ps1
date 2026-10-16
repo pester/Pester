@@ -2563,6 +2563,40 @@ i -PassThru:$PassThru {
 
     }
 
+    b "Pester internals do not leak into the caller's scope" {
+        t "Invoke-Pester does not overwrite the caller's variables" {
+            # The wrapper that pushes a new script scope was dot-sourced into the caller's scope, so
+            # its parameters $p and $d replaced the caller's own: $p became the path to
+            # Pester.ScriptScope.ps1, and a script writing to "its" $p afterwards overwrote that file.
+            $p = "caller's p"
+            $d = "caller's d"
+
+            $sb = {
+                Describe "d1" {
+                    It "i1" { }
+                }
+            }
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $p | Verify-Equal "caller's p"
+            $d | Verify-Equal "caller's d"
+        }
+
+        t "Invoke-Pester does not define variables in the caller's scope" {
+            $sb = {
+                Describe "d1" {
+                    It "i1" { }
+                }
+            }
+
+            $result = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru
+            $result.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal "Passed"
+            $leaked = @(Get-Variable -Name p, d -Scope Local -ErrorAction Ignore).ForEach({ $_.Name })
+            ($leaked -join ", ") | Verify-Equal ""
+        }
+    }
+
     b "Pester can throw on failed run" {
         t "Exception is thrown" {
 
