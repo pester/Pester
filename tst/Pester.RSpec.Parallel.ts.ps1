@@ -456,6 +456,33 @@ Describe 'Second' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
+        t "resolves a relative Run.RepoRoot from the session location, not the process working directory" {
+            # Only the code coverage plugin used to make Run.RepoRoot absolute, so without coverage
+            # the chain resolved a relative RepoRoot with GetFullPath, against the process working
+            # directory, and the cascade did not apply.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                Push-Location -Path (Split-Path -Path $folder -Parent)
+                try {
+                    $processDirectory = [System.IO.Directory]::GetCurrentDirectory()
+                    ($processDirectory -eq $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path) | Verify-False
+
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.RepoRoot = Join-Path -Path '.' -ChildPath (Split-Path -Path $folder -Leaf)
+                    $c.Run.PassThru = $true
+                    $c.Output.Verbosity = 'None'
+                    $r = Invoke-Pester -Configuration $c
+
+                    $r.FailedCount | Verify-Equal 0
+                    $r.PassedCount | Verify-Equal 2
+                    $r.Configuration.Run.RepoRoot.Value | Verify-Equal $folder
+                }
+                finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
         t "applies the chain when only discovery runs, so Run.SkipRun sees the same tests as a run" {
             # Run.SkipRun is the path the VS Code Test Explorer uses to populate. It went through
             # a batch discovery that never got the map, so a file whose discovery depends on the
