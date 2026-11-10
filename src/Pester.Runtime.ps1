@@ -418,8 +418,10 @@ function Invoke-Block ($previousBlock) {
                                                 # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
                                                 # than -match, which would write to the user's $Matches.
                                                 $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
-                                                if (-not $private:____PesterExpandedVarMatch.Success) {
-                                                    # Not a variable, e.g. '<(Get-Date)>'. There is nothing to look for, evaluate it.
+                                                if (-not $private:____PesterExpandedVarMatch.Success -or $private:____PesterExpandedVarMatch.Value.Contains(':')) {
+                                                    # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                                                    # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                                                    # qualified template is evaluated the way it always was.
                                                     $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
                                                 }
                                                 else {
@@ -436,14 +438,24 @@ function Invoke-Block ($previousBlock) {
                                             $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                         }
                                         $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos))
+                                        # Only the parse is guarded here. An invalid template, e.g. '<Foo/Bar>', does not parse,
+                                        # and the ParseException showed Pester's generated expression and its
+                                        # FormatNicelyForTemplate call, which says nothing to whoever wrote the name (#3048).
+                                        # An error raised while the template is evaluated, e.g. '<(1/0)>' or a property that does
+                                        # not exist, still fails the way it did before, so it must not be caught.
+                                        $private:____PesterExpandedScript = $null
                                         try {
-                                            & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                            $private:____PesterExpandedScript = [ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"')
                                         }
                                         catch {
-                                            # An invalid template, e.g. '<Foo/Bar>', does not parse. The ParseException showed
-                                            # Pester's generated expression and its FormatNicelyForTemplate call, which says
-                                            # nothing to whoever wrote the name (#3048). Keep the name as it was written.
+                                            $private:____PesterExpandedScript = $null
+                                        }
+                                        
+                                        if ($null -eq $private:____PesterExpandedScript) {
                                             $____Pester.CurrentBlock.Name
+                                        }
+                                        else {
+                                            & $private:____PesterExpandedScript
                                         }
                                     } else { $____Pester.CurrentBlock.Name }
 
@@ -623,7 +635,10 @@ function Expand-NameForSkippedTest {
             # whatever is in scope here.
             $token = $match.Groups[1].Value
             $varMatch = [regex]::Match($token, '^[\w:]+')
-            if (-not $varMatch.Success) {
+            if (-not $varMatch.Success -or $varMatch.Value.Contains(':')) {
+                # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                # qualified template is evaluated the way it always was.
                 $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($token).Append('))')
             }
             else {
@@ -636,7 +651,15 @@ function Expand-NameForSkippedTest {
     }
     $null = $builder.Append($Name.Substring($pos))
 
-    $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    # An invalid template does not parse. Fall back to the name as written rather than throwing
+    # out of the expansion (#3048).
+    $expandScriptBlock = $null
+    try {
+        $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    }
+    catch {
+        return $Name
+    }
     if ($null -ne $SessionStateInternal) {
         $script:ScriptBlockSessionStateInternalProperty.SetValue($expandScriptBlock, $SessionStateInternal)
     }
@@ -818,8 +841,10 @@ function Invoke-TestItem {
                                         # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
                                         # than -match, which would write to the user's $Matches.
                                         $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
-                                        if (-not $private:____PesterExpandedVarMatch.Success) {
-                                            # Not a variable, e.g. '<(Get-Date)>'. There is nothing to look for, evaluate it.
+                                        if (-not $private:____PesterExpandedVarMatch.Success -or $private:____PesterExpandedVarMatch.Value.Contains(':')) {
+                                            # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                                            # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                                            # qualified template is evaluated the way it always was.
                                             $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
                                         }
                                         else {
@@ -836,14 +861,24 @@ function Invoke-TestItem {
                                     $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                 }
                                 $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos))
+                                # Only the parse is guarded here. An invalid template, e.g. '<Foo/Bar>', does not parse,
+                                # and the ParseException showed Pester's generated expression and its
+                                # FormatNicelyForTemplate call, which says nothing to whoever wrote the name (#3048).
+                                # An error raised while the template is evaluated, e.g. '<(1/0)>' or a property that does
+                                # not exist, still fails the way it did before, so it must not be caught.
+                                $private:____PesterExpandedScript = $null
                                 try {
-                                    & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                    $private:____PesterExpandedScript = [ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"')
                                 }
                                 catch {
-                                    # An invalid template, e.g. '<Foo/Bar>', does not parse. The ParseException showed Pester's
-                                    # generated expression and its FormatNicelyForTemplate call, which says nothing to whoever
-                                    # wrote the name (#3048). Keep the name as it was written.
+                                    $private:____PesterExpandedScript = $null
+                                }
+                                
+                                if ($null -eq $private:____PesterExpandedScript) {
                                     $____Pester.CurrentTest.Name
+                                }
+                                else {
+                                    & $private:____PesterExpandedScript
                                 }
                             }
                             else {

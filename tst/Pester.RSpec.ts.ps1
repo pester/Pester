@@ -2242,6 +2242,38 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
         }
 
+        t "a template that throws while it is evaluated still fails, it is not kept literal (#3048)" {
+            # Only the parse is guarded. Catching everything made a name that could not be computed
+            # report green, which is the opposite of what #3048 asks for.
+            $sb = {
+                Describe 'bad <(1/0)>' {
+                    It 'i' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "a template that names a provider path still expands (#3048)" {
+            # '<env:FOO>' is not a variable PSVariable.Get can find, so the existence check has to
+            # leave a qualified template alone and evaluate it the way it always did.
+            $env:PESTER_TEMPLATE_PROBE = 'probed'
+            try {
+                $sb = {
+                    Describe 'd' {
+                        It 'i <env:PESTER_TEMPLATE_PROBE>' { }
+                    }
+                }
+
+                $container = New-PesterContainer -ScriptBlock $sb
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i probed'
+            }
+            finally { $env:PESTER_TEMPLATE_PROBE = $null }
+        }
+
         t "a skipped test keeps a template whose variable does not exist as it was written (#3048)" {
             $sb = {
                 Describe 'd' {
