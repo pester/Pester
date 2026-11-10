@@ -284,8 +284,6 @@ InPesterModuleScope {
             Compare-HashtableEquivalent -Expected $expected -Actual $actual |
                 Verify-Equal "Expected .Address is missing key 'Street' that the actual object has."
         }
-    }
-
 
         It "Says where a missing key is, so sibling hashtables can be told apart" {
             # Dropping the per-level summary dropped the only locator the leaf lines had, and two
@@ -302,6 +300,7 @@ InPesterModuleScope {
             Compare-HashtableEquivalent -Expected @{ Name = 'Jakub' } -Actual @{ Name = 'Jakub'; Value = 10 } |
                 Verify-Equal "Expected is missing key 'Value' that the actual object has."
         }
+    }
     Describe "Compare-DictionaryEquivalent" {
         It "Given expected '<expected>' that is not a dictionary it throws ArgumentException" -TestCases @(
             @{ Expected = "a" }

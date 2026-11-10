@@ -144,8 +144,6 @@ InPesterModuleScope {
         It "Stays on one line without -Pretty" {
             Format-Hashtable2 -Value @{ a = @{ b = 1 } } | Verify-Equal '@{a=@{b=1}}'
         }
-    }
-
 
         It "Renders a key whose name shadows a member of the hashtable" {
             # A hashtable resolves its own keys before its members, so $Value.Keys on
@@ -165,6 +163,7 @@ InPesterModuleScope {
             $expected = "@(`n    @{`n        a=1;`n    },`n    @{`n        b=2;`n    }`n)"
             Format-Nicely2 -Value @(@{ a = 1 }, @{ b = 2 }) -Pretty | Verify-Equal $expected
         }
+    }
     Describe "Format-Dictionary2" {
         It "Formats empty dictionary as @{}" {
             Format-Dictionary2 (New-Dictionary @{}) | Verify-Equal 'Dictionary{}'
