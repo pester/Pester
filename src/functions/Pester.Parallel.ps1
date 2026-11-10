@@ -97,11 +97,11 @@ function Invoke-InRunspacePool {
 
     The pool is assembled here instead of with RunspaceFactory.CreateRunspacePool, because that
     API takes one InitialSessionState and gives the same instance to every runspace it opens,
-    which the workers then race on - see the comment at the creation site below. The pool grows on
-    demand up to ThrottleLimit, and a runspace that comes free is handed to the next item rather
-    than replaced: a runspace keeps what the previous item left in it, the way the pooled runspaces
-    did, so a worker that imports a module pays for the import once per runspace and not once per
-    item.
+    which the workers then race on - see the comment at the creation site below. A runspace that
+    comes free is handed to the next item, and another one is opened only when nothing is free and
+    nothing has finished, so work that never needs the full ThrottleLimit never opens it. That
+    matters because a runspace keeps what the previous item left in it, so a worker that imports a
+    module pays for the import once per runspace and not once per item.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
     [CmdletBinding()]
@@ -129,23 +129,51 @@ function Invoke-InRunspacePool {
     # No point opening more runspaces than there are items to put in them.
     $runspaceCount = [System.Math]::Min($ThrottleLimit, $items.Count)
 
-    # Every runspace opened, so they can all be closed at the end.
+    # WaitAny takes at most 64 handles, and on Windows PowerShell the main thread is STA, where the
+    # wait reserves one slot for the message pump and 64 throws. 63 is safe on both editions.
+    $waitLimit = 63
+
+    # Every runspace opened and every PowerShell created, so the finally can dispose all of them
+    # even when opening or starting one throws.
     $runspaces = [System.Collections.Generic.List[object]]@()
-    # The ones not currently running an item.
+    $powershells = [System.Collections.Generic.List[object]]@()
+    # The runspaces not currently running an item.
     $free = [System.Collections.Generic.Queue[object]]::new()
-    # Every invocation started, so they can all be disposed at the end.
-    $invocations = [System.Collections.Generic.List[object]]@()
-    # The ones still running.
+    # The items still running.
     $inFlight = [System.Collections.Generic.List[object]]@()
 
     $next = 0
     try {
         while ($next -lt $items.Count -or 0 -lt $inFlight.Count) {
+            # Look for a finished item first. Taking its runspace back is always better than opening
+            # another one: without this the loop opened the full ThrottleLimit even for work that
+            # never ran that many items at once, and every extra runspace pays for importing the
+            # worker's modules again.
+            $finished = -1
+            for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                if ($inFlight[$i].Handle.IsCompleted) {
+                    $finished = $i
+                    break
+                }
+            }
+
             while ($next -lt $items.Count) {
                 if (0 -eq $free.Count) {
-                    # Everything open is busy. Open another one while the throttle allows it, the way
-                    # the pool grew on demand; at the limit, fall through and wait for one to finish.
-                    if ($runspaces.Count -ge $runspaceCount) {
+                    # Nothing free. Look again before opening another runspace: the items dispatched
+                    # a moment ago may already have finished, and reaping one is always better than
+                    # opening another. Scanning only once per outer pass was not enough, because the
+                    # whole throttle is dispatched inside this loop without ever looking back.
+                    if ($finished -lt 0) {
+                        for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                            if ($inFlight[$i].Handle.IsCompleted) {
+                                $finished = $i
+                                break
+                            }
+                        }
+                    }
+
+                    # Nothing to reap either, so open one if the throttle still allows it.
+                    if (0 -le $finished -or $runspaces.Count -ge $runspaceCount) {
                         break
                     }
 
@@ -172,12 +200,15 @@ function Invoke-InRunspacePool {
                     # console reaches the same one. Pester's workers are silenced, this is for anything else.
                     $runspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace($Host, $sessionState)
                     $runspace.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
-                    $runspace.Open()
+                    # Tracked before it is opened, so a runspace that fails to open is still disposed.
                     $runspaces.Add($runspace)
+                    $runspace.Open()
                     $free.Enqueue($runspace)
                 }
 
                 $powershell = [System.Management.Automation.PowerShell]::Create()
+                # Tracked before it is started, so one that fails to start is still disposed.
+                $powershells.Add($powershell)
                 $powershell.Runspace = $free.Dequeue()
                 $null = $powershell.AddScript($ScriptBlock.ToString())
                 $null = $powershell.AddParameter($ItemParameterName, $items[$next])
@@ -185,29 +216,20 @@ function Invoke-InRunspacePool {
                     $null = $powershell.AddParameter($key, $Parameters[$key])
                 }
 
-                $invocation = [PSCustomObject]@{
-                    PowerShell = $powershell
-                    Handle     = $powershell.BeginInvoke()
-                }
-                $invocations.Add($invocation)
-                $inFlight.Add($invocation)
+                $handle = $powershell.BeginInvoke()
+                $inFlight.Add([PSCustomObject]@{
+                        PowerShell = $powershell
+                        Handle     = $handle
+                    })
                 $next++
             }
 
-            $finished = -1
-            for ($i = 0; $i -lt $inFlight.Count; $i++) {
-                if ($inFlight[$i].Handle.IsCompleted) {
-                    $finished = $i
-                    break
-                }
-            }
-
             if ($finished -lt 0) {
-                # Nothing has finished yet, so wait on the handles rather than spin. WaitAny takes at
-                # most 64 of them and a high ThrottleLimit can have more than that in flight, hence
-                # the timeout: it brings us back to look at the rest.
+                # Nothing has finished, so wait on the handles rather than spin. A high ThrottleLimit
+                # can have more in flight than WaitAny takes, hence the timeout: it brings us back to
+                # look at the rest.
                 $waitable = [System.Threading.WaitHandle[]]@(
-                    for ($i = 0; $i -lt [System.Math]::Min(64, $inFlight.Count); $i++) {
+                    for ($i = 0; $i -lt [System.Math]::Min($waitLimit, $inFlight.Count); $i++) {
                         $inFlight[$i].Handle.AsyncWaitHandle
                     })
                 $null = [System.Threading.WaitHandle]::WaitAny($waitable, 200)
@@ -249,8 +271,8 @@ function Invoke-InRunspacePool {
         }
     }
     finally {
-        foreach ($invocation in $invocations) {
-            $invocation.PowerShell.Dispose()
+        foreach ($powershell in $powershells) {
+            $powershell.Dispose()
         }
         foreach ($runspace in $runspaces) {
             $runspace.Close()
