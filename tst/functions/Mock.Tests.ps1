@@ -1092,6 +1092,27 @@ Performed invocations:
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
     }
 
+    It 'Shows the line of each call site, not the line the Mock was defined on' {
+        Mock FunctionUnderTest { }
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+
+        try {
+            Should -Invoke FunctionUnderTest -Exactly 1
+        }
+        catch {
+            $failure = $_
+        }
+
+        $historyLines = @(($failure.Exception.Message -split "`n") | Where-Object { $_ -like '  [[]*] FunctionUnderTest*' })
+        $historyLines.Count | Should -Be 2
+
+        $lines = @($historyLines | ForEach-Object { [int] ([regex]::Match($_, ':(\d+)\s*$').Groups[1].Value) })
+        # The two calls are on consecutive lines. Before this the history reported the Mock's own
+        # line for both of them, so the difference was 0.
+        ($lines[1] - $lines[0]) | Should -Be 1
+    }
+
     It 'Shows empty marker when mock was never called' {
         Mock FunctionUnderTest { }
 

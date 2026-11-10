@@ -166,6 +166,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
         -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' ```
+        -CallSiteFile `$MyInvocation.ScriptName ```
+        -CallSiteLine `$MyInvocation.ScriptLineNumber ```
         -MockPSCmdlet `$MyInvocation.MyCommand.Mock.PSCmdlet ```
         -Hook `$MyInvocation.MyCommand.Mock.Hook #INPUT#
 "@
@@ -976,6 +978,12 @@ function Invoke-MockInternal {
 
         [object] $MockPSCmdlet,
 
+        # Where the mocked command was called from, taken from the bootstrap function's own
+        # $MyInvocation, which reports the caller's position and not the bootstrap's.
+        [string] $CallSiteFile,
+
+        [int] $CallSiteLine,
+
         [Parameter(Mandatory)]
         $Behaviors,
 
@@ -1022,6 +1030,8 @@ function Invoke-MockInternal {
                     Hook                = $Hook
                     Behavior            = $behavior
                     DynamicParamAliases = $MockCallState['DynamicParamAliases']
+                    CallSiteFile        = $CallSiteFile
+                    CallSiteLine        = $CallSiteLine
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
@@ -2177,12 +2187,24 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
         $cmd = $historyEntry.Behavior.CommandName
 
+        # The line that made the call, so the reader can tell the listed calls apart. This used to
+        # report the Mock's own ScriptBlock, which is the line the Mock was defined on, the same
+        # one for every call (#3052).
         $location = ""
-        $sb = $historyEntry.Behavior.ScriptBlock
-        if ($null -ne $sb -and $sb.File) {
-            $file = $sb.File
-            $line = $sb.StartPosition.StartLine
+        if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile) -and 0 -lt $historyEntry.CallSiteLine) {
+            $file = $historyEntry.CallSiteFile
+            $line = $historyEntry.CallSiteLine
             $location = " from ${file}:${line}"
+        }
+        else {
+            # A mock called from a scriptblock with no file behind it (Invoke-Pester -ScriptBlock,
+            # or the console) has no call site to name, so fall back to where the Mock was defined.
+            $sb = $historyEntry.Behavior.ScriptBlock
+            if ($null -ne $sb -and $sb.File) {
+                $file = $sb.File
+                $line = $sb.StartPosition.StartLine
+                $location = " from ${file}:${line}"
+            }
         }
 
         if ($paramText) {
