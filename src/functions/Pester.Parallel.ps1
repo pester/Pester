@@ -95,8 +95,13 @@ function Invoke-InRunspacePool {
     rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
     in this process, so the values themselves cross as live objects either way.
 
-    Each item gets its own PowerShell instance and they are all started at once; the pool is what
-    limits how many actually run, so ThrottleLimit means the same as it does on ForEach-Object.
+    The pool is assembled here instead of with RunspaceFactory.CreateRunspacePool, because that
+    API takes one InitialSessionState and gives the same instance to every runspace it opens,
+    which the workers then race on - see the comment at the creation site below. The pool grows on
+    demand up to ThrottleLimit, and a runspace that comes free is handed to the next item rather
+    than replaced: a runspace keeps what the previous item left in it, the way the pooled runspaces
+    did, so a worker that imports a module pays for the import once per runspace and not once per
+    item.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
     [CmdletBinding()]
@@ -121,32 +126,97 @@ function Invoke-InRunspacePool {
     }
 
     if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
+    # No point opening more runspaces than there are items to put in them.
+    $runspaceCount = [System.Math]::Min($ThrottleLimit, $items.Count)
 
-    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
-    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
-    # console reaches the same one. Pester's workers are silenced, this is for anything else.
-    $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
-    $pool.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
-    $pool.Open()
-
+    # Every runspace opened, so they can all be closed at the end.
+    $runspaces = [System.Collections.Generic.List[object]]@()
+    # The ones not currently running an item.
+    $free = [System.Collections.Generic.Queue[object]]::new()
+    # Every invocation started, so they can all be disposed at the end.
     $invocations = [System.Collections.Generic.List[object]]@()
-    try {
-        foreach ($item in $items) {
-            $powershell = [System.Management.Automation.PowerShell]::Create()
-            $powershell.RunspacePool = $pool
-            $null = $powershell.AddScript($ScriptBlock.ToString())
-            $null = $powershell.AddParameter($ItemParameterName, $item)
-            foreach ($key in $Parameters.Keys) {
-                $null = $powershell.AddParameter($key, $Parameters[$key])
-            }
+    # The ones still running.
+    $inFlight = [System.Collections.Generic.List[object]]@()
 
-            $invocations.Add([PSCustomObject]@{
+    $next = 0
+    try {
+        while ($next -lt $items.Count -or 0 -lt $inFlight.Count) {
+            while ($next -lt $items.Count) {
+                if (0 -eq $free.Count) {
+                    # Everything open is busy. Open another one while the throttle allows it, the way
+                    # the pool grew on demand; at the limit, fall through and wait for one to finish.
+                    if ($runspaces.Count -ge $runspaceCount) {
+                        break
+                    }
+
+                    # One InitialSessionState per runspace, never one instance shared by all of them.
+                    #
+                    # RunspaceFactory.CreateRunspacePool takes a single InitialSessionState and gives
+                    # that same instance to every runspace it opens. Import-Module adds a module's
+                    # FormatsToProcess entries to the runspace's InitialSessionState.Formats collection
+                    # and then enumerates that collection to update the formats, so with one shared
+                    # instance a worker enumerates while another adds, and List<T> throws "Collection
+                    # was modified; enumeration operation may not execute" (#3047). Pester itself
+                    # declares FormatsToProcess and every worker imports Pester, which is why a suite
+                    # whose own modules have no format files hit this too. ForEach-Object -Parallel
+                    # builds a session state per runspace and does not have the problem.
+                    #
+                    # CreateDefault2 rather than CreateDefault (#3066). CreateDefault loads the
+                    # built-in commands through the legacy snap-in infrastructure, which leaves
+                    # CommandInfo.Module null on a built-in command - a difference from a sequential
+                    # run that test code trips over. CreateDefault2 loads only what hosting PowerShell
+                    # needs and leaves the rest to normal module loading, which is what pwsh itself,
+                    # ForEach-Object -Parallel, Start-ThreadJob and PowerShell Editor Services all do.
+                    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
+                    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
+                    # console reaches the same one. Pester's workers are silenced, this is for anything else.
+                    $runspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace($Host, $sessionState)
+                    $runspace.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
+                    $runspace.Open()
+                    $runspaces.Add($runspace)
+                    $free.Enqueue($runspace)
+                }
+
+                $powershell = [System.Management.Automation.PowerShell]::Create()
+                $powershell.Runspace = $free.Dequeue()
+                $null = $powershell.AddScript($ScriptBlock.ToString())
+                $null = $powershell.AddParameter($ItemParameterName, $items[$next])
+                foreach ($key in $Parameters.Keys) {
+                    $null = $powershell.AddParameter($key, $Parameters[$key])
+                }
+
+                $invocation = [PSCustomObject]@{
                     PowerShell = $powershell
                     Handle     = $powershell.BeginInvoke()
-                })
-        }
+                }
+                $invocations.Add($invocation)
+                $inFlight.Add($invocation)
+                $next++
+            }
 
-        foreach ($invocation in $invocations) {
+            $finished = -1
+            for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                if ($inFlight[$i].Handle.IsCompleted) {
+                    $finished = $i
+                    break
+                }
+            }
+
+            if ($finished -lt 0) {
+                # Nothing has finished yet, so wait on the handles rather than spin. WaitAny takes at
+                # most 64 of them and a high ThrottleLimit can have more than that in flight, hence
+                # the timeout: it brings us back to look at the rest.
+                $waitable = [System.Threading.WaitHandle[]]@(
+                    for ($i = 0; $i -lt [System.Math]::Min(64, $inFlight.Count); $i++) {
+                        $inFlight[$i].Handle.AsyncWaitHandle
+                    })
+                $null = [System.Threading.WaitHandle]::WaitAny($waitable, 200)
+                continue
+            }
+
+            $invocation = $inFlight[$finished]
+            $inFlight.RemoveAt($finished)
+
             try {
                 $invocation.PowerShell.EndInvoke($invocation.Handle)
             }
@@ -170,17 +240,24 @@ function Invoke-InRunspacePool {
             foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
                 & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
             }
+
+            # Hand the runspace to the next item. Disposing the PowerShell does not close a runspace
+            # that was assigned to it, only one it created itself.
+            $runspace = $invocation.PowerShell.Runspace
+            $invocation.PowerShell.Dispose()
+            $free.Enqueue($runspace)
         }
     }
     finally {
         foreach ($invocation in $invocations) {
             $invocation.PowerShell.Dispose()
         }
-        $pool.Close()
-        $pool.Dispose()
+        foreach ($runspace in $runspaces) {
+            $runspace.Close()
+            $runspace.Dispose()
+        }
     }
 }
-
 function Invoke-TestInParallel {
     <#
     .SYNOPSIS

@@ -944,6 +944,56 @@ BeforeAll { }
             ($errors.Count -gt 0) | Verify-True
         }
 
+        t "gives every runspace its own session state" {
+            # RunspaceFactory.CreateRunspacePool hands one InitialSessionState instance to every
+            # runspace in the pool. Import-Module adds a module's FormatsToProcess entries to that
+            # collection and then enumerates it, so with a shared instance one worker added while
+            # another enumerated and the run failed with "Collection was modified; enumeration
+            # operation may not execute" (#3047). Pester declares FormatsToProcess and every worker
+            # imports Pester, so this was reachable from any suite.
+            #
+            # Four items with a throttle of four get four runspaces, whatever the machine's
+            # scheduling, so the count of distinct session states is exact and not timing-dependent.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -ScriptBlock {
+                    param($item)
+                    [runspace]::DefaultRunspace.InitialSessionState.GetHashCode()
+                }
+            }
+
+            @($r).Count | Verify-Equal 4
+            @($r | Sort-Object -Unique).Count | Verify-Equal 4
+        }
+
+        t "a built-in command reports the module it came from" {
+            # InitialSessionState::CreateDefault loads the built-in commands through the legacy
+            # snap-in infrastructure, which leaves CommandInfo.Module null on a built-in command,
+            # while a sequential run reports the module (#3066). CreateDefault2 does not.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    $null -ne (Get-Command Get-Item -ErrorAction Stop).Module
+                }
+            }
+
+            @($r).Count | Verify-Equal 2
+            foreach ($hasModule in $r) { $hasModule | Verify-True }
+        }
+
+        t "hands a free runspace to the next item instead of opening another one" {
+            # What the pool gave us for free and the hand-rolled one has to keep: a runspace carries
+            # over to the items that follow it, so a worker that imports Pester pays for the import
+            # once per runspace and not once per test file.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    [runspace]::DefaultRunspace.InstanceId.ToString()
+                }
+            }
+
+            @($r).Count | Verify-Equal 3
+            @($r | Sort-Object -Unique).Count | Verify-Equal 1
+        }
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
