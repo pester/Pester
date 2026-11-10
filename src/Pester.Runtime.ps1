@@ -2368,13 +2368,23 @@ function Get-StableStringHash {
 function Get-ContainerShuffleKey {
     <#
     .SYNOPSIS
-    A name for a container that is the same from one run to the next and from one checkout to
-    another, so the order of the blocks and tests inside it can be derived from it.
+    A name for a container that is the same in every run, so the order of the blocks and tests
+    inside it can be derived from it.
 
     .DESCRIPTION
-    Relative to Run.RepoRoot when the container sits under it, and with forward slashes, so the same
-    repository shuffles the same way whatever folder it is checked out in and whichever platform it
-    runs on.
+    The file's name without its folder. Nothing about the path can be used: Run.RepoRoot is resolved
+    per run and falls back to the current location when there is no .git above the tests, so the key
+    would change with the directory Pester was started from, and a parallel worker is handed
+    Run.RepoRoot = '' so a parallel run would disagree with a sequential one. Both are the thing
+    #3056 is about, only moved somewhere else.
+
+    Two files with the same name in different folders therefore share a generator. That costs
+    nothing: each still shuffles only its own blocks and tests, and each still gets the same order
+    from the same seed, which is all the seed promises.
+
+    A script block has no identity beyond where it is written, so it is named by its file's name and
+    its first line. Adding a line above it changes its order, and one typed at the console cannot be
+    told from any other, which is the best there is for a container with no file.
     #>
     [OutputType([string])]
     [CmdletBinding()]
@@ -2383,16 +2393,20 @@ function Get-ContainerShuffleKey {
         $Container
     )
 
-    $key = $Container.Name
-    $repoRoot = $PesterPreference.Run.RepoRoot.Value
-    if (-not [string]::IsNullOrEmpty($repoRoot)) {
-        $prefix = $repoRoot.TrimEnd('/', '\') + [System.IO.Path]::DirectorySeparatorChar
-        if ($key.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $key = $key.Substring($prefix.Length)
+    if ('ScriptBlock' -eq $Container.Type) {
+        $scriptBlock = $Container.Item
+        if ($scriptBlock -is [scriptblock] -and -not [string]::IsNullOrWhiteSpace($scriptBlock.File)) {
+            return "<ScriptBlock>:$([System.IO.Path]::GetFileName($scriptBlock.File)):$($scriptBlock.StartPosition.StartLine)"
         }
+
+        return '<ScriptBlock>'
     }
 
-    $key -replace '\\', '/'
+    if ('File' -eq $Container.Type) {
+        return [System.IO.Path]::GetFileName("$($Container.Item)")
+    }
+
+    "$($Container.Name)"
 }
 
 function Get-ContainerShuffleRandom {
