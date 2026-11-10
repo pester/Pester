@@ -987,16 +987,35 @@ function Get-ErrorDisplayLines {
     the same way the decorated records are filtered.
     #>
     [CmdletBinding()]
-    param ($Err)
+    param (
+        $Err,
 
-    if ($null -ne $Err.DisplayErrorMessage) {
+        # Report the error as the runtime handed it over: Exception.ToString(), which keeps the
+        # managed frames and the inner-exception chain, and the unfiltered ScriptStackTrace. For an
+        # error raised inside Pester itself those frames are the diagnostic rather than noise, so
+        # Invoke-Pester's own catch asks for this.
+        [switch] $Raw,
+
+        # Output.StackTraceVerbosity 'Full' means do not filter. ConvertTo-FailureLines reads that
+        # from the preference and not from its caller, so it is passed in explicitly.
+        [switch] $ForceFullError
+    )
+
+    if (-not $Raw -and $null -ne $Err.DisplayErrorMessage) {
         return [PSCustomObject]@{
             Message = [string] $Err.DisplayErrorMessage
             Trace   = [string] $Err.DisplayStackTrace
         }
     }
 
-    $lines = ConvertTo-FailureLines -ErrorRecord $Err
+    if ($Raw) {
+        return [PSCustomObject]@{
+            Message = [string] $Err.Exception.ToString()
+            Trace   = [string] $Err.ScriptStackTrace
+        }
+    }
+
+    $lines = ConvertTo-FailureLines -ErrorRecord $Err -ForceFullError:$ForceFullError
     [PSCustomObject]@{
         Message = [string]($lines.Message -join [Environment]::NewLine)
         Trace   = [string]($lines.Trace -join [Environment]::NewLine)
@@ -1009,30 +1028,35 @@ function Format-ErrorMessage {
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
+
+        # See Get-ErrorDisplayLines. Only Invoke-Pester's own catch passes it, for an error raised
+        # inside Pester rather than in the test code.
+        [switch] $Raw
     )
 
     $multipleErrors = 1 -lt $Err.Count
+    $forceFullError = 'Full' -eq $StackTraceVerbosity
 
 
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
                 $errorMessageSb = [System.Text.StringBuilder]""
-                $display = Get-ErrorDisplayLines -Err $e
+                $display = Get-ErrorDisplayLines -Err $e -Raw:$Raw -ForceFullError:$forceFullError
 
                 [void]$errorMessageSb.Append("[$(($c++))] $($display.Message)")
-                [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity))
+                [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
 
                 $errorMessageSb.ToString()
             }) -join [Environment]::NewLine
     }
     else {
         $errorMessageSb = [System.Text.StringBuilder]""
-        $display = Get-ErrorDisplayLines -Err $Err
+        $display = Get-ErrorDisplayLines -Err $Err -Raw:$Raw -ForceFullError:$forceFullError
 
         [void]$errorMessageSb.Append($display.Message)
-        [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity))
+        [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
 
         $errorMessageSb.ToString()
     }
@@ -1051,10 +1075,22 @@ function Format-StackTraceForDisplay {
     [CmdletBinding()]
     param (
         [string] $Trace,
-        [string] $StackTraceVerbosity
+        [string] $StackTraceVerbosity,
+
+        # The whole trace, whatever the verbosity says. For an error raised inside Pester the frames
+        # are the diagnostic, and 'None' would leave nothing to go on.
+        [switch] $Raw
     )
 
-    if ([string]::IsNullOrWhiteSpace($Trace) -or 'None' -eq $StackTraceVerbosity) {
+    if ([string]::IsNullOrWhiteSpace($Trace)) {
+        return ""
+    }
+
+    if ($Raw) {
+        return [Environment]::NewLine + $Trace
+    }
+
+    if ('None' -eq $StackTraceVerbosity) {
         return ""
     }
 
@@ -1073,10 +1109,13 @@ function Write-ErrorToScreen {
         $Err,
         [string] $ErrorMargin,
         [switch] $Throw,
-        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
+
+        # See Get-ErrorDisplayLines.
+        [switch] $Raw
     )
 
-    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity
+    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity -Raw:$Raw
 
     if ($Throw) {
         throw $errorMessage

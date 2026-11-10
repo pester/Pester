@@ -1005,14 +1005,20 @@ function Invoke-Pester {
         }
         catch {
             $exitCode = -1
+            # -Raw: this catch reports an error raised inside Pester, not in the test code, and
+            # there the Pester-internal frames, the managed frames and the inner-exception chain are
+            # the only diagnostic there is.
             $formatErrorParams = @{
                 Err                 = $_
                 StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+                Raw                 = $true
             }
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+                # [1..0] on a one-line message walks the range backwards and repeats the header.
+                $errorBody = if (1 -lt $errorMessage.Count) { $errorMessage[1..($errorMessage.Count - 1)] } else { @() }
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorBody
             }
             else {
                 Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
