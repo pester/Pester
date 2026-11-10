@@ -143,4 +143,17 @@ Describe "Should-Any does not pass on a filter that says nothing, or says false 
         $err = { 1, 2, 3 | Should-Any { $_ -gt 9 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Like '*none of the items passed the filter*'
     }
+
+    It 'Accepts a filter taken from a function' {
+        function Test-BigEnough { $_ -gt 2 }
+        1, 2, 3 | Should-Any ${function:Test-BigEnough}
+    }
+
+    It 'Accepts a filter written with a process block' {
+        1, 2, 3 | Should-Any { process { $_ -gt 2 } }
+    }
+
+    It 'Passes for a filter that returns $null, which cannot be told from no output' {
+        1, 2, 3 | Should-Any { $null }
+    }
 }

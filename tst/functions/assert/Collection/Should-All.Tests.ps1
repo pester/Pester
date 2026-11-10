@@ -145,4 +145,30 @@ Describe "Should-All does not pass on a filter that says nothing, or says false 
         $err = { 1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 2 } } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Like '*2 of them*did not pass the filter*'
     }
+
+    It 'Accepts a filter taken from a function' {
+        # ${function:X} has a FunctionDefinitionAst, whose blocks live on .Body, so looking at
+        # EndBlock.Statements.Count on the Ast itself called it empty and rejected it.
+        function Test-Positive { $_ -gt 0 }
+        1, 2, 3 | Should-All ${function:Test-Positive}
+    }
+
+    It 'Accepts a filter written with a process block' {
+        1, 2, 3 | Should-All { process { $_ -gt 0 } }
+    }
+
+    It 'Still fails a process-block filter for the right reason' {
+        $err = { 1, 2, 3 | Should-All { process { $_ -gt 99 } } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*did not pass the filter*'
+    }
+
+    It 'Passes for a filter that returns $null, which cannot be told from no output' {
+        1, 2, 3 | Should-All { $null }
+    }
+
+    It 'Passes when something the filter called wrote to the pipeline before the predicate' {
+        $list = [System.Collections.ArrayList]::new()
+        1, 2, 3 | Should-All { $list.Add($_); $true }
+        $list.Count | Verify-Equal 3
+    }
 }

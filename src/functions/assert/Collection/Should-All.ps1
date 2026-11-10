@@ -6,7 +6,7 @@
     .DESCRIPTION
     This assertion runs the filter script against every item in the collection. Nested Should-* failures are treated as filter failures and included in the reported reasons.
 
-    An item passes when the filter returns a value that is true, or returns nothing at all and does not throw, which is what a filter that asserts on the item itself does. A value that is false fails the item whatever its type, so `{ 0 }` and `{ '' }` fail. An empty filter is rejected, because it says nothing about any item and every item would pass it.
+    An item passes when the filter returns a value that is true, or returns nothing at all and does not throw, which is what a filter that asserts on the item itself does. A lone value that is false fails the item whatever its type, so `{ 0 }` and `{ '' }` fail; `$null` passes, because PowerShell does not distinguish it from no output at all. A filter that returns several values is judged on the first one only when that is the boolean `$false`, so output from something the filter called does not decide the item. An empty filter is rejected, because it says nothing about any item and every item would pass it.
 
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
@@ -65,9 +65,29 @@
         $assert.Fail("Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare.", @{ Expected = $Expected; Because = $Because })
     }
 
+    # Is the filter empty? A scriptblock taken from a function, ${function:Test-Positive}, has a
+    # FunctionDefinitionAst whose blocks live on .Body, and '{ process { ... } }' has no EndBlock at
+    # all. $null.Count is 0 in PowerShell, so looking at EndBlock.Statements.Count alone called both
+    # of those empty and rejected two working filter shapes. Reject only what is positively empty.
+    $filterBody = $FilterScript.Ast
+    if ($filterBody -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        $filterBody = $filterBody.Body
+    }
+
+    $filterIsEmpty = $false
+    if ($filterBody -is [System.Management.Automation.Language.ScriptBlockAst]) {
+        $filterIsEmpty = $true
+        foreach ($filterBlock in $filterBody.BeginBlock, $filterBody.ProcessBlock, $filterBody.EndBlock) {
+            if ($null -ne $filterBlock -and 0 -lt $filterBlock.Statements.Count) {
+                $filterIsEmpty = $false
+                break
+            }
+        }
+    }
+
     # An empty filter says nothing about any item, so every item would pass it. An assertion that
     # cannot fail is worse than no assertion, because it reads like one (#3038).
-    if (0 -eq $FilterScript.Ast.EndBlock.Statements.Count) {
+    if ($filterIsEmpty) {
         $assert.Fail("Expected all items in collection <actual> to pass filter <expected>,<because> but the filter is empty, so it says nothing about them.", @{ Expected = $Expected; Because = $Because })
     }
 
@@ -95,14 +115,19 @@
             $pass = @($false)
         }
 
-        # The filter either returns something, which has to be true for the item to pass, or
-        # returns nothing because it asserted on the item itself and did not throw. No output is a
-        # pass; output is judged on whether it is true.
+        # Did the filter say false? The boolean $false as the first output, which is what this has
+        # always looked at, and also a lone value of another type that is false, which used to pass:
+        # '1, 2, 3 | Should-All { 0 }' passed although 0 is false (#3038).
         #
-        # It used to be a failure only when the output was exactly the boolean $false, so a filter
-        # that returned a falsy value of another type passed: '1, 2, 3 | Should-All { 0 }' passed
-        # although 0 is false (#3038).
-        if (($pass.Count -ge 1) -and (-not $pass[0])) {
+        # $null stays a pass. The code this replaces said so on purpose, and PowerShell does not let
+        # us tell '{ $null }' apart from a filter that returned nothing at all.
+        #
+        # A filter that returns more than one value is left alone, because the extra values are
+        # usually output from something the filter called ('$list.Add($_); $true') and only the
+        # predicate was meant.
+        $saidFalse = ($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0])
+        $saidFalseAsAnotherType = (1 -eq $pass.Count) -and ($null -ne $pass[0]) -and ($pass[0] -isnot [bool]) -and (-not $pass[0])
+        if ($saidFalse -or $saidFalseAsAnotherType) {
             $item
         }
     }
