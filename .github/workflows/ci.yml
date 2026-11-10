@@ -24,8 +24,14 @@
 #
 # Image policy: GA only. We float `*-latest` for the newest GA image and pin the
 # one previous GA image ("latest + reasonably recent"). No preview images
-# (macos-26, windows-2025-vs2026) are used. Note macos-14 is on the deprecation
-# clock (brownouts Oct 2026, removal Nov 2 2026) — swap it out before then.
+# (windows-2025-vs2026) are used.
+#
+# macos-latest resolves to macos-26-arm64 now, so the image to pin alongside it is
+# macos-15. macos-14 was removed on Nov 2 2026, and a job that asks for a removed
+# image is cancelled the moment it starts. A cancelled job is not a failure any
+# job reports, so the only visible symptom was the `Done` gate failing on every
+# pull request with nothing in its log to explain it. When macos-latest moves
+# again, pin the image it leaves behind here.
 name: CI
 
 on:
@@ -250,7 +256,7 @@ jobs:
           - { name: 'PS7 - Ubuntu latest',    id: ps7-ubuntu-latest,   os: ubuntu-latest,  psexe: pwsh }
           - { name: 'PS7 - Ubuntu 22.04',     id: ps7-ubuntu-2204,     os: ubuntu-22.04,   psexe: pwsh }
           - { name: 'PS7 - macOS latest',     id: ps7-macos-latest,    os: macos-latest,   psexe: pwsh }
-          - { name: 'PS7 - macOS 14',         id: ps7-macos-14,        os: macos-14,       psexe: pwsh }
+          - { name: 'PS7 - macOS 15',         id: ps7-macos-15,        os: macos-15,       psexe: pwsh }
           - { name: 'PS7 - Windows latest',   id: ps7-windows-latest,  os: windows-latest, psexe: pwsh }
           - { name: 'PS7 - Windows 2022',     id: ps7-windows-2022,    os: windows-2022,   psexe: pwsh }
           # Windows PowerShell 5.1 (psexe: powershell) — Windows only.
