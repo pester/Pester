@@ -1867,6 +1867,10 @@ i -PassThru:$PassThru {
             $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[0].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
             $r.Containers[0].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
+            # The message names the It, otherwise a file with more than one of them says nothing
+            # about which one is wrong, and the reader only gets a line number in the trace (#3057).
+            $r.Containers[0].ErrorRecord.Exception.Message -match "It 'i'" | Verify-True
+            $r.Containers[0].ErrorRecord.FullyQualifiedErrorId | Verify-Equal 'PesterUserError'
             $r.Containers[1].Result = 'Failed'
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -1990,6 +1994,8 @@ i -PassThru:$PassThru {
             $r.Containers[2].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[2].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
             $r.Containers[2].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
+            $r.Containers[0].ErrorRecord.Exception.Message -match "Describe 'dEmpty'" | Verify-True
+            $r.Containers[2].ErrorRecord.Exception.Message -match "Context 'cEmpty'" | Verify-True
             $r.Containers[3].Result = 'Failed'
             $r.Containers[3].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }

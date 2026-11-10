@@ -503,13 +503,31 @@ f1
                 $messages.Count | Should -BeGreaterThan 2
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When DisplayErrorMessage is `$null the error is filtered, and StackTraceVerbosity is honoured" {
+                # An error record that nothing has decorated, which is what a discovery failure is:
+                # a container's errors only get DisplayErrorMessage and DisplayStackTrace in
+                # PostProcess-RspecTestRun, long after discovery printed them. This used to append
+                # Exception.ToString() and the raw ScriptStackTrace, so the full exception type name
+                # followed by every Pester-internal frame, the same for every verbosity (#3057).
                 $errorRecord.DisplayErrorMessage = $null
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line $divideLine"
-                $messages.Count | Should -BeGreaterThan 1
+                $errorRecord.DisplayStackTrace = $null
+
+                $none = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'None') -split [Environment]::NewLine
+                $none[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $none | Should -HaveCount 1
+
+                $firstLine = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'FirstLine') -split [Environment]::NewLine
+                $firstLine[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $firstLine[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
+                $firstLine | Should -HaveCount 2
+
+                $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $filtered[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $filtered[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
+
+                $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
+                $full[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $full.Count | Should -BeGreaterOrEqual $filtered.Count
             }
 
             It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
@@ -580,13 +598,18 @@ f1
                 $messages.Count | Should -BeGreaterThan 4
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, the error is filtered" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
                 foreach ($errorRecord in $errorRecords) {
                     $errorRecord.DisplayErrorMessage = $null
-                    $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                    $messages = $errorMessage -split [Environment]::NewLine
-                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                    $messages | Should -BeGreaterThan 1
+                    $errorRecord.DisplayStackTrace = $null
+                    $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_) -split [Environment]::NewLine
+                    $messages[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                    if ('None' -eq $_) {
+                        $messages | Should -HaveCount 1
+                    }
+                    else {
+                        $messages.Count | Should -BeGreaterThan 1
+                    }
                 }
             }
 
