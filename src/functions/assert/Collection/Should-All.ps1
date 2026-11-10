@@ -6,6 +6,8 @@
     .DESCRIPTION
     This assertion runs the filter script against every item in the collection. Nested Should-* failures are treated as filter failures and included in the reported reasons.
 
+    An item passes when the filter returns a value that is true, or returns nothing at all and does not throw, which is what a filter that asserts on the item itself does. A value that is false fails the item whatever its type, so `{ 0 }` and `{ '' }` fail. An empty filter is rejected, because it says nothing about any item and every item would pass it.
+
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
 
@@ -63,6 +65,12 @@
         $assert.Fail("Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare.", @{ Expected = $Expected; Because = $Because })
     }
 
+    # An empty filter says nothing about any item, so every item would pass it. An assertion that
+    # cannot fail is worse than no assertion, because it reads like one (#3038).
+    if (0 -eq $FilterScript.Ast.EndBlock.Statements.Count) {
+        $assert.Fail("Expected all items in collection <actual> to pass filter <expected>,<because> but the filter is empty, so it says nothing about them.", @{ Expected = $Expected; Because = $Because })
+    }
+
     $failReasons = $null
     $appendMore = $false
     # we are jumping between modules so I need to explicitly pass the _ variable
@@ -87,11 +95,14 @@
             $pass = @($false)
         }
 
-        # The API returns a collection and user can return anything from their script
-        # or there can be no output when assertion is used, so we are checking if the first item
-        # in the output is a boolean $false. The scriptblock should not fail in $null for example,
-        # hence the explicit type check
-        if (($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0])) {
+        # The filter either returns something, which has to be true for the item to pass, or
+        # returns nothing because it asserted on the item itself and did not throw. No output is a
+        # pass; output is judged on whether it is true.
+        #
+        # It used to be a failure only when the output was exactly the boolean $false, so a filter
+        # that returned a falsy value of another type passed: '1, 2, 3 | Should-All { 0 }' passed
+        # although 0 is false (#3038).
+        if (($pass.Count -ge 1) -and (-not $pass[0])) {
             $item
         }
     }

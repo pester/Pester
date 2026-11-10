@@ -119,3 +119,28 @@ Describe "Should-Any input hint" {
         ($err.Exception.Message -notlike '*Hint:*') | Verify-True
     }
 }
+
+Describe "Should-Any does not pass on a filter that says nothing, or says false in another type" {
+    It 'Fails when the filter is empty' {
+        $err = { 1, 2, 3 | Should-Any { } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*the filter is empty, so it says nothing about them*'
+    }
+
+    It 'Fails when the filter returns 0 for every item, which is false but not $false' {
+        $err = { 1, 2, 3 | Should-Any { 0 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*none of the items passed the filter*'
+    }
+
+    It 'Passes for a filter that returns a truthy value of another type' {
+        1, 2, 3 | Should-Any { $_ }
+    }
+
+    It 'Passes for a filter that asserts on the item and returns nothing for one item' {
+        1, 2, 3 | Should-Any { $_ | Should-BeGreaterThan 2 }
+    }
+
+    It 'Still fails when no item passes' {
+        $err = { 1, 2, 3 | Should-Any { $_ -gt 9 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*none of the items passed the filter*'
+    }
+}
