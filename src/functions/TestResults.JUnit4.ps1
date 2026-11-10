@@ -9,7 +9,7 @@
     Write-JUnitTestResultAttributes @PSBoundParameters
 
     # The file attribute of every testcase is relative to this, so resolve it once.
-    $reportRoot = Get-ReportRoot
+    $pathRoot = Get-TestResultPathRoot
 
     $testSuiteNumber = 0
     foreach ($container in $Result.Containers) {
@@ -19,7 +19,7 @@
             continue
         }
 
-        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Container $container -Id $testSuiteNumber -ReportRoot $reportRoot
+        Write-JUnitTestSuiteElements -XmlWriter $XmlWriter -Container $container -Id $testSuiteNumber -PathRoot $pathRoot
         $testSuiteNumber++
     }
 
@@ -42,7 +42,7 @@ function Write-JUnitTestResultAttributes {
 
 function Write-JUnitTestSuiteElements {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id, [string] $ReportRoot)
+    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [uint16] $Id, [string] $PathRoot)
 
     $XmlWriter.WriteStartElement('testsuite')
 
@@ -51,29 +51,29 @@ function Write-JUnitTestSuiteElements {
     if (Test-ContainerFailedDiscovery -Container $Container) {
         # The container failed during discovery and has no tests to carry the error, and JUnit has
         # no suite-level error, so write a synthetic testcase that holds the discovery error. (#2664)
-        Write-JUnitDiscoveryFailureElement -Container $Container -XmlWriter $XmlWriter -ReportRoot $ReportRoot
+        Write-JUnitDiscoveryFailureElement -Container $Container -XmlWriter $XmlWriter -PathRoot $PathRoot
     }
 
     $testResults = [Pester.Factory]::CreateCollection()
     Fold-Container -Container $Container -OnTest { param ($t) if ($t.ShouldRun) { $testResults.Add($t) } }
     foreach ($t in $testResults) {
-        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -ReportRoot $ReportRoot
+        Write-JUnitTestCaseElements -TestResult $t -XmlWriter $XmlWriter -PathRoot $PathRoot
     }
 
     $XmlWriter.WriteEndElement()
 }
 
 function Get-JUnitFilePath {
-    param([string] $Path, [string] $ReportRoot)
+    param([string] $Path, [string] $PathRoot)
 
     # A ScriptBlock container has no file, and neither does a test defined in one.
     if ([string]::IsNullOrEmpty($Path)) {
         return $null
     }
 
-    # A path outside the report root keeps its absolute form, Get-RelativePath only strips the
-    # prefix when it matches.
-    $relativePath = if ([string]::IsNullOrEmpty($ReportRoot)) { $Path } else { Get-RelativePath -Path $Path -RelativeTo $ReportRoot }
+    # A path outside the root keeps its absolute form, Get-RelativePath only strips the prefix
+    # when it matches.
+    $relativePath = if ([string]::IsNullOrEmpty($PathRoot)) { $Path } else { Get-RelativePath -Path $Path -RelativeTo $PathRoot }
 
     # Consumers match the path against the repository, which uses forward slashes on every
     # platform, and the code coverage report normalizes them the same way.
@@ -82,11 +82,11 @@ function Get-JUnitFilePath {
 
 function Write-JUnitDiscoveryFailureElement {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '')]
-    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [string] $ReportRoot)
+    param([Pester.Container] $Container, [System.Xml.XmlWriter] $XmlWriter, [string] $PathRoot)
 
     $discoveryError = Get-ErrorForXmlReport -TestResult $Container
     $containerPath = if ('File' -eq $Container.Type) { $Container.Item.FullName }
-    $file = Get-JUnitFilePath -Path $containerPath -ReportRoot $ReportRoot
+    $file = Get-JUnitFilePath -Path $containerPath -PathRoot $PathRoot
 
     $XmlWriter.WriteStartElement('testcase')
     $XmlWriter.WriteAttributeString('name', $Container.Name)
@@ -152,18 +152,18 @@ function Write-JUnitTestSuiteAttributes {
 
 function Write-JUnitTestCaseElements {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $ReportRoot)
+    param($TestResult, [System.Xml.XmlWriter] $XmlWriter, [string] $PathRoot)
 
     $XmlWriter.WriteStartElement('testcase')
 
-    Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -ReportRoot $ReportRoot
+    Write-JUnitTestCaseAttributes -TestResult $TestResult -XmlWriter $XmlWriter -PathRoot $PathRoot
 
     $XmlWriter.WriteEndElement()
 }
 
 function Write-JUnitTestCaseAttributes {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns','')]
-    param($TestResult,[System.Xml.XmlWriter] $XmlWriter, [string] $ReportRoot)
+    param($TestResult,[System.Xml.XmlWriter] $XmlWriter, [string] $PathRoot)
 
     $XmlWriter.WriteAttributeString('name', $TestResult.ExpandedPath)
 
@@ -186,7 +186,7 @@ function Write-JUnitTestCaseAttributes {
     # the suite name, and the file path they used to get here is not a useful name. (#3062)
     $XmlWriter.WriteAttributeString('classname', $TestResult.Block.ExpandedPath)
     $scriptBlockPath = if ($null -ne $TestResult.ScriptBlock) { $TestResult.ScriptBlock.File }
-    $file = Get-JUnitFilePath -Path $scriptBlockPath -ReportRoot $ReportRoot
+    $file = Get-JUnitFilePath -Path $scriptBlockPath -PathRoot $PathRoot
     if ($null -ne $file) {
         $XmlWriter.WriteAttributeString('file', $file)
     }
