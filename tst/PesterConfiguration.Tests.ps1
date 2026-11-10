@@ -134,8 +134,36 @@ Describe "Building a configuration from a hashtable" {
         It "Lists the problems in a stable order, a hashtable does not enumerate in one" {
             $err = { [PesterConfiguration]@{ Zzz = 1; Run = @{ Paralel = $true }; Aaa = 1 } } | Should -Throw -PassThru
             $message = $err.Exception.Message
-            $message.IndexOf('Aaa') | Should -BeLessThan $message.IndexOf('Run.Paralel')
-            $message.IndexOf('Run.Paralel') | Should -BeLessThan $message.IndexOf('Zzz')
+
+            # All three are there. IndexOf alone passes when a name is missing, because it returns -1.
+            $aaa = $message.IndexOf('Aaa')
+            $paralel = $message.IndexOf('Run.Paralel')
+            $zzz = $message.IndexOf('Zzz')
+            $aaa | Should -BeGreaterThan -1
+            $paralel | Should -BeGreaterThan -1
+            $zzz | Should -BeGreaterThan -1
+
+            $aaa | Should -BeLessThan $paralel
+            $paralel | Should -BeLessThan $zzz
+        }
+
+        It "Suggests an option the written name is the beginning of, before a closer edit" {
+            # 'Pass' is one letter from 'Path' and four from 'PassThru', but 'PassThru' is what was
+            # meant, and suggesting 'Path' sends the reader off to set a path instead.
+            { [PesterConfiguration]@{ Run = @{ Pass = $true } } } |
+                Should -Throw -ExpectedMessage "*did you mean 'Run.PassThru'?*"
+
+            # The shortest one, so a short prefix does not land on the longest option that has it.
+            { [PesterConfiguration]@{ Run = @{ Para = $true } } } |
+                Should -Throw -ExpectedMessage "*did you mean 'Run.Parallel'?*"
+        }
+
+        It "Says nothing rather than guessing when the name is far from every option" {
+            # 'Verbose' is three edits from 'Verbosity' and is not the beginning of it, so there is
+            # no candidate worth naming. Saying nothing beats sending the reader somewhere wrong.
+            $err = { [PesterConfiguration]@{ Output = @{ Verbose = 'None' } } } | Should -Throw -PassThru
+            $err.Exception.Message | Should -BeLike '*Output.Verbose: no such option.*'
+            $err.Exception.Message | Should -Not -BeLike '*did you mean*'
         }
     }
 

@@ -206,6 +206,24 @@ public class PesterConfiguration
         if (string.IsNullOrEmpty(name))
             return ".";
 
+        // An option the written name is the beginning of, first. Edit distance alone suggested
+        // 'Run.Path' for 'Run.Pass', one letter away, where the option meant is obviously
+        // 'Run.PassThru'; and it suggested nothing for 'Output.Verbose', four letters from
+        // 'Verbosity'. The shortest such option, so 'Run.Pa' does not land on 'ParallelThrottleLimit'.
+        var prefixMatch = (string)null;
+        foreach (var candidate in known)
+        {
+            if (candidate.Length > name.Length
+                && candidate.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+                && (prefixMatch == null || candidate.Length < prefixMatch.Length))
+            {
+                prefixMatch = candidate;
+            }
+        }
+
+        if (prefixMatch != null)
+            return Suggestion(prefixMatch, prefix);
+
         var best = (string)null;
         var bestDistance = int.MaxValue;
         foreach (var candidate in known)
@@ -224,7 +242,12 @@ public class PesterConfiguration
         if (best == null || bestDistance > allowed)
             return ".";
 
-        var suggestion = prefix == null ? best : $"{prefix}.{best}";
+        return Suggestion(best, prefix);
+    }
+
+    private static string Suggestion(string name, string prefix)
+    {
+        var suggestion = prefix == null ? name : $"{prefix}.{name}";
         return $", did you mean '{suggestion}'?";
     }
 
