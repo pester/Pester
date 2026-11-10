@@ -96,28 +96,35 @@ function Format-Number2 ($Value) {
     [string]$Value
 }
 
-function Format-Hashtable2 ($Value, [int]$MaxDepth = $maximumFormatDepth) {
-    $head = '@{'
-    $tail = '}'
-
-    $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object']) {
-        $formattedValue = Format-Nicely2 -Value $Value.$v -MaxDepth ($MaxDepth - 1)
-        "$v=$formattedValue"
-    }
-
-    $head + ( $entries -join '; ') + $tail
+function Format-Hashtable2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
+    Format-KeyValue2 -Value $Value -Head '@{' -Tail '}' -Pretty:$Pretty -MaxDepth $MaxDepth
 }
 
-function Format-Dictionary2 ($Value, [int]$MaxDepth = $maximumFormatDepth) {
-    $head = 'Dictionary{'
-    $tail = '}'
+function Format-Dictionary2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
+    Format-KeyValue2 -Value $Value -Head 'Dictionary{' -Tail '}' -Pretty:$Pretty -MaxDepth $MaxDepth
+}
 
-    $entries = foreach ($v in $Value.Keys | & $SafeCommands['Sort-Object'] ) {
-        $formattedValue = Format-Nicely2 -Value $Value.$v -MaxDepth ($MaxDepth - 1)
-        "$v=$formattedValue"
+function Format-KeyValue2 ($Value, [string]$Head, [string]$Tail, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
+    # A hashtable and a dictionary print the same, only the head differs. Both honour -Pretty the
+    # way Format-Object2 does: without it a nested hashtable came out on one long line while the
+    # same data as an object was indented, which made the same failure much harder to read (#3055).
+    $entries = @(foreach ($key in $Value.Keys | & $SafeCommands['Sort-Object']) {
+            $formattedValue = Format-Nicely2 -Value $Value.$key -Pretty:$Pretty -MaxDepth ($MaxDepth - 1)
+            "$key=$formattedValue"
+        })
+
+    if (0 -eq $entries.Count) {
+        return $Head + $Tail
     }
 
-    $head + ( $entries -join '; ') + $tail
+    if ($Pretty) {
+        # Indent each entry's own line breaks as well, so nested hashtables are shown at
+        # increasing depth instead of all at one level.
+        $indented = foreach ($entry in $entries) { $entry -replace "`n", "`n    " }
+        return "$Head`n    $($indented -join ";`n    ");`n$Tail"
+    }
+
+    $Head + ($entries -join '; ') + $Tail
 }
 
 function Format-Nicely2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumFormatDepth) {
@@ -164,11 +171,11 @@ function Format-Nicely2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumForma
     }
 
     if (Is-Hashtable -Value $Value) {
-        return Format-Hashtable2 -Value $Value -MaxDepth $MaxDepth
+        return Format-Hashtable2 -Value $Value -Pretty:$Pretty -MaxDepth $MaxDepth
     }
 
     if (Is-Dictionary -Value $Value) {
-        return Format-Dictionary2 -Value $Value -MaxDepth $MaxDepth
+        return Format-Dictionary2 -Value $Value -Pretty:$Pretty -MaxDepth $MaxDepth
     }
 
     if ((Is-DataTable -Value $Value) -or (Is-DataRow -Value $Value)) {

@@ -131,6 +131,19 @@ InPesterModuleScope {
             param ($Value, $Expected)
             Format-Hashtable2 $Value | Verify-Equal $Expected
         }
+
+        It "Indents nested hashtables by depth when -Pretty is used" {
+            # Hashtables used to print on one line whatever -Pretty said, which made a
+            # Should-BeEquivalent failure on nested hashtables much harder to read than the same
+            # failure on objects (#3055).
+            $value = @{ a = @{ b = 1 } }
+            $expected = "@{`n    a=@{`n        b=1;`n    };`n}"
+            Format-Hashtable2 -Value $value -Pretty | Verify-Equal $expected
+        }
+
+        It "Stays on one line without -Pretty" {
+            Format-Hashtable2 -Value @{ a = @{ b = 1 } } | Verify-Equal '@{a=@{b=1}}'
+        }
     }
 
     Describe "Format-Dictionary2" {
@@ -145,6 +158,12 @@ InPesterModuleScope {
         ) {
             param ($Value, $Expected)
             Format-Dictionary2 $Value | Verify-Equal $Expected
+        }
+
+        It "Indents nested dictionaries by depth when -Pretty is used" {
+            $value = New-Dictionary @{ a = (New-Dictionary @{ b = 1 }) }
+            $expected = "Dictionary{`n    a=Dictionary{`n        b=1;`n    };`n}"
+            Format-Dictionary2 -Value $value -Pretty | Verify-Equal $expected
         }
     }
 

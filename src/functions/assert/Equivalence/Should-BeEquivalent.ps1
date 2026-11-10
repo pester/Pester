@@ -291,9 +291,10 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
 
     if ($result | & $SafeCommands['Where-Object'] { $_ }) {
         Write-EquivalenceResult -Difference "Hashtables `$Actual and `$Expected are not equivalent."
-        $expectedFormatted = Format-Nicely2 -Value $Expected
-        $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected hashtable $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
+        # The leaf differences only. Repeating the whole hashtable at every level it walks through
+        # buried them, and the object comparer never did it (#3055). The Expected and Actual dumps
+        # that Should-BeEquivalent prints above the summary already show both sides in full.
+        return $result -join "`n"
     }
 
     Write-EquivalenceResult -Equivalence "Hashtables `$Actual and `$Expected are equivalent."
@@ -355,9 +356,8 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
 
     if ($result) {
         Write-EquivalenceResult -Difference "Dictionaries `$Actual and `$Expected are not equivalent."
-        $expectedFormatted = Format-Nicely2 -Value $Expected
-        $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected dictionary $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
+        # Leaf differences only, see the comment in Compare-HashtableEquivalent (#3055).
+        return $result -join "`n"
     }
     Write-EquivalenceResult -Equivalence "Dictionaries `$Actual and `$Expected are equivalent."
 }
