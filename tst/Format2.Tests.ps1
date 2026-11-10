@@ -146,6 +146,25 @@ InPesterModuleScope {
         }
     }
 
+
+        It "Renders a key whose name shadows a member of the hashtable" {
+            # A hashtable resolves its own keys before its members, so $Value.Keys on
+            # @{ Keys = 'k' } is the string 'k' and the whole render came out as @{k=$null}.
+            Format-Hashtable2 @{ Keys = 'k' } | Verify-Equal "@{Keys='k'}"
+            Format-Hashtable2 @{ Count = 3 } | Verify-Equal '@{Count=3}'
+            Format-Hashtable2 @{ Values = 1 } | Verify-Equal '@{Values=1}'
+        }
+
+        It "Renders an empty hashtable as @{} with -Pretty too" {
+            Format-Hashtable2 -Value @{} -Pretty | Verify-Equal '@{}'
+        }
+
+        It "Puts a multi-line item on its own line inside a short collection" {
+            # Format-Collection2 only broke its own lines past a length limit, so a hashtable's
+            # newlines landed in the middle of the one-line form: '@(@{<newline>    a=1;<newline>}, ...)'.
+            $expected = "@(`n    @{`n        a=1;`n    },`n    @{`n        b=2;`n    }`n)"
+            Format-Nicely2 -Value @(@{ a = 1 }, @{ b = 2 }) -Pretty | Verify-Equal $expected
+        }
     Describe "Format-Dictionary2" {
         It "Formats empty dictionary as @{}" {
             Format-Dictionary2 (New-Dictionary @{}) | Verify-Equal 'Dictionary{}'

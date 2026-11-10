@@ -260,7 +260,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the actual object does not have."
+            $result += "Expected$(if ($Property) { " $Property" }) has key '$k' that the actual object does not have."
             continue
         }
 
@@ -285,7 +285,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the actual object has."
+            $result += "Expected$(if ($Property) { " $Property" }) is missing key '$k' that the actual object has."
         }
     }
 
@@ -327,7 +327,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the actual object does not have."
+            $result += "Expected$(if ($Property) { " $Property" }) has key '$k' that the actual object does not have."
             continue
         }
 
@@ -350,7 +350,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the actual object has."
+            $result += "Expected$(if ($Property) { " $Property" }) is missing key '$k' that the actual object has."
         }
     }
 

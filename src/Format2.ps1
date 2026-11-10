@@ -21,8 +21,18 @@ function Format-Collection2 ($Value, [switch]$Pretty, [int]$MaxDepth = $maximumF
         $formatted
     }
 
+    # An item that is already multi-line has to go on its own line whatever the total length, or its
+    # newlines land in the middle of the one-line form: '@(@{<newline>    a=1;<newline>}, ...)'.
+    $multiLineItem = $false
+    foreach ($formatted in $o) {
+        if ($formatted -like "*`n*") {
+            $multiLineItem = $true
+            break
+        }
+    }
+
     $prettyLimit = 50
-    if ($Pretty -and ($length + 3) -gt $prettyLimit) {
+    if ($Pretty -and ($multiLineItem -or ($length + 3) -gt $prettyLimit)) {
         # 3 is for the '@()'
         # Indent each item's own line breaks as well, so nested collections and
         # objects are shown at increasing depth instead of all at one level.
@@ -108,8 +118,10 @@ function Format-KeyValue2 ($Value, [string]$Head, [string]$Tail, [switch]$Pretty
     # A hashtable and a dictionary print the same, only the head differs. Both honour -Pretty the
     # way Format-Object2 does: without it a nested hashtable came out on one long line while the
     # same data as an object was indented, which made the same failure much harder to read (#3055).
-    $entries = @(foreach ($key in $Value.Keys | & $SafeCommands['Sort-Object']) {
-            $formattedValue = Format-Nicely2 -Value $Value.$key -Pretty:$Pretty -MaxDepth ($MaxDepth - 1)
+    # PSBase and the indexer, because a hashtable resolves its own keys before its members: for
+    # @{ Keys = 'k' }, $Value.Keys is the string 'k' and $Value.$key reads the key named 'k'.
+    $entries = @(foreach ($key in $Value.PSBase.Keys | & $SafeCommands['Sort-Object']) {
+            $formattedValue = Format-Nicely2 -Value $Value[$key] -Pretty:$Pretty -MaxDepth ($MaxDepth - 1)
             "$key=$formattedValue"
         })
 
