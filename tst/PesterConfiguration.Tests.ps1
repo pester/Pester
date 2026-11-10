@@ -76,29 +76,66 @@ Describe "Building a configuration from a hashtable" {
     }
 
     Context "Keys that match no option" {
-        It "Collects a misspelled option" {
-            ([PesterConfiguration]@{ Run = @{ Paralel = $true } }).GetUnknownKeys() | Should -Be @('Run.Paralel')
+        It "Rejects a misspelled option and says what it probably meant" {
+            # #2975 only warned about it, which scrolls past in CI and leaves the run on the default,
+            # which is the silent failure it was trying to stop (#3058).
+            { [PesterConfiguration]@{ Run = @{ Paralel = $true } } } |
+                Should -Throw -ExpectedMessage "*Run.Paralel: no such option, did you mean 'Run.Parallel'?*"
         }
 
-        It "Collects a misspelled section" {
-            ([PesterConfiguration]@{ Runn = @{ Parallel = $true } }).GetUnknownKeys() | Should -Be @('Runn')
+        It "Rejects a misspelled section" {
+            { [PesterConfiguration]@{ Runn = @{ Parallel = $true } } } |
+                Should -Throw -ExpectedMessage "*Runn: no such section, did you mean 'Run'?*"
         }
 
-        It "Collects nothing when every key is an option" {
-            ([PesterConfiguration]@{ Run = @{ Parallel = $true }; Output = @{ Verbosity = 'None' } }).GetUnknownKeys() | Should -BeNullOrEmpty
+        It "Leaves out the suggestion when nothing is close enough" {
+            $err = { [PesterConfiguration]@{ Zzz = 1 } } | Should -Throw -PassThru
+            $err.Exception.Message | Should -BeLike '*Zzz: no such section.*'
+            $err.Exception.Message | Should -Not -BeLike '*did you mean*'
+        }
+
+        It "Accepts a configuration where every key is an option" {
+            { [PesterConfiguration]@{ Run = @{ Parallel = $true }; Output = @{ Verbosity = 'None' } } } | Should -Not -Throw
         }
 
         It "Matches option names without regard to case" {
-            ([PesterConfiguration]@{ run = @{ parallel = $true } }).GetUnknownKeys() | Should -BeNullOrEmpty
+            { [PesterConfiguration]@{ run = @{ parallel = $true } } } | Should -Not -Throw
         }
 
-        It "Lists the keys in a stable order, a hashtable does not enumerate in one" {
-            ([PesterConfiguration]@{ Zzz = 1; Run = @{ Paralel = $true }; Aaa = 1 }).GetUnknownKeys() | Should -Be @('Aaa', 'Run.Paralel', 'Zzz')
+        It "Points at the help" {
+            { [PesterConfiguration]@{ Run = @{ Paralel = $true } } } |
+                Should -Throw -ExpectedMessage "*'Get-Help about_PesterConfiguration' lists all the options*"
+        }
+    }
+
+    Context "Reporting every problem at once" {
+        It "Lists every unknown key and every unusable value, with a count" {
+            # Reporting only the first one meant fixing a typo, rerunning, and finding the next.
+            $err = { [PesterConfiguration]@{ Run = @{ Paralel = $true; Exit = 'yes'; Shufle = $true } } } | Should -Throw -PassThru
+            $err.Exception.Message | Should -BeLike '*The configuration has 3 problems:*'
+            $err.Exception.Message | Should -BeLike "*Run.Paralel: no such option, did you mean 'Run.Parallel'?*"
+            $err.Exception.Message | Should -BeLike "*Run.Shufle: no such option, did you mean 'Run.Shuffle'?*"
+            $err.Exception.Message | Should -BeLike "*Run.Exit expects a bool, but got the string 'yes'*"
         }
 
-        It "Survives the merge Invoke-Pester does before it reports them" {
-            $merged = [PesterConfiguration]::Merge([PesterConfiguration]::Default, [PesterConfiguration]@{ Run = @{ Paralel = $true } })
-            $merged.GetUnknownKeys() | Should -Be @('Run.Paralel')
+        It "Reports a bad value in more than one section" {
+            $err = { [PesterConfiguration]@{ Run = @{ Exit = 'yes' }; Output = @{ Verbosity = @{} } } } | Should -Throw -PassThru
+            $err.Exception.Message | Should -BeLike '*The configuration has 2 problems:*'
+            $err.Exception.Message | Should -BeLike "*Run.Exit expects a bool, but got the string 'yes'*"
+            $err.Exception.Message | Should -BeLike '*Output.Verbosity expects a string, but got a hashtable*'
+        }
+
+        It "Keeps a single problem as the sentence it is, with no list around it" {
+            $err = { [PesterConfiguration]@{ Run = @{ Parallel = 'yes' } } } | Should -Throw -PassThru
+            $err.Exception.Message | Should -BeLike "*Run.Parallel expects a bool, but got the string 'yes'.*"
+            $err.Exception.Message | Should -Not -BeLike '*problems:*'
+        }
+
+        It "Lists the problems in a stable order, a hashtable does not enumerate in one" {
+            $err = { [PesterConfiguration]@{ Zzz = 1; Run = @{ Paralel = $true }; Aaa = 1 } } | Should -Throw -PassThru
+            $message = $err.Exception.Message
+            $message.IndexOf('Aaa') | Should -BeLessThan $message.IndexOf('Run.Paralel')
+            $message.IndexOf('Run.Paralel') | Should -BeLessThan $message.IndexOf('Zzz')
         }
     }
 
@@ -112,20 +149,18 @@ Describe "Building a configuration from a hashtable" {
             Remove-Item -Path $testFile -Force
         }
 
-        It "Warns about a key that matches no option" {
-            $warnings = Invoke-Pester -Configuration @{ Run = @{ Path = $testFile; Paralel = $true }; Output = @{ Verbosity = 'None' } } 3>&1
-            $warnings | Should -BeLike "*Ignoring configuration key 'Run.Paralel', there is no such option*"
+        It "Fails the call for a key that matches no option" {
+            { Invoke-Pester -Configuration @{ Run = @{ Path = $testFile; Paralel = $true }; Output = @{ Verbosity = 'None' } } } |
+                Should -Throw -ExpectedMessage "*Run.Paralel: no such option*"
         }
 
-        It "Warns once, listing every key, when there are several" {
-            $warnings = @(Invoke-Pester -Configuration @{ Nonsense = 1; Run = @{ Path = $testFile; Paralel = $true }; Output = @{ Verbosity = 'None' } } 3>&1)
-            $warnings.Count | Should -Be 1
-            $warnings[0].Message | Should -BeLike "*keys 'Nonsense', 'Run.Paralel', there are no such options*"
+        It "Lists every key when there are several" {
+            { Invoke-Pester -Configuration @{ Nonsense = 1; Run = @{ Path = $testFile; Paralel = $true }; Output = @{ Verbosity = 'None' } } } |
+                Should -Throw -ExpectedMessage '*The configuration has 2 problems:*'
         }
 
-        It "Does not warn when every key is an option" {
-            $warnings = @(Invoke-Pester -Configuration @{ Run = @{ Path = $testFile }; Output = @{ Verbosity = 'None' } } 3>&1)
-            $warnings | Should -BeNullOrEmpty
+        It "Runs when every key is an option" {
+            { Invoke-Pester -Configuration @{ Run = @{ Path = $testFile }; Output = @{ Verbosity = 'None' } } } | Should -Not -Throw
         }
     }
 }
