@@ -23,15 +23,23 @@
 # fork pull requests run without a maintainer approving each one.
 #
 # Image policy: GA only. We float `*-latest` for the newest GA image and pin the
-# one previous GA image ("latest + reasonably recent"). No preview images
-# (windows-2025-vs2026) are used.
+# one previous GA image ("latest + reasonably recent").
 #
-# macos-latest resolves to macos-26-arm64 now, so the image to pin alongside it is
-# macos-15. macos-14 was removed on Nov 2 2026, and a job that asks for a removed
-# image is cancelled the moment it starts. A cancelled job is not a failure any
-# job reports, so the only visible symptom was the `Done` gate failing on every
-# pull request with nothing in its log to explain it. When macos-latest moves
-# again, pin the image it leaves behind here.
+# What the labels resolve to, read from the `Set up job` log of this workflow's own
+# runs (that is the only reliable way to tell, the labels move without notice):
+#   macos-latest    macos-26-arm64        macos-15      macos-15-arm64
+#   windows-latest  windows-2025-vs2026   windows-2022  windows-2022
+#   ubuntu-latest   ubuntu-26.04          ubuntu-22.04  ubuntu-22.04
+#
+# macos-14 was removed on Nov 2 2026, and a job that asks for a removed image is
+# cancelled the moment it starts. A cancelled job is not a failure that job reports,
+# so the only visible symptom was the `Done` gate failing on every pull request with
+# nothing in its log to explain it. When a `*-latest` label moves, pin the image it
+# leaves behind here, before the one below that is removed.
+#
+# The ubuntu pin is two releases behind what the policy asks for, ubuntu-24.04 is the
+# one previous GA image. Nothing is broken today and no removal is announced, but it
+# is the same drift that produced the macos-14 outage.
 name: CI
 
 on:
