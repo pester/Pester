@@ -191,20 +191,25 @@ i -PassThru:$PassThru {
             $xmlTestCase.classname | Verify-Equal "Mocked Describe.Mocked Context"
         }
 
-        t "should use the expanded block path as classname when there are any" {
+        t "should not expand the block path in classname, so a -ForEach block is one group" {
             $sb = {
                 Describe "Mocked Describe <value>" {
                     It "Successful testcase" {
                         $true | Should -Be $true
                     }
-                } -ForEach @{ Value = "abc" }
+                } -ForEach @(@{ Value = "abc" }, @{ Value = "def" })
             }
 
             $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
 
             $xmlResult = $r | ConvertTo-JUnitReport
-            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
-            $xmlTestCase.classname | Verify-Equal "Mocked Describe abc"
+            $xmlTestCases = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCases.Count | Verify-Equal 2
+            # both iterations share the classname, and name tells them apart
+            $xmlTestCases[0].classname | Verify-Equal "Mocked Describe <value>"
+            $xmlTestCases[1].classname | Verify-Equal "Mocked Describe <value>"
+            $xmlTestCases[0].name | Verify-Equal "Mocked Describe abc.Successful testcase"
+            $xmlTestCases[1].name | Verify-Equal "Mocked Describe def.Successful testcase"
         }
 
         t "should write the file the test is defined in" {

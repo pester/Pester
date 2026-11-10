@@ -184,7 +184,9 @@ function Write-JUnitTestCaseAttributes {
     $XmlWriter.WriteAttributeString('status', $TestResult.Result)
     # The blocks the test lives in, so a report can group by them. CI reports show classname as
     # the suite name, and the file path they used to get here is not a useful name. (#3062)
-    $XmlWriter.WriteAttributeString('classname', $TestResult.Block.ExpandedPath)
+    # Not expanded, so every iteration of a -ForEach block lands in one group, and the same value
+    # the NUnit3 report writes.
+    $XmlWriter.WriteAttributeString('classname', $TestResult.Block.Path -join '.')
     $scriptBlockPath = if ($null -ne $TestResult.ScriptBlock) { $TestResult.ScriptBlock.File }
     $file = Get-JUnitFilePath -Path $scriptBlockPath -PathRoot $PathRoot
     if ($null -ne $file) {
