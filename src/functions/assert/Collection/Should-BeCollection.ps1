@@ -102,12 +102,22 @@
     $expectedLength = $expectedCopy.Count
 
     if (-not $IgnoreOrder) {
-        # The sizes are equal by now, so one index walks both collections. `Should -Be` compared
-        # arrays item by item in v5 and this keeps that, so a suite that moves from
-        # `Should -Be @(1, 2, 3)` to Should-BeCollection keeps checking the order it was checking.
+        # `Should -Be` compared arrays item by item in v5 and this keeps that, so a suite that moves
+        # from `Should -Be @(1, 2, 3)` to Should-BeCollection keeps checking the order it was
+        # checking.
+        #
+        # LanguagePrimitives::Equals and not -eq. With a collection on the left, -eq filters instead
+        # of answering, so `@(,@(9, 9, 1)) | Should-BeCollection @(1)` passed: `@(9, 9, 1) -eq 1`
+        # returns `@(1)`, which is true. Equals returns a real bool, says False for that pair, and
+        # still says True for `'1'` against `1`.
+        #
+        # Both lengths bound the loop. Is-CollectionSize compares the originals' Count, which a type
+        # could report differently from the number of items the List copies enumerated, and indexing
+        # past the end would throw instead of failing the assertion.
+        $comparableLength = [System.Math]::Min($actualLength, $expectedLength)
         $differentIndexes = [System.Collections.Generic.List[int]]@()
-        for ($i = 0; $i -lt $expectedLength; $i++) {
-            if (-not ($actualCopy[$i] -eq $expectedCopy[$i])) {
+        for ($i = 0; $i -lt $comparableLength; $i++) {
+            if (-not [System.Management.Automation.LanguagePrimitives]::Equals($actualCopy[$i], $expectedCopy[$i])) {
                 $differentIndexes.Add($i)
             }
         }

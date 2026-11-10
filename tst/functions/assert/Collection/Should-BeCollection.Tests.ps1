@@ -43,6 +43,26 @@ Describe "Should-BeCollection" {
         $err.Exception.Message | Verify-Like "*in the same order, because the output is sorted, but some items are different*"
     }
 
+    It "Fails when an item is a collection that -eq would have called equal" {
+        # With a collection on the left, -eq filters instead of answering, so this passed:
+        # `@(9, 9, 1) -eq 1` returns `@(1)`, which is true.
+        { , @(9, 9, 1) | Should-BeCollection @(1) } | Verify-AssertionFailed
+        { , @(1) | Should-BeCollection @(1) } | Verify-AssertionFailed
+    }
+
+    It "Still coerces an item the way PowerShell does" {
+        , "1" | Should-BeCollection @(1)
+    }
+
+    It "Compares `$null items" {
+        @($null, $null) | Should-BeCollection @($null, $null)
+        { @($null, 1) | Should-BeCollection @($null, $null) } | Verify-AssertionFailed
+    }
+
+    It "Passes for two empty collections" {
+        @() | Should-BeCollection @()
+    }
+
     Describe "-IgnoreOrder" {
         It "Passes when the items are the same but in a different order" {
             1, 3, 2 | Should-BeCollection @(1, 2, 3) -IgnoreOrder
