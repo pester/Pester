@@ -1092,25 +1092,37 @@ Performed invocations:
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
     }
 
-    It 'Shows the line of each call site, not the line the Mock was defined on' {
+    It 'Shows the line of each call site, and says so when there is none' {
         Mock FunctionUnderTest { }
         FunctionUnderTest "one"
         FunctionUnderTest "two"
+        # No file behind this one, so there is no call site to report.
+        & ([scriptblock]::Create('FunctionUnderTest "created"'))
 
         try {
-            Should -Invoke FunctionUnderTest -Exactly 1
+            Should -Invoke FunctionUnderTest -Exactly 0
         }
         catch {
             $failure = $_
         }
 
         $historyLines = @(($failure.Exception.Message -split "`n") | Where-Object { $_ -like '  [[]*] FunctionUnderTest*' })
-        $historyLines.Count | Should -Be 2
+        $historyLines.Count | Should -Be 3
 
-        $lines = @($historyLines | ForEach-Object { [int] ([regex]::Match($_, ':(\d+)\s*$').Groups[1].Value) })
-        # The two calls are on consecutive lines. Before this the history reported the Mock's own
-        # line for both of them, so the difference was 0.
-        ($lines[1] - $lines[0]) | Should -Be 1
+        # The entry for a call with no file says what its line means, rather than printing the Mock
+        # definition in the same shape as a real call site, where it reads as a plausible one.
+        $historyLines[2] | Should -BeLike '*(call site unknown, Mock defined at *)'
+        $mockLine = [int] ([regex]::Match($historyLines[2], ':(\d+)\)\s*$').Groups[1].Value)
+
+        $callSites = @(foreach ($line in $historyLines[0], $historyLines[1]) {
+                [int] ([regex]::Match($line, ':(\d+)\s*$').Groups[1].Value)
+            })
+
+        # The two direct calls are on consecutive lines, and both below the Mock. Before this, both
+        # reported the Mock's own line, so the difference was 0 and neither was below it.
+        ($callSites[1] - $callSites[0]) | Should -Be 1
+        $callSites[0] | Should -BeGreaterThan $mockLine
+        $callSites[1] | Should -BeGreaterThan $mockLine
     }
 
     It 'Shows empty marker when mock was never called' {

@@ -2198,12 +2198,15 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         }
         else {
             # A mock called from a scriptblock with no file behind it (Invoke-Pester -ScriptBlock,
-            # or the console) has no call site to name, so fall back to where the Mock was defined.
+            # the console, [scriptblock]::Create, a dynamic module) has no call site to name, so fall
+            # back to where the Mock was defined and say that is what it is. Printing it as 'from
+            # <file>:<line>' like a real call site is worse than printing nothing: the Mock is
+            # usually in the same file, so it reads as a plausible call site.
             $sb = $historyEntry.Behavior.ScriptBlock
             if ($null -ne $sb -and $sb.File) {
                 $file = $sb.File
                 $line = $sb.StartPosition.StartLine
-                $location = " from ${file}:${line}"
+                $location = " (call site unknown, Mock defined at ${file}:${line})"
             }
         }
 
