@@ -2187,6 +2187,73 @@ i -PassThru:$PassThru {
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "skip <lit>"
         }
 
+        t "a template whose variable does not exist stays as it was written (#3048)" {
+            # It used to become $null, so 'Describe "<Foo>"' with no $Foo printed 'Describing $null'
+            # and said nothing about the typo.
+            $sb = {
+                Describe "<Foo>" {
+                    It "<Bar>" { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "<Foo>"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "<Bar>"
+        }
+
+        t "a variable that exists and holds `$null still renders as `$null (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll { $empty = $null }
+                    It 'i <empty>' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i $null'
+        }
+
+        t "a template that is not a variable is still evaluated (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    It 'i <(1 + 1)>' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i 2'
+        }
+
+        t "an invalid template does not print a ParseException, the name stays as it was written (#3048)" {
+            # '<Foo/Bar>' builds an expression that does not parse. The ParseException showed
+            # Pester's generated FormatNicelyForTemplate call and the test did not run.
+            $sb = {
+                Describe 'd' {
+                    It '<Foo/Bar>' { 1 | Should -Be 1 }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal '<Foo/Bar>'
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+        }
+
+        t "a skipped test keeps a template whose variable does not exist as it was written (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    It 'skip <Foo>' -Skip { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'skip <Foo>'
+        }
+
         t "<_> expands to `$_ in It even if It does not define any data" {
             $sb = {
                 Describe "d <_>" {

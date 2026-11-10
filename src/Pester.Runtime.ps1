@@ -413,13 +413,38 @@ function Invoke-Block ($previousBlock) {
                                         $private:____PesterExpandedPos = 0
                                         foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                             $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
+                                            if ($private:____PesterExpandedMatch.Groups[1].Success) {
+                                                $private:____PesterExpandedToken = $private:____PesterExpandedMatch.Groups[1].Value
+                                                # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
+                                                # than -match, which would write to the user's $Matches.
+                                                $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
+                                                if (-not $private:____PesterExpandedVarMatch.Success) {
+                                                    # Not a variable, e.g. '<(Get-Date)>'. There is nothing to look for, evaluate it.
+                                                    $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
+                                                }
+                                                else {
+                                                    # When the variable does not exist there is nothing to put in its place, and printing
+                                                    # $null hid the mistake, so keep the template as it was written (#3048). The check is
+                                                    # part of the expandable string rather than done here, so it runs in the same scope the
+                                                    # variable itself would resolve in. A variable that exists and holds $null still renders
+                                                    # as $null.
+                                                    $null = $private:____PesterExpandedName.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($private:____PesterExpandedVarMatch.Value).Append(''')) { & $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append(') } else { ''<').Append($private:____PesterExpandedToken.Replace("'", "''")).Append('>'' })')
+                                                }
+                                            }
                                             elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                             else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                             $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                         }
                                         $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos))
-                                        & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                        try {
+                                            & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                        }
+                                        catch {
+                                            # An invalid template, e.g. '<Foo/Bar>', does not parse. The ParseException showed
+                                            # Pester's generated expression and its FormatNicelyForTemplate call, which says
+                                            # nothing to whoever wrote the name (#3048). Keep the name as it was written.
+                                            $____Pester.CurrentBlock.Name
+                                        }
                                     } else { $____Pester.CurrentBlock.Name }
 
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
@@ -591,7 +616,20 @@ function Expand-NameForSkippedTest {
     $pos = 0
     foreach ($match in [regex]::Matches($Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
         $null = $builder.Append($Name.Substring($pos, $match.Index - $pos))
-        if ($match.Groups[1].Success) { $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($match.Groups[1].Value).Append('))') }
+        if ($match.Groups[1].Success) {
+            # Same as the executed expansion: a template whose variable does not exist stays as it
+            # was written rather than becoming $null (#3048). The check goes into the expandable
+            # string so it runs against the test's session state and the bound data, not against
+            # whatever is in scope here.
+            $token = $match.Groups[1].Value
+            $varMatch = [regex]::Match($token, '^[\w:]+')
+            if (-not $varMatch.Success) {
+                $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($token).Append('))')
+            }
+            else {
+                $null = $builder.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($varMatch.Value).Append(''')) { & $____PesterFormatNicelyForTemplate ($').Append($token).Append(') } else { ''<').Append($token.Replace("'", "''")).Append('>'' })')
+            }
+        }
         elseif ($match.Groups[2].Success) { $null = $builder.Append($match.Groups[2].Value) }
         else { $null = $builder.Append('`').Append($match.Groups[3].Value) }
         $pos = $match.Index + $match.Length
@@ -775,13 +813,38 @@ function Invoke-TestItem {
                                 $private:____PesterExpandedPos = 0
                                 foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                     $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
+                                    if ($private:____PesterExpandedMatch.Groups[1].Success) {
+                                        $private:____PesterExpandedToken = $private:____PesterExpandedMatch.Groups[1].Value
+                                        # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
+                                        # than -match, which would write to the user's $Matches.
+                                        $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
+                                        if (-not $private:____PesterExpandedVarMatch.Success) {
+                                            # Not a variable, e.g. '<(Get-Date)>'. There is nothing to look for, evaluate it.
+                                            $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
+                                        }
+                                        else {
+                                            # When the variable does not exist there is nothing to put in its place, and printing
+                                            # $null hid the mistake, so keep the template as it was written (#3048). The check is
+                                            # part of the expandable string rather than done here, so it runs in the same scope the
+                                            # variable itself would resolve in. A variable that exists and holds $null still renders
+                                            # as $null.
+                                            $null = $private:____PesterExpandedName.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($private:____PesterExpandedVarMatch.Value).Append(''')) { & $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append(') } else { ''<').Append($private:____PesterExpandedToken.Replace("'", "''")).Append('>'' })')
+                                        }
+                                    }
                                     elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                     else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                     $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                 }
                                 $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos))
-                                & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                try {
+                                    & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                }
+                                catch {
+                                    # An invalid template, e.g. '<Foo/Bar>', does not parse. The ParseException showed Pester's
+                                    # generated expression and its FormatNicelyForTemplate call, which says nothing to whoever
+                                    # wrote the name (#3048). Keep the name as it was written.
+                                    $____Pester.CurrentTest.Name
+                                }
                             }
                             else {
                                 $____Pester.CurrentTest.Name
