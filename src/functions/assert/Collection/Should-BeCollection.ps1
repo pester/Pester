@@ -4,13 +4,16 @@
     Compares collections for equality, by comparing their sizes and each item in them. It does not compare the types of the input collections.
 
     .DESCRIPTION
-    This assertion verifies that both values are collections and compares their contents rather than their collection types. When you use `-Count`, it only checks the number of items.
+    This assertion verifies that both values are collections and compares their contents rather than their collection types. The items are compared by index, so the order matters. Use `-IgnoreOrder` to compare the items without their order. When you use `-Count`, it only checks the number of items.
 
     .PARAMETER Expected
     A collection of items.
 
     .PARAMETER Actual
     A collection of items.
+
+    .PARAMETER IgnoreOrder
+    Compares the items without their order, so the same items in a different order pass. Each actual item is used at most once, so a repeated expected item needs at least as many matching items in the actual collection.
 
     .PARAMETER Count
     Checks if the collection has the expected number of items.
@@ -25,17 +28,25 @@
     1 | Should-BeCollection 1
     ```
 
-    This assertion will pass, because the collections have the same size and the items are equal.
+    This assertion will pass, because the collections have the same size and the same items in the same order.
 
     .EXAMPLE
     ```powershell
     1, 2, 3, 4 | Should-BeCollection @(1, 2, 3)
     1, 2, 3, 4 | Should-BeCollection @(5, 6, 7, 8)
+    1, 3, 2 | Should-BeCollection @(1, 2, 3)
     @(1) | Should-BeCollection @(2)
     1 | Should-BeCollection @(2)
     ```
 
     The assertions will fail because the collections are not equal.
+
+    .EXAMPLE
+    ```powershell
+    1, 3, 2 | Should-BeCollection @(1, 2, 3) -IgnoreOrder
+    ```
+
+    This assertion will pass, because with `-IgnoreOrder` the items only have to be the same, not in the same order.
 
     .NOTES
     Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
@@ -55,6 +66,8 @@
         $Actual,
         [Parameter(Position = 0, Mandatory, ParameterSetName = 'Expected')]
         $Expected,
+        [Parameter(ParameterSetName = 'Expected')]
+        [switch] $IgnoreOrder,
         [String]$Because,
         [Parameter(ParameterSetName = 'Count')]
         [int] $Count
@@ -82,51 +95,69 @@
         $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but they don't have the same number of items.", @{ Expected = $Expected; Because = $Because })
     }
 
-    if (-Not $InOrder) {
+    $actualCopy = [System.Collections.Generic.List[Object]]::new($Actual)
+    $expectedCopy = [System.Collections.Generic.List[Object]]::new($Expected)
 
-        $actualCopy = [System.Collections.Generic.List[Object]]::new($Actual)
-        $expectedCopy = [System.Collections.Generic.List[Object]]::new($Expected)
+    $actualLength = $actualCopy.Count
+    $expectedLength = $expectedCopy.Count
 
-        $actualLength = $actualCopy.Count
-        $expectedLength = $expectedCopy.Count
+    if (-not $IgnoreOrder) {
+        # The sizes are equal by now, so one index walks both collections. `Should -Be` compared
+        # arrays item by item in v5 and this keeps that, so a suite that moves from
+        # `Should -Be @(1, 2, 3)` to Should-BeCollection keeps checking the order it was checking.
+        $differentIndexes = [System.Collections.Generic.List[int]]@()
+        for ($i = 0; $i -lt $expectedLength; $i++) {
+            if (-not ($actualCopy[$i] -eq $expectedCopy[$i])) {
+                $differentIndexes.Add($i)
+            }
+        }
 
-        # If the arrays below have both size 0 we won't go over them,
-        # but they are not different. If one of them has size 0 and the other does not
-        # we already failed the assertion above.
-        #
-        # This marks the items that were the same in both arrays, so user can put anything
-        # in the array, including $null, and we don't have a conflict, because they can never get
-        # reference to the object in $same.
-        $same = [Object]::new()
-        # go over each item in the array and when found overwrite it in the array
-        for ($a = 0; $a -lt $actualLength; $a++) {
-            if ($same -eq $actualCopy[$a]) {
+        if (0 -lt $differentIndexes.Count) {
+            $actualDifference = $(foreach ($i in $differentIndexes) { "$(Format-Nicely2 $actualCopy[$i]) (index $i)" }) -join ", "
+            $expectedDifference = $(foreach ($i in $differentIndexes) { "$(Format-Nicely2 $expectedCopy[$i]) (index $i)" }) -join ", "
+
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in the same order,<because> but some items are different.`nExpected: <expectedDifference>`nActual: <actualDifference>", @{ Expected = $Expected; Because = $Because; expectedDifference = $expectedDifference; actualDifference = $actualDifference })
+        }
+
+        return
+    }
+
+    # If the arrays below have both size 0 we won't go over them,
+    # but they are not different. If one of them has size 0 and the other does not
+    # we already failed the assertion above.
+    #
+    # This marks the items that were the same in both arrays, so user can put anything
+    # in the array, including $null, and we don't have a conflict, because they can never get
+    # reference to the object in $same.
+    $same = [Object]::new()
+    # go over each item in the array and when found overwrite it in the array
+    for ($a = 0; $a -lt $actualLength; $a++) {
+        if ($same -eq $actualCopy[$a]) {
+            continue
+        }
+        for ($e = 0; $e -lt $expectedLength; $e++) {
+            if ($same -eq $expectedCopy[$e]) {
                 continue
             }
-            for ($e = 0; $e -lt $expectedLength; $e++) {
-                if ($same -eq $expectedCopy[$e]) {
-                    continue
-                }
-                if ($actualCopy[$a] -eq $expectedCopy[$e]) {
-                    $expectedCopy[$e] = $same
-                    $actualCopy[$a] = $same
-                }
+            if ($actualCopy[$a] -eq $expectedCopy[$e]) {
+                $expectedCopy[$e] = $same
+                $actualCopy[$a] = $same
             }
         }
+    }
 
-        $different = $false
-        for ($a = 0; $a -lt $actualLength; $a++) {
-            if ($same -ne $actualCopy[$a]) {
-                $different = $true
-                break
-            }
+    $different = $false
+    for ($a = 0; $a -lt $actualLength; $a++) {
+        if ($same -ne $actualCopy[$a]) {
+            $different = $true
+            break
         }
+    }
 
-        if ($different) {
-            $actualDifference = $(for ($a = 0; $a -lt $actualLength; $a++) { if ($same -ne $actualCopy[$a]) { "$(Format-Nicely2 $actualCopy[$a]) (index $a)" } }) -join ", "
-            $expectedDifference = $(for ($e = 0; $e -lt $actualLength; $e++) { if ($same -ne $expectedCopy[$e]) { "$(Format-Nicely2 $expectedCopy[$e]) (index $e)" } }) -join ", "
+    if ($different) {
+        $actualDifference = $(for ($a = 0; $a -lt $actualLength; $a++) { if ($same -ne $actualCopy[$a]) { "$(Format-Nicely2 $actualCopy[$a]) (index $a)" } }) -join ", "
+        $expectedDifference = $(for ($e = 0; $e -lt $actualLength; $e++) { if ($same -ne $expectedCopy[$e]) { "$(Format-Nicely2 $expectedCopy[$e]) (index $e)" } }) -join ", "
 
-            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in any order, but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>", @{ Expected = $Expected; Because = $Because; expectedDifference = $expectedDifference; actualDifference = $actualDifference })
-        }
+        $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in any order,<because> but some values were not.`nMissing in actual: <expectedDifference>`nExtra in actual: <actualDifference>", @{ Expected = $Expected; Because = $Because; expectedDifference = $expectedDifference; actualDifference = $actualDifference })
     }
 }
