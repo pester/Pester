@@ -264,16 +264,43 @@ InPesterModuleScope {
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
             @{ Actual = 'a'; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got 'a'." }
-            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{}.`nExpected has key 'Name' that the actual object does not have." }
-            @{ Actual = @{ Name = 'Tomas' }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected hashtable @{Name='Jakub'}, but got @{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
+            @{ Actual = @{ }; Expected = @{ Name = 'Jakub' }; Message = "Expected has key 'Name' that the actual object does not have." }
+            @{ Actual = @{ Name = 'Tomas' }; Expected = @{ Name = 'Jakub' }; Message = "Expected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
+            @{ Actual = @{ Name = 'Tomas'; Value = 10 }; Expected = @{ Name = 'Jakub' }; Message = "Expected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
             Compare-HashtableEquivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
         }
-    }
 
+        It "Reports only the leaf differences, not the whole hashtable at every level" {
+            # Every level used to prepend "Expected hashtable <the whole thing>, but got <the whole
+            # thing>." in front of the differences below it, which buried them. The object comparer
+            # never did that, and Should-BeEquivalent already prints both sides in full above the
+            # summary (#3055).
+            $expected = @{ Address = @{ City = 'Prague' } }
+            $actual = @{ Address = @{ City = 'Prague'; Street = 'Main 1' } }
+
+            Compare-HashtableEquivalent -Expected $expected -Actual $actual |
+                Verify-Equal "Expected .Address is missing key 'Street' that the actual object has."
+        }
+
+        It "Says where a missing key is, so sibling hashtables can be told apart" {
+            # Dropping the per-level summary dropped the only locator the leaf lines had, and two
+            # siblings missing the same key read identically.
+            $expected = @{ Home = @{ City = 'Prague' }; Work = @{ City = 'Brno' } }
+            $actual = @{ Home = @{ City = 'Prague'; Street = 'A' }; Work = @{ City = 'Brno'; Street = 'B' } }
+
+            $differences = @(Compare-HashtableEquivalent -Expected $expected -Actual $actual) -split "`n"
+            @($differences | Where-Object { $_ -like "*.Home is missing key 'Street'*" }).Count | Verify-Equal 1
+            @($differences | Where-Object { $_ -like "*.Work is missing key 'Street'*" }).Count | Verify-Equal 1
+        }
+
+        It "Leaves the top level without a path, there is nothing to point at" {
+            Compare-HashtableEquivalent -Expected @{ Name = 'Jakub' } -Actual @{ Name = 'Jakub'; Value = 10 } |
+                Verify-Equal "Expected is missing key 'Value' that the actual object has."
+        }
+    }
     Describe "Compare-DictionaryEquivalent" {
         It "Given expected '<expected>' that is not a dictionary it throws ArgumentException" -TestCases @(
             @{ Expected = "a" }
@@ -285,9 +312,9 @@ InPesterModuleScope {
 
         It "Given values '<expected>' and '<actual>' that are not equivalent it returns message '<message>'." -TestCases @(
             @{ Actual = 'a'; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got 'a'." }
-            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{}.`nExpected has key 'Name' that the actual object does not have." }
-            @{ Actual = New-Dictionary @{ Name = 'Tomas' }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
-            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected dictionary Dictionary{Name='Jakub'}, but got Dictionary{Name='Tomas'; Value=10}.`nExpected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
+            @{ Actual = New-Dictionary @{ }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected has key 'Name' that the actual object does not have." }
+            @{ Actual = New-Dictionary @{ Name = 'Tomas' }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'." }
+            @{ Actual = New-Dictionary @{ Name = 'Tomas'; Value = 10 }; Expected = New-Dictionary @{ Name = 'Jakub' }; Message = "Expected property .Name with value 'Jakub' to be equivalent to the actual value, but got 'Tomas'.`nExpected is missing key 'Value' that the actual object has." }
         ) {
             param ($Actual, $Expected, $Message)
 
