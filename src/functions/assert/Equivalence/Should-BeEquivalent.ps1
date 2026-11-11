@@ -413,7 +413,14 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
             Test-IncludedPath -PathSelector Property -Options $Options -Path $Property
 
         if ($filteredPropertiesNotInExpected) {
-            Write-EquivalenceResult -Difference "`$Actual has ($(@($filteredPropertiesNotInExpected).Count)) properties that `$Expected does not have: $(Format-Nicely2 @($filteredPropertiesNotInExpected))."
+            # The names, not the PSPropertyInfo objects. Formatting those reads every property's
+            # value, and on a FileInfo or DirectoryInfo that pulls in Directory, Parent, Root,
+            # PSDrive and PSProvider and walks the object graph behind them. 14 of the 15 seconds a
+            # strict comparison of a FileInfo took were spent building this one message, which
+            # nothing prints unless the caller asked for verbose output (#3051). The names are also
+            # what the message is about.
+            $namesNotInExpected = @(foreach ($p in $filteredPropertiesNotInExpected) { $p.Name })
+            Write-EquivalenceResult -Difference "`$Actual has ($($namesNotInExpected.Count)) properties that `$Expected does not have: $(Format-Nicely2 $namesNotInExpected)."
         }
         else {
             Write-EquivalenceResult -Equivalence "`$Actual has no extra properties that `$Expected does not have."

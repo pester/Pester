@@ -251,6 +251,49 @@ InPesterModuleScope {
             param ($Actual, $Expected, $Message)
             Compare-ObjectEquivalent -Expected $Expected -Actual $Actual | Verify-Equal $Message
         }
+
+        It "Names the properties that Expected does not have, without reading their values" {
+            # The message used to format the PSPropertyInfo objects, which reads every property's
+            # value. The name is what the message is about, and reading the value is what made a
+            # strict comparison of a FileInfo take 15 seconds (#3051).
+            $actual = [PSCustomObject]@{ Name = 'Jakub'; Age = 31 }
+            $expected = [PSCustomObject]@{ Name = 'Jakub' }
+
+            $verbose = & {
+                $VerbosePreference = 'Continue'
+                $null = Compare-ObjectEquivalent -Actual $actual -Expected $expected -Options (Get-EquivalencyOption)
+            } 4>&1
+
+            $line = @($verbose | Where-Object { $_ -like '*does not have:*' })
+            $line.Count | Verify-Equal 1
+            $line[0] | Verify-Like "*does not have: @('Age')*"
+            # Before the fix the formatted property object carried the value 31 along with the name.
+            ($line[0] -notlike '*31*') | Verify-True
+        }
+
+        It "Fails fast on a FileInfo, instead of walking the filesystem object graph" {
+            # Reading the values of the properties FileInfo has and the expected object does not
+            # pulls in Directory, Parent, Root, PSDrive and PSProvider and walks the object graph
+            # behind them. A strict comparison took 12 to 15 seconds here and 30 or more for the
+            # reporter of #3051; it is about 10 ms now. The threshold is deliberately loose, the
+            # failure this guards against is three orders of magnitude away and not a few percent,
+            # so a slow machine cannot cross it for the wrong reason.
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "pester-3051-$([Guid]::NewGuid().Guid).txt"
+            Set-Content -Path $path -Value 'hello'
+            try {
+                $file = Get-Item -LiteralPath $path
+
+                $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                $err = { $file | Should-BeEquivalent ([PSCustomObject]@{ Name = 'not-the-name' }) } | Verify-AssertionFailed
+                $stopwatch.Stop()
+
+                $err.Exception.Message | Verify-Like "*Expected is missing property 'Directory' that the actual object has.*"
+                ($stopwatch.Elapsed.TotalSeconds -lt 5) | Verify-True
+            }
+            finally {
+                Remove-Item -LiteralPath $path -Force
+            }
+        }
     }
 
     Describe "Compare-HashtableEquivalent" {

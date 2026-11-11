@@ -67,8 +67,9 @@
         $null = & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -ge $Expected) {
-            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        $elapsed = $sw.Elapsed
+        if ($elapsed -ge $Expected) {
+            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }
