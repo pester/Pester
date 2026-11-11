@@ -41,7 +41,7 @@ Describe "Should-BeSlowerThan" {
     It "Does not pass the measured scriptblock's output on" {
         # It used to write whatever the measured scriptblock wrote, while the [timespan] branch
         # wrote nothing.
-        $out = { 1, 2, 3; Start-Sleep -Milliseconds 50 } | Should-BeSlowerThan -Expected "1ms"
+        $out = { 1, 2, 3; [System.Threading.Thread]::Sleep(50) } | Should-BeSlowerThan -Expected "1ms"
         Verify-Null -Actual $out
     }
 
