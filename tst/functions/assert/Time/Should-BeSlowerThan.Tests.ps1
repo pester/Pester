@@ -1,8 +1,11 @@
 ﻿Set-StrictMode -Version Latest
 
+# Every test here that measures a scriptblock waits with [Threading.Thread]::Sleep rather than
+# Start-Sleep, because a Windows object wait can return up to one timer tick early and Start-Sleep
+# is built on one. Should-BeFasterThan.Tests.ps1 carries the measurements.
 Describe "Should-BeSlowerThan" {
     It "Does not throw when actual is slower than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 100 }; Expected = "1ms" }
+        @{ Actual = { [System.Threading.Thread]::Sleep(100) }; Expected = "1ms" }
     ) {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
@@ -17,9 +20,16 @@ Describe "Should-BeSlowerThan" {
     # below the expected one, and scriptblock overhead on a shared runner has no upper bound, so
     # the margin is large on purpose.
     It "Throws when scriptblock is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
+        @{ Actual = { [System.Threading.Thread]::Sleep(10) }; Expected = "30s" }
     ) {
         { $Actual | Should-BeSlowerThan -Expected $Expected } | Verify-AssertionFailed
+    }
+
+    It "Runs the scriptblock it measures, once" {
+        # See the same test in Should-BeFasterThan.Tests.ps1.
+        $runs = [System.Collections.Generic.List[int]]@()
+        { $runs.Add(1); [System.Threading.Thread]::Sleep(50) } | Should-BeSlowerThan -Expected "1ms"
+        $runs.Count | Verify-Equal 1
     }
 
     It "Throw timespan is shorter than expected" -ForEach @(

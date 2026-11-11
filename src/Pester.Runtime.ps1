@@ -80,10 +80,16 @@ function New-PesterState {
 
         Stack               = [Collections.Stack]@()
 
-        # [System.Random] used to shuffle the execution order of containers, blocks and tests
-        # when Run.Shuffle is enabled. Seeded from Run.ShuffleSeed so a run can be repeated.
+        # [System.Random] used to shuffle the order the containers (test files / script blocks)
+        # run in when Run.Shuffle is enabled. Seeded from Run.ShuffleSeed so a run can be repeated.
         # Stays $null when Run.Shuffle is disabled.
         ShuffleRandom       = $null
+
+        # The resolved Run.ShuffleSeed, and one [System.Random] per container, derived from that seed
+        # and the container's own name. Keeping a container's blocks and tests off the run-wide
+        # generator is what lets one file be rerun with the seed from a full run (#3056).
+        ShuffleSeed         = 0
+        ShuffleRandomByContainer = $null
 
         # Set of block containers that opt out of shuffling via a '#pester:no-shuffle' comment.
         # Their blocks and tests keep declaration order even when Run.Shuffle is enabled.
@@ -413,13 +419,50 @@ function Invoke-Block ($previousBlock) {
                                         $private:____PesterExpandedPos = 0
                                         foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentBlock.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                             $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                            if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
+                                            if ($private:____PesterExpandedMatch.Groups[1].Success) {
+                                                $private:____PesterExpandedToken = $private:____PesterExpandedMatch.Groups[1].Value
+                                                # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
+                                                # than -match, which would write to the user's $Matches.
+                                                $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
+                                                if (-not $private:____PesterExpandedVarMatch.Success -or $private:____PesterExpandedVarMatch.Value.Contains(':')) {
+                                                    # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                                                    # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                                                    # qualified template is evaluated the way it always was.
+                                                    $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
+                                                }
+                                                else {
+                                                    # When the variable does not exist there is nothing to put in its place, and printing
+                                                    # $null hid the mistake, so keep the template as it was written (#3048). The check is
+                                                    # part of the expandable string rather than done here, so it runs in the same scope the
+                                                    # variable itself would resolve in. A variable that exists and holds $null still renders
+                                                    # as $null.
+                                                    $null = $private:____PesterExpandedName.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($private:____PesterExpandedVarMatch.Value).Append(''')) { & $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append(') } else { ''<').Append($private:____PesterExpandedToken.Replace("'", "''")).Append('>'' })')
+                                                }
+                                            }
                                             elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                             else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                             $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                         }
                                         $null = $private:____PesterExpandedName.Append($____Pester.CurrentBlock.Name.Substring($private:____PesterExpandedPos))
-                                        & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                        # Only the parse is guarded here. An invalid template, e.g. '<Foo/Bar>', does not parse,
+                                        # and the ParseException showed Pester's generated expression and its
+                                        # FormatNicelyForTemplate call, which says nothing to whoever wrote the name (#3048).
+                                        # An error raised while the template is evaluated, e.g. '<(1/0)>' or a property that does
+                                        # not exist, still fails the way it did before, so it must not be caught.
+                                        $private:____PesterExpandedScript = $null
+                                        try {
+                                            $private:____PesterExpandedScript = [ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"')
+                                        }
+                                        catch {
+                                            $private:____PesterExpandedScript = $null
+                                        }
+                                        
+                                        if ($null -eq $private:____PesterExpandedScript) {
+                                            $____Pester.CurrentBlock.Name
+                                        }
+                                        else {
+                                            & $private:____PesterExpandedScript
+                                        }
                                     } else { $____Pester.CurrentBlock.Name }
 
                                     $____Pester.CurrentBlock.ExpandedPath = if ($____Pester.CurrentBlock.Parent.IsRoot) {
@@ -591,14 +634,38 @@ function Expand-NameForSkippedTest {
     $pos = 0
     foreach ($match in [regex]::Matches($Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
         $null = $builder.Append($Name.Substring($pos, $match.Index - $pos))
-        if ($match.Groups[1].Success) { $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($match.Groups[1].Value).Append('))') }
+        if ($match.Groups[1].Success) {
+            # Same as the executed expansion: a template whose variable does not exist stays as it
+            # was written rather than becoming $null (#3048). The check goes into the expandable
+            # string so it runs against the test's session state and the bound data, not against
+            # whatever is in scope here.
+            $token = $match.Groups[1].Value
+            $varMatch = [regex]::Match($token, '^[\w:]+')
+            if (-not $varMatch.Success -or $varMatch.Value.Contains(':')) {
+                # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                # qualified template is evaluated the way it always was.
+                $null = $builder.Append('$(& $____PesterFormatNicelyForTemplate ($').Append($token).Append('))')
+            }
+            else {
+                $null = $builder.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($varMatch.Value).Append(''')) { & $____PesterFormatNicelyForTemplate ($').Append($token).Append(') } else { ''<').Append($token.Replace("'", "''")).Append('>'' })')
+            }
+        }
         elseif ($match.Groups[2].Success) { $null = $builder.Append($match.Groups[2].Value) }
         else { $null = $builder.Append('`').Append($match.Groups[3].Value) }
         $pos = $match.Index + $match.Length
     }
     $null = $builder.Append($Name.Substring($pos))
 
-    $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    # An invalid template does not parse. Fall back to the name as written rather than throwing
+    # out of the expansion (#3048).
+    $expandScriptBlock = $null
+    try {
+        $expandScriptBlock = [ScriptBlock]::Create('"' + $builder.ToString() + '"')
+    }
+    catch {
+        return $Name
+    }
     if ($null -ne $SessionStateInternal) {
         $script:ScriptBlockSessionStateInternalProperty.SetValue($expandScriptBlock, $SessionStateInternal)
     }
@@ -775,13 +842,50 @@ function Invoke-TestItem {
                                 $private:____PesterExpandedPos = 0
                                 foreach ($private:____PesterExpandedMatch in [regex]::Matches($____Pester.CurrentTest.Name, '(?<!`)<([^>`]+)>|`([<>])|([`"$])')) {
                                     $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos, $private:____PesterExpandedMatch.Index - $private:____PesterExpandedPos))
-                                    if ($private:____PesterExpandedMatch.Groups[1].Success) { $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedMatch.Groups[1].Value).Append('))') }
+                                    if ($private:____PesterExpandedMatch.Groups[1].Success) {
+                                        $private:____PesterExpandedToken = $private:____PesterExpandedMatch.Groups[1].Value
+                                        # The variable a template starts with, e.g. 'Foo' in '<Foo.Bar>'. [regex]::Match rather
+                                        # than -match, which would write to the user's $Matches.
+                                        $private:____PesterExpandedVarMatch = [regex]::Match($private:____PesterExpandedToken, '^[\w:]+')
+                                        if (-not $private:____PesterExpandedVarMatch.Success -or $private:____PesterExpandedVarMatch.Value.Contains(':')) {
+                                            # Not a plain variable: '<(Get-Date)>' is an expression, and '<env:HOME>' or
+                                            # '<variable:gv>' names a provider path that PSVariable.Get does not resolve, so a
+                                            # qualified template is evaluated the way it always was.
+                                            $null = $private:____PesterExpandedName.Append('$(& $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append('))')
+                                        }
+                                        else {
+                                            # When the variable does not exist there is nothing to put in its place, and printing
+                                            # $null hid the mistake, so keep the template as it was written (#3048). The check is
+                                            # part of the expandable string rather than done here, so it runs in the same scope the
+                                            # variable itself would resolve in. A variable that exists and holds $null still renders
+                                            # as $null.
+                                            $null = $private:____PesterExpandedName.Append('$(if ($null -ne $ExecutionContext.SessionState.PSVariable.Get(''').Append($private:____PesterExpandedVarMatch.Value).Append(''')) { & $____Pester.FormatNicelyForTemplate ($').Append($private:____PesterExpandedToken).Append(') } else { ''<').Append($private:____PesterExpandedToken.Replace("'", "''")).Append('>'' })')
+                                        }
+                                    }
                                     elseif ($private:____PesterExpandedMatch.Groups[2].Success) { $null = $private:____PesterExpandedName.Append($private:____PesterExpandedMatch.Groups[2].Value) }
                                     else { $null = $private:____PesterExpandedName.Append('`').Append($private:____PesterExpandedMatch.Groups[3].Value) }
                                     $private:____PesterExpandedPos = $private:____PesterExpandedMatch.Index + $private:____PesterExpandedMatch.Length
                                 }
                                 $null = $private:____PesterExpandedName.Append($____Pester.CurrentTest.Name.Substring($private:____PesterExpandedPos))
-                                & ([ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"'))
+                                # Only the parse is guarded here. An invalid template, e.g. '<Foo/Bar>', does not parse,
+                                # and the ParseException showed Pester's generated expression and its
+                                # FormatNicelyForTemplate call, which says nothing to whoever wrote the name (#3048).
+                                # An error raised while the template is evaluated, e.g. '<(1/0)>' or a property that does
+                                # not exist, still fails the way it did before, so it must not be caught.
+                                $private:____PesterExpandedScript = $null
+                                try {
+                                    $private:____PesterExpandedScript = [ScriptBlock]::Create('"' + $private:____PesterExpandedName.ToString() + '"')
+                                }
+                                catch {
+                                    $private:____PesterExpandedScript = $null
+                                }
+                                
+                                if ($null -eq $private:____PesterExpandedScript) {
+                                    $____Pester.CurrentTest.Name
+                                }
+                                else {
+                                    & $private:____PesterExpandedScript
+                                }
                             }
                             else {
                                 $____Pester.CurrentTest.Name
@@ -2179,7 +2283,9 @@ function Invoke-Test {
             $PesterPreference.Run.ShuffleSeed = $shuffleSeed
         }
 
+        $state.ShuffleSeed = $shuffleSeed
         $state.ShuffleRandom = [System.Random]::new($shuffleSeed)
+        $state.ShuffleRandomByContainer = [System.Collections.Generic.Dictionary[object, object]]::new()
 
         # A file or script block can opt out with a '#pester:no-shuffle' comment. Collect those
         # containers so their blocks and tests keep declaration order during discovery post-processing.
@@ -2324,6 +2430,117 @@ function Get-ShuffledOrder {
     , $items
 }
 
+function Get-StableStringHash {
+    <#
+    .SYNOPSIS
+    A non-negative int derived from a string, the same one every time.
+
+    .DESCRIPTION
+    String.GetHashCode is randomized per process on .NET Core, so it cannot be used to derive a seed
+    that has to come out the same from one run to the next (#3056). The first four bytes of the
+    string's SHA-256 are the same on every run, in every process and on every platform. This is not
+    used for anything that needs a cryptographic hash, it is used because SHA-256 is specified and
+    a rolling multiply-and-mask in PowerShell is not: PowerShell widens an overflowing product to a
+    double instead of wrapping it.
+    #>
+    [OutputType([int])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string] $Value
+    )
+
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($Value))
+    }
+    finally {
+        $sha.Dispose()
+    }
+
+    $hash = ([long] $bytes[0] -shl 24) + ([long] $bytes[1] -shl 16) + ([long] $bytes[2] -shl 8) + [long] $bytes[3]
+    [int] ($hash -band 0x7FFFFFFF)
+}
+
+function Get-ContainerShuffleKey {
+    <#
+    .SYNOPSIS
+    A name for a container that is the same in every run, so the order of the blocks and tests
+    inside it can be derived from it.
+
+    .DESCRIPTION
+    The file's name without its folder. Nothing about the path can be used: Run.RepoRoot is resolved
+    per run and falls back to the current location when there is no .git above the tests, so the key
+    would change with the directory Pester was started from, and a parallel worker is handed
+    Run.RepoRoot = '' so a parallel run would disagree with a sequential one. Both are the thing
+    #3056 is about, only moved somewhere else.
+
+    Two files with the same name in different folders therefore share a generator. That costs
+    nothing: each still shuffles only its own blocks and tests, and each still gets the same order
+    from the same seed, which is all the seed promises.
+
+    A script block has no identity beyond where it is written, so it is named by its file's name and
+    its first line. Adding a line above it changes its order, and one typed at the console cannot be
+    told from any other, which is the best there is for a container with no file.
+    #>
+    [OutputType([string])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        $Container
+    )
+
+    if ('ScriptBlock' -eq $Container.Type) {
+        $scriptBlock = $Container.Item
+        if ($scriptBlock -is [scriptblock] -and -not [string]::IsNullOrWhiteSpace($scriptBlock.File)) {
+            return "<ScriptBlock>:$([System.IO.Path]::GetFileName($scriptBlock.File)):$($scriptBlock.StartPosition.StartLine)"
+        }
+
+        return '<ScriptBlock>'
+    }
+
+    if ('File' -eq $Container.Type) {
+        return [System.IO.Path]::GetFileName("$($Container.Item)")
+    }
+
+    "$($Container.Name)"
+}
+
+function Get-ContainerShuffleRandom {
+    <#
+    .SYNOPSIS
+    The [System.Random] that shuffles the blocks and tests inside one container.
+
+    .DESCRIPTION
+    One generator for the whole run was consumed in sequence: the file order first, then each file's
+    blocks and tests. A file's order therefore depended on how many values had already been drawn,
+    by the file shuffle and by every file shuffled before it, so rerunning one failing file with the
+    seed from a full CI run gave a different order and the failure did not have to reproduce. That
+    is the workflow the seed exists for (#3056).
+
+    Each container gets its own generator instead, seeded from the run's seed combined with the
+    container's own stable name, so its order depends on those two things and nothing else.
+    #>
+    [OutputType([System.Random])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        $State,
+
+        [Parameter(Mandatory)]
+        $Container
+    )
+
+    if (-not $State.ShuffleRandomByContainer.ContainsKey($Container)) {
+        $key = Get-ContainerShuffleKey -Container $Container
+        $containerSeed = [int] (($State.ShuffleSeed -bxor (Get-StableStringHash -Value $key)) -band 0x7FFFFFFF)
+        $State.ShuffleRandomByContainer[$Container] = [System.Random]::new($containerSeed)
+    }
+
+    $State.ShuffleRandomByContainer[$Container]
+}
+
 function Test-BlockContainerIsNoShuffle {
     # Returns $true when a container opts out of shuffling (#2425) via a file-level comment directive,
     # parsed similarly to PowerShell's #requires:
@@ -2392,11 +2609,14 @@ function PostProcess-DiscoveredBlock {
         # the Describes in a file, the Describes/Contexts in a Describe, and the Its in a block.
         # We do it here, before First/Last are marked below, and rebuild .Blocks and .Tests to
         # follow the shuffled .Order so the one-time setup/teardown boundaries match the real
-        # execution order. Uses the run's seeded RNG so the order is repeatable (#2425). Containers
-        # that opt out with '#pester:no-shuffle' are skipped and keep their declaration order.
+        # execution order. Uses this container's own seeded RNG, derived from the run's seed and the
+        # container's name, so the order is repeatable whether the file runs alone or with the rest
+        # of the suite (#2425, #3056). Containers that opt out with '#pester:no-shuffle' are skipped
+        # and keep their declaration order.
         $containerOptedOut = $null -ne $state.NoShuffleContainers -and $state.NoShuffleContainers.Contains($BlockContainer)
         if ($null -ne $state.ShuffleRandom -and -not $containerOptedOut -and $b.Order.Count -gt 1) {
-            $shuffledOrder = Get-ShuffledOrder -Random $state.ShuffleRandom -InputObject $b.Order
+            $containerRandom = Get-ContainerShuffleRandom -State $state -Container $BlockContainer
+            $shuffledOrder = Get-ShuffledOrder -Random $containerRandom -InputObject $b.Order
             $b.Order.Clear()
             $b.Blocks.Clear()
             $b.Tests.Clear()

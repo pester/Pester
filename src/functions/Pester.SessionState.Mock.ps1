@@ -1067,6 +1067,10 @@ function Invoke-Mock {
 
         [object] $MockPSCmdlet,
 
+        [string] $CallSiteFile,
+
+        [int] $CallSiteLine,
+
         $Hook
     )
 

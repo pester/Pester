@@ -366,3 +366,32 @@ function View-Flat {
         $tests
     }
 }
+
+function New-PesterUserErrorRecord {
+    <#
+    .SYNOPSIS
+    Builds an error that reports a mistake in the test code, rather than a failure inside Pester.
+
+    .DESCRIPTION
+    The error id marks the record so ConvertTo-FailureLines prints the message as it is, without
+    the exception type name in front of it, the same way it already treats an assertion failure.
+    A mistake in a test file should read as a sentence about that test file, and "ArgumentException:"
+    in front of it makes a user error look like a crash in Pester (#3057).
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.ErrorRecord])]
+    param (
+        [Parameter(Mandatory)]
+        [string] $Message,
+
+        [System.Management.Automation.ErrorCategory] $Category = [System.Management.Automation.ErrorCategory]::InvalidArgument,
+
+        $TargetObject
+    )
+
+    [System.Management.Automation.ErrorRecord]::new(
+        [System.ArgumentException]::new($Message),
+        'PesterUserError',
+        $Category,
+        $TargetObject)
+}
