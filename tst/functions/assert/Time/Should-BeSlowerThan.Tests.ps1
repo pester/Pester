@@ -1,14 +1,8 @@
 ﻿Set-StrictMode -Version Latest
 
 Describe "Should-BeSlowerThan" {
-    # Same rule as in Should-BeFasterThan.Tests.ps1: no test here needs the stopwatch to have
-    # advanced. The scriptblock comparison is "measured -le expected", so a bound of 30 seconds
-    # always fails and a negative bound always passes.
     It "Does not throw when actual is slower than expected" -ForEach @(
-        # A negative bound, because this is the one direction that would otherwise need the clock
-        # to have moved: any measured time, zero included, is longer than minus one tick. The
-        # alternative is to sleep and hope the stopwatch noticed, which is what used to flake.
-        @{ Actual = { }; Expected = [timespan]::FromTicks(-1) }
+        @{ Actual = { Start-Sleep -Milliseconds 100 }; Expected = "1ms" }
     ) {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
@@ -19,17 +13,25 @@ Describe "Should-BeSlowerThan" {
         $Actual | Should-BeSlowerThan -Expected $Expected
     }
 
+    # Same reasoning as in Should-BeFasterThan.Tests.ps1: this asserts the measured time stays
+    # below the expected one, and scriptblock overhead on a shared runner has no upper bound, so
+    # the margin is large on purpose.
     It "Throws when scriptblock is faster than expected" -ForEach @(
-        @{ Actual = { }; Expected = "30s" }
+        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
     ) {
         { $Actual | Should-BeSlowerThan -Expected $Expected } | Verify-AssertionFailed
     }
 
     It "Runs the scriptblock it measures, once" {
-        # See the same test in Should-BeFasterThan.Tests.ps1 for why this one is needed.
+        # See the same test in Should-BeFasterThan.Tests.ps1.
         $runs = [System.Collections.Generic.List[int]]@()
-        { $runs.Add(1) } | Should-BeSlowerThan -Expected ([timespan]::FromTicks(-1))
+        { $runs.Add(1); Start-Sleep -Milliseconds 50 } | Should-BeSlowerThan -Expected "1ms"
         $runs.Count | Verify-Equal 1
+    }
+
+    It "Does not pass the measured scriptblock's output on" {
+        $out = { 1, 2, 3; Start-Sleep -Milliseconds 50 } | Should-BeSlowerThan -Expected "1ms"
+        Verify-Null -Actual $out
     }
 
     It "Throw timespan is shorter than expected" -ForEach @(
