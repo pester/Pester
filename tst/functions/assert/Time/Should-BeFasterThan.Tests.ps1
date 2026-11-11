@@ -23,20 +23,29 @@ InPesterModuleScope {
     }
 }
 
-# Everything in this file rests on Stopwatch measuring the time a scriptblock took. When that
-# stops being true the assertion tests fail with nothing to go on, which is what happened on CI
-# twice on 11 November 2026: no error was thrown, and the whole test was reported as taking less
-# time than the sleep inside it. So check the measuring itself first, and say so plainly.
+# Every test in this file that measures a scriptblock waits with [Threading.Thread]::Sleep and
+# not with Start-Sleep. The reason, measured on CI on 11 November 2026:
+#
+# A Windows wait on a kernel object can return BEFORE the time it was given, by up to one timer
+# tick. On Windows Server 2022 that tick is 15.625ms, so a 10ms wait came back in 0.09ms, about
+# 5% of the time. Start-Sleep is built on WaitHandle.WaitOne, which is such a wait, so
+# `{ Start-Sleep -Milliseconds 10 } | Should-BeFasterThan 1ms` was true and the test demanding a
+# failure failed. Thread.Sleep is built on SleepEx instead, which rounds up to the tick and never
+# came back short: 0 short measurements in 1400 samples over 1 to 200ms, on Server 2022 and 2025,
+# under both PowerShell editions. The shortfall is absolute, not proportional, so raising the
+# duration only hides it: a 100ms WaitOne measured 88ms.
+#
+# Nothing here was wrong with the assertion, the clock, or the test helper. It was the wait.
 Describe "Stopwatch measures elapsed time on this machine" {
-    It "Sees a 50ms sleep as at least 5ms" {
-        # A tenth of the sleep, so ordinary scheduling noise cannot fail this. If it does fail, the
+    It "Sees a 50ms wait as at least 5ms" {
+        # A tenth of the wait, so ordinary scheduling noise cannot fail this. If it does fail, the
         # clock on this machine is not usable for timing, and a Should-BeFasterThan test failing is
         # a symptom of that rather than a bug in the assertion.
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        Start-Sleep -Milliseconds 50
+        [System.Threading.Thread]::Sleep(50)
         $sw.Stop()
         if ($sw.Elapsed -lt [timespan]::FromMilliseconds(5)) {
-            throw "Slept 50ms and Stopwatch reported $($sw.Elapsed.TotalMilliseconds)ms."
+            throw "Waited 50ms and Stopwatch reported $($sw.Elapsed.TotalMilliseconds)ms."
         }
     }
 }
@@ -44,11 +53,10 @@ Describe "Stopwatch measures elapsed time on this machine" {
 Describe "Should-BeFasterThan" {
     # Measuring a scriptblock times everything around it as well: compiling it, GC, and whatever
     # else the machine is doing. That overhead has no upper bound on a shared CI runner, so the
-    # ceiling here is deliberately far larger than the sleep it is checking. A 10ms sleep that takes
-    # 30 seconds means the machine is broken, not that the assertion is wrong. The opposite
-    # direction needs no such margin, a sleep never finishes early.
+    # ceiling here is deliberately far larger than the wait it is checking. A 10ms wait that takes
+    # 30 seconds means the machine is broken, not that the assertion is wrong.
     It "Does not throw when actual is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
+        @{ Actual = { [System.Threading.Thread]::Sleep(10) }; Expected = "30s" }
     ) {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
@@ -60,10 +68,10 @@ Describe "Should-BeFasterThan" {
     }
 
     It "Throws when scriptblock is slower than expected" -ForEach @(
-        # 50ms against 1ms. The sleep only has to register as more than 1ms, and overhead pushes the
-        # measured time up, never down, so the margin is for a slow runner. It is not a margin for a
-        # clock that does not move, nothing is, and the Describe above fails first in that case.
-        @{ Actual = { Start-Sleep -Milliseconds 50 }; Expected = "1ms" }
+        # This is the test that flaked. It needs the wait to really take more than 1ms, which is
+        # what Thread.Sleep guarantees and Start-Sleep does not. 50ms rather than 10ms so a busy
+        # runner is not the thing being measured; the wait being honest is what makes it pass.
+        @{ Actual = { [System.Threading.Thread]::Sleep(50) }; Expected = "1ms" }
     ) {
         $err = { $Actual | Should-BeFasterThan -Expected $Expected } | Verify-AssertionFailed
         # Assert on the measured time and not only on the outcome, so the message says what the
