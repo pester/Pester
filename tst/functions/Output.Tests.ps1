@@ -564,7 +564,7 @@ f1
             }
 
             It "Ignores a DisplayStackTrace that comes without a DisplayErrorMessage" {
-                # Half-decorated is not a shape anything produces, but Get-ErrorDisplayLines decides
+                # Half-decorated is not a shape anything produces, but Format-ErrorForDisplay decides
                 # on DisplayErrorMessage alone, so this pins what it does with the other half.
                 $errorRecord.DisplayErrorMessage = $null
                 # DisplayStackTrace is left as the BeforeEach set it.

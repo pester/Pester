@@ -972,7 +972,7 @@ function Write-CIErrorToScreen {
     }
 }
 
-function Get-ErrorDisplayLines {
+function Format-ErrorForDisplay {
     <#
     .SYNOPSIS
     The message and the filtered stack trace of an error record, ready to print.
@@ -1030,7 +1030,7 @@ function Format-ErrorMessage {
         [string] $ErrorMargin,
         [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
 
-        # See Get-ErrorDisplayLines. Only Invoke-Pester's own catch passes it, for an error raised
+        # See Format-ErrorForDisplay. Only Invoke-Pester's own catch passes it, for an error raised
         # inside Pester rather than in the test code.
         [switch] $Raw
     )
@@ -1043,7 +1043,7 @@ function Format-ErrorMessage {
         $c = 0
         $(foreach ($e in $Err) {
                 $errorMessageSb = [System.Text.StringBuilder]""
-                $display = Get-ErrorDisplayLines -Err $e -Raw:$Raw -ForceFullError:$forceFullError
+                $display = Format-ErrorForDisplay -Err $e -Raw:$Raw -ForceFullError:$forceFullError
 
                 [void]$errorMessageSb.Append("[$(($c++))] $($display.Message)")
                 [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
@@ -1053,7 +1053,7 @@ function Format-ErrorMessage {
     }
     else {
         $errorMessageSb = [System.Text.StringBuilder]""
-        $display = Get-ErrorDisplayLines -Err $Err -Raw:$Raw -ForceFullError:$forceFullError
+        $display = Format-ErrorForDisplay -Err $Err -Raw:$Raw -ForceFullError:$forceFullError
 
         [void]$errorMessageSb.Append($display.Message)
         [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
@@ -1111,7 +1111,7 @@ function Write-ErrorToScreen {
         [switch] $Throw,
         [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
 
-        # See Get-ErrorDisplayLines.
+        # See Format-ErrorForDisplay.
         [switch] $Raw
     )
 
