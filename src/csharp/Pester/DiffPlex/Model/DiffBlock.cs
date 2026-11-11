@@ -1,0 +1,41 @@
+// Vendored from DiffPlex 1.9.0, https://github.com/mmanela/diffplex
+// Copyright (c) Matthew Manela. Licensed under the Apache License, Version 2.0.
+// See LICENSE.txt and VENDORING.md in this folder.
+// Modified by the Pester Team, see VENDORING.md. Rebuild with Update-VendoredDiffPlex.ps1.
+namespace Pester.DiffPlex.Model
+{
+    /// <summary>
+    /// A block of consecutive edits from A and/or B
+    /// </summary>
+    internal class DiffBlock
+    {
+        /// <summary>
+        /// Position where deletions in A begin
+        /// </summary>
+        public int DeleteStartA { get; }
+
+        /// <summary>
+        /// The number of deletions in A
+        /// </summary>
+        public int DeleteCountA { get; }
+
+        /// <summary>
+        /// Position where insertion in B begin
+        /// </summary>
+        public int InsertStartB { get; }
+
+        /// <summary>
+        /// The number of insertions in B
+        /// </summary>
+        public int InsertCountB { get; }
+
+
+        public DiffBlock(int deleteStartA, int deleteCountA, int insertStartB, int insertCountB)
+        {
+            DeleteStartA = deleteStartA;
+            DeleteCountA = deleteCountA;
+            InsertStartB = insertStartB;
+            InsertCountB = insertCountB;
+        }
+    }
+}

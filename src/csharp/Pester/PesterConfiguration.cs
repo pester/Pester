@@ -1,5 +1,9 @@
-using Pester;
+﻿using Pester;
+using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Management.Automation;
+using System.Reflection;
 
 // those types implement Pester configuration in a way that allows it to show information about each item
 // in the powershell console without making it difficult to use. there are two tricks being used:
@@ -59,17 +63,249 @@ public class PesterConfiguration
     {
         if (configuration != null)
         {
-            Run = new RunConfiguration(configuration.GetIDictionaryOrNull(nameof(Run)));
-            Filter = new FilterConfiguration(configuration.GetIDictionaryOrNull(nameof(Filter)));
-            CodeCoverage = new CodeCoverageConfiguration(configuration.GetIDictionaryOrNull(nameof(CodeCoverage)));
-            TestResult = new TestResultConfiguration(configuration.GetIDictionaryOrNull(nameof(TestResult)));
-            Should = new ShouldConfiguration(configuration.GetIDictionaryOrNull(nameof(Should)));
-            Debug = new DebugConfiguration(configuration.GetIDictionaryOrNull(nameof(Debug)));
-            Output = new OutputConfiguration(configuration.GetIDictionaryOrNull(nameof(Output)));
-            TestDrive = new TestDriveConfiguration(configuration.GetIDictionaryOrNull(nameof(TestDrive)));
-            TestRegistry = new TestRegistryConfiguration(configuration.GetIDictionaryOrNull(nameof(TestRegistry)));
-            Mock = new MockConfiguration(configuration.GetIDictionaryOrNull(nameof(Mock)));
+            // Every problem the configuration has, not only the first one. Fixing one, rerunning and
+            // finding the next is a bad loop to be in, and a key the configuration has no option for
+            // used to only warn, which scrolls past in CI and leaves the run on the default (#3058).
+            var problems = new List<string>();
+
+            foreach (var problem in DescribeUnknownKeys(configuration))
+                problems.Add(problem);
+
+            Run = Section(configuration, nameof(Run), d => new RunConfiguration(d), problems);
+            Filter = Section(configuration, nameof(Filter), d => new FilterConfiguration(d), problems);
+            CodeCoverage = Section(configuration, nameof(CodeCoverage), d => new CodeCoverageConfiguration(d), problems);
+            TestResult = Section(configuration, nameof(TestResult), d => new TestResultConfiguration(d), problems);
+            Should = Section(configuration, nameof(Should), d => new ShouldConfiguration(d), problems);
+            Debug = Section(configuration, nameof(Debug), d => new DebugConfiguration(d), problems);
+            Output = Section(configuration, nameof(Output), d => new OutputConfiguration(d), problems);
+            TestDrive = Section(configuration, nameof(TestDrive), d => new TestDriveConfiguration(d), problems);
+            TestRegistry = Section(configuration, nameof(TestRegistry), d => new TestRegistryConfiguration(d), problems);
+            Mock = Section(configuration, nameof(Mock), d => new MockConfiguration(d), problems);
+
+            if (problems.Count > 0)
+                throw new ConfigurationValueException(FormatProblems(problems));
         }
+    }
+
+    // One problem reads as the sentence it is; several are worth a list, with a count so it is clear
+    // up front how much there is to fix.
+    private static string FormatProblems(List<string> problems)
+    {
+        var message = problems.Count == 1
+            ? problems[0]
+            : $"The configuration has {problems.Count} problems:{Environment.NewLine}  - " + string.Join($"{Environment.NewLine}  - ", problems.ToArray());
+
+        foreach (var problem in problems)
+        {
+            if (problem.Contains("no such option") || problem.Contains("no such section"))
+                return message + $"{Environment.NewLine}'Get-Help about_PesterConfiguration' lists all the options.";
+        }
+
+        return message;
+    }
+
+    // Build one section, collecting what it cannot use instead of throwing on it, and put the
+    // section name in front of each problem, so the user is told 'Run.Parallel expects ...' and not
+    // just 'Parallel expects ...'.
+    private static T Section<T>(IDictionary configuration, string name, Func<IDictionary, T> create, List<string> problems)
+        where T : ConfigurationSection
+    {
+        // The section itself, whose own message already names it, so no prefix for this one.
+        IDictionary options;
+        var sectionProblems = new List<string>();
+        using (DictionaryExtensions.CollectProblems(sectionProblems))
+        {
+            options = configuration.GetIDictionaryOrNull(name);
+        }
+
+        if (sectionProblems.Count > 0)
+        {
+            problems.AddRange(sectionProblems);
+            return create(null);
+        }
+
+        var optionProblems = new List<string>();
+        try
+        {
+            T section;
+            using (DictionaryExtensions.CollectProblems(optionProblems))
+            {
+                section = create(options);
+            }
+
+            foreach (var problem in optionProblems)
+                problems.Add($"{name}.{problem}");
+
+            return section;
+        }
+        catch (ConfigurationValueException e)
+        {
+            // A section that rejects a value some other way than through the collector.
+            foreach (var problem in optionProblems)
+                problems.Add($"{name}.{problem}");
+            problems.Add($"{name}.{e.Message}");
+            return create(null);
+        }
+    }
+
+    // Keys the configuration has no section or option for. It is a configuration hashtable, so there
+    // is nothing else it should be carrying, and a key that matches nothing is a mistake: #2975 only
+    // warned about it, which scrolls past in CI and leaves the run on the default (#3058).
+    //
+    // Sorted, because they are found by walking a hashtable and a hashtable does not enumerate in a
+    // stable order. .NET randomizes string hashing per process, so without this the same
+    // configuration would list its problems differently from one run to the next.
+    private static List<string> DescribeUnknownKeys(IDictionary configuration)
+    {
+        var problems = new List<string>();
+        var sections = new PesterConfiguration();
+        var sectionProperties = sections.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+        var sectionNames = new List<string>();
+        foreach (var property in sectionProperties)
+        {
+            if (typeof(ConfigurationSection).IsAssignableFrom(property.PropertyType))
+                sectionNames.Add(property.Name);
+        }
+
+        foreach (var key in configuration.Keys)
+        {
+            var name = key as string ?? key?.ToString();
+            var property = Match(sectionProperties, name, configuration);
+            if (property == null)
+            {
+                problems.Add($"{name}: no such section{Suggest(name, sectionNames, null)}");
+                continue;
+            }
+
+            // A known section, so check the options inside it the same way.
+            var section = property.GetValue(sections) as ConfigurationSection;
+            var options = configuration[property.Name] as IDictionary
+                ?? (configuration[property.Name] as PSObject)?.BaseObject as IDictionary;
+            if (section == null || options == null)
+                continue;
+
+            var known = new List<string>(section.GetOptionNames());
+            foreach (var optionKey in options.Keys)
+            {
+                var optionName = optionKey as string ?? optionKey?.ToString();
+                if (Find(known.ToArray(), optionName, options) == null)
+                    problems.Add($"{property.Name}.{optionName}: no such option{Suggest(optionName, known, property.Name)}");
+            }
+        }
+
+        problems.Sort(StringComparer.OrdinalIgnoreCase);
+        return problems;
+    }
+
+    // ', did you mean 'Run.Parallel'?' when one of the known names is close enough to be a typo of
+    // what was written, and just '.' when none is. 'Paralel' is one edit from 'Parallel', so saying
+    // so turns rereading the documentation into fixing one letter.
+    private static string Suggest(string name, List<string> known, string prefix)
+    {
+        if (string.IsNullOrEmpty(name))
+            return ".";
+
+        // An option the written name is the beginning of, first. Edit distance alone suggested
+        // 'Run.Path' for 'Run.Pass', one letter away, where the option meant is obviously
+        // 'Run.PassThru'; and it suggested nothing for 'Output.Verbose', four letters from
+        // 'Verbosity'. The shortest such option, so 'Run.Pa' does not land on 'ParallelThrottleLimit'.
+        var prefixMatch = (string)null;
+        foreach (var candidate in known)
+        {
+            if (candidate.Length > name.Length
+                && candidate.StartsWith(name, StringComparison.OrdinalIgnoreCase)
+                && (prefixMatch == null || candidate.Length < prefixMatch.Length))
+            {
+                prefixMatch = candidate;
+            }
+        }
+
+        if (prefixMatch != null)
+            return Suggestion(prefixMatch, prefix);
+
+        var best = (string)null;
+        var bestDistance = int.MaxValue;
+        foreach (var candidate in known)
+        {
+            var distance = Distance(name, candidate);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+
+        // One edit per four characters, so a short name does not match everything and a long one is
+        // still allowed a slip or two.
+        var allowed = Math.Max(2, name.Length / 4);
+        if (best == null || bestDistance > allowed)
+            return ".";
+
+        return Suggestion(best, prefix);
+    }
+
+    private static string Suggestion(string name, string prefix)
+    {
+        var suggestion = prefix == null ? name : $"{prefix}.{name}";
+        return $", did you mean '{suggestion}'?";
+    }
+
+    // Levenshtein distance, case-insensitive. The names are short, so the straightforward table is
+    // as fast as anything cleverer.
+    private static int Distance(string a, string b)
+    {
+        a = a.ToLowerInvariant();
+        b = b.ToLowerInvariant();
+
+        var previous = new int[b.Length + 1];
+        var current = new int[b.Length + 1];
+        for (var j = 0; j <= b.Length; j++)
+            previous[j] = j;
+
+        for (var i = 1; i <= a.Length; i++)
+        {
+            current[0] = i;
+            for (var j = 1; j <= b.Length; j++)
+            {
+                var substitute = previous[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1);
+                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1), substitute);
+            }
+
+            var swap = previous;
+            previous = current;
+            current = swap;
+        }
+
+        return previous[b.Length];
+    }
+
+    // A key counts as known only when looking it up by the option's own name finds it. Comparing
+    // case-insensitively alone is not enough: a dictionary with a case-sensitive comparer holds
+    // 'run' without answering to 'Run', so the value would never be read and the key is unknown.
+    private static PropertyInfo Match(PropertyInfo[] properties, string name, IDictionary dictionary)
+    {
+        foreach (var property in properties)
+        {
+            if (!typeof(ConfigurationSection).IsAssignableFrom(property.PropertyType))
+                continue;
+
+            if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase) && dictionary.Contains(property.Name))
+                return property;
+        }
+
+        return null;
+    }
+
+    private static string Find(string[] names, string name, IDictionary dictionary)
+    {
+        foreach (var known in names)
+        {
+            if (string.Equals(known, name, StringComparison.OrdinalIgnoreCase) && dictionary.Contains(known))
+                return known;
+        }
+
+        return null;
     }
 
     public PesterConfiguration()

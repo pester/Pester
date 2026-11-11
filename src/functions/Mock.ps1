@@ -1,4 +1,9 @@
 
+# Module-scope marker used to make Should throw (instead of recording a failure) when it runs
+# inside a Mock ParameterFilter. Initialized once so the hot save/restore in Test-ParameterFilter
+# and the read in Set-AssertionPassResult can access it directly instead of via Get-Variable, and
+# so the direct read is safe even under Set-StrictMode.
+$script:______isInMockParameterFilter = $false
 
 function New-MockBehavior {
     [CmdletBinding()]
@@ -161,6 +166,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
         -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' ```
+        -CallSiteFile `$MyInvocation.ScriptName ```
+        -CallSiteLine `$MyInvocation.ScriptLineNumber ```
         -MockPSCmdlet `$MyInvocation.MyCommand.Mock.PSCmdlet ```
         -Hook `$MyInvocation.MyCommand.Mock.Hook #INPUT#
 "@
@@ -971,6 +978,12 @@ function Invoke-MockInternal {
 
         [object] $MockPSCmdlet,
 
+        # Where the mocked command was called from, taken from the bootstrap function's own
+        # $MyInvocation, which reports the caller's position and not the bootstrap's.
+        [string] $CallSiteFile,
+
+        [int] $CallSiteLine,
+
         [Parameter(Mandatory)]
         $Behaviors,
 
@@ -1017,6 +1030,8 @@ function Invoke-MockInternal {
                     Hook                = $Hook
                     Behavior            = $behavior
                     DynamicParamAliases = $MockCallState['DynamicParamAliases']
+                    CallSiteFile        = $CallSiteFile
+                    CallSiteLine        = $CallSiteLine
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
@@ -1254,6 +1269,22 @@ function Invoke-InMockScope {
     }
 }
 
+function Format-BoundParameterValueSafely {
+    # Stringify a bound-parameter value for diagnostic text (debug messages and the failed-filter
+    # summary). This is only ever used to provide context to the user, so it must fail open: some
+    # types have a ToString that throws (e.g. mocked SMO objects created via New-MockObject), and
+    # a value like that must not make the whole mock filter throw when it is not even referenced by
+    # the filter. See #2953.
+    param($Value)
+
+    try {
+        "$Value"
+    }
+    catch {
+        '<value could not be serialized>'
+    }
+}
+
 function Test-ParameterFilter {
     [CmdletBinding()]
     param (
@@ -1314,7 +1345,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $(Format-BoundParameterValueSafely $p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
@@ -1339,18 +1370,13 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    $previousIsInMockParameterFilter = $script:______isInMockParameterFilter
     $script:______isInMockParameterFilter = $true
     try {
         $result = & $wrapper $parameters
     }
     finally {
-        if ($null -eq $previousIsInMockParameterFilter) {
-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
-        }
-        else {
-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
-        }
+        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
     }
     $passed = [bool]$result
     if ($passed) {
@@ -1367,7 +1393,7 @@ function Test-ParameterFilter {
         $filterText = $scriptBlock.ToString().Trim()
         $hasContext = 0 -lt $Context.Count
         $contextText = if ($hasContext) {
-            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $($_.Value)" }) -join ', ')
+            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $(Format-BoundParameterValueSafely $_.Value)" }) -join ', ')
         }
         else {
             'no bound parameters'
@@ -1414,7 +1440,9 @@ function Get-ContextToDefine {
         [System.Collections.IDictionary] $DynamicParamAliases
     )
 
-    $conflictingParameterNames = Get-ConflictingParameterNames
+    # Inlined Get-ConflictingParameterNames (body is `$script:ConflictingParameterNames`, as already used
+    # directly further down in this same function) to drop a function call from this per-mock-invocation path.
+    $conflictingParameterNames = $script:ConflictingParameterNames
     $r = @{ }
     # key the parameters by aliases so we can resolve to
     # the param itself and define it and all of it's aliases
@@ -1442,7 +1470,7 @@ function Get-ContextToDefine {
 
     foreach ($p in $Metadata.Parameters.GetEnumerator()) {
         $aliases = $p.Value.Aliases
-        if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+        if ($null -ne $aliases -and 0 -lt $aliases.Count) {
             foreach ($a in $aliases) { $h.Add($a, $p) }
         }
     }
@@ -2159,12 +2187,24 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
         $cmd = $historyEntry.Behavior.CommandName
 
+        # The line that made the call, so the reader can tell the listed calls apart. This used to
+        # report the Mock's own ScriptBlock, which is the line the Mock was defined on, the same
+        # one for every call (#3052).
         $location = ""
-        $sb = $historyEntry.Behavior.ScriptBlock
-        if ($null -ne $sb -and $sb.File) {
-            $file = $sb.File
-            $line = $sb.StartPosition.StartLine
-            $location = " from ${file}:${line}"
+        if (0 -lt $historyEntry.CallSiteLine) {
+            $line = $historyEntry.CallSiteLine
+            if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile)) {
+                $file = $historyEntry.CallSiteFile
+                $location = " from ${file}:${line}"
+            }
+            else {
+                # The call came from a scriptblock with no file behind it, one built by
+                # [scriptblock]::Create or typed at the console. The line is the line inside that
+                # scriptblock, so it still tells the calls apart. '<ScriptBlock>' is how the rest of
+                # Pester names a location with no file, see ToStringConverter.ScriptBlockToString
+                # and the '<ScriptBlock>, <No file>: line N' frames in a stack trace.
+                $location = " from <ScriptBlock>:${line}"
+            }
         }
 
         if ($paramText) {

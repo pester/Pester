@@ -6,11 +6,16 @@
     .DESCRIPTION
     The items of the expected collection must appear in the actual collection in the same order. Gaps between the matched items are allowed, but each actual item is used at most once, so repeated expected items need at least as many matching items in the actual collection. A single value is treated as a one-item collection. Items are compared using PowerShell equality, the same as the `-contains` operator.
 
+    Use `-IgnoreOrder` to check that the expected items are present in any order. Each actual item is still used at most once, so repeated expected items need at least as many matching items in the actual collection.
+
     .PARAMETER Expected
-    One or more items to look for as an ordered subsequence. A single value is treated as a one-item collection.
+    One or more items to look for. By default they must appear as an ordered subsequence; with `-IgnoreOrder` the order does not matter. A single value is treated as a one-item collection.
 
     .PARAMETER Actual
     The collection to search in.
+
+    .PARAMETER IgnoreOrder
+    Ignores the order of the items, so the expected items only need to be present in the actual collection, in any order.
 
     .PARAMETER Because
     The reason why the input should be the expected value.
@@ -24,6 +29,14 @@
     ```
 
     These assertions pass, because the expected items are present in the same order. Gaps between them, as in `@(1, 3)`, are allowed, and a single value is treated as a one-item collection.
+
+    .EXAMPLE
+    ```powershell
+    'b', 3, 2, 'a' | Should-ContainCollection @('a', 2) -IgnoreOrder
+    1, 2, 3 | Should-ContainCollection @(3, 2, 1) -IgnoreOrder
+    ```
+
+    These assertions pass, because with `-IgnoreOrder` the expected items only need to be present, not in any particular order.
 
     .EXAMPLE
     ```powershell
@@ -54,13 +67,21 @@
         $Actual,
         [Parameter(Position = 0, Mandatory)]
         $Expected,
+        [switch]$IgnoreOrder,
         [String]$Because
     )
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
     $Actual = $assert.Actual()
 
-    if (-not (Is-CollectionSubsequence -Expected $Expected -Actual $Actual)) {
-        $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but it was not there.", @{ Expected = $Expected; Because = $Because })
+    if ($IgnoreOrder) {
+        if (-not (Is-CollectionSubset -Expected $Expected -Actual $Actual)) {
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual> in any order,<because> but it was not there.", @{ Expected = $Expected; Because = $Because })
+        }
+    }
+    else {
+        if (-not (Is-CollectionSubsequence -Expected $Expected -Actual $Actual)) {
+            $assert.Fail("Expected <expectedType> <expected> to be present in <actualType> <actual>,<because> but it was not there.", @{ Expected = $Expected; Because = $Because })
+        }
     }
 }

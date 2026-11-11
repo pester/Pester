@@ -1,4 +1,4 @@
-param ([switch] $PassThru, [switch] $NoBuild)
+﻿param ([switch] $PassThru, [switch] $NoBuild)
 
 Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
@@ -65,7 +65,7 @@ function New-BeforeContainerTestFolder {
     $null = New-Item -ItemType Directory -Path $folder -Force
 
     Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value @'
-function Get-BeforeContainerMarker { 'before-container-ran' }
+BeforeAll { function Get-BeforeContainerMarker { 'before-container-ran' } }
 '@
 
     Set-Content -Path (Join-Path $folder 'Marker.Tests.ps1') -Value @'
@@ -79,14 +79,93 @@ Describe 'Marker' {
     $folder
 }
 
-function Get-ExpectedParallelFallbackWarning {
-    # Windows PowerShell 5.1 has no 'ForEach-Object -Parallel', so every Run.Parallel run trips the
-    # PowerShell-version gate and falls back to sequential before any feature-specific check
-    # (ScriptBlock / CodeCoverage / SkipRemainingOnFailure) is reached. The run still produces
-    # identical results either way - only the warning text differs - so tests assert the
-    # feature-specific text on PowerShell 7+ and the version text on 5.1.
-    param ([Parameter(Mandatory)] [string] $Ps7Pattern)
-    if ($PSVersionTable.PSVersion.Major -ge 7) { $Ps7Pattern } else { '*requires PowerShell 7*' }
+function New-CascadingBeforeContainerFolder {
+    # Creates a repo-shaped tree with a Pester.BeforeContainer.ps1 at three levels:
+    #
+    #   <root>/Pester.BeforeContainer.ps1                 -> 'root'
+    #   <root>/tests/Pester.BeforeContainer.ps1           -> 'tests'
+    #   <root>/tests/unit/Pester.BeforeContainer.ps1      -> 'unit'
+    #   <root>/tests/unit/Unit.Tests.ps1                  -> expects root>tests>unit
+    #   <root>/tests/integration/Integration.Tests.ps1    -> expects root>tests
+    #
+    # Each setup file appends its own name to $global:PesterCascade, so the test can assert both
+    # which files ran and the order they ran in. The integration folder deliberately has no setup
+    # file, to prove the walk only picks up the levels that actually have one. Returns the root.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $unit = Join-Path (Join-Path $root 'tests') 'unit'
+    $integration = Join-Path (Join-Path $root 'tests') 'integration'
+    $null = New-Item -ItemType Directory -Path $unit -Force
+    $null = New-Item -ItemType Directory -Path $integration -Force
+
+    # The root file resets the list, so the assertion does not depend on what a previously run
+    # container left behind in the shared session state.
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade = @(''root'') }'
+    Set-Content -Path (Join-Path (Join-Path $root 'tests') 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''tests'' }'
+    Set-Content -Path (Join-Path $unit 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterCascade += ''unit'' }'
+
+    Set-Content -Path (Join-Path $unit 'Unit.Tests.ps1') -Value @'
+Describe 'Unit' {
+    It 'ran root, tests and unit setup in order' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests>unit'
+    }
+}
+'@
+
+    Set-Content -Path (Join-Path $integration 'Integration.Tests.ps1') -Value @'
+Describe 'Integration' {
+    It 'ran only the setup files that exist on its own path' {
+        ($script:PesterCascade -join '>') | Should -Be 'root>tests'
+    }
+}
+'@
+
+    $root
+}
+
+function New-NoInheritBeforeContainerFolder {
+    # Root has setup, and a 'docs' folder underneath declares #pester:no-inherit because its tests
+    # need their own cheap setup and should not pay for the expensive one the rest of the repo uses.
+    # The docs test asserts it got only its own setup; the normal test asserts it got the root one.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $docs = Join-Path $root 'docs'
+    $null = New-Item -ItemType Directory -Path $docs -Force
+
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterChain = @(''root'') }'
+    Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { $script:PesterChain = @('docs') }
+'@
+
+    Set-Content -Path (Join-Path $root 'Normal.Tests.ps1') -Value @'
+Describe 'Normal' {
+    It 'gets the root setup' { ($script:PesterChain -join '>') | Should -Be 'root' }
+}
+'@
+
+    Set-Content -Path (Join-Path $docs 'Docs.Tests.ps1') -Value @'
+Describe 'Docs' {
+    It 'gets only its own setup, not the root one' { ($script:PesterChain -join '>') | Should -Be 'docs' }
+}
+'@
+
+    $root
+}
+
+function New-DiscoveryTimeBeforeContainerFolder {
+    # The setup defines the -ForEach data in BeforeDiscovery, so the file discovers 3 tests only
+    # when the chain was applied. Without it discovery finds 0, which is what #3008 was about.
+    $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+    $tests = Join-Path $root 'tests'
+    $null = New-Item -ItemType Directory -Path $tests -Force
+
+    Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeDiscovery { $script:Cases = 1..3 }'
+    Set-Content -Path (Join-Path $tests 'Some.Tests.ps1') -Value @'
+Describe 'd' {
+    It 'case <_>' -ForEach $Cases { }
+}
+'@
+
+    $root
 }
 
 i -PassThru:$PassThru {
@@ -134,33 +213,31 @@ Describe 'Slow2' {
                 $r = Invoke-Pester -Configuration $c
                 $sw.Stop()
 
-                if ($PSVersionTable.PSVersion.Major -ge 7) {
-                    # Naive sum of the overlapping container durations - the old (wrong) run total.
-                    $containerSum = [TimeSpan]::Zero
-                    foreach ($container in $r.Containers) { $containerSum += $container.Duration }
+                # Naive sum of the overlapping container durations - the old (wrong) run total.
+                $containerSum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $containerSum += $container.Duration }
 
-                    # Run total is the measured wall-clock: positive, never larger than the elapsed
-                    # time around the whole call, and well below the naive sum because the files overlap.
-                    ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
-                    ($r.Duration -le $sw.Elapsed) | Verify-True
-                    ($r.Duration -lt $containerSum) | Verify-True
+                # Run total is the measured wall-clock: positive, never larger than the elapsed
+                # time around the whole call, and well below the naive sum because the files overlap.
+                ($r.Duration -gt [TimeSpan]::Zero) | Verify-True
+                ($r.Duration -le $sw.Elapsed) | Verify-True
+                ($r.Duration -lt $containerSum) | Verify-True
 
-                    # The per-phase run totals are blanked - a single wall-clock figure for user,
-                    # framework or discovery time is not meaningful once the files overlap.
-                    ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
-                    ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
-                    ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
+                # The per-phase run totals are blanked - a single wall-clock figure for user,
+                # framework or discovery time is not meaningful once the files overlap.
+                ($r.UserDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.FrameworkDuration -eq [TimeSpan]::Zero) | Verify-True
+                ($r.DiscoveryDuration -eq [TimeSpan]::Zero) | Verify-True
 
-                    # Parallelism is file-level, so each container keeps its full duration breakdown.
-                    foreach ($container in $r.Containers) {
-                        ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
-                        ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
-                    }
-                    # Discovery is measured per container too (summed here only to avoid per-file flakiness).
-                    $discoverySum = [TimeSpan]::Zero
-                    foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
-                    ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
+                # Parallelism is file-level, so each container keeps its full duration breakdown.
+                foreach ($container in $r.Containers) {
+                    ($container.Duration -gt [TimeSpan]::Zero) | Verify-True
+                    ($container.UserDuration -gt [TimeSpan]::Zero) | Verify-True
                 }
+                # Discovery is measured per container too (summed here only to avoid per-file flakiness).
+                $discoverySum = [TimeSpan]::Zero
+                foreach ($container in $r.Containers) { $discoverySum += $container.DiscoveryDuration }
+                ($discoverySum -gt [TimeSpan]::Zero) | Verify-True
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
@@ -329,6 +406,667 @@ Describe 'Second' {
         }
     }
 
+    b "Pester.BeforeContainer.ps1 folder cascade" {
+        t "applies every Pester.BeforeContainer.ps1 from the repo root down to the file's folder, outermost first" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # unit/Unit.Tests.ps1 sees root + tests + unit, in that order.
+                # integration/Integration.Tests.ps1 sees only root + tests, because there is no
+                # Pester.BeforeContainer.ps1 in the integration folder.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "finds the repository root from the session location, not the process working directory" {
+            # Run.RepoRoot's default used to be found in C# from Directory.GetCurrentDirectory(),
+            # the process working directory, which Set-Location does not change. So a session that
+            # started somewhere else and then changed directory into a repository kept a RepoRoot
+            # pointing at the old place and the whole cascade silently did not apply. Nothing here
+            # sets Run.RepoRoot, the run has to find it on its own.
+            $folder = New-CascadingBeforeContainerFolder
+            $null = New-Item -ItemType Directory -Path (Join-Path $folder '.git') -Force
+            try {
+                Push-Location -Path $folder
+                try {
+                    # The test only means something while the two locations disagree, which is the
+                    # situation the fix is about.
+                    $processDirectory = [System.IO.Directory]::GetCurrentDirectory()
+                    ($processDirectory -eq $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path) | Verify-False
+
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.PassThru = $true
+                    $c.Output.Verbosity = 'None'
+                    $r = Invoke-Pester -Configuration $c
+
+                    $r.FailedCount | Verify-Equal 0
+                    $r.PassedCount | Verify-Equal 2
+                }
+                finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "applies the chain when only discovery runs, so Run.SkipRun sees the same tests as a run" {
+            # Run.SkipRun is the path the VS Code Test Explorer uses to populate. It went through
+            # a batch discovery that never got the map, so a file whose discovery depends on the
+            # setup came back empty. (#3008)
+            $folder = New-DiscoveryTimeBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.SkipRun = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $discoveryOnly = Invoke-Pester -Configuration $c
+
+                $c.Run.SkipRun = $false
+                $normal = Invoke-Pester -Configuration $c
+
+                $discoveryOnly.Tests.Count | Verify-Equal 3
+                $discoveryOnly.Tests.Count | Verify-Equal $normal.Tests.Count
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "reports which Pester.BeforeContainer.ps1 files applied to each container" {
+            # The folder tree alone does not answer this, #pester:no-inherit can cut the chain
+            # short, so the applied files are on the container. (#3007)
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+
+                $unit = $r.Containers | Where-Object { $_.Item.FullName -like '*unit*' }
+                $integration = $r.Containers | Where-Object { $_.Item.FullName -like '*integration*' }
+
+                # unit sees root + tests + unit, integration sees root + tests, outermost first.
+                $unit.BeforeContainerFile.Count | Verify-Equal 3
+                $integration.BeforeContainerFile.Count | Verify-Equal 2
+                (Split-Path $unit.BeforeContainerFile[0] -Parent) | Verify-Equal $folder
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "reports only the files that survived #pester:no-inherit" {
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+
+                $docs = $r.Containers | Where-Object { $_.Item.FullName -like '*docs*' }
+                $normal = $r.Containers | Where-Object { $_.Item.FullName -notlike '*docs*' }
+
+                # docs cut the chain, so it reports only its own file, not the root one.
+                $docs.BeforeContainerFile.Count | Verify-Equal 1
+                $normal.BeforeContainerFile.Count | Verify-Equal 1
+                (Split-Path $docs.BeforeContainerFile[0] -Parent) | Verify-Equal (Join-Path $folder 'docs')
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not overwrite a Run.RepoRoot the user set" {
+            # A real directory. Resolving the chain runs the value through GetFullPath, and a made
+            # up path is not portable: on Windows something like 'TestDrive:whatever' reads as a
+            # drive qualifier and throws, while on Unix it is a legal relative file name.
+            $mine = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $mine -Force
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.RepoRoot = $mine
+                $c.Run.ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } }
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.Configuration.Run.RepoRoot.Value | Verify-Equal $mine
+            }
+            finally { Remove-Item -Path $mine -Recurse -Force }
+        }
+
+        t "FindRepoRoot returns the directory it started from when there is no .git above it" {
+            # The walk stops at the filesystem root and falls back to where it started, rather than
+            # returning null or the drive root, so RepoRoot is always a usable directory.
+            $start = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $start -Force
+            try {
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($start)
+                [Pester.RunConfiguration]::FindRepoRoot($expected) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $start -Recurse -Force }
+        }
+
+        t "applies the same cascade inside each parallel worker" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "does not look above the repo root" {
+            # The setup file sits one level above Run.RepoRoot, so the walk must not pick it up even
+            # though it is an ancestor of the test folder on disk. Asserted on the resolved chain
+            # rather than on a global the setup would set, because globals survive from one
+            # container to the next within a run and would make this depend on test order.
+            $outer = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $repoRoot = Join-Path $outer 'repo'
+            $null = New-Item -ItemType Directory -Path $repoRoot -Force
+            Set-Content -Path (Join-Path $outer 'Pester.BeforeContainer.ps1') -Value '$global:PesterCascadeAbove = $true'
+
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $repoRoot
+
+                @($chain).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $outer -Recurse -Force }
+        }
+
+        t "stops at a setup file marked #pester:no-inherit" {
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "honours #pester:no-inherit inside a parallel worker too" {
+            # The worker receives the chain the parent resolved, so a truncated chain has to survive
+            # the trip across the runspace boundary as well as it does sequentially.
+            $folder = New-NoInheritBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "the folder setup composes with the test file's own BeforeAll, folder first" {
+            # The reason the block model had to allow more than one BeforeAll per block. The folder
+            # setup and the file's own setup both register on the container's root block, and the
+            # folder's has to run first so the file can build on it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+
+            Set-Content -Path (Join-Path $folder 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { $script:PesterOrder = @(''folder'') }'
+            Set-Content -Path (Join-Path $folder 'Compose.Tests.ps1') -Value @'
+BeforeAll { $script:PesterOrder += 'file' }
+
+Describe 'Compose' {
+    It 'ran the folder setup before the file setup' {
+        ($script:PesterOrder -join '>') | Should -Be 'folder>file'
+    }
+}
+'@
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a folder's setup does not leak into a container in a sibling folder" {
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.RepoRoot = $folder
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'None'
+                $r = Invoke-Pester -Configuration $c
+
+                # Integration has no setup file of its own, so it sees root>tests and never the
+                # 'unit' entry, no matter which of the two containers ran first.
+                $r.FailedCount | Verify-Equal 0
+                $r.PassedCount | Verify-Equal 2
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "resolves the chain for a directory" {
+            # Get-PesterBeforeContainerChain is the lookup the run uses. Assert the order directly,
+            # so a regression in the walk is not hidden behind a passing end-to-end run.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 3
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal (Split-Path $folder -Leaf)
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'tests'
+                (Split-Path (Split-Path $chain[2] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "returns nothing when the repo root has no setup file and neither does the folder" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                $chain = & (Get-Module Pester) {
+                    param ($Root)
+                    Get-PesterBeforeContainerChain -Directory $Root -RepoRoot $Root
+                } $folder
+
+                @($chain).Count | Verify-Equal 0
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "records a chain for every directory it passes, not only for the one asked about" {
+            # Which setup files apply is a property of the directory, not of the container, so
+            # resolving the deepest folder has to leave an answer for 'tests' and for the root as
+            # well. Without that a sibling folder would check the same directories on disk and
+            # tokenize the same setup files a second time.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $cache = @{}
+                $null = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                $rootKey = [IO.Path]::GetFullPath($folder).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $unitKey = [IO.Path]::GetFullPath((Join-Path (Join-Path $folder 'tests') 'unit')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+
+                $cache.Count | Verify-Equal 3
+                @($cache[$rootKey]).Count | Verify-Equal 1
+                @($cache[$testsKey]).Count | Verify-Equal 2
+                @($cache[$unitKey]).Count | Verify-Equal 3
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "stops walking up at the first directory that is already resolved" {
+            # The seeded entry for 'tests' stands in for a sibling folder resolved earlier in the
+            # run. The walk has to take that list and stop there, so the root setup file is neither
+            # checked on disk nor tokenized again. Seeding a value that is not a real path is what
+            # makes that observable: it can only come from the cache.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                $testsKey = [IO.Path]::GetFullPath((Join-Path $folder 'tests')).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                $cache = @{ $testsKey = @('resolved-earlier-in-the-run') }
+
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Cache)
+                    Get-PesterBeforeContainerChain -Directory (Join-Path (Join-Path $Root 'tests') 'unit') -RepoRoot $Root -Cache $Cache
+                } $folder $cache
+
+                @($chain).Count | Verify-Equal 2
+                $chain[0] | Verify-Equal 'resolved-earlier-in-the-run'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'unit'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "caches the truncated chain under a folder marked #pester:no-inherit" {
+            # The opt-out belongs to the folder that carries it, so the shorter list is what gets
+            # cached for that folder, and a folder below it inherits the shorter list without
+            # looking above the opt-out again.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $docs = Join-Path $root 'docs'
+            $deep = Join-Path $docs 'deep'
+            $null = New-Item -ItemType Directory -Path $deep -Force
+
+            Set-Content -Path (Join-Path $root 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+            Set-Content -Path (Join-Path $docs 'Pester.BeforeContainer.ps1') -Value @'
+#pester:no-inherit
+BeforeAll { }
+'@
+            Set-Content -Path (Join-Path $deep 'Pester.BeforeContainer.ps1') -Value 'BeforeAll { }'
+
+            try {
+                $cache = @{}
+                $chain = & (Get-Module Pester) {
+                    param ($Root, $Deep, $Cache)
+                    Get-PesterBeforeContainerChain -Directory $Deep -RepoRoot $Root -Cache $Cache
+                } $root $deep $cache
+
+                @($chain).Count | Verify-Equal 2
+                (Split-Path (Split-Path $chain[0] -Parent) -Leaf) | Verify-Equal 'docs'
+                (Split-Path (Split-Path $chain[1] -Parent) -Leaf) | Verify-Equal 'deep'
+
+                $docsKey = [IO.Path]::GetFullPath($docs).TrimEnd([IO.Path]::DirectorySeparatorChar)
+                @($cache[$docsKey]).Count | Verify-Equal 1
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+    }
+
+    b "Lost worker results" {
+        t "fails the run instead of returning fewer files than it was given" {
+            # A worker that dies before returning its result object leaves nothing for the
+            # well-formed-result filter to keep, so without the count check the run would report
+            # success for the files that did come back and never mention the one that did not.
+            # Losing a test file silently is worse than failing, so this must throw and name it.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($name in 'A', 'B', 'C') {
+                Set-Content -Path (Join-Path $folder "$name.Tests.ps1") -Value "Describe '$name' { It 'i' { 1 | Should -Be 1 } }"
+            }
+
+            try {
+                # Stand in for a worker that died: hand Invoke-TestInParallel a runspace-pool
+                # runner that drops B's result on the floor and returns the other two.
+                $err = & (Get-Module Pester) {
+                    param ($Root)
+
+                    $original = ${function:Invoke-InRunspacePool}
+                    ${function:Invoke-InRunspacePool} = {
+                        param ($InputObject, $ScriptBlock, $ThrottleLimit, $ItemParameterName = 'item', $Parameters = @{})
+                        foreach ($i in $InputObject) {
+                            if ($i.Path -like '*B.Tests.ps1') { continue }
+                            [PSCustomObject]@{ Path = $i.Path; Containers = @(); Tape = @(); Coverage = $null }
+                        }
+                    }
+
+                    try {
+                        $c = [PesterConfiguration]::Default
+                        $c.Run.Path = $Root
+                        $c.Run.Parallel = $true
+                        $c.Output.Verbosity = 'None'
+                        $containers = @(Find-File -Path $Root -Extension '.Tests.ps1' | ForEach-Object { New-BlockContainerObject -File $_ })
+
+                        try {
+                            $null = Invoke-TestInParallel -BlockContainer $containers -Configuration $c
+                            $null
+                        }
+                        catch { $_.Exception.Message }
+                    }
+                    finally { ${function:Invoke-InRunspacePool} = $original }
+                } $folder
+
+                $err | Verify-NotNull
+                $err | Verify-Like '*lost the results of 1 of 3 file(s)*'
+                $err | Verify-Like '*B.Tests.ps1*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Invoke-InRunspacePool" {
+        # The parallelism primitive Run.Parallel is built on. It replaces ForEach-Object -Parallel,
+        # which does not exist on Windows PowerShell 5.1, so these run on both editions and are the
+        # place a difference between them would show up first.
+
+        # Each worker counts itself in on entry and out on exit, so the run's peak concurrency is
+        # measured directly. Asserting on elapsed time instead would only infer concurrency, and it
+        # would sit on a threshold that a slow or a fast machine can cross for the wrong reason.
+        $probe = {
+            param($item, $state)
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try {
+                $state.Current++
+                if ($state.Current -gt $state.Max) { $state.Max = $state.Current }
+            }
+            finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            Start-Sleep -Milliseconds 300
+
+            [System.Threading.Monitor]::Enter($state.SyncRoot)
+            try { $state.Current-- } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+            $item
+        }
+
+        t "runs the items concurrently" {
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            # More than one in flight at once is the whole claim. The exact peak depends on how the
+            # pool schedules, so do not pin it to 4.
+            ($state.Max -gt 1) | Verify-True
+        }
+
+        t "honours the throttle limit" {
+            # With one runspace the peak can only ever be 1, however the machine schedules them.
+            $state = [hashtable]::Synchronized(@{ Current = 0; Max = 0 })
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 1 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1,2,3,4'
+            $state.Max | Verify-Equal 1
+        }
+
+        t "passes the item and the shared parameters to every worker" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @('a', 'b') -ThrottleLimit 2 -Parameters @{ prefix = 'p' } -ScriptBlock {
+                    param($item, $prefix)
+                    "$prefix-$item"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal 'p-a,p-b'
+        }
+
+        t "keeps going when one worker throws" {
+            # A failing file must not take the rest of the run with it, the others still have
+            # results worth reporting.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+            ($errors -join ' ') | Verify-Like '*worker blew up*' 
+        }
+
+        t "keeps going when one worker throws even if the caller runs with ErrorActionPreference Stop" {
+            # Reporting a failed worker must not itself be terminating. A caller running with 'Stop'
+            # (a CI script, or Pester's own test.ps1) would otherwise abort this loop on the first
+            # failure and lose the results of every file that already finished.
+            $out = & (Get-Module Pester) {
+                $ErrorActionPreference = 'Stop'
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 3 -ScriptBlock {
+                    param($item)
+                    if (2 -eq $item) { throw 'worker blew up' }
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
+            ($errors.Count -gt 0) | Verify-True
+        }
+
+        t "gives every runspace its own session state" {
+            # RunspaceFactory.CreateRunspacePool hands one InitialSessionState instance to every
+            # runspace in the pool. Import-Module adds a module's FormatsToProcess entries to that
+            # collection and then enumerates it, so with a shared instance one worker added while
+            # another enumerated and the run failed with "Collection was modified; enumeration
+            # operation may not execute" (#3047). Pester declares FormatsToProcess and every worker
+            # imports Pester, so this was reachable from any suite.
+            #
+            # Every item waits until all four have started, so four runspaces really are open at the
+            # same time and the count of distinct session states is exact rather than timing
+            # dependent. Without the wait the items finish while the rest are still being dispatched
+            # and a runspace that came free is reused, which is correct but tests something else.
+            $state = [hashtable]::Synchronized(@{ Arrived = 0 })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $state.Arrived++ } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+                $waited = [System.Diagnostics.Stopwatch]::StartNew()
+                while ($state.Arrived -lt 4 -and $waited.Elapsed.TotalSeconds -lt 20) {
+                    Start-Sleep -Milliseconds 10
+                }
+
+                [runspace]::DefaultRunspace.InitialSessionState.GetHashCode()
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 4
+            $state.Arrived | Verify-Equal 4
+            @($r | Sort-Object -Unique).Count | Verify-Equal 4
+        }
+
+        t "a built-in command reports the module it came from" {
+            # InitialSessionState::CreateDefault loads the built-in commands through the legacy
+            # snap-in infrastructure, which leaves CommandInfo.Module null on a built-in command,
+            # while a sequential run reports the module (#3066). CreateDefault2 does not.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    $null -ne (Get-Command Get-Item -ErrorAction Stop).Module
+                }
+            }
+
+            @($r).Count | Verify-Equal 2
+            foreach ($hasModule in $r) { $hasModule | Verify-True }
+        }
+
+        t "hands a free runspace to the next item instead of opening another one" {
+            # What the pool gave us for free and the hand-rolled one has to keep: a runspace carries
+            # over to the items that follow it, so a worker that imports Pester pays for the import
+            # once per runspace and not once per test file.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    [runspace]::DefaultRunspace.InstanceId.ToString()
+                }
+            }
+
+            @($r).Count | Verify-Equal 3
+            @($r | Sort-Object -Unique).Count | Verify-Equal 1
+        }
+        t "takes a finished runspace back instead of opening another one" {
+            # The loop used to dispatch the whole throttle before looking at what had finished, so it
+            # always opened min(ThrottleLimit, items) runspaces even when the work never ran that many
+            # at once. Every extra runspace pays for importing the worker's modules again, which is
+            # the cost the reuse exists to avoid.
+            #
+            # 60 trivial items with a throttle of 60: the items finish faster than the loop can
+            # dispatch them, so most are handed a runspace that came free. This is a bound and not an
+            # exact number, because how many are in flight at once depends on the machine. Measured
+            # here it is 13 or 14 of 60, and it was 60 before.
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..60) -ThrottleLimit 60 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 60
+            $runspacesUsed = @($state.Runspaces | Sort-Object -Unique).Count
+            ($runspacesUsed -lt 60) | Verify-True
+            ($runspacesUsed -ge 1) | Verify-True
+        }
+
+        t "never opens more runspaces than the throttle allows" {
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                Start-Sleep -Milliseconds 100
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..12) -ThrottleLimit 3 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 12
+            @($state.Runspaces | Sort-Object -Unique).Count | Verify-Equal 3
+        }
+
+        t "returns nothing for an empty input" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
+            }
+            @($r).Count | Verify-Equal 0
+        }
+    }
+
     b "#pester:no-parallel directive parsing" {
         t "detects the directive when written as a comment" {
             $folder = New-ParallelTestFolder
@@ -449,7 +1187,7 @@ Describe 'S' {
 
             $r.TotalCount | Verify-Equal 1
             $r.PassedCount | Verify-Equal 1
-            ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning '*parallelizes only file-based runs*')
+            ($warnings -join "`n") | Verify-Like '*parallelizes only file-based runs*'
         }
 
         t "collects and merges code coverage across parallel workers" {
@@ -596,7 +1334,7 @@ Describe 'B' { It 'b1 never runs' { 1 | Should -Be 1 } }
 
                 $r = Invoke-Pester -Configuration $c -WarningVariable warnings 3>$null
 
-                ($warnings -join "`n") | Verify-Like (Get-ExpectedParallelFallbackWarning "*does not support Run.SkipRemainingOnFailure*")
+                ($warnings -join "`n") | Verify-Like "*does not support Run.SkipRemainingOnFailure*"
                 $r.TotalCount | Verify-Equal 3
                 $r.FailedCount | Verify-Equal 1
                 # a2 and the whole of B are skipped once the first test fails.
@@ -678,29 +1416,26 @@ Describe 'B' { It 'b1 passes' { 1 | Should -Be 1 } }
                 # The run still executes in parallel and produces correct results.
                 $r.PassedCount | Verify-Equal 2
 
-                # PowerShell 5.1 has no ForEach-Object -Parallel and falls back to a sequential run whose
-                # output differs, so only assert the exact parallel rendering on 7+.
-                if ($PSVersionTable.PSVersion.Major -ge 7) {
-                    # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
-                    # then blank out the volatile version, temp paths and timings so the snapshot is stable.
-                    $sb = [System.Text.StringBuilder]::new()
-                    foreach ($rec in @($out)) {
-                        if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
-                        $md = $rec.MessageData
-                        if ($md -is [System.Management.Automation.HostInformationMessage]) {
-                            $null = $sb.Append($md.Message)
-                            if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
-                        }
+                # Rebuild the console text from the captured Write-Host records (honouring -NoNewline),
+                # then blank out the volatile version, temp paths and timings so the snapshot is stable.
+                $sb = [System.Text.StringBuilder]::new()
+                foreach ($rec in @($out)) {
+                    if ($rec -isnot [System.Management.Automation.InformationRecord]) { continue }
+                    $md = $rec.MessageData
+                    if ($md -is [System.Management.Automation.HostInformationMessage]) {
+                        $null = $sb.Append($md.Message)
+                        if (-not $md.NoNewLine) { $null = $sb.Append("`n") }
                     }
-                    $normalized = $sb.ToString() `
-                        -replace 'Pester v\S+', 'Pester v<version>' `
-                        -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
-                        -replace '\d+(.\d+)?m?s', '<time>'
-                    $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
+                }
+                $normalized = $sb.ToString() `
+                    -replace 'Pester v\S+', 'Pester v<version>' `
+                    -replace ([regex]::Escape($folder + [IO.Path]::DirectorySeparatorChar)), '' `
+                    -replace '\d+(.\d+)?m?s', '<time>'
+                $actual = (($normalized -split "`r`n|`r|`n").ForEach({ $_.TrimEnd() }) -join "`n").Trim()
 
-                    # Each file's discovery is immediately followed by that same file's run (A fully, then
-                    # B fully), instead of both discoveries being dumped up front, detached from the tests.
-                    $expected = @'
+                # Each file's discovery is immediately followed by that same file's run (A fully, then
+                # B fully), instead of both discoveries being dumped up front, detached from the tests.
+                $expected = @'
 Pester v<version>
 
 Running tests from 2 files in parallel.
@@ -720,8 +1455,7 @@ Tests completed in <time>
 Tests Passed: 2, Failed: 0, Skipped: 0, Inconclusive: 0, NotRun: 0
 '@ -replace "`r`n", "`n"
 
-                    $actual | Verify-Equal $expected
-                }
+                $actual | Verify-Equal $expected
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }

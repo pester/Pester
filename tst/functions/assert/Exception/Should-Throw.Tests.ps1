@@ -17,9 +17,16 @@ Describe "Should-Throw" {
         { { Write-Error "fail!" } | Should-Throw -AllowNonTerminatingError } | Verify-AssertionFailed
     }
 
-    It 'Supports same positional parameters as Should -Throw' {
+    It 'Supports positional ExceptionMessage, FullyQualifiedErrorId and ExceptionType, with Because named' {
         { Write-Error -Message 'MockErrorMessage' -ErrorId 'MockErrorId' -Category 'InvalidOperation' -TargetObject 'MockTargetObject' -ErrorAction 'Stop' } |
-            Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString'
+            Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) -Because 'MockBecauseString'
+    }
+
+    It 'Because is named-only and cannot be bound positionally' {
+        # Passing a fourth positional argument used to bind to Because. Now that Because
+        # is named-only there is no positional parameter for it, so binding fails. (#2932)
+        $ex = { { throw } | Should-Throw 'MockErrorMessage' 'MockErrorId' ([Microsoft.PowerShell.Commands.WriteErrorException]) 'MockBecauseString' } | Verify-Throw
+        $ex.Exception.Message | Verify-Like '*positional parameter*'
     }
 
     It 'Throws when provided unbound scriptblock' {
@@ -132,6 +139,20 @@ Describe "Should-Throw" {
         It "Given exception that does not match on a message with escaped wildcard it returns the correct message" {
             $err = { { throw [ArgumentException]"[!]" } | Should-Throw -ExceptionMessage '`[`]' } | Verify-AssertionFailed
             $err.Exception.Message | Verify-Equal "Expected an exception, with message like '[]' to be thrown, but the message was '[!]'."
+        }
+
+        It "Hints at wildcard matching when the message is identical except for unescaped wildcard characters (#2968)" {
+            # -ExceptionMessage matches with -like, so [ ] * ? are wildcards. When the actual message
+            # is identical to the expected one treated literally, the match failed only because those
+            # characters were not escaped. The hint points that out instead of showing two
+            # identical-looking messages.
+            $err = { { throw 'value is [1]' } | Should-Throw -ExceptionMessage 'value is [1]' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Equal "Expected an exception, with message like 'value is [1]' to be thrown, but the message was 'value is [1]'.`n`nHint: -ExceptionMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExceptionMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        }
+
+        It "Does not hint at wildcard matching when the messages genuinely differ" {
+            $err = { { throw [ArgumentException]"fail!" } | Should-Throw -ExceptionMessage 'halt!' } | Verify-AssertionFailed
+            ($err.Exception.Message -like '*matches using wildcards*') | Verify-False
         }
     }
 

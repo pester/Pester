@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
@@ -24,12 +25,105 @@ namespace Pester
 {
     internal static class DictionaryExtensions
     {
+        // A value we cannot use is never intentional, so we say so instead of leaving the option on
+        // its default and letting the run behave as if the option was never set (#2975). A key that
+        // is present but null keeps meaning "not set", because that is how it has always worked and
+        // it is how an unset variable arrives here (#2219).
+        private static ConfigurationValueException NotUsable(string key, object value, string expected)
+        {
+            return new ConfigurationValueException($"{key} expects {expected}, but got {Describe(value)}.");
+        }
+
+        // While a PesterConfiguration is being built from a hashtable the problems are collected
+        // instead of thrown on, so one conversion can report every problem in the configuration and
+        // not only the first one (#3058). The option keeps its default and PesterConfiguration
+        // throws once, with the whole list, before the configuration reaches a run.
+        [ThreadStatic]
+        private static List<string> _problems;
+
+        internal static IDisposable CollectProblems(List<string> problems)
+        {
+            var previous = _problems;
+            _problems = problems;
+            return new ProblemScope(previous);
+        }
+
+        private sealed class ProblemScope : IDisposable
+        {
+            private readonly List<string> _previous;
+            public ProblemScope(List<string> previous) { _previous = previous; }
+            public void Dispose() { _problems = _previous; }
+        }
+
+        // Record the problem while collecting, throw when not. Callers return null after this, which
+        // means "not set" and leaves the option on its default; nothing reads it, the configuration
+        // is rejected as a whole.
+        private static void Reject(string key, object value, string expected)
+        {
+            var problem = NotUsable(key, value, expected);
+            if (_problems != null)
+            {
+                _problems.Add(problem.Message);
+                return;
+            }
+
+            throw problem;
+        }
+
+        // Name the type the way it is written in PowerShell, and show the value itself only when it
+        // is something worth printing. 'the string 'yes'' helps, 'the hashtable
+        // 'System.Collections.Hashtable'' does not.
+        private static string Describe(object value)
+        {
+            if (value is PSObject pso)
+                value = pso.BaseObject;
+
+            if (value == null)
+                return "nothing";
+
+            var name = TypeName(value.GetType());
+            return value is string || value.GetType().IsPrimitive || value is decimal
+                ? $"the {name} '{value}'"
+                : $"a {name}";
+        }
+
+        private static string TypeName(Type type)
+        {
+            if (type == typeof(bool)) return "bool";
+            if (type == typeof(int)) return "int";
+            if (type == typeof(decimal)) return "decimal";
+            if (type == typeof(string)) return "string";
+            if (type == typeof(ScriptBlock)) return "scriptblock";
+            if (type == typeof(Hashtable)) return "hashtable";
+            if (type == typeof(ContainerInfo)) return "container";
+            return type.Name;
+        }
+
+        private static string ExpectedValue(Type type)
+        {
+            var name = TypeName(type);
+            return name == "int" ? "an int" : $"a {name}";
+        }
+
+        private static string ExpectedArray(Type type)
+        {
+            if (type == typeof(string)) return "an array of strings";
+            if (type == typeof(ScriptBlock)) return "an array of scriptblocks";
+            if (type == typeof(ContainerInfo)) return "an array of containers";
+            return $"an array of {TypeName(type)}";
+        }
+
         public static T? GetValueOrNull<T>(this IDictionary dictionary, string key) where T : struct
         {
             if (!dictionary.Contains(key))
                 return null;
 
             var value = dictionary[key];
+            if (value is null)
+                return null;
+
+            if (value is PSObject unwrapped)
+                value = unwrapped.BaseObject;
 
             if (typeof(T) == typeof(decimal))
             {
@@ -37,7 +131,14 @@ namespace Pester
                     return (T)Convert.ChangeType(value, typeof(decimal));
             }
 
-            return value as T?;
+            var converted = value as T?;
+            if (converted == null)
+            {
+                Reject(key, value, ExpectedValue(typeof(T)));
+                return null;
+            }
+
+            return converted;
         }
 
         public static T GetObjectOrNull<T>(this IDictionary dictionary, string key) where T : class
@@ -45,11 +146,22 @@ namespace Pester
             if (!dictionary.Contains(key))
                 return null;
 
+            var value = dictionary[key];
+            if (value is null)
+                return null;
+
             if (typeof(T) == typeof(string))
-                if (dictionary[key] is PSObject o)
+                if (value is PSObject o)
                     return (T) Convert.ChangeType(o.ToString(), typeof(string));
 
-            return dictionary[key] as T;
+            var converted = value as T;
+            if (converted == null)
+            {
+                Reject(key, value, ExpectedValue(typeof(T)));
+                return null;
+            }
+
+            return converted;
         }
 
         public static IDictionary GetIDictionaryOrNull(this IDictionary dictionary, string key)
@@ -57,14 +169,21 @@ namespace Pester
             if (!dictionary.Contains(key))
                 return null;
 
-            if (dictionary[key] is PSObject pso)
+            var value = dictionary[key];
+            if (value is null)
+                return null;
+
+            if (value is PSObject pso)
+                value = pso.BaseObject;
+
+            var converted = value as IDictionary;
+            if (converted == null)
             {
-                return pso.BaseObject as IDictionary;
+                Reject(key, value, "a dictionary of options");
+                return null;
             }
-            else
-            {
-                return dictionary[key] as IDictionary;
-            }
+
+            return converted;
         }
 
         public static T[] GetArrayOrNull<T>(this IDictionary dictionary, string key) where T : class
@@ -120,6 +239,7 @@ namespace Pester
                 return new T[] { (T)value };
             }
 
+            Reject(key, value, ExpectedArray(typeof(T)));
             return null;
         }
 

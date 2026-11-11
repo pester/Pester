@@ -9,5 +9,11 @@
 *.xsd text
 *.dtd text
 *.sh text eol=lf
+# Dependabot edits the workflow files and commits the working-tree form without
+# re-normalizing. Under the global eol=crlf that meant it committed CRLF while the
+# repository stores LF, so every one of its pull requests showed every line as
+# changed. LF here makes the two agree. No blob changes, they are already LF.
+*.yml text eol=lf
+*.yaml text eol=lf
 *.dll binary
 *.PNG binary

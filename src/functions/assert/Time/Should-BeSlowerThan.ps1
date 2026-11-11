@@ -54,7 +54,7 @@
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory)]
         $Expected,
         [string] $Because
     )
@@ -71,8 +71,9 @@
         & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -le $Expected) {
-            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        $elapsed = $sw.Elapsed
+        if ($elapsed -le $Expected) {
+            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }
@@ -83,4 +84,11 @@
         }
         return
     }
+
+    # Neither branch matched. Both branches above return, so reaching here means we were handed
+    # something we cannot measure or compare. Without this the assertion would return having done
+    # nothing and the test would pass, which is the worst way to fail. It also hid a CI flake: a
+    # test asserting that a 10ms sleep is slower than 1ms failed while the whole test took 3ms,
+    # because the scriptblock was never run and nothing said so.
+    $assert.Fail("Expected a [scriptblock] to measure or a [timespan] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
 }

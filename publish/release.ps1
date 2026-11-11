@@ -49,7 +49,7 @@ if ($SkipTests) {
     Write-Host "Skipping tests because -SkipTests was specified."
 }
 else {
-    pwsh -noprofile -c "$PSSCriptRoot/../test.ps1 -nobuild"
+    pwsh -noprofile -NonInteractive -c "$PSSCriptRoot/../test.ps1 -nobuild"
     if ($LASTEXITCODE -ne 0) {
         throw "test failed!"
     }

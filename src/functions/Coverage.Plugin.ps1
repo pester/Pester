@@ -246,4 +246,16 @@ function Resolve-CodeCoverageConfiguration {
     # test can change the current location (e.g. Set-Location), so a relative path would resolve
     # against the wrong directory, or one that no longer exists (#2641).
     $PesterPreference.CodeCoverage.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+
+    # Resolve the report root to an absolute path now, for the same reason. Get-ReportRoot uses it
+    # (or its Run.RepoRoot fallback) to strip the prefix off the absolute file paths when the report
+    # is written. That also happens after all tests ran, so resolving a relative ReportRoot/RepoRoot
+    # only then would use the location the last test left behind (#2923).
+    if (-not [string]::IsNullOrEmpty($PesterPreference.CodeCoverage.ReportRoot.Value)) {
+        $PesterPreference.CodeCoverage.ReportRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.ReportRoot.Value)
+    }
+
+    if (-not [string]::IsNullOrEmpty($PesterPreference.Run.RepoRoot.Value)) {
+        $PesterPreference.Run.RepoRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.Run.RepoRoot.Value)
+    }
 }

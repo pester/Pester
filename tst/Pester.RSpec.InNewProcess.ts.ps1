@@ -273,6 +273,52 @@ i -PassThru:$PassThru {
 
     b "Exit codes" {
 
+        t "Exitcode is -1 when the test path is invalid" {
+            $temp = [IO.Path]::GetTempPath()
+            $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).txt"
+
+            try {
+                # Use an existing non-ps1 file to fail before test execution starts.
+                Set-Content -Path $testpath -Value 'not a PowerShell test file'
+                $sb = [scriptblock]::Create("
+                    `$global:LASTEXITCODE = 42
+                    Invoke-Pester -Path '$testpath' -Output None 2>`$null
+                    `"ExitCode=`$LASTEXITCODE`"
+                ")
+
+                $output = Invoke-InNewProcess -ScriptBlock $sb
+
+                $output[-1] | Verify-Equal 'ExitCode=-1'
+            }
+            finally {
+                Remove-Item -Path $testpath
+            }
+        }
+
+        t "Exitcode is -1 when an end plugin fails after a successful run" {
+            $sb = {
+                $pesterModule = Get-Module Pester
+                $plugin = & $pesterModule {
+                    # Fail after the passing test has completed.
+                    New-PluginObject -Name 'FailOnEnd' -End {
+                        throw 'Internal failure after a successful run.'
+                    }
+                }
+                & $pesterModule { param($p) $script:additionalPlugins = $p } $plugin
+
+                $global:LASTEXITCODE = 42
+                Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run    = @{ ScriptBlock = { Describe 'd' { It 'i' { 1 | Should -Be 1 } } } }
+                        Output = @{ Verbosity = 'None' }
+                    }) 2>$null
+                "ExitCode=$LASTEXITCODE"
+            }
+
+            $output = Invoke-InNewProcess -ScriptBlock $sb
+
+            $output[-1] | Verify-Equal 'ExitCode=-1'
+        }
+
         t "Exitcode is set to 0 without exiting the process when tests pass, even when some executable fails within test" {
             $temp = [IO.Path]::GetTempPath()
             $testpath = Join-Path $temp "$([Guid]::NewGuid().Guid).tests.ps1"

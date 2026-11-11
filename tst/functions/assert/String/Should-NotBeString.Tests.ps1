@@ -45,6 +45,27 @@ Describe "Should-NotBeString" {
         It "Can compare strings without whitespace" {
             { Should-NotBeString -Expected " a b c " -Actual "abc" -IgnoreWhitespace } | Verify-AssertionFailed
         }
+
+        It "Fails when strings differ only by whitespace at the start or end" -ForEach @(
+            @{ Value = " abc" }
+            @{ Value = "abc " }
+            @{ Value = "abc`t" }
+            @{ Value = "`tabc" }
+        ) {
+            { $Value | Should-NotBeString -Expected "abc" -TrimWhitespace } | Verify-AssertionFailed
+        }
+
+        It "Trimming whitespace does not remove it from inside of the string" {
+            "a bc" | Should-NotBeString -Expected "abc" -TrimWhitespace
+        }
+
+        It "Fails when strings differ only in line ending style" {
+            { "line1`nline2" | Should-NotBeString -Expected "line1`r`nline2" -NormalizeLineEnding } | Verify-AssertionFailed
+        }
+
+        It "Passes when strings differ in more than line ending style" {
+            "a`nb" | Should-NotBeString -Expected "a`n`nb" -NormalizeLineEnding
+        }
     }
 
     It "Can be called with positional parameters" {
@@ -59,6 +80,16 @@ Describe "Should-NotBeString" {
     It "Throws when -Actual is not a string" {
         $err = { Should-NotBeString -Expected "abc" -Actual 1 } | Verify-Throw
         $err.Exception | Verify-Type ([ArgumentException])
+    }
+
+    It "Requires Expected" {
+        # Don't invoke with Expected missing to test this: a missing mandatory parameter makes
+        # PowerShell prompt for it, which hangs an interactive test.ps1 run and the release build.
+        # Check the parameter metadata instead. See #2963.
+        (Get-Command Should-NotBeString).Parameters['Expected'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] } |
+            ForEach-Object Mandatory |
+            Verify-True
     }
 }
 
