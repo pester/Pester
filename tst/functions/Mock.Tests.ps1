@@ -1092,11 +1092,11 @@ Performed invocations:
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
     }
 
-    It 'Shows the line of each call site, and says so when there is none' {
+    It 'Shows the line of each call site, and names the scriptblock when there is no file' {
         Mock FunctionUnderTest { }
         FunctionUnderTest "one"
         FunctionUnderTest "two"
-        # No file behind this one, so there is no call site to report.
+        # No file behind this one, so the line is the line inside the created scriptblock.
         & ([scriptblock]::Create('FunctionUnderTest "created"'))
 
         try {
@@ -1109,20 +1109,18 @@ Performed invocations:
         $historyLines = @(($failure.Exception.Message -split "`n") | Where-Object { $_ -like '  [[]*] FunctionUnderTest*' })
         $historyLines.Count | Should -Be 3
 
-        # The entry for a call with no file says what its line means, rather than printing the Mock
-        # definition in the same shape as a real call site, where it reads as a plausible one.
-        $historyLines[2] | Should -BeLike '*(call site unknown, Mock defined at *)'
-        $mockLine = [int] ([regex]::Match($historyLines[2], ':(\d+)\)\s*$').Groups[1].Value)
+        # A call with no file is named the way the rest of Pester names a location with no file,
+        # rather than reporting the line the Mock was defined on in the shape of a real call site,
+        # where it reads as a plausible one.
+        $historyLines[2] | Should -BeLike "*FunctionUnderTest -param1 'created' from <ScriptBlock>:1"
 
         $callSites = @(foreach ($line in $historyLines[0], $historyLines[1]) {
                 [int] ([regex]::Match($line, ':(\d+)\s*$').Groups[1].Value)
             })
 
-        # The two direct calls are on consecutive lines, and both below the Mock. Before this, both
-        # reported the Mock's own line, so the difference was 0 and neither was below it.
+        # The two direct calls are on consecutive lines. Before this, every entry reported the
+        # Mock's own line, so the difference was 0.
         ($callSites[1] - $callSites[0]) | Should -Be 1
-        $callSites[0] | Should -BeGreaterThan $mockLine
-        $callSites[1] | Should -BeGreaterThan $mockLine
     }
 
     It 'Shows empty marker when mock was never called' {

@@ -2191,22 +2191,19 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         # report the Mock's own ScriptBlock, which is the line the Mock was defined on, the same
         # one for every call (#3052).
         $location = ""
-        if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile) -and 0 -lt $historyEntry.CallSiteLine) {
-            $file = $historyEntry.CallSiteFile
+        if (0 -lt $historyEntry.CallSiteLine) {
             $line = $historyEntry.CallSiteLine
-            $location = " from ${file}:${line}"
-        }
-        else {
-            # A mock called from a scriptblock with no file behind it (Invoke-Pester -ScriptBlock,
-            # the console, [scriptblock]::Create, a dynamic module) has no call site to name, so fall
-            # back to where the Mock was defined and say that is what it is. Printing it as 'from
-            # <file>:<line>' like a real call site is worse than printing nothing: the Mock is
-            # usually in the same file, so it reads as a plausible call site.
-            $sb = $historyEntry.Behavior.ScriptBlock
-            if ($null -ne $sb -and $sb.File) {
-                $file = $sb.File
-                $line = $sb.StartPosition.StartLine
-                $location = " (call site unknown, Mock defined at ${file}:${line})"
+            if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile)) {
+                $file = $historyEntry.CallSiteFile
+                $location = " from ${file}:${line}"
+            }
+            else {
+                # The call came from a scriptblock with no file behind it, one built by
+                # [scriptblock]::Create or typed at the console. The line is the line inside that
+                # scriptblock, so it still tells the calls apart. '<ScriptBlock>' is how the rest of
+                # Pester names a location with no file, see ToStringConverter.ScriptBlockToString
+                # and the '<ScriptBlock>, <No file>: line N' frames in a stack trace.
+                $location = " from <ScriptBlock>:${line}"
             }
         }
 
