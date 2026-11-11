@@ -172,6 +172,65 @@ i -PassThru:$PassThru {
             $xmlTestCase.name | Verify-Equal "Mocked Describe abc.Failed testcase abc"
         }
 
+        t "should write the path of the blocks the test is in as classname" {
+            # CI reports show classname as the suite name, see #3062
+            $sb = {
+                Describe "Mocked Describe" {
+                    Context "Mocked Context" {
+                        It "Successful testcase" {
+                            $true | Should -Be $true
+                        }
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCase.classname | Verify-Equal "Mocked Describe.Mocked Context"
+        }
+
+        t "should not expand the block path in classname, so a -ForEach block is one group" {
+            $sb = {
+                Describe "Mocked Describe <value>" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                } -ForEach @(@{ Value = "abc" }, @{ Value = "def" })
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCases = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            $xmlTestCases.Count | Verify-Equal 2
+            # both iterations share the classname, and name tells them apart
+            $xmlTestCases[0].classname | Verify-Equal "Mocked Describe <value>"
+            $xmlTestCases[1].classname | Verify-Equal "Mocked Describe <value>"
+            $xmlTestCases[0].name | Verify-Equal "Mocked Describe abc.Successful testcase"
+            $xmlTestCases[1].name | Verify-Equal "Mocked Describe def.Successful testcase"
+        }
+
+        t "should write the file the test is defined in" {
+            $sb = {
+                Describe "Mocked Describe" {
+                    It "Successful testcase" {
+                        $true | Should -Be $true
+                    }
+                }
+            }
+
+            $r = Invoke-Pester -Container (New-PesterContainer -ScriptBlock $sb) -PassThru -Output None
+
+            $xmlResult = $r | ConvertTo-JUnitReport
+            $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+            # the scriptblock is defined in this file, so that is where the test is
+            $xmlTestCase.file | Verify-Like "*Pester.RSpec.TestResults.JUnit4.ts.ps1"
+            # forward slashes on every platform, the path is matched against the repository
+            $xmlTestCase.file.Contains('\') | Verify-False
+        }
+
         t "should write the test summary" {
             $sb = {
                 Describe "Mocked Describe" {
@@ -331,6 +390,90 @@ i -PassThru:$PassThru {
 
             $xmlResult.Schemas.Add($null, $schemaPath) > $null
             $xmlResult.Validate( { throw $args[1].Exception })
+        }
+    }
+
+    b "Writing the file attribute for a test file" {
+        # https://github.com/pester/Pester/issues/3062
+        $sb = {
+            Describe 'Calculator' {
+                It 'adds two numbers' {
+                    1 + 1 | Should -Be 2
+                }
+            }
+        }
+
+        t "writes the test file relative to the repo root" {
+            try {
+                $root = Join-Path ([IO.Path]::GetTempPath()) "PesterJUnit-$([Guid]::NewGuid())"
+                $null = New-Item -ItemType Directory -Path (Join-Path $root 'tests') -Force
+                # resolve the root the same way the file path is resolved, so the prefix matches
+                $root = (Resolve-Path $root).Path
+                $script = Join-Path (Join-Path $root 'tests') 'Thing.Tests.ps1'
+                $sb | Set-Content -Path $script -Force
+
+                $xml = [IO.Path]::GetTempFileName()
+                $null = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{
+                            Path     = $script
+                            RepoRoot = $root
+                            PassThru = $true
+                        }
+                        Output     = @{
+                            Verbosity = 'None'
+                        }
+                        TestResult = @{
+                            Enabled      = $true
+                            OutputFormat = 'JUnitXml'
+                            OutputPath   = $xml
+                        }
+                    })
+
+                $xmlResult = [xml] (Get-Content $xml -Raw)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $xmlTestCase.file | Verify-Equal 'tests/Thing.Tests.ps1'
+            }
+            finally {
+                if (Test-Path $root) { Remove-Item $root -Recurse -Force -ErrorAction Ignore }
+                if (Test-Path $xml) { Remove-Item $xml -Force -ErrorAction Ignore }
+            }
+        }
+
+        t "keeps the full path when the test file is not under the repo root" {
+            try {
+                $root = Join-Path ([IO.Path]::GetTempPath()) "PesterJUnit-$([Guid]::NewGuid())"
+                $null = New-Item -ItemType Directory -Path (Join-Path $root 'tests') -Force
+                $otherRoot = New-Item -ItemType Directory -Path (Join-Path $root 'other') -Force
+                $root = (Resolve-Path $root).Path
+                $script = Join-Path (Join-Path $root 'tests') 'Thing.Tests.ps1'
+                $sb | Set-Content -Path $script -Force
+
+                $xml = [IO.Path]::GetTempFileName()
+                $r = Invoke-Pester -Configuration ([PesterConfiguration]@{
+                        Run        = @{
+                            Path     = $script
+                            RepoRoot = $otherRoot.FullName
+                            PassThru = $true
+                        }
+                        Output     = @{
+                            Verbosity = 'None'
+                        }
+                        TestResult = @{
+                            Enabled      = $true
+                            OutputFormat = 'JUnitXml'
+                            OutputPath   = $xml
+                        }
+                    })
+
+                $xmlResult = [xml] (Get-Content $xml -Raw)
+                $xmlTestCase = $xmlResult.'testsuites'.'testsuite'.'testcase'
+                $expected = $r.Containers[0].Blocks[0].Tests[0].ScriptBlock.File.Replace('\', '/')
+                $xmlTestCase.file | Verify-Equal $expected
+            }
+            finally {
+                if (Test-Path $root) { Remove-Item $root -Recurse -Force -ErrorAction Ignore }
+                if (Test-Path $xml) { Remove-Item $xml -Force -ErrorAction Ignore }
+            }
         }
     }
 
