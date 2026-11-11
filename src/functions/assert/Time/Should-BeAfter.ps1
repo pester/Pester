@@ -115,6 +115,16 @@
         }
     }
 
+    # $Actual has to be a point in time. It is not typed, and a relational operator compares
+    # whatever it is handed: with a string on the left PowerShell compares as strings, and
+    # 'a string' sorts after a formatted date, so 'a string' | Should-BeAfter (Get-Date)
+    # reported that a string is a later point in time than a date, without asserting anything about
+    # time (#3038). $Expected needs no such check, it is declared [DateTime] and the binder converts
+    # it. [datetimeoffset] is allowed here, it is not a [datetime] but it compares with one.
+    if ($Actual -isnot [datetime] -and $Actual -isnot [datetimeoffset]) {
+        $assert.Fail("Expected a [datetime] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
+    }
+
     # A relational operator throws a native conversion error when $Actual is not a comparable single
     # value, which is what happens when a multi-item collection is piped in and unwrapped to [object[]].
     # Catch it so we can show the input hint instead of a cryptic "Could not compare" error; when it is

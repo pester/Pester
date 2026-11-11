@@ -59,6 +59,23 @@ Describe "Should-BeAfter" {
         { $past, $future | Should-BeAfter -Expected ([DateTime]::Now) } | Verify-AssertionFailed
     }
 
+    It "Throws when actual is not a point in time" -ForEach @(
+        @{ Actual = 'a string' }
+        @{ Actual = 42 }
+        @{ Actual = $null }
+        @{ Actual = @{ a = 1 } }
+    ) {
+        # 'a string' | Should-BeAfter (Get-Date) passed: a string on the left makes PowerShell compare
+        # as strings, and 'a string' sorts after a formatted date, so the assertion reported that
+        # a string is a later point in time than a date (#3038).
+        $err = { $Actual | Should-BeAfter -Expected ([datetime]::Now) } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a `[datetime`] to compare,*'
+    }
+
+    It "Accepts a [datetimeoffset], which is not a [datetime] but compares with one" {
+        [datetimeoffset]([datetime]::Now.AddDays(1)) | Should-BeAfter -Expected ([datetime]::Now)
+    }
+
     It "Has Because parameter" {
         $err = { [DateTime]::Now.AddDays(-1) | Should-BeAfter -Expected ([DateTime]::Now) -Because 'I said so' } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Like '*because I said so*'
