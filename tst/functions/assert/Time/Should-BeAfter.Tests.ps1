@@ -76,6 +76,21 @@ Describe "Should-BeAfter" {
         [datetimeoffset]([datetime]::Now.AddDays(1)) | Should-BeAfter -Expected ([datetime]::Now)
     }
 
+    It "Throws when expected is not a point in time" -ForEach @(
+        @{ Expected = 42 }
+        @{ Expected = 'a string' }
+        @{ Expected = @{ a = 1 } }
+    ) {
+        # -Expected 42 used to become 42 ticks, the year 1, because the parameter was declared
+        # [DateTime] and the binder converted it (#3038).
+        $err = { [datetime]::Now | Should-BeAfter -Expected $Expected } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a `[datetime`] to compare against,*'
+    }
+
+    It "Accepts a date written as a string, which the binder used to convert" {
+        [datetime]'2030-01-01' | Should-BeAfter -Expected '2020-01-01'
+    }
+
     It "Has Because parameter" {
         $err = { [DateTime]::Now.AddDays(-1) | Should-BeAfter -Expected ([DateTime]::Now) -Because 'I said so' } | Verify-AssertionFailed
         $err.Exception.Message | Verify-Like '*because I said so*'
