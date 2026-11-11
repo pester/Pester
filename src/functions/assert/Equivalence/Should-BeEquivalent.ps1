@@ -419,7 +419,7 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
             # strict comparison of a FileInfo took were spent building this one message, which
             # nothing prints unless the caller asked for verbose output (#3051). The names are also
             # what the message is about.
-            $namesNotInExpected = @($filteredPropertiesNotInExpected | Select-Object -ExpandProperty Name)
+            $namesNotInExpected = @(foreach ($p in $filteredPropertiesNotInExpected) { $p.Name })
             Write-EquivalenceResult -Difference "`$Actual has ($($namesNotInExpected.Count)) properties that `$Expected does not have: $(Format-Nicely2 $namesNotInExpected)."
         }
         else {
