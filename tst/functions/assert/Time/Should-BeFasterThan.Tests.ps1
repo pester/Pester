@@ -24,13 +24,17 @@ InPesterModuleScope {
 }
 
 Describe "Should-BeFasterThan" {
-    # Measuring a scriptblock times everything around it as well: compiling it, GC, and whatever
-    # else the machine is doing. That overhead has no upper bound on a shared CI runner, so the
-    # ceiling here is deliberately far larger than the sleep it is checking. A 10ms sleep that takes
-    # 30 seconds means the machine is broken, not that the assertion is wrong. The opposite
-    # direction needs no such margin, a sleep never finishes early.
+    # No test in here needs the stopwatch to have advanced. The scriptblock comparison is
+    # "measured -ge expected", so a bound of zero always fails and a bound of 30 seconds always
+    # passes, whatever the clock did. That is on purpose. The old test slept 10ms and compared
+    # against 1ms, and it failed on CI every week or two, reporting the whole test as 4ms or 8ms,
+    # less than the sleep it contains, while nothing threw. Pester times a test with a Stopwatch as
+    # well, so that duration and the assertion's own measurement come from the same performance
+    # counter, and both saw less time pass than the sleep took. A sleep the clock does not see is
+    # not something a larger margin fixes, so the sleeps are gone.
+    # Should-BeSlowerThan.Tests.ps1 follows the same rule.
     It "Does not throw when actual is faster than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "30s" }
+        @{ Actual = { }; Expected = "30s" }
     ) {
         $Actual | Should-BeFasterThan -Expected $Expected
     }
@@ -42,9 +46,19 @@ Describe "Should-BeFasterThan" {
     }
 
     It "Throws when scriptblock is slower than expected" -ForEach @(
-        @{ Actual = { Start-Sleep -Milliseconds 10 }; Expected = "1ms" }
+        # Nothing runs in less than no time, so this fails however the clock behaves.
+        @{ Actual = { }; Expected = "0ms" }
     ) {
         { $Actual | Should-BeFasterThan -Expected $Expected } | Verify-AssertionFailed
+    }
+
+    It "Runs the scriptblock it measures, once" {
+        # The bounds above come out the same whether or not the scriptblock does anything, so this
+        # is the test that proves the assertion invokes it. A list rather than a counter variable:
+        # & runs the scriptblock in a child scope, where $i++ would only touch a local copy.
+        $runs = [System.Collections.Generic.List[int]]@()
+        { $runs.Add(1) } | Should-BeFasterThan -Expected "30s"
+        $runs.Count | Verify-Equal 1
     }
 
     It "Throw timespan is longer than expected" -ForEach @(
