@@ -1,4 +1,4 @@
-# session state bound functions that act as endpoints,
+﻿# session state bound functions that act as endpoints,
 # so the internal functions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
@@ -460,7 +460,10 @@ function Get-VerifiableBehaviors {
             $isShadowed = $shadowedCommands.ContainsKey($key)
 
             foreach ($behavior in $commandBehaviors) {
-                if ($behavior.Verifiable -and -not $isShadowed) {
+                # Only a default behavior can be shadowed by a closer default. FindMatchingBehavior tests
+                # every parameter-filtered behavior from every scope before it falls back to the default it
+                # stored, so an outer filtered behavior is still reachable and still has to be invoked.
+                if ($behavior.Verifiable -and -not ($isShadowed -and $behavior.IsDefault)) {
                     $behaviors.Add($behavior)
                 }
 
