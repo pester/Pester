@@ -249,13 +249,10 @@ function Resolve-CodeCoverageConfiguration {
 
     # Resolve the report root to an absolute path now, for the same reason. Get-ReportRoot uses it
     # (or its Run.RepoRoot fallback) to strip the prefix off the absolute file paths when the report
-    # is written. That also happens after all tests ran, so resolving a relative ReportRoot/RepoRoot
-    # only then would use the location the last test left behind (#2923).
+    # is written. That also happens after all tests ran, so resolving a relative ReportRoot only
+    # then would use the location the last test left behind (#2923). Run.RepoRoot needs nothing
+    # here, Invoke-Pester resolves it for every run, coverage or not, before this plugin is built.
     if (-not [string]::IsNullOrEmpty($PesterPreference.CodeCoverage.ReportRoot.Value)) {
         $PesterPreference.CodeCoverage.ReportRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.ReportRoot.Value)
-    }
-
-    if (-not [string]::IsNullOrEmpty($PesterPreference.Run.RepoRoot.Value)) {
-        $PesterPreference.Run.RepoRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.Run.RepoRoot.Value)
     }
 }
