@@ -944,6 +944,121 @@ BeforeAll { }
             ($errors.Count -gt 0) | Verify-True
         }
 
+        t "gives every runspace its own session state" {
+            # RunspaceFactory.CreateRunspacePool hands one InitialSessionState instance to every
+            # runspace in the pool. Import-Module adds a module's FormatsToProcess entries to that
+            # collection and then enumerates it, so with a shared instance one worker added while
+            # another enumerated and the run failed with "Collection was modified; enumeration
+            # operation may not execute" (#3047). Pester declares FormatsToProcess and every worker
+            # imports Pester, so this was reachable from any suite.
+            #
+            # Every item waits until all four have started, so four runspaces really are open at the
+            # same time and the count of distinct session states is exact rather than timing
+            # dependent. Without the wait the items finish while the rest are still being dispatched
+            # and a runspace that came free is reused, which is correct but tests something else.
+            $state = [hashtable]::Synchronized(@{ Arrived = 0 })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $state.Arrived++ } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+                $waited = [System.Diagnostics.Stopwatch]::StartNew()
+                while ($state.Arrived -lt 4 -and $waited.Elapsed.TotalSeconds -lt 20) {
+                    Start-Sleep -Milliseconds 10
+                }
+
+                [runspace]::DefaultRunspace.InitialSessionState.GetHashCode()
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 4
+            $state.Arrived | Verify-Equal 4
+            @($r | Sort-Object -Unique).Count | Verify-Equal 4
+        }
+
+        t "a built-in command reports the module it came from" {
+            # InitialSessionState::CreateDefault loads the built-in commands through the legacy
+            # snap-in infrastructure, which leaves CommandInfo.Module null on a built-in command,
+            # while a sequential run reports the module (#3066). CreateDefault2 does not.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    $null -ne (Get-Command Get-Item -ErrorAction Stop).Module
+                }
+            }
+
+            @($r).Count | Verify-Equal 2
+            foreach ($hasModule in $r) { $hasModule | Verify-True }
+        }
+
+        t "hands a free runspace to the next item instead of opening another one" {
+            # What the pool gave us for free and the hand-rolled one has to keep: a runspace carries
+            # over to the items that follow it, so a worker that imports Pester pays for the import
+            # once per runspace and not once per test file.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    [runspace]::DefaultRunspace.InstanceId.ToString()
+                }
+            }
+
+            @($r).Count | Verify-Equal 3
+            @($r | Sort-Object -Unique).Count | Verify-Equal 1
+        }
+        t "takes a finished runspace back instead of opening another one" {
+            # The loop used to dispatch the whole throttle before looking at what had finished, so it
+            # always opened min(ThrottleLimit, items) runspaces even when the work never ran that many
+            # at once. Every extra runspace pays for importing the worker's modules again, which is
+            # the cost the reuse exists to avoid.
+            #
+            # 60 trivial items with a throttle of 60: the items finish faster than the loop can
+            # dispatch them, so most are handed a runspace that came free. This is a bound and not an
+            # exact number, because how many are in flight at once depends on the machine. Measured
+            # here it is 13 or 14 of 60, and it was 60 before.
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..60) -ThrottleLimit 60 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 60
+            $runspacesUsed = @($state.Runspaces | Sort-Object -Unique).Count
+            ($runspacesUsed -lt 60) | Verify-True
+            ($runspacesUsed -ge 1) | Verify-True
+        }
+
+        t "never opens more runspaces than the throttle allows" {
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                Start-Sleep -Milliseconds 100
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..12) -ThrottleLimit 3 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 12
+            @($state.Runspaces | Sort-Object -Unique).Count | Verify-Equal 3
+        }
+
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
