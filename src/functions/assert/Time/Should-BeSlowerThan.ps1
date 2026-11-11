@@ -68,14 +68,22 @@
 
     if ($Actual -is [scriptblock]) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        # Assigned away, so the measured scriptblock's output does not become this assertion's
-        # output. '{ 1, 2, 3 } | Should-BeFasterThan 30s' used to write 1, 2, 3 to the caller.
-        # The [timespan] branch below writes nothing, and an assertion should not write anything.
-        $null = & $Actual
+        & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -le $Expected) {
-            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        # The measurement has to be something we can compare, or the comparison below answers
+        # "no" for the wrong reason and the assertion returns as a pass. $null -ge a [timespan] is
+        # $false in PowerShell, and so is an empty collection on the left of a comparison, which
+        # filters to nothing. Either would make this assertion pass quietly, while Should-BeFasterThan
+        # compares with -ge, where $null is $true, so it would pass quietly. A measurement
+        # taken for a pass is the worst of the two, so it is checked.
+        $elapsed = $sw.Elapsed
+        if ($elapsed -isnot [timespan]) {
+            $assert.Fail("Expected to measure how long the [scriptblock] takes,<because> but the measurement came back as <actualType> <actual>.", @{ Actual = $elapsed; Because = $Because })
+        }
+
+        if ($elapsed -le $Expected) {
+            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }

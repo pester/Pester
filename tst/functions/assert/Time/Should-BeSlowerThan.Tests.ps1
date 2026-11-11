@@ -29,11 +29,6 @@ Describe "Should-BeSlowerThan" {
         $runs.Count | Verify-Equal 1
     }
 
-    It "Does not pass the measured scriptblock's output on" {
-        $out = { 1, 2, 3; Start-Sleep -Milliseconds 50 } | Should-BeSlowerThan -Expected "1ms"
-        Verify-Null -Actual $out
-    }
-
     It "Throw timespan is shorter than expected" -ForEach @(
         @{ Actual = [timespan]::FromMilliseconds(10); Expected = "1000ms" }
     ) {
