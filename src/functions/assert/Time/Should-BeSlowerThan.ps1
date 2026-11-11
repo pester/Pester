@@ -71,8 +71,9 @@
         & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -le $Expected) {
-            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        $elapsed = $sw.Elapsed
+        if ($elapsed -le $Expected) {
+            $assert.Fail("The provided [scriptblock] should execute slower than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }

@@ -1867,6 +1867,10 @@ i -PassThru:$PassThru {
             $r.Containers[0].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[0].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
             $r.Containers[0].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
+            # The message names the It, otherwise a file with more than one of them says nothing
+            # about which one is wrong, and the reader only gets a line number in the trace (#3057).
+            $r.Containers[0].ErrorRecord.Exception.Message -match "It 'i'" | Verify-True
+            $r.Containers[0].ErrorRecord.FullyQualifiedErrorId | Verify-Equal 'PesterUserError'
             $r.Containers[1].Result = 'Failed'
             $r.Containers[1].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -1990,6 +1994,8 @@ i -PassThru:$PassThru {
             $r.Containers[2].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
             $r.Containers[2].ErrorRecord.Exception.Message -match 'AllowNullOrEmptyForEach' | Verify-True
             $r.Containers[2].ErrorRecord.Exception.Message -match 'FailOnNullOrEmptyForEach' | Verify-True
+            $r.Containers[0].ErrorRecord.Exception.Message -match "Describe 'dEmpty'" | Verify-True
+            $r.Containers[2].ErrorRecord.Exception.Message -match "Context 'cEmpty'" | Verify-True
             $r.Containers[3].Result = 'Failed'
             $r.Containers[3].ErrorRecord.Exception | Verify-Type ([System.ArgumentException])
         }
@@ -2185,6 +2191,105 @@ i -PassThru:$PassThru {
             $container = New-PesterContainer -ScriptBlock $sb
             $r = Invoke-Pester -Container $container -PassThru
             $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "skip <lit>"
+        }
+
+        t "a template whose variable does not exist stays as it was written (#3048)" {
+            # It used to become $null, so 'Describe "<Foo>"' with no $Foo printed 'Describing $null'
+            # and said nothing about the typo.
+            $sb = {
+                Describe "<Foo>" {
+                    It "<Bar>" { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].ExpandedName | Verify-Equal "<Foo>"
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal "<Bar>"
+        }
+
+        t "a variable that exists and holds `$null still renders as `$null (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    BeforeAll { $empty = $null }
+                    It 'i <empty>' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i $null'
+        }
+
+        t "a template that is not a variable is still evaluated (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    It 'i <(1 + 1)>' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i 2'
+        }
+
+        t "an invalid template does not print a ParseException, the name stays as it was written (#3048)" {
+            # '<Foo/Bar>' builds an expression that does not parse. The ParseException showed
+            # Pester's generated FormatNicelyForTemplate call and the test did not run.
+            $sb = {
+                Describe 'd' {
+                    It '<Foo/Bar>' { 1 | Should -Be 1 }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal '<Foo/Bar>'
+            $r.Containers[0].Blocks[0].Tests[0].Result | Verify-Equal 'Passed'
+        }
+
+        t "a template that throws while it is evaluated still fails, it is not kept literal (#3048)" {
+            # Only the parse is guarded. Catching everything made a name that could not be computed
+            # report green, which is the opposite of what #3048 asks for.
+            $sb = {
+                Describe 'bad <(1/0)>' {
+                    It 'i' { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+        }
+
+        t "a template that names a provider path still expands (#3048)" {
+            # '<env:FOO>' is not a variable PSVariable.Get can find, so the existence check has to
+            # leave a qualified template alone and evaluate it the way it always did.
+            $env:PESTER_TEMPLATE_PROBE = 'probed'
+            try {
+                $sb = {
+                    Describe 'd' {
+                        It 'i <env:PESTER_TEMPLATE_PROBE>' { }
+                    }
+                }
+
+                $container = New-PesterContainer -ScriptBlock $sb
+                $r = Invoke-Pester -Container $container -PassThru
+                $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'i probed'
+            }
+            finally { $env:PESTER_TEMPLATE_PROBE = $null }
+        }
+
+        t "a skipped test keeps a template whose variable does not exist as it was written (#3048)" {
+            $sb = {
+                Describe 'd' {
+                    It 'skip <Foo>' -Skip { }
+                }
+            }
+
+            $container = New-PesterContainer -ScriptBlock $sb
+            $r = Invoke-Pester -Container $container -PassThru
+            $r.Containers[0].Blocks[0].Tests[0].ExpandedName | Verify-Equal 'skip <Foo>'
         }
 
         t "<_> expands to `$_ in It even if It does not define any data" {

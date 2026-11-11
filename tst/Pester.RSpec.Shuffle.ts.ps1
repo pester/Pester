@@ -140,17 +140,37 @@ i -PassThru:$PassThru {
         }
 
         t "reorders the Its inside a block" {
-            # Seed 7 puts the C block's tests out of declaration order.
-            $shuffled = Get-ExecutionOrder -Shuffle -Seed 7
-            $cTests = @($shuffled.Order | Where-Object { $_ -like 'C.*' })
-            ($cTests -join ',') | Verify-Equal 'C.c2,C.c1,C.c3'
+            # Which permutation a seed gives depends on how the container's generator is derived, and
+            # for a script block that includes where the script block is written (#3056), so look for
+            # a seed that reorders rather than pinning one order to one seed. Three tests have six
+            # orders, so the first seed almost always does it.
+            $reordered = $false
+            foreach ($seed in 1..20) {
+                $shuffled = Get-ExecutionOrder -Shuffle -Seed $seed
+                $cTests = @($shuffled.Order | Where-Object { $_ -like 'C.*' })
+                $cTests.Count | Verify-Equal 3
+                if (($cTests -join ',') -ne 'C.c1,C.c2,C.c3') {
+                    $reordered = $true
+                    break
+                }
+            }
+
+            $reordered | Verify-True
         }
 
         t "reorders the Its inside a nested Context" {
-            # Seed 7 puts the nested Context's tests out of declaration order.
-            $shuffled = Get-ExecutionOrder -Shuffle -Seed 7
-            $inner = @($shuffled.Order | Where-Object { $_ -like 'A.inner.*' })
-            ($inner -join ',') | Verify-Equal 'A.inner.ai2,A.inner.ai1'
+            $reordered = $false
+            foreach ($seed in 1..20) {
+                $shuffled = Get-ExecutionOrder -Shuffle -Seed $seed
+                $inner = @($shuffled.Order | Where-Object { $_ -like 'A.inner.*' })
+                $inner.Count | Verify-Equal 2
+                if (($inner -join ',') -ne 'A.inner.ai1,A.inner.ai2') {
+                    $reordered = $true
+                    break
+                }
+            }
+
+            $reordered | Verify-True
         }
     }
 
@@ -245,6 +265,107 @@ i -PassThru:$PassThru {
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
+    }
+
+    b "A file's order does not depend on the rest of the run" {
+        # One generator for the whole run used to be consumed in sequence, the file order first and
+        # then each file's blocks and tests, so a file's order depended on how many values had
+        # already been drawn. Rerunning one failing file with the seed from a full CI run gave a
+        # different order and the failure did not have to reproduce, which is the workflow the seed
+        # exists for (#3056).
+        t "the same seed gives a file the same order wherever Pester was started, and in parallel" {
+            # Nothing about the path can go into the key. Run.RepoRoot is resolved per run and falls
+            # back to the current location when there is no .git above the tests, and a parallel
+            # worker is handed Run.RepoRoot = '', so a key built from a path moved the problem
+            # instead of fixing it (#3056).
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $folder = Join-Path $root 'tst'
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            foreach ($name in 'A', 'B', 'C', 'D') {
+                $its = @(1..5 | ForEach-Object { "    It '$name$_' { }" }) -join [Environment]::NewLine
+                Set-Content -Path (Join-Path $folder "$name.Tests.ps1") -Value "Describe '$name' {$([Environment]::NewLine)$its$([Environment]::NewLine)}"
+            }
+
+            try {
+                function Get-BOrder ([string] $Path, [int] $Seed, [string] $Cwd, [bool] $Parallel) {
+                    Push-Location $Cwd
+                    try {
+                        $c = [PesterConfiguration]::Default
+                        $c.Run.Path = $Path
+                        $c.Run.Shuffle = $true
+                        $c.Run.ShuffleSeed = $Seed
+                        $c.Run.Parallel = $Parallel
+                        $c.Run.PassThru = $true
+                        $c.Output.Verbosity = 'None'
+                        $r = Invoke-Pester -Configuration $c
+                    }
+                    finally { Pop-Location }
+
+                    # From the result object, because a parallel worker's globals are in another
+                    # runspace. The shuffle rebuilds .Tests to follow the order they ran in.
+                    $names = foreach ($container in $r.Containers) {
+                        foreach ($block in $container.Blocks) {
+                            foreach ($test in $block.Tests) { $test.Name }
+                        }
+                    }
+                    (@($names | Where-Object { $_ -like 'B*' })) -join ','
+                }
+
+                foreach ($seed in 42, 777) {
+                    $inFullRun = Get-BOrder -Path $folder -Seed $seed -Cwd $root -Parallel $false
+                    @($inFullRun -split ',').Count | Verify-Equal 5
+
+                    # One file, run from the folder the files are in rather than from above it.
+                    Get-BOrder -Path './B.Tests.ps1' -Seed $seed -Cwd $folder -Parallel $false | Verify-Equal $inFullRun
+
+                    # And the same files in parallel, where each worker discovers its own file.
+                    Get-BOrder -Path $folder -Seed $seed -Cwd $root -Parallel $true | Verify-Equal $inFullRun
+                }
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
+        t "Get-ContainerShuffleKey names a file without its folder" {
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            $file = Join-Path $folder 'B.Tests.ps1'
+            Set-Content -Path $file -Value "Describe 'B' { It 'b' { } }"
+            try {
+                $container = New-PesterContainer -Path $file
+                $key = & (Get-Module Pester) { param ($container) Get-ContainerShuffleKey -Container $container } $container
+
+                # The name only, so the key is the same wherever the file is checked out and
+                # whatever Pester resolved Run.RepoRoot to for this run.
+                $key | Verify-Equal 'B.Tests.ps1'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "Get-ContainerShuffleKey names a script block by its file and first line" {
+            $sb = { Describe 'd' { It 'i' { } } }
+            $container = New-PesterContainer -ScriptBlock $sb
+            $key = & (Get-Module Pester) { param ($container) Get-ContainerShuffleKey -Container $container } $container
+
+            # A script block has no identity beyond where it is written.
+            $key | Verify-Like '<ScriptBlock>:Pester.RSpec.Shuffle.ts.ps1:*'
+        }
+
+        t "Get-StableStringHash gives the same number for the same string, and a different one for a different string" {
+            $hashes = & (Get-Module Pester) {
+                [PSCustomObject]@{
+                    First  = Get-StableStringHash -Value 'tst/B.Tests.ps1'
+                    Again  = Get-StableStringHash -Value 'tst/B.Tests.ps1'
+                    Other  = Get-StableStringHash -Value 'tst/A.Tests.ps1'
+                    Empty  = Get-StableStringHash -Value ''
+                }
+            }
+
+            $hashes.First | Verify-Equal $hashes.Again
+            ($hashes.First -ne $hashes.Other) | Verify-True
+            ($hashes.First -ge 0) | Verify-True
+            ($hashes.Empty -ge 0) | Verify-True
+        }
+
     }
 
     b "Opting out with #pester:no-shuffle" {

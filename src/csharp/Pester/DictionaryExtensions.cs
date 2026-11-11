@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 
@@ -31,6 +32,42 @@ namespace Pester
         private static ConfigurationValueException NotUsable(string key, object value, string expected)
         {
             return new ConfigurationValueException($"{key} expects {expected}, but got {Describe(value)}.");
+        }
+
+        // While a PesterConfiguration is being built from a hashtable the problems are collected
+        // instead of thrown on, so one conversion can report every problem in the configuration and
+        // not only the first one (#3058). The option keeps its default and PesterConfiguration
+        // throws once, with the whole list, before the configuration reaches a run.
+        [ThreadStatic]
+        private static List<string> _problems;
+
+        internal static IDisposable CollectProblems(List<string> problems)
+        {
+            var previous = _problems;
+            _problems = problems;
+            return new ProblemScope(previous);
+        }
+
+        private sealed class ProblemScope : IDisposable
+        {
+            private readonly List<string> _previous;
+            public ProblemScope(List<string> previous) { _previous = previous; }
+            public void Dispose() { _problems = _previous; }
+        }
+
+        // Record the problem while collecting, throw when not. Callers return null after this, which
+        // means "not set" and leaves the option on its default; nothing reads it, the configuration
+        // is rejected as a whole.
+        private static void Reject(string key, object value, string expected)
+        {
+            var problem = NotUsable(key, value, expected);
+            if (_problems != null)
+            {
+                _problems.Add(problem.Message);
+                return;
+            }
+
+            throw problem;
         }
 
         // Name the type the way it is written in PowerShell, and show the value itself only when it
@@ -96,7 +133,10 @@ namespace Pester
 
             var converted = value as T?;
             if (converted == null)
-                throw NotUsable(key, value, ExpectedValue(typeof(T)));
+            {
+                Reject(key, value, ExpectedValue(typeof(T)));
+                return null;
+            }
 
             return converted;
         }
@@ -116,7 +156,10 @@ namespace Pester
 
             var converted = value as T;
             if (converted == null)
-                throw NotUsable(key, value, ExpectedValue(typeof(T)));
+            {
+                Reject(key, value, ExpectedValue(typeof(T)));
+                return null;
+            }
 
             return converted;
         }
@@ -135,7 +178,10 @@ namespace Pester
 
             var converted = value as IDictionary;
             if (converted == null)
-                throw NotUsable(key, value, "a dictionary of options");
+            {
+                Reject(key, value, "a dictionary of options");
+                return null;
+            }
 
             return converted;
         }
@@ -193,7 +239,8 @@ namespace Pester
                 return new T[] { (T)value };
             }
 
-            throw NotUsable(key, value, ExpectedArray(typeof(T)));
+            Reject(key, value, ExpectedArray(typeof(T)));
+            return null;
         }
 
         public static void AssignValueIfNotNull<T>(this IDictionary dictionary, string key, Action<T> assign)
