@@ -560,6 +560,36 @@ Describe 'Second' {
             finally { Remove-Item -Path $start -Recurse -Force }
         }
 
+        t "FindRepoRoot finds a root whose .git is a file, not a directory (#3069)" {
+            # A git worktree, a submodule, and a clone made with --separate-git-dir all put a .git
+            # file at the root instead of a .git directory. Looking only for a directory walked past
+            # the root and fell back to the start location.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                Set-Content -Path (Join-Path $root ".git") -Value "gitdir: /somewhere/else/.git/worktrees/wt"
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
+        t "FindRepoRoot still finds a root whose .git is a directory" {
+            # The counterpart to the test above, so accepting a file does not come at the cost of
+            # the ordinary clone.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                $null = New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
         t "applies the same cascade inside each parallel worker" {
             $folder = New-CascadingBeforeContainerFolder
             try {
