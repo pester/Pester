@@ -182,15 +182,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # Installed straight from PSGallery rather than through potatoqualitee/psmodulecache.
-      # That is a composite action and its own actions/cache reference is not pinned to a SHA.
-      # The "require actions to be pinned to a full-length commit SHA" policy applies to
-      # references inside composite actions too, so with the policy on this job failed at Set up
-      # job before running anything, and PSScriptAnalyzer is a required check (#3036). Pinning our
-      # own reference does not help, the unpinned one is theirs and moves between their releases.
-      #
-      # Dropping the cache rather than replacing it with a pinned actions/cache: the install is
-      # 21 s measured, this job takes 65-92 s, and the CI matrix beside it takes 638-743 s, so the
-      # cache never shortened a run.
+      # That is a composite action whose own actions/cache reference is not pinned to a SHA, and
+      # the "require actions to be pinned to a full-length commit SHA" policy applies to
+      # references inside composite actions too, so this job cannot start while the policy is on.
+      # Pinning our own reference does not help, the unpinned one is theirs (#3036).
       - name: Install PSScriptAnalyzer and ConvertToSARIF
         shell: pwsh
         run: |
