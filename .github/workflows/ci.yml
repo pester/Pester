@@ -181,10 +181,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@9e4b63833c22c1768d648e115a9c849afdda22a5 # v6.3
-        with:
-          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
+      # Installed straight from PSGallery rather than through potatoqualitee/psmodulecache.
+      # That is a composite action whose own actions/cache reference is not pinned to a SHA, and
+      # the "require actions to be pinned to a full-length commit SHA" policy applies to
+      # references inside composite actions too, so this job cannot start while the policy is on.
+      # Pinning our own reference does not help, the unpinned one is theirs (#3036).
+      - name: Install PSScriptAnalyzer and ConvertToSARIF
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Repository PSGallery
+          Install-Module ConvertToSARIF -RequiredVersion 1.0.0 -Scope CurrentUser -Force -Repository PSGallery
 
       # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
       - name: Run PSScriptAnalyzer
