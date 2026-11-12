@@ -553,9 +553,14 @@ function Invoke-Pester {
             # process working directory, and Set-Location does not change that, so a session that
             # started somewhere else and then changed directory into a repository kept a RepoRoot
             # pointing at the old place, and every Pester.BeforeContainer.ps1 silently did not apply.
-            # Only when the user did not set it, an explicit RepoRoot is theirs to decide.
+            # Only when the user did not set it, an explicit RepoRoot is theirs to decide. A relative
+            # one is resolved against the same location, otherwise the setup chain would resolve it
+            # with GetFullPath, against the process working directory.
             if (-not $PesterPreference.Run.RepoRoot.IsModified) {
                 $PesterPreference.Run.RepoRoot = [Pester.RunConfiguration]::FindRepoRoot($ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path)
+            }
+            elseif (-not [string]::IsNullOrEmpty($PesterPreference.Run.RepoRoot.Value)) {
+                $PesterPreference.Run.RepoRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.Run.RepoRoot.Value)
             }
 
             # Resolve the shuffle seed once for the whole run (#2425), so it is reported a single
