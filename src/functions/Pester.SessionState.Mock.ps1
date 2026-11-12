@@ -1,4 +1,4 @@
-# session state bound functions that act as endpoints,
+﻿# session state bound functions that act as endpoints,
 # so the internal functions can make their session state
 # consumption explicit and are testable (also prevents scrolling past
 # the whole documentation :D )
@@ -417,51 +417,66 @@ function Get-VerifiableBehaviors {
     $currentTest = Get-CurrentTest
     $inTest = $null -ne $currentTest
 
-    $behaviors = [System.Collections.Generic.List[Object]]@()
+    # Collect the mock-behavior tables from the closest scope (the test) outwards to the root block, so we can
+    # walk them in precedence order. A default mock (one without a -ParameterFilter) in a closer scope shadows
+    # every behavior for the same command in an outer scope, because the closer default catches all calls and
+    # the outer behaviors can never be invoked. A verifiable behavior that is shadowed like that must not be
+    # required by Should -InvokeVerifiable, otherwise overriding a verifiable mock in an inner scope always
+    # fails verification. (#2672)
+    $behaviorTables = [System.Collections.Generic.List[Object]]@()
     if ($inTest) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "We are in a test. Finding all behaviors in this test."
-        }
-        $allBehaviors = $currentTest.PluginData.Mock.Behaviors.Values
-        if ($null -ne $allBehaviors -and $allBehaviors.Count -gt 0) {
-            # all behaviors for all commands
-            foreach ($commandBehaviors in $allBehaviors) {
-                if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
-                    # all behaviors for single command
-                    foreach ($behavior in $commandBehaviors) {
-                        if ($behavior.Verifiable) {
-                            $behaviors.Add($behavior)
-                        }
-                    }
-                }
-            }
-        }
+        $behaviorTables.Add($currentTest.PluginData.Mock.Behaviors)
     }
     $block = Get-CurrentBlock
-
-    # recurse up
     while ($null -ne $block) {
+        $behaviorTables.Add($block.PluginData.Mock.Behaviors)
+        $block = $block.Parent
+    }
 
-        ## action
-        $allBehaviors = $block.PluginData.Mock.Behaviors.Values
-        # all behaviors for all commands
-        if ($null -ne $allBehaviors -or $allBehaviors.Count -ne 0) {
-            foreach ($commandBehaviors in $allBehaviors) {
-                if ($null -ne $commandBehaviors -and $commandBehaviors.Count -gt 0) {
-                    # all behaviors for single command
-                    foreach ($behavior in $commandBehaviors) {
-                        if ($behavior.Verifiable) {
-                            $behaviors.Add($behavior)
-                        }
-                    }
+    $behaviors = [System.Collections.Generic.List[Object]]@()
+    $shadowedCommands = @{}
+
+    foreach ($behaviorTable in $behaviorTables) {
+        if ($null -eq $behaviorTable) {
+            continue
+        }
+
+        $allBehaviors = $behaviorTable.Values
+        if ($null -eq $allBehaviors -or $allBehaviors.Count -eq 0) {
+            continue
+        }
+
+        # Commands that get a default mock in this scope shadow the same command in outer scopes. Gather them
+        # and only apply the shadowing after this scope is processed, so behaviors defined together in the same
+        # scope (e.g. a default and a parameter-filtered mock) don't shadow each other.
+        $defaultedInThisScope = [System.Collections.Generic.List[string]]@()
+
+        foreach ($commandBehaviors in $allBehaviors) {
+            if ($null -eq $commandBehaviors -or $commandBehaviors.Count -eq 0) {
+                continue
+            }
+
+            $key = "$($commandBehaviors[0].ModuleName)||$($commandBehaviors[0].CommandName)"
+            $isShadowed = $shadowedCommands.ContainsKey($key)
+
+            foreach ($behavior in $commandBehaviors) {
+                # Only a default behavior can be shadowed by a closer default. FindMatchingBehavior tests
+                # every parameter-filtered behavior from every scope before it falls back to the default it
+                # stored, so an outer filtered behavior is still reachable and still has to be invoked.
+                if ($behavior.Verifiable -and -not ($isShadowed -and $behavior.IsDefault)) {
+                    $behaviors.Add($behavior)
+                }
+
+                if ($behavior.IsDefault) {
+                    $defaultedInThisScope.Add($key)
                 }
             }
         }
 
-        # end action
-        $block = $block.Parent
+        foreach ($shadowedKey in $defaultedInThisScope) {
+            $shadowedCommands[$shadowedKey] = $true
+        }
     }
-    # end
 
     $behaviors
 }
