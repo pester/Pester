@@ -46,3 +46,30 @@ Describe "Testing Set-ItResult" {
     }
 }
 
+
+Describe 'Set-ItResult reason' {
+    # .Reason holds the reason on its own, not the sentence Set-ItResult throws
+    It 'records the reason when skipping' {
+        $sb = { Describe 'd' { It 'i' { Set-ItResult -Skipped -Because 'not on this platform' } } }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+
+        $r.Tests[0].Result | Should -Be 'Skipped'
+        $r.Tests[0].Reason | Should -Be 'not on this platform'
+    }
+
+    It 'records the reason when inconclusive' {
+        $sb = { Describe 'd' { It 'i' { Set-ItResult -Inconclusive -Because 'flaky upstream' } } }
+        $c = New-PesterConfiguration
+        $c.Run.ScriptBlock = $sb
+        $c.Run.PassThru = $true
+        $c.Output.Verbosity = 'None'
+        $r = Invoke-Pester -Configuration $c
+
+        $r.Tests[0].Result | Should -Be 'Inconclusive'
+        $r.Tests[0].Reason | Should -Be 'flaky upstream'
+    }
+}
