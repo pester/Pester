@@ -163,7 +163,15 @@
     }
 
     Write-ScriptBlockInvocationHint -Hint "InModuleScope" -ScriptBlock $ScriptBlock
-    & $wrapper $splat
+    # Mark that we are executing inside this module so Mock / Should -Invoke calls made directly in
+    # the scriptblock know to (intentionally) target the module instead of the test/script scope.
+    Push-InModuleScopeModule -ModuleName $module.Name
+    try {
+        & $wrapper $splat
+    }
+    finally {
+        Pop-InModuleScopeModule
+    }
 }
 
 function Get-CompatibleModule {
