@@ -15,6 +15,16 @@
     .PARAMETER DefaultValue
     The default value of the parameter to check. E.g. "https://example.com"
 
+    .PARAMETER DefaultValueType
+    The .NET type of the parameter's default value, as a type or a type name (the same way -Type is given),
+    e.g. `([string])`, `[int]`, `bool` or `datetime`. This matches literal defaults whose type is known, so
+    `$Force = $false` is `[bool]` and `$Retries = 3` is `[int]`.
+    Pass the special value `Expression` for a computed default whose type is not known until it runs, e.g.
+    `(Get-Date)`, `[datetime]::Now` or `$someVariable`. `Expression` vs a concrete type is what tells an
+    expression default apart from a literal string default, which -DefaultValue (a string comparison)
+    cannot: for example `$Path = (Get-DefaultPath)` is an `Expression` while `$Path = '(Get-DefaultPath)'`
+    is `[string]`.
+
     .PARAMETER Mandatory
     Whether the parameter is mandatory or not.
 
@@ -99,6 +109,7 @@
         [String] $ParameterName,
         $Type,
         [String] $DefaultValue,
+        $DefaultValueType,
         [Switch] $Mandatory,
         [String] $InParameterSet,
         [Switch] $HasArgumentCompleter,
