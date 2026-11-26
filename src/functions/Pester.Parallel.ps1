@@ -35,46 +35,6 @@
     return $false
 }
 
-function Resolve-PesterBeforeContainer {
-    <#
-    .SYNOPSIS
-    Returns the initialization code (as text) to run before each test file is discovered and run.
-
-    .DESCRIPTION
-    EXPERIMENTAL. Setup the parent session normally provides - helper modules or dot-sourced
-    functions - is resolved here so it can run before every container, in both sequential and
-    parallel runs. Parallel workers especially start from a clean runspace and would otherwise be
-    missing it.
-
-    Pester looks for a single 'Pester.BeforeContainer.ps1' in the repository root (Run.RepoRoot,
-    which defaults to the nearest '.git' directory and can be overridden) and dot-sources it,
-    giving a zero-config per-repo bootstrap. Because it is a real file it always exposes a stable
-    '$PSScriptRoot' / '$PSCommandPath' to anchor relative paths against.
-
-    The result is the same for every container, so callers resolve it once per run.
-    Returns $null when there is nothing to run.
-    #>
-    [OutputType([string])]
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Configuration
-    )
-
-    $repoRoot = $Configuration.Run.RepoRoot.Value
-    if ([string]::IsNullOrEmpty($repoRoot)) {
-        return $null
-    }
-
-    $candidate = & $SafeCommands['Join-Path'] $repoRoot 'Pester.BeforeContainer.ps1'
-    if (& $SafeCommands['Test-Path'] -LiteralPath $candidate -PathType Leaf) {
-        $escaped = $candidate -replace "'", "''"
-        return ". '$escaped'"
-    }
-
-    return $null
-}
-
 function Split-PesterEventTape {
     <#
     .SYNOPSIS
@@ -135,8 +95,13 @@ function Invoke-InRunspacePool {
     rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
     in this process, so the values themselves cross as live objects either way.
 
-    Each item gets its own PowerShell instance and they are all started at once; the pool is what
-    limits how many actually run, so ThrottleLimit means the same as it does on ForEach-Object.
+    The pool is assembled here instead of with RunspaceFactory.CreateRunspacePool, because that
+    API takes one InitialSessionState and gives the same instance to every runspace it opens,
+    which the workers then race on - see the comment at the creation site below. A runspace that
+    comes free is handed to the next item, and another one is opened only when nothing is free and
+    nothing has finished, so work that never needs the full ThrottleLimit never opens it. That
+    matters because a runspace keeps what the previous item left in it, so a worker that imports a
+    module pays for the import once per runspace and not once per item.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
     [CmdletBinding()]
@@ -161,60 +126,160 @@ function Invoke-InRunspacePool {
     }
 
     if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
+    # No point opening more runspaces than there are items to put in them.
+    $runspaceCount = [System.Math]::Min($ThrottleLimit, $items.Count)
 
-    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
-    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
-    # console reaches the same one. Pester's workers are silenced, this is for anything else.
-    $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
-    $pool.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
-    $pool.Open()
+    # WaitAny takes at most 64 handles, and on Windows PowerShell the main thread is STA, where the
+    # wait reserves one slot for the message pump and 64 throws. 63 is safe on both editions.
+    $waitLimit = 63
 
-    $invocations = [System.Collections.Generic.List[object]]@()
+    # Every runspace opened and every PowerShell created, so the finally can dispose all of them
+    # even when opening or starting one throws.
+    $runspaces = [System.Collections.Generic.List[object]]@()
+    $powershells = [System.Collections.Generic.List[object]]@()
+    # The runspaces not currently running an item.
+    $free = [System.Collections.Generic.Queue[object]]::new()
+    # The items still running.
+    $inFlight = [System.Collections.Generic.List[object]]@()
+
+    $next = 0
     try {
-        foreach ($item in $items) {
-            $powershell = [System.Management.Automation.PowerShell]::Create()
-            $powershell.RunspacePool = $pool
-            $null = $powershell.AddScript($ScriptBlock.ToString())
-            $null = $powershell.AddParameter($ItemParameterName, $item)
-            foreach ($key in $Parameters.Keys) {
-                $null = $powershell.AddParameter($key, $Parameters[$key])
+        while ($next -lt $items.Count -or 0 -lt $inFlight.Count) {
+            # Look for a finished item first. Taking its runspace back is always better than opening
+            # another one: without this the loop opened the full ThrottleLimit even for work that
+            # never ran that many items at once, and every extra runspace pays for importing the
+            # worker's modules again.
+            $finished = -1
+            for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                if ($inFlight[$i].Handle.IsCompleted) {
+                    $finished = $i
+                    break
+                }
             }
 
-            $invocations.Add([PSCustomObject]@{
-                    PowerShell = $powershell
-                    Handle     = $powershell.BeginInvoke()
-                })
-        }
+            while ($next -lt $items.Count) {
+                if (0 -eq $free.Count) {
+                    # Nothing free. Look again before opening another runspace: the items dispatched
+                    # a moment ago may already have finished, and reaping one is always better than
+                    # opening another. Scanning only once per outer pass was not enough, because the
+                    # whole throttle is dispatched inside this loop without ever looking back.
+                    if ($finished -lt 0) {
+                        for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                            if ($inFlight[$i].Handle.IsCompleted) {
+                                $finished = $i
+                                break
+                            }
+                        }
+                    }
 
-        foreach ($invocation in $invocations) {
+                    # Nothing to reap either, so open one if the throttle still allows it.
+                    if (0 -le $finished -or $runspaces.Count -ge $runspaceCount) {
+                        break
+                    }
+
+                    # One InitialSessionState per runspace, never one instance shared by all of them.
+                    #
+                    # RunspaceFactory.CreateRunspacePool takes a single InitialSessionState and gives
+                    # that same instance to every runspace it opens. Import-Module adds a module's
+                    # FormatsToProcess entries to the runspace's InitialSessionState.Formats collection
+                    # and then enumerates that collection to update the formats, so with one shared
+                    # instance a worker enumerates while another adds, and List<T> throws "Collection
+                    # was modified; enumeration operation may not execute" (#3047). Pester itself
+                    # declares FormatsToProcess and every worker imports Pester, which is why a suite
+                    # whose own modules have no format files hit this too. ForEach-Object -Parallel
+                    # builds a session state per runspace and does not have the problem.
+                    #
+                    # CreateDefault2 rather than CreateDefault (#3066). CreateDefault loads the
+                    # built-in commands through the legacy snap-in infrastructure, which leaves
+                    # CommandInfo.Module null on a built-in command - a difference from a sequential
+                    # run that test code trips over. CreateDefault2 loads only what hosting PowerShell
+                    # needs and leaves the rest to normal module loading, which is what pwsh itself,
+                    # ForEach-Object -Parallel, Start-ThreadJob and PowerShell Editor Services all do.
+                    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
+                    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
+                    # console reaches the same one. Pester's workers are silenced, this is for anything else.
+                    $runspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace($Host, $sessionState)
+                    $runspace.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
+                    # Tracked before it is opened, so a runspace that fails to open is still disposed.
+                    $runspaces.Add($runspace)
+                    $runspace.Open()
+                    $free.Enqueue($runspace)
+                }
+
+                $powershell = [System.Management.Automation.PowerShell]::Create()
+                # Tracked before it is started, so one that fails to start is still disposed.
+                $powershells.Add($powershell)
+                $powershell.Runspace = $free.Dequeue()
+                $null = $powershell.AddScript($ScriptBlock.ToString())
+                $null = $powershell.AddParameter($ItemParameterName, $items[$next])
+                foreach ($key in $Parameters.Keys) {
+                    $null = $powershell.AddParameter($key, $Parameters[$key])
+                }
+
+                $handle = $powershell.BeginInvoke()
+                $inFlight.Add([PSCustomObject]@{
+                        PowerShell = $powershell
+                        Handle     = $handle
+                    })
+                $next++
+            }
+
+            if ($finished -lt 0) {
+                # Nothing has finished, so wait on the handles rather than spin. A high ThrottleLimit
+                # can have more in flight than WaitAny takes, hence the timeout: it brings us back to
+                # look at the rest.
+                $waitable = [System.Threading.WaitHandle[]]@(
+                    for ($i = 0; $i -lt [System.Math]::Min($waitLimit, $inFlight.Count); $i++) {
+                        $inFlight[$i].Handle.AsyncWaitHandle
+                    })
+                $null = [System.Threading.WaitHandle]::WaitAny($waitable, 200)
+                continue
+            }
+
+            $invocation = $inFlight[$finished]
+            $inFlight.RemoveAt($finished)
+
             try {
                 $invocation.PowerShell.EndInvoke($invocation.Handle)
             }
             catch {
                 # One worker failing must not take the rest of the run with it, the remaining files
                 # still have results worth reporting. Surface it and keep going.
-                & $SafeCommands['Write-Error'] -ErrorRecord $_
+                #
+                # -ErrorAction Continue on purpose. Without it the caller's $ErrorActionPreference
+                # decides, and a caller that runs with 'Stop' (a CI script, or Pester's own test.ps1)
+                # turns reporting a failed worker into a terminating error that aborts this loop -
+                # which is the very thing the line above says must not happen, and it would drop the
+                # results of every file that had already finished.
+                & $SafeCommands['Write-Error'] -ErrorRecord $_ -ErrorAction Continue
             }
 
             # The worker has no console of its own, so anything it wrote to these streams would be
-            # lost. Re-emit it here.
+            # lost. Re-emit it here, non-terminating for the same reason as above.
             foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
-                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord
+                & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord -ErrorAction Continue
             }
             foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
                 & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
             }
+
+            # Hand the runspace to the next item. Disposing the PowerShell does not close a runspace
+            # that was assigned to it, only one it created itself.
+            $runspace = $invocation.PowerShell.Runspace
+            $invocation.PowerShell.Dispose()
+            $free.Enqueue($runspace)
         }
     }
     finally {
-        foreach ($invocation in $invocations) {
-            $invocation.PowerShell.Dispose()
+        foreach ($powershell in $powershells) {
+            $powershell.Dispose()
         }
-        $pool.Close()
-        $pool.Dispose()
+        foreach ($runspace in $runspaces) {
+            $runspace.Close()
+            $runspace.Dispose()
+        }
     }
 }
-
 function Invoke-TestInParallel {
     <#
     .SYNOPSIS
@@ -264,14 +329,16 @@ function Invoke-TestInParallel {
         $Configuration
     )
 
-    # The BeforeContainer initialization is the same for every file (resolved from the repo-root
-    # Pester.BeforeContainer.ps1 convention file), so resolve it once and reuse it.
-    $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $Configuration
+    # Which Pester.BeforeContainer.ps1 files apply depends on where the file sits, from
+    # Run.RepoRoot down to the file's own folder. Resolved once here in the parent, not in the workers. Workers are separate runspaces that
+    # cannot share a cache, so letting each one resolve would mean rediscovering the same folders
+    # over and over, in parallel. They receive the answer as plain paths instead.
+    $beforeContainerMap = Resolve-PesterBeforeContainerMap -BlockContainer $BlockContainer -Configuration $Configuration
     $work = @(foreach ($c in $BlockContainer) {
             [PSCustomObject]@{
                 Path = $c.Item.FullName
                 Data = $c.Data
-                Init = $beforeContainerInit
+                Init = @($beforeContainerMap[$c.Item.FullName])
             }
         })
 
@@ -341,12 +408,6 @@ function Invoke-TestInParallel {
             Import-Module $modulePath
         }
 
-        if (-not [string]::IsNullOrWhiteSpace($item.Init)) {
-            # Suppress the initialization's own host output (stream 6) so quiet setup does not
-            # garble the shared parent host while workers run concurrently.
-            . ([scriptblock]::Create($item.Init)) 6>$null
-        }
-
         $workerConfig = [PesterConfiguration]::Merge([PesterConfiguration]::Default, $baseConfig)
         # Pass the file together with its -Data so parametrized containers (New-PesterContainer
         # -Path ... -Data @{ ... }) bind the file's param() block the same way they do sequentially.
@@ -374,11 +435,11 @@ function Invoke-TestInParallel {
         else {
             $workerConfig.CodeCoverage.Enabled = $false
         }
-        # The BeforeContainer init already ran above (as $item.Init). Clear RepoRoot so the worker's
-        # own sequential run does not resolve and dot-source the repo-root Pester.BeforeContainer.ps1
-        # a second time; that would run the setup twice per file and diverge from a sequential run.
-        # RepoRoot is otherwise only used for CodeCoverage report roots, which the parent applies when
-        # it generates the merged report.
+        # The parent already resolved which Pester.BeforeContainer.ps1 files apply to this file and
+        # passed them as $item.Init; they are handed to the worker's run below so it dot-sources them
+        # into the container's own scope, exactly like a sequential run does. Clear RepoRoot so the
+        # worker does not resolve them a second time. RepoRoot is otherwise only used for CodeCoverage
+        # report roots, which the parent applies when it generates the merged report.
         $workerConfig.Run.RepoRoot = ''
         # The worker stays silent; the parent renders all output by replaying the recorded tape.
         $workerConfig.Output.Verbosity = 'None'
@@ -421,6 +482,7 @@ function Invoke-TestInParallel {
         # the output-file write in this worker, the parent merges every worker's raw hits and emits the
         # single report/file.
         & $pesterModule { param($p) $script:additionalPlugins = $p } $recorder
+        & $pesterModule { param($f, $p) $script:additionalBeforeContainer = @{ $f = @($p) } } $item.Path $item.Init
         & $pesterModule { param($box) $script:parallelOutputTape = $box.Tape } @{ Tape = $tape }
         if ($collectCoverage) {
             & $pesterModule { $script:CodeCoverageSkipReport = $true }
@@ -429,7 +491,7 @@ function Invoke-TestInParallel {
             $out = Invoke-Pester -Configuration $workerConfig
         }
         finally {
-            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null }
+            & $pesterModule { $script:additionalPlugins = $null; $script:parallelOutputTape = $null; $script:additionalBeforeContainer = $null }
             if ($collectCoverage) {
                 & $pesterModule { $script:CodeCoverageSkipReport = $null }
             }
@@ -471,6 +533,24 @@ function Invoke-TestInParallel {
 
     # Keep only well-formed worker results (defensive against stray pipeline output).
     $results = @($results | & $SafeCommands['Where-Object'] { $_ -is [System.Management.Automation.PSCustomObject] -and $null -ne $_.PSObject.Properties['Containers'] })
+
+    # The filter above cannot tell stray output from a worker that died before it returned its
+    # result object, so on its own it would drop a whole test file and let the run report success
+    # with fewer files than it was given. Losing results silently is worse than failing, so compare
+    # what came back against what was sent and name the files that went missing. The worker's own
+    # error was already surfaced by Invoke-InRunspacePool, this says which file it cost us.
+    if ($results.Count -ne $work.Count) {
+        $returnedPaths = @{}
+        foreach ($r in $results) {
+            if ($null -ne $r.PSObject.Properties['Path']) { $returnedPaths[$r.Path] = $true }
+        }
+
+        $missing = @(foreach ($w in $work) {
+                if (-not $returnedPaths.ContainsKey($w.Path)) { $w.Path }
+            })
+
+        throw "Parallel run lost the results of $($missing.Count) of $($work.Count) file(s), the worker(s) running them did not return a result. See the errors above for why. Lost: $($missing -join ', ')"
+    }
 
     # Restore the original discovery order so replay and the merged run are deterministic
     # regardless of which worker finished first.

@@ -68,6 +68,13 @@
         $expectedType = $expectedName -as [Type]
     }
 
+    # Neither a type nor a name to look for in PSTypeNames, so there is nothing to compare the value
+    # to. Should-NotHaveType used to pass in this case, because PSTypeNames does not contain $null,
+    # and Should-HaveType used to fail saying it expected the type '$null' (#3038).
+    if ($null -eq $expectedType -and [string]::IsNullOrWhiteSpace($expectedName)) {
+        $assert.Fail("Expected a type or a type name to compare the value to,<because> but got <expectedType> <expected>, which is neither.", @{ Expected = $Expected; Because = $Because })
+    }
+
     if ($null -ne $expectedType) {
         if ($Actual -isnot $expectedType) {
             $assert.Fail("Expected value to have type <expected>,<because> but got <actualType> <actual>.", @{ Expected = $expectedType; Because = $Because })

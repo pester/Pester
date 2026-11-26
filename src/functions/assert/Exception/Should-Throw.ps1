@@ -154,10 +154,17 @@
 
 function Get-ErrorObject ($ErrorRecord) {
 
-    if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
+    if ($ErrorRecord.Exception -is [System.Management.Automation.MethodInvocationException]) {
         # The scriptblock ran via InvokeWithContext, so a terminating error is wrapped in
         # a MethodInvocationException. Unwrap it so we report the same exception that
         # & { } would have surfaced in $_ (#2873).
+        #
+        # Recognized by type, not by matching 'InvokeWithContext' in the message. The message
+        # is localized, and PowerShell quotes the method name with the quotation marks of the
+        # current UI culture, so under de-DE it is quoted with German marks and the match failed.
+        # The assertion then reported the wrapper instead of the exception the test threw (#3089).
+        # The only call in the try block above is InvokeWithContext, so a MethodInvocationException
+        # caught there is always its wrapper.
         $inner = $ErrorRecord.Exception.InnerException
         $record = $inner.ErrorRecord
 

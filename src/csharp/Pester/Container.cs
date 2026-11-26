@@ -34,7 +34,8 @@ namespace Pester
                 Item = block.BlockContainer.Item,
                 Blocks = block.Blocks,
                 Data = block.Data,
-                StandardOutput = block.StandardOutput
+                StandardOutput = block.StandardOutput,
+                BeforeContainerFile = block.BeforeContainerFile
         };
         }
 
@@ -56,6 +57,9 @@ namespace Pester
         }
         public object Item { get; set; }
         public object Data { get; set; }
+        // Every Pester.BeforeContainer.ps1 that applied to this container, outermost first, so
+        // "where did this function come from" is answerable from the result object.
+        public List<string> BeforeContainerFile { get; set; } = new List<string>();
         public List<Block> Blocks { get; set; } = new List<Block>();
         public string Result { get; set; } = "NotRun";
         public TimeSpan Duration { get => DiscoveryDuration + UserDuration + FrameworkDuration; }

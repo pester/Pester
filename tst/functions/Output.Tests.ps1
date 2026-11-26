@@ -503,13 +503,75 @@ f1
                 $messages.Count | Should -BeGreaterThan 2
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When DisplayErrorMessage is `$null the error is filtered, and StackTraceVerbosity is honoured" {
+                # An error record that nothing has decorated, which is what a discovery failure is:
+                # a container's errors only get DisplayErrorMessage and DisplayStackTrace in
+                # PostProcess-RspecTestRun, long after discovery printed them. This used to append
+                # Exception.ToString() and the raw ScriptStackTrace, so the full exception type name
+                # followed by every Pester-internal frame, the same for every verbosity (#3057).
                 $errorRecord.DisplayErrorMessage = $null
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line $divideLine"
-                $messages.Count | Should -BeGreaterThan 1
+                $errorRecord.DisplayStackTrace = $null
+
+                $none = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'None') -split [Environment]::NewLine
+                $none[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $none | Should -HaveCount 1
+
+                $firstLine = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'FirstLine') -split [Environment]::NewLine
+                $firstLine[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $firstLine[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
+                $firstLine | Should -HaveCount 2
+
+                $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $filtered[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $filtered[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
+
+                $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
+                $full[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $full.Count | Should -BeGreaterOrEqual $filtered.Count
+            }
+
+            It "With -Raw it reports the error as the runtime gave it, whatever the verbosity says" {
+                # Invoke-Pester's own catch reports an error raised inside Pester, where the internal
+                # frames, the managed frames and the inner-exception chain are the only diagnostic.
+                # Filtering those away left one line, and nothing at all when no user frame was in
+                # the trace.
+                $errorRecord.DisplayErrorMessage = $null
+                $errorRecord.DisplayStackTrace = $null
+
+                foreach ($verbosity in 'None', 'FirstLine', 'Filtered', 'Full') {
+                    $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $verbosity -Raw) -split [Environment]::NewLine
+                    # Exception.ToString(), so the full type name and not the short one.
+                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                    # The trace is there even for 'None', and unfiltered.
+                    $messages.Count | Should -BeGreaterThan 1
+                    ($messages -join [Environment]::NewLine) | Should -BeLike "*${PSCommandPath}*"
+                }
+            }
+
+            It "With StackTraceVerbosity Full an undecorated error is not filtered" {
+                # ConvertTo-FailureLines decides whether to filter from the preference, not from the
+                # caller, so 'Full' has to be passed down explicitly or it filters anyway.
+                $errorRecord.DisplayErrorMessage = $null
+                $errorRecord.DisplayStackTrace = $null
+
+                $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
+
+                $full[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                # Everything the filter dropped is a Pester frame, so Full has to have more lines
+                # than Filtered here, not the same number.
+                $full.Count | Should -BeGreaterThan $filtered.Count
+            }
+
+            It "Ignores a DisplayStackTrace that comes without a DisplayErrorMessage" {
+                # Half-decorated is not a shape anything produces, but Format-ErrorForDisplay decides
+                # on DisplayErrorMessage alone, so this pins what it does with the other half.
+                $errorRecord.DisplayErrorMessage = $null
+                # DisplayStackTrace is left as the BeforeEach set it.
+
+                $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $messages[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                ($messages -join [Environment]::NewLine) | Should -Not -BeLike '*:230*'
             }
 
             It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
@@ -580,13 +642,18 @@ f1
                 $messages.Count | Should -BeGreaterThan 4
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, the error is filtered" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
                 foreach ($errorRecord in $errorRecords) {
                     $errorRecord.DisplayErrorMessage = $null
-                    $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                    $messages = $errorMessage -split [Environment]::NewLine
-                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                    $messages | Should -BeGreaterThan 1
+                    $errorRecord.DisplayStackTrace = $null
+                    $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_) -split [Environment]::NewLine
+                    $messages[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                    if ('None' -eq $_) {
+                        $messages | Should -HaveCount 1
+                    }
+                    else {
+                        $messages.Count | Should -BeGreaterThan 1
+                    }
                 }
             }
 

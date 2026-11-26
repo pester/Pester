@@ -86,7 +86,7 @@ namespace Pester
             FailOnNullOrEmptyForEach = new BoolOption("Fails discovery when -ForEach is provided $null or @() in a block or test. Can be overridden for a specific Describe/Context/It using -AllowNullOrEmptyForEach.", true);
             Shuffle = new BoolOption("EXPERIMENTAL: Shuffle the order in which test files, and the blocks (Describe/Context) and tests (It) inside them, are executed. Items are only reordered within their own level. Uses Run.ShuffleSeed so a run can be repeated, and helps surface hidden dependencies between tests. A single file can opt out with a '#pester:no-shuffle' comment.", false);
             ShuffleSeed = new IntOption("EXPERIMENTAL: Seed used to shuffle execution order when Run.Shuffle is enabled. The default 0 picks a new seed for each run and reports it at the start, so the run can be repeated by setting Run.ShuffleSeed to that value.", 0);
-            RepoRoot = new StringOption("EXPERIMENTAL: Root directory of the repository. Found by searching for the .git directory recursively. When not found, the current working directory is used. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources a 'Pester.BeforeContainer.ps1' from this directory if one is present, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs it.", FindRepoRoot());
+            RepoRoot = new StringOption("EXPERIMENTAL: Root directory of the repository. Found when the run starts, by searching upwards from the current location for a .git directory or file. When not found, the current location is used. This is also the root for relative source file paths inside code coverage reports, unless CodeCoverage.ReportRoot is set, and for test file paths in the JUnit 'file' attribute. CodeCoverage.ReportRoot only overrides coverage paths. CodeCoverage.OutputPath and TestResult.OutputPath control where the report files are saved. Before each test file is discovered and run - in both sequential and parallel runs - Pester dot-sources every 'Pester.BeforeContainer.ps1' found from this directory down to the test file's own folder, outermost first, so helper modules or dot-sourced setup the parent session would normally provide are available to every container. Setup shared by all tests can live at the root while setup only some tests need lives in their folder. The files run before each container and must be safe to run more than once. This is especially useful in parallel runs where each worker starts from a clean runspace and re-runs them.", FindRepoRoot());
         }
 
         public StringArrayOption Path
@@ -345,21 +345,47 @@ namespace Pester
             }
         }
 
-        private static string FindRepoRoot()
+        /// <summary>
+        /// Walks up from startDirectory looking for a .git directory or file and returns the first
+        /// directory that has one, or startDirectory when there is none above it.
+        /// </summary>
+        public static string FindRepoRoot(string startDirectory)
         {
-            var originalDir = Directory.GetCurrentDirectory();
-            var currentDir = originalDir;
-            while (!Directory.Exists(System.IO.Path.Combine(currentDir, ".git")))
+            if (string.IsNullOrWhiteSpace(startDirectory))
             {
+                return startDirectory;
+            }
+
+            var currentDir = startDirectory;
+            while (true)
+            {
+                // A .git file counts, not only a .git directory. In a git worktree, in a submodule,
+                // and in a checkout made with --separate-git-dir, .git is a file holding the path to
+                // the real git directory. Directory.Exists is false for all three, so looking for a
+                // directory alone walked past the actual root, reached the filesystem root, and fell
+                // back to the location the run started from, silently (#3069).
+                var dotGit = System.IO.Path.Combine(currentDir, ".git");
+                if (Directory.Exists(dotGit) || File.Exists(dotGit))
+                {
+                    return currentDir;
+                }
+
                 var parentDir = Directory.GetParent(currentDir);
                 if (parentDir == null)
                 {
-                    return originalDir;
+                    return startDirectory;
                 }
                 currentDir = parentDir.FullName;
             }
-            return currentDir;
+        }
 
+        private static string FindRepoRoot()
+        {
+            // The process working directory, which is not the caller's PowerShell location: Set-Location
+            // changes the location without changing this. So this is only a placeholder for a configuration
+            // object that has not been used for a run yet, Invoke-Pester resolves RepoRoot again from the
+            // session's own location before the run starts.
+            return FindRepoRoot(Directory.GetCurrentDirectory());
         }
     }
 }

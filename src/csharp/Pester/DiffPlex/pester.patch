@@ -1,0 +1,170 @@
+diff --git a/staging/DiffBuilder/SideBySideDiffBuilder.cs b/current/DiffBuilder/SideBySideDiffBuilder.cs
+index d17c342..32b3c4e 100644
+--- a/staging/DiffBuilder/SideBySideDiffBuilder.cs
++++ b/current/DiffBuilder/SideBySideDiffBuilder.cs
+@@ -11,45 +11,21 @@ using Pester.DiffPlex.Model;
+ 
+ namespace Pester.DiffPlex.DiffBuilder
+ {
+-    internal class SideBySideDiffBuilder : ISideBySideDiffBuilder
++    internal class SideBySideDiffBuilder
+     {
+-        private readonly IDiffer differ;
++        private readonly Differ differ;
+         private readonly IChunker lineChunker;
+         private readonly IChunker wordChunker;
+ 
+         private delegate ChangeType PieceBuilder(string oldText, string newText, List<DiffPiece> oldPieces, List<DiffPiece> newPieces, bool ignoreWhitespace, bool ignoreCase);
+ 
+-        /// <summary>
+-        /// Gets the default singleton instance.
+-        /// </summary>
+-        public static SideBySideDiffBuilder Instance { get; } = new SideBySideDiffBuilder();
+-
+-        public SideBySideDiffBuilder(IDiffer differ, IChunker lineChunker, IChunker wordChunker)
++        public SideBySideDiffBuilder(Differ differ, IChunker lineChunker, IChunker wordChunker)
+         {
+-            this.differ = differ ?? Differ.Instance;
++            this.differ = differ ?? throw new ArgumentNullException(nameof(differ));
+             this.lineChunker = lineChunker ?? throw new ArgumentNullException(nameof(lineChunker));
+             this.wordChunker = wordChunker ?? throw new ArgumentNullException(nameof(wordChunker));
+         }
+ 
+-        public SideBySideDiffBuilder(IDiffer differ = null) :
+-            this(differ, new LineChunker(), new WordChunker())
+-        {
+-        }
+-
+-        public SideBySideDiffBuilder(IDiffer differ, char[] wordSeparators)
+-            : this(differ, new LineChunker(), new DelimiterChunker(wordSeparators))
+-        {
+-        }
+-
+-        public SideBySideDiffModel BuildDiffModel(string oldText, string newText)
+-            => BuildDiffModel(oldText, newText, ignoreWhitespace: true);
+-
+-        public SideBySideDiffModel BuildDiffModel(string oldText, string newText, bool ignoreWhitespace) => BuildDiffModel(
+-                oldText,
+-                newText,
+-                ignoreWhitespace,
+-                false);
+-
+         public SideBySideDiffModel BuildDiffModel(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase)
+         {
+             return BuildLineDiff(
+@@ -59,54 +35,7 @@ namespace Pester.DiffPlex.DiffBuilder
+                 ignoreCase);
+         }
+ 
+-        /// <summary>
+-        /// Gets the side-by-side textual diffs.
+-        /// </summary>
+-        /// <param name="oldText">The old text to diff.</param>
+-        /// <param name="newText">The new text.</param>
+-        /// <param name="ignoreWhiteSpace"><see langword="true"/> if ignore the white space; otherwise, <see langword="false"/>.</param>
+-        /// <param name="ignoreCase"><see langword="true"/> if case-insensitive; otherwise, <see langword="false"/>.</param>
+-        /// <returns>The diffs result.</returns>
+-        public static SideBySideDiffModel Diff(string oldText, string newText, bool ignoreWhiteSpace = true, bool ignoreCase = false)
+-        {
+-            if (oldText == null) throw new ArgumentNullException(nameof(oldText));
+-            if (newText == null) throw new ArgumentNullException(nameof(newText));
+-
+-            var model = new SideBySideDiffModel();
+-            var diffResult = Differ.Instance.CreateDiffs(oldText, newText, ignoreWhiteSpace, ignoreCase, LineChunker.Instance);
+-            BuildDiffPieces(diffResult, model.OldText.Lines, model.NewText.Lines, BuildWordDiffPiecesInternal, ignoreWhiteSpace, ignoreCase);
+-
+-            return model;
+-        }
+-
+-        /// <summary>
+-        /// Gets the side-by-side textual diffs.
+-        /// </summary>
+-        /// <param name="differ">The differ instance.</param>
+-        /// <param name="oldText">The old text to diff.</param>
+-        /// <param name="newText">The new text.</param>
+-        /// <param name="ignoreWhiteSpace"><see langword="true"/> if ignore the white space; otherwise, <see langword="false"/>.</param>
+-        /// <param name="ignoreCase"><see langword="true"/> if case-insensitive; otherwise, <see langword="false"/>.</param>
+-        /// <param name="lineChunker">The line chunker.</param>
+-        /// <param name="wordChunker">The word chunker.</param>
+-        /// <returns>The diffs result.</returns>
+-        public static SideBySideDiffModel Diff(IDiffer differ, string oldText, string newText, bool ignoreWhiteSpace = true, bool ignoreCase = false, IChunker lineChunker = null, IChunker wordChunker = null)
+-        {
+-            if (oldText == null) throw new ArgumentNullException(nameof(oldText));
+-            if (newText == null) throw new ArgumentNullException(nameof(newText));
+-
+-            if (differ == null) return Diff(oldText, newText, ignoreWhiteSpace, ignoreCase);
+-
+-            var model = new SideBySideDiffModel();
+-            var diffResult = differ.CreateDiffs(oldText, newText, ignoreWhiteSpace, ignoreCase, lineChunker ?? LineChunker.Instance);
+-            BuildDiffPieces(diffResult, model.OldText.Lines, model.NewText.Lines, (ot, nt, op, np, iw, ic) =>
+-            {
+-                var r = differ.CreateDiffs(ot, nt, iw, ic, wordChunker ?? WordChunker.Instance);
+-                return BuildDiffPieces(r, op, np, null, iw, ic);
+-            }, ignoreWhiteSpace, ignoreCase);
+ 
+-            return model;
+-        }
+ 
+         private static ChangeType BuildWordDiffPiecesInternal(string oldText, string newText, List<DiffPiece> oldPieces, List<DiffPiece> newPieces, bool ignoreWhiteSpace, bool ignoreCase)
+         {
+diff --git a/staging/Differ.cs b/current/Differ.cs
+index 476a861..813a497 100644
+--- a/staging/Differ.cs
++++ b/current/Differ.cs
+@@ -9,52 +9,22 @@ using Pester.DiffPlex.Model;
+ 
+ namespace Pester.DiffPlex
+ {
+-    internal class Differ : IDiffer
++    internal class Differ
+     {
++        // Used by the word level sub piece builder inside SideBySideDiffBuilder.
++        public static Differ Instance { get; } = new Differ();
++
+         /// <summary>
+         /// Gets the default singleton instance of differ instance.
+         /// </summary>
+-        public static Differ Instance { get; } = new Differ();
+ 
+-        public DiffResult CreateLineDiffs(string oldText, string newText, bool ignoreWhitespace)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new LineChunker());
+-        }
+ 
+-        public DiffResult CreateLineDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new LineChunker());
+-        }
+ 
+-        public DiffResult CreateCharacterDiffs(string oldText, string newText, bool ignoreWhitespace)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new CharacterChunker());
+-        }
+ 
+-        public DiffResult CreateCharacterDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new CharacterChunker());
+-        }
+ 
+-        public DiffResult CreateWordDiffs(string oldText, string newText, bool ignoreWhitespace, char[] separators)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, false, new DelimiterChunker(separators));
+-        }
+ 
+-        public DiffResult CreateWordDiffs(string oldText, string newText, bool ignoreWhitespace, bool ignoreCase, char[] separators)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhitespace, ignoreCase, new DelimiterChunker(separators));
+-        }
+ 
+-        public DiffResult CreateCustomDiffs(string oldText, string newText, bool ignoreWhiteSpace, Func<string, string[]> chunker)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhiteSpace, false, new CustomFunctionChunker(chunker));
+-        }
+ 
+-        public DiffResult CreateCustomDiffs(string oldText, string newText, bool ignoreWhiteSpace, bool ignoreCase, Func<string, string[]> chunker)
+-        {
+-            return CreateDiffs(oldText, newText, ignoreWhiteSpace, ignoreCase, new CustomFunctionChunker(chunker));
+-        }
+ 
+         public DiffResult CreateDiffs(string oldText, string newText, bool ignoreWhiteSpace, bool ignoreCase, IChunker chunker)
+         {
