@@ -131,8 +131,39 @@ InPesterModuleScope {
             param ($Value, $Expected)
             Format-Hashtable2 $Value | Verify-Equal $Expected
         }
-    }
 
+        It "Indents nested hashtables by depth when -Pretty is used" {
+            # Hashtables used to print on one line whatever -Pretty said, which made a
+            # Should-BeEquivalent failure on nested hashtables much harder to read than the same
+            # failure on objects (#3055).
+            $value = @{ a = @{ b = 1 } }
+            $expected = "@{`n    a=@{`n        b=1;`n    };`n}"
+            Format-Hashtable2 -Value $value -Pretty | Verify-Equal $expected
+        }
+
+        It "Stays on one line without -Pretty" {
+            Format-Hashtable2 -Value @{ a = @{ b = 1 } } | Verify-Equal '@{a=@{b=1}}'
+        }
+
+        It "Renders a key whose name shadows a member of the hashtable" {
+            # A hashtable resolves its own keys before its members, so $Value.Keys on
+            # @{ Keys = 'k' } is the string 'k' and the whole render came out as @{k=$null}.
+            Format-Hashtable2 @{ Keys = 'k' } | Verify-Equal "@{Keys='k'}"
+            Format-Hashtable2 @{ Count = 3 } | Verify-Equal '@{Count=3}'
+            Format-Hashtable2 @{ Values = 1 } | Verify-Equal '@{Values=1}'
+        }
+
+        It "Renders an empty hashtable as @{} with -Pretty too" {
+            Format-Hashtable2 -Value @{} -Pretty | Verify-Equal '@{}'
+        }
+
+        It "Puts a multi-line item on its own line inside a short collection" {
+            # Format-Collection2 only broke its own lines past a length limit, so a hashtable's
+            # newlines landed in the middle of the one-line form: '@(@{<newline>    a=1;<newline>}, ...)'.
+            $expected = "@(`n    @{`n        a=1;`n    },`n    @{`n        b=2;`n    }`n)"
+            Format-Nicely2 -Value @(@{ a = 1 }, @{ b = 2 }) -Pretty | Verify-Equal $expected
+        }
+    }
     Describe "Format-Dictionary2" {
         It "Formats empty dictionary as @{}" {
             Format-Dictionary2 (New-Dictionary @{}) | Verify-Equal 'Dictionary{}'
@@ -145,6 +176,12 @@ InPesterModuleScope {
         ) {
             param ($Value, $Expected)
             Format-Dictionary2 $Value | Verify-Equal $Expected
+        }
+
+        It "Indents nested dictionaries by depth when -Pretty is used" {
+            $value = New-Dictionary @{ a = (New-Dictionary @{ b = 1 }) }
+            $expected = "Dictionary{`n    a=Dictionary{`n        b=1;`n    };`n}"
+            Format-Dictionary2 -Value $value -Pretty | Verify-Equal $expected
         }
     }
 
@@ -191,7 +228,7 @@ InPesterModuleScope {
             } -ArgumentList (Get-Module Pester).Path, $TestDrive
             $result = $job | Wait-Job -Timeout 10 | Receive-Job
             $job | Remove-Job -Force
-            $result | Should -Not -BeNullOrEmpty
+            $result | Verify-NotNull
         }
 
         # Regression test for https://github.com/pester/Pester/issues/2828
@@ -432,7 +469,7 @@ InPesterModuleScope {
             $result = Format-String2 -Value $value
             # The result should not contain any of the original control characters
             # (C0 0x00-0x1F, DEL 0x7F, or C1 0x80-0x9F).
-            $result | Should -Not -Match '[\x00-\x1F\x7F-\x9F]'
+            $result | Should-NotMatchString '[\x00-\x1F\x7F-\x9F]'
         }
     }
 }

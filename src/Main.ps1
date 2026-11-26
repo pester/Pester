@@ -463,6 +463,8 @@ function Invoke-Pester {
         # global mock hook state carried from begin to the finally in the end block (nested runs only)
         $runningPesterInPester = $false
         $savedGlobalMockState = $null
+        # parallel output tape put aside for the duration of a nested run, given back in the same finally
+        $suspendedParallelOutputTape = $null
 
         # Give this run a unique identity used to isolate global mocks between (possibly nested) runs. A
         # mock's bootstrap records the run that created it; a leaked bootstrap whose id does not match the
@@ -488,6 +490,14 @@ function Invoke-Pester {
             # clear the shared state. It is restored once this run ends (see the finally in the end block).
             $savedGlobalMockState = Get-GlobalMockHookState
             Reset-GlobalMockHook
+            # In a parallel worker the whole run is silenced and everything it writes to the host goes
+            # to a module-scope tape, so the parent can replay it in order (see Invoke-TestInParallel).
+            # The tape is module scope, so a run that starts inside the worker's run sees it as well: a
+            # test that calls Invoke-Pester itself and captures the output with 6>&1 got nothing, while
+            # that output went to the tape and was replayed later as if the worker had written it
+            # (#2991). A nested run belongs to its own caller, so put the tape aside until it ends.
+            $suspendedParallelOutputTape = $script:parallelOutputTape
+            $script:parallelOutputTape = $null
         }
 
         # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
@@ -535,18 +545,6 @@ function Invoke-Pester {
 
             & $SafeCommands['Get-Variable'] 'Configuration' -Scope Local | Remove-Variable
 
-            # Keys from the configuration hashtable that match no section or option. They are
-            # reported and not thrown on, because a hashtable may carry keys meant for something
-            # else, but a misspelled option would otherwise leave the run on the default with
-            # nothing to notice (#2975). A value the option cannot use throws instead, when the
-            # configuration is built, because that is never intentional.
-            $unknownConfigurationKeys = $PesterPreference.GetUnknownKeys()
-            if (0 -lt $unknownConfigurationKeys.Count) {
-                $quotedKeys = @(foreach ($unknownKey in $unknownConfigurationKeys) { "'$unknownKey'" }) -join ', '
-                $reason = if (1 -eq $unknownConfigurationKeys.Count) { "key $quotedKeys, there is no such option" } else { "keys $quotedKeys, there are no such options" }
-                & $SafeCommands['Write-Warning'] "Ignoring configuration $reason. Check the spelling, 'Get-Help about_PesterConfiguration' lists all the options."
-            }
-
             Resolve-AutoEnabledConfiguration -PesterPreference $PesterPreference
 
             # $sessionState = Set-SessionStateHint -PassThru  -Hint "Caller - Captured in Invoke-Pester" -SessionState $PSCmdlet.SessionState
@@ -565,9 +563,14 @@ function Invoke-Pester {
             # process working directory, and Set-Location does not change that, so a session that
             # started somewhere else and then changed directory into a repository kept a RepoRoot
             # pointing at the old place, and every Pester.BeforeContainer.ps1 silently did not apply.
-            # Only when the user did not set it, an explicit RepoRoot is theirs to decide.
+            # Only when the user did not set it, an explicit RepoRoot is theirs to decide. A relative
+            # one is resolved against the same location, otherwise the setup chain would resolve it
+            # with GetFullPath, against the process working directory.
             if (-not $PesterPreference.Run.RepoRoot.IsModified) {
                 $PesterPreference.Run.RepoRoot = [Pester.RunConfiguration]::FindRepoRoot($ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path)
+            }
+            elseif (-not [string]::IsNullOrEmpty($PesterPreference.Run.RepoRoot.Value)) {
+                $PesterPreference.Run.RepoRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.Run.RepoRoot.Value)
             }
 
             # Resolve the shuffle seed once for the whole run (#2425), so it is reported a single
@@ -773,7 +776,7 @@ function Invoke-Pester {
                 # file's discovery segment then run segment, in discovery order, firing the global
                 # RunStart/DiscoveryEnd steps at the interleaved points a sequential run would.
                 if (0 -lt $parallelContainers.Count) {
-                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference)
+                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference -CallerSessionState $sessionState)
                     for ($pri = 0; $pri -lt $parallelResults.Count; $pri++) {
                         $parallelResult = $parallelResults[$pri]
                         $segments = Split-PesterEventTape -Tape $parallelResult.Tape
@@ -1005,14 +1008,20 @@ function Invoke-Pester {
         }
         catch {
             $exitCode = -1
+            # -Raw: this catch reports an error raised inside Pester, not in the test code, and
+            # there the Pester-internal frames, the managed frames and the inner-exception chain are
+            # the only diagnostic there is.
             $formatErrorParams = @{
                 Err                 = $_
                 StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+                Raw                 = $true
             }
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+                # [1..0] on a one-line message walks the range backwards and repeats the header.
+                $errorBody = if (1 -lt $errorMessage.Count) { $errorMessage[1..($errorMessage.Count - 1)] } else { @() }
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorBody
             }
             else {
                 Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
@@ -1028,6 +1037,8 @@ function Invoke-Pester {
             # the outer run's global mock hook clobbered or detached.
             if ($runningPesterInPester) {
                 Restore-GlobalMockHookState -State $savedGlobalMockState
+                # Give the worker its tape back, see the begin block.
+                $script:parallelOutputTape = $suspendedParallelOutputTape
             }
             # Restore the run id that was active before this run (null for a top-level run) so the nonce
             # used to isolate global mocks is correct for whatever run resumes.

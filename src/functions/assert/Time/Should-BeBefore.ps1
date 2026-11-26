@@ -87,8 +87,9 @@
         [Parameter(Mandatory, ParameterSetName = "FluentFromNow")]
         [switch] $FromNow,
 
+        # Not declared [DateTime] on purpose, see where it is checked below.
         [Parameter(Position = 0, ParameterSetName = "Expected")]
-        [DateTime] $Expected,
+        $Expected,
 
         [String] $Because
     )
@@ -102,7 +103,23 @@
     $currentTime = [datetime]::UtcNow.ToLocalTime()
     switch ($PSCmdlet.ParameterSetName) {
         "Expected" {
-            # do nothing we already have expected value
+            # This used to be declared [DateTime], and the binder converts whatever it is handed
+            # before the function runs: -Expected 42 became 42 ticks, the year 1, so every real
+            # date was after it and the assertion passed. Convert from a string, which is what
+            # someone writing a date as text means and what the binder did for them, and refuse
+            # anything else rather than comparing against whatever a conversion produced (#3038).
+            if ($Expected -isnot [datetime] -and $Expected -isnot [datetimeoffset]) {
+                $converted = $null
+                if ($Expected -is [string]) {
+                    try { $converted = [datetime] $Expected } catch { $converted = $null }
+                }
+
+                if ($null -eq $converted) {
+                    $assert.Fail("Expected a [datetime] to compare against,<because> but got <expectedType> <expected>.", @{ Expected = $Expected; Because = $Because })
+                }
+
+                $Expected = $converted
+            }
         }
         "Now" {
             $Expected = $currentTime
@@ -113,6 +130,16 @@
         "FluentFromNow" {
             $Expected = $currentTime + (Get-TimeSpanFromStringWithUnit -Value $Time)
         }
+    }
+
+    # $Actual has to be a point in time. It is not typed, and a relational operator compares
+    # whatever it is handed: with a string on the left PowerShell compares as strings, and
+    # 'a string' sorts after a formatted date, so 'a string' | Should-BeBefore (Get-Date)
+    # reported that a string is a later point in time than a date, without asserting anything about
+    # time (#3038). $Expected needs no such check, it is declared [DateTime] and the binder converts
+    # it. [datetimeoffset] is allowed here, it is not a [datetime] but it compares with one.
+    if ($Actual -isnot [datetime] -and $Actual -isnot [datetimeoffset]) {
+        $assert.Fail("Expected a [datetime] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
     }
 
     # A relational operator throws a native conversion error when $Actual is not a comparable single

@@ -4,6 +4,7 @@ Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -456,6 +457,33 @@ Describe 'Second' {
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
 
+        t "resolves a relative Run.RepoRoot from the session location, not the process working directory" {
+            # Only the code coverage plugin used to make Run.RepoRoot absolute, so without coverage
+            # the chain resolved a relative RepoRoot with GetFullPath, against the process working
+            # directory, and the cascade did not apply.
+            $folder = New-CascadingBeforeContainerFolder
+            try {
+                Push-Location -Path (Split-Path -Path $folder -Parent)
+                try {
+                    $processDirectory = [System.IO.Directory]::GetCurrentDirectory()
+                    ($processDirectory -eq $ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path) | Verify-False
+
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = $folder
+                    $c.Run.RepoRoot = Join-Path -Path '.' -ChildPath (Split-Path -Path $folder -Leaf)
+                    $c.Run.PassThru = $true
+                    $c.Output.Verbosity = 'None'
+                    $r = Invoke-Pester -Configuration $c
+
+                    $r.FailedCount | Verify-Equal 0
+                    $r.PassedCount | Verify-Equal 2
+                    $r.Configuration.Run.RepoRoot.Value | Verify-Equal $folder
+                }
+                finally { Pop-Location }
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
         t "applies the chain when only discovery runs, so Run.SkipRun sees the same tests as a run" {
             # Run.SkipRun is the path the VS Code Test Explorer uses to populate. It went through
             # a batch discovery that never got the map, so a file whose discovery depends on the
@@ -558,6 +586,36 @@ Describe 'Second' {
                 [Pester.RunConfiguration]::FindRepoRoot($expected) | Verify-Equal $expected
             }
             finally { Remove-Item -Path $start -Recurse -Force }
+        }
+
+        t "FindRepoRoot finds a root whose .git is a file, not a directory (#3069)" {
+            # A git worktree, a submodule, and a clone made with --separate-git-dir all put a .git
+            # file at the root instead of a .git directory. Looking only for a directory walked past
+            # the root and fell back to the start location.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                Set-Content -Path (Join-Path $root ".git") -Value "gitdir: /somewhere/else/.git/worktrees/wt"
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
+        t "FindRepoRoot still finds a root whose .git is a directory" {
+            # The counterpart to the test above, so accepting a file does not come at the cost of
+            # the ordinary clone.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                $null = New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
         }
 
         t "applies the same cascade inside each parallel worker" {
@@ -944,6 +1002,180 @@ BeforeAll { }
             ($errors.Count -gt 0) | Verify-True
         }
 
+        t "does not re-emit a worker's warnings, the shared host already showed them (#3044)" {
+            # The pool shares the caller's host, so a worker's Write-Warning reaches the console
+            # live. Re-emitting Streams.Warning on top of that printed every warning a second time.
+            # The live copy goes straight to the host and never touches this pipeline's warning
+            # stream, so anything 3>&1 captures here is a re-emitted duplicate.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Warning "worker-warning-$item"
+                    $item
+                }
+            } 3>&1
+
+            $warnings = @($out | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $warnings.Count | Verify-Equal 0
+        }
+
+        t "still re-emits a worker's errors, those never reach the host on their own" {
+            # The counterpart to the test above. Unlike warnings, a worker's non-terminating errors
+            # only land in Streams.Error, so dropping this re-emit would lose them entirely.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Error -Message "worker-error-$item" -ErrorAction Continue
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $errors.Count | Verify-Equal 2
+            (($errors | Sort-Object { "$_" }) -join ',') | Verify-Equal 'worker-error-1,worker-error-2'
+        }
+
+        t "defines the given variables in every worker runspace" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -Variable @{ WarningPreference = 'SilentlyContinue' } -ScriptBlock {
+                    param($item)
+                    "$item-$WarningPreference"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1-SilentlyContinue,2-SilentlyContinue'
+        }
+
+        t "leaves the worker on its defaults when no variables are given" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    "$WarningPreference"
+                }
+            }
+            @($r)[0] | Verify-Equal 'Continue'
+        }
+
+        t "gives every runspace its own session state" {
+            # RunspaceFactory.CreateRunspacePool hands one InitialSessionState instance to every
+            # runspace in the pool. Import-Module adds a module's FormatsToProcess entries to that
+            # collection and then enumerates it, so with a shared instance one worker added while
+            # another enumerated and the run failed with "Collection was modified; enumeration
+            # operation may not execute" (#3047). Pester declares FormatsToProcess and every worker
+            # imports Pester, so this was reachable from any suite.
+            #
+            # Every item waits until all four have started, so four runspaces really are open at the
+            # same time and the count of distinct session states is exact rather than timing
+            # dependent. Without the wait the items finish while the rest are still being dispatched
+            # and a runspace that came free is reused, which is correct but tests something else.
+            $state = [hashtable]::Synchronized(@{ Arrived = 0 })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $state.Arrived++ } finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+
+                $waited = [System.Diagnostics.Stopwatch]::StartNew()
+                while ($state.Arrived -lt 4 -and $waited.Elapsed.TotalSeconds -lt 20) {
+                    Start-Sleep -Milliseconds 10
+                }
+
+                [runspace]::DefaultRunspace.InitialSessionState.GetHashCode()
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject @(1, 2, 3, 4) -ThrottleLimit 4 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 4
+            $state.Arrived | Verify-Equal 4
+            @($r | Sort-Object -Unique).Count | Verify-Equal 4
+        }
+
+        t "a built-in command reports the module it came from" {
+            # InitialSessionState::CreateDefault loads the built-in commands through the legacy
+            # snap-in infrastructure, which leaves CommandInfo.Module null on a built-in command,
+            # while a sequential run reports the module (#3066). CreateDefault2 does not.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    $null -ne (Get-Command Get-Item -ErrorAction Stop).Module
+                }
+            }
+
+            @($r).Count | Verify-Equal 2
+            foreach ($hasModule in $r) { $hasModule | Verify-True }
+        }
+
+        t "hands a free runspace to the next item instead of opening another one" {
+            # What the pool gave us for free and the hand-rolled one has to keep: a runspace carries
+            # over to the items that follow it, so a worker that imports Pester pays for the import
+            # once per runspace and not once per test file.
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2, 3) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    [runspace]::DefaultRunspace.InstanceId.ToString()
+                }
+            }
+
+            @($r).Count | Verify-Equal 3
+            @($r | Sort-Object -Unique).Count | Verify-Equal 1
+        }
+        t "takes a finished runspace back instead of opening another one" {
+            # The loop used to dispatch the whole throttle before looking at what had finished, so it
+            # always opened min(ThrottleLimit, items) runspaces even when the work never ran that many
+            # at once. Every extra runspace pays for importing the worker's modules again, which is
+            # the cost the reuse exists to avoid.
+            #
+            # 60 trivial items with a throttle of 60: the items finish faster than the loop can
+            # dispatch them, so most are handed a runspace that came free. This is a bound and not an
+            # exact number, because how many are in flight at once depends on the machine. Measured
+            # here it is 13 or 14 of 60, and it was 60 before.
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..60) -ThrottleLimit 60 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 60
+            $runspacesUsed = @($state.Runspaces | Sort-Object -Unique).Count
+            ($runspacesUsed -lt 60) | Verify-True
+            ($runspacesUsed -ge 1) | Verify-True
+        }
+
+        t "never opens more runspaces than the throttle allows" {
+            $state = [hashtable]::Synchronized(@{ Runspaces = [System.Collections.ArrayList]::Synchronized([System.Collections.ArrayList]::new()) })
+            $probe = {
+                param($item, $state)
+                [System.Threading.Monitor]::Enter($state.SyncRoot)
+                try { $null = $state.Runspaces.Add([runspace]::DefaultRunspace.InstanceId.ToString()) }
+                finally { [System.Threading.Monitor]::Exit($state.SyncRoot) }
+                Start-Sleep -Milliseconds 100
+                $item
+            }
+
+            $r = & (Get-Module Pester) {
+                param($state, $probe)
+                Invoke-InRunspacePool -InputObject (1..12) -ThrottleLimit 3 -Parameters @{ state = $state } -ScriptBlock $probe
+            } $state $probe
+
+            @($r).Count | Verify-Equal 12
+            @($state.Runspaces | Sort-Object -Unique).Count | Verify-Equal 3
+        }
+
         t "returns nothing for an empty input" {
             $r = & (Get-Module Pester) {
                 Invoke-InRunspacePool -InputObject @() -ThrottleLimit 2 -ScriptBlock { param($item) $item }
@@ -1268,6 +1500,85 @@ Describe 'OuterTwo' {
                 $output | Verify-Like '*Context CtxB*'
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a nested Invoke-Pester in a worker writes to its own caller, not to the tape (#2991)" {
+            # A worker silences its run and sends everything it writes to a module-scope tape, so the
+            # parent can replay it in order. The tape was visible to a run that started inside the
+            # worker's run as well, so a test that calls Invoke-Pester itself and captures the output
+            # with 6>&1 got nothing back, and that output was replayed later as the worker's own.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'Nested.Tests.ps1') -Value @'
+Describe 'OuterNested' {
+    It 'captures the output of a run it starts itself' {
+        $c = [PesterConfiguration]::Default
+        $c.Run.ScriptBlock = { Describe 'InnerNested' { It 'i' { 1 | Should -Be 1 } } }
+        $c.Output.Verbosity = 'Detailed'
+        $c.Output.RenderMode = 'Plaintext'
+        $captured = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+        $captured | Should -BeLike '*Describing InnerNested*'
+    }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                # The nested run reached the test that started it, so that test passed,
+                $output | Verify-Like '*Describing OuterNested*'
+                # and the parent did not replay the nested run as if the worker had written it.
+                ($output -like '*Describing InnerNested*') | Verify-False
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel preference variables" {
+        t "a worker prints what a sequential run prints, not what its own defaults say (#3044)" {
+            # A worker runspace starts with every preference variable at its default, so on its own it
+            # printed a warning the caller had silenced and swallowed the verbose output the caller had
+            # asked for. Both differ from a sequential run of the same files. The worker writes to the
+            # shared host directly, which no redirection in this process can capture, so run it in a
+            # child process and read its console output.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' {
+    It 'writes to both streams' {
+        Write-Warning 'warning-from-test'
+        Write-Verbose 'verbose-from-test'
+        1 | Should -Be 1
+    }
+}
+'@
+                $run = {
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'Continue'
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = '<folder>'
+                    $c.Run.Parallel = $true
+                    $c.Output.RenderMode = 'Plaintext'
+                    Invoke-Pester -Configuration $c
+                }
+                $sb = [scriptblock]::Create($run.ToString().Replace('<folder>', $folder))
+                $output = @(Invoke-InNewProcess -ScriptBlock $sb) -join "`n"
+
+                # The caller silenced warnings, so the worker must not print one.
+                ($output -match 'warning-from-test') | Verify-False
+                # The caller asked for verbose, so the worker must print it.
+                ($output -match 'verbose-from-test') | Verify-True
+            }
+            finally {
+                Remove-Item -Path $folder -Recurse -Force -ErrorAction Ignore
+            }
         }
     }
 

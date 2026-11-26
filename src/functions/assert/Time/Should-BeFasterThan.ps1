@@ -61,11 +61,15 @@
 
     if ($Actual -is [scriptblock]) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        & $Actual
+        # Assigned away, so the measured scriptblock's output does not become this assertion's
+        # output. '{ 1, 2, 3 } | Should-BeFasterThan 30s' used to write 1, 2, 3 to the caller.
+        # The [timespan] branch below writes nothing, and an assertion should write nothing.
+        $null = & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -ge $Expected) {
-            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        $elapsed = $sw.Elapsed
+        if ($elapsed -ge $Expected) {
+            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }

@@ -24,3 +24,11 @@ Describe "Should-NotHaveType" {
         { Should-NotHaveType ([int]) 1 } | Verify-AssertionFailed
     }
 }
+
+Describe "Should-NotHaveType rejects an expected value that is not a type" {
+    It 'Fails when Expected is neither a type nor a type name' {
+        # It used to pass, because PSTypeNames does not contain $null (#3038).
+        $err = { 1 | Should-NotHaveType 42 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a type or a type name to compare the value to*which is neither*'
+    }
+}

@@ -23,9 +23,23 @@
 # fork pull requests run without a maintainer approving each one.
 #
 # Image policy: GA only. We float `*-latest` for the newest GA image and pin the
-# one previous GA image ("latest + reasonably recent"). No preview images
-# (macos-26, windows-2025-vs2026) are used. Note macos-14 is on the deprecation
-# clock (brownouts Oct 2026, removal Nov 2 2026) — swap it out before then.
+# one previous GA image ("latest + reasonably recent").
+#
+# What the labels resolve to, read from the `Set up job` log of this workflow's own
+# runs (that is the only reliable way to tell, the labels move without notice):
+#   macos-latest    macos-26-arm64        macos-15      macos-15-arm64
+#   windows-latest  windows-2025-vs2026   windows-2022  windows-2022
+#   ubuntu-latest   ubuntu-26.04          ubuntu-22.04  ubuntu-22.04
+#
+# macos-14 was removed on Nov 2 2026, and a job that asks for a removed image is
+# cancelled the moment it starts. A cancelled job is not a failure that job reports,
+# so the only visible symptom was the `Done` gate failing on every pull request with
+# nothing in its log to explain it. When a `*-latest` label moves, pin the image it
+# leaves behind here, before the one below that is removed.
+#
+# The ubuntu pin is two releases behind what the policy asks for, ubuntu-24.04 is the
+# one previous GA image. Nothing is broken today and no removal is announced, but it
+# is the same drift that produced the macos-14 outage.
 name: CI
 
 on:
@@ -167,10 +181,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: PowerShell Module Cache
-        uses: potatoqualitee/psmodulecache@9e4b63833c22c1768d648e115a9c849afdda22a5 # v6.3
-        with:
-          modules-to-cache: PSScriptAnalyzer, ConvertToSARIF:1.0.0
+      # Installed straight from PSGallery rather than through potatoqualitee/psmodulecache.
+      # That is a composite action whose own actions/cache reference is not pinned to a SHA, and
+      # the "require actions to be pinned to a full-length commit SHA" policy applies to
+      # references inside composite actions too, so this job cannot start while the policy is on.
+      # Pinning our own reference does not help, the unpinned one is theirs (#3036).
+      - name: Install PSScriptAnalyzer and ConvertToSARIF
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Repository PSGallery
+          Install-Module ConvertToSARIF -RequiredVersion 1.0.0 -Scope CurrentUser -Force -Repository PSGallery
 
       # Not using microsoft/psscriptanalyzer-action@v1.0 because we're missing psm1 in src + need to exclude generated ps1xml
       - name: Run PSScriptAnalyzer
@@ -189,7 +209,7 @@ jobs:
       # a fork contributor sees the PSScriptAnalyzer output in the job log.
       - name: Upload SARIF results file
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
           sarif_file: results.sarif
 
@@ -220,7 +240,7 @@ jobs:
       # Publish the built tree so every test leg runs the exact same build.
       # Mirrors Azure's `publish: $(Build.SourcesDirectory)` + .artifactignore.
       - name: Upload build output
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: pester-build
           retention-days: 1
@@ -250,7 +270,7 @@ jobs:
           - { name: 'PS7 - Ubuntu latest',    id: ps7-ubuntu-latest,   os: ubuntu-latest,  psexe: pwsh }
           - { name: 'PS7 - Ubuntu 22.04',     id: ps7-ubuntu-2204,     os: ubuntu-22.04,   psexe: pwsh }
           - { name: 'PS7 - macOS latest',     id: ps7-macos-latest,    os: macos-latest,   psexe: pwsh }
-          - { name: 'PS7 - macOS 14',         id: ps7-macos-14,        os: macos-14,       psexe: pwsh }
+          - { name: 'PS7 - macOS 15',         id: ps7-macos-15,        os: macos-15,       psexe: pwsh }
           - { name: 'PS7 - Windows latest',   id: ps7-windows-latest,  os: windows-latest, psexe: pwsh }
           - { name: 'PS7 - Windows 2022',     id: ps7-windows-2022,    os: windows-2022,   psexe: pwsh }
           # Windows PowerShell 5.1 (psexe: powershell) — Windows only.
@@ -260,7 +280,7 @@ jobs:
       # No checkout: the legs run against the artifact from Build, so they test
       # the exact same build.
       - name: Download build output
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: pester-build
           path: .
@@ -321,7 +341,7 @@ jobs:
       # CODECOV_TOKEN secret, if set, makes uploads more reliable.
       - name: Upload coverage to Codecov
         if: always()
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           files: ./coverage.xml
           disable_search: true
@@ -332,7 +352,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: results-${{ matrix.id }}
           retention-days: 7
@@ -366,7 +386,7 @@ jobs:
 
       - name: Download test results
         if: always() && needs.changes.outputs.code != 'false'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: results-*
           path: results

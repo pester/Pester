@@ -14,15 +14,15 @@ InPesterModuleScope {
             }
 
             It 'Returns all registered operators' {
-                $get1.Count | Should -Be $OpCount
-                $get2.Count | Should -Be ($OpCount + 1)
+                $get1.Count | Should-Be $OpCount
+                $get2.Count | Should-Be ($OpCount + 1)
             }
 
             It 'Returns Name and Alias properties' {
                 $get1[0].PSObject.Properties |
                     Select-Object -ExpandProperty Name |
                     Sort-Object |
-                    Should -Be 'Alias', 'Name'
+                    Should-ContainCollection @('Alias', 'Name')
             }
 
             AfterAll {
@@ -36,24 +36,25 @@ InPesterModuleScope {
             }
 
             It 'Should return a PesterAssertionOperatorHelp-object' {
-                $BGT.Name | Should -BeExactly 'BeGreaterThan'
-                $BGT.Aliases | Should -BeExactly @('GT')
-                # BeOfType doesn't currently work with PSCustomObject typenames
-                $BGT.PSTypeNames[0] | Should -BeExactly 'PesterAssertionOperatorHelp'
-                $BGT.Help.PSTypeNames[0] | Should -BeExactly 'MamlCommandHelpInfo#ExamplesView'
-                $BGT.Help.syntax.syntaxItem[0].name | Should -Be 'Should -BeGreaterThan'
-                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeOfType ([string])
-                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should -BeLike '*-ActualValue*'
+                $BGT.Name | Should-BeString 'BeGreaterThan' -CaseSensitive
+                $BGT.Aliases | Should-BeCollection @('GT')
+                $BGT.Aliases[0] | Should-BeString 'GT' -CaseSensitive
+                # Should-HaveType doesn't currently work with PSCustomObject typenames
+                $BGT.PSTypeNames[0] | Should-BeString 'PesterAssertionOperatorHelp' -CaseSensitive
+                $BGT.Help.PSTypeNames[0] | Should-BeString 'MamlCommandHelpInfo#ExamplesView' -CaseSensitive
+                $BGT.Help.syntax.syntaxItem[0].Name | Should-BeString 'Should -BeGreaterThan' -CaseSensitive
+                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should-HaveType ([string])
+                $BGT.Help.syntax.syntaxItem[0].DisplayParameterSet | Should-BeLikeString '*-ActualValue*'
             }
 
             It 'Returns help for all internal Pester assertion operators' {
                 $AssertionOperators.Keys | ForEach-Object {
-                    Get-ShouldOperator -Name $_ | Should -Not -BeNullOrEmpty -Because "$_ should have help"
+                    Get-ShouldOperator -Name $_ | Should-NotBeNull -Because "$_ should have help"
                 }
             }
 
             It 'Throws on invalid assertion-name' {
-                { Get-ShouldOperator BeHorrible } | Should -Throw -ExceptionType ([System.Management.Automation.ParameterBindingException]) -ErrorId 'ParameterArgumentValidationError,Get-ShouldOperator' -ExpectedMessage "*on parameter 'Name'*does not belong to the set*"
+                { Get-ShouldOperator BeHorrible } | Should-Throw -FullyQualifiedErrorId 'ParameterArgumentValidationError,Get-ShouldOperator' -ExceptionMessage "*on parameter 'Name'*does not belong to the set*"
             }
 
             It 'Supports positional value' {

@@ -95,8 +95,13 @@ function Invoke-InRunspacePool {
     rather than through `$using:`, which is a ForEach-Object -Parallel feature. The runspaces live
     in this process, so the values themselves cross as live objects either way.
 
-    Each item gets its own PowerShell instance and they are all started at once; the pool is what
-    limits how many actually run, so ThrottleLimit means the same as it does on ForEach-Object.
+    The pool is assembled here instead of with RunspaceFactory.CreateRunspacePool, because that
+    API takes one InitialSessionState and gives the same instance to every runspace it opens,
+    which the workers then race on - see the comment at the creation site below. A runspace that
+    comes free is handed to the next item, and another one is opened only when nothing is free and
+    nothing has finished, so work that never needs the full ThrottleLimit never opens it. That
+    matters because a runspace keeps what the previous item left in it, so a worker that imports a
+    module pays for the import once per runspace and not once per item.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('Pester.BuildAnalyzerRules\Measure-SafeCommands', '', Justification = 'Runspace and PowerShell API calls, not cmdlets.')]
     [CmdletBinding()]
@@ -112,7 +117,11 @@ function Invoke-InRunspacePool {
         [System.Collections.IDictionary] $Parameters = @{},
 
         # Name of the worker parameter that receives the current input item.
-        [string] $ItemParameterName = 'item'
+        [string] $ItemParameterName = 'item',
+
+        # Variables to define in every worker runspace, before the scriptblock runs. Used to carry
+        # the caller's preference variables in, see Invoke-TestInParallel.
+        [System.Collections.IDictionary] $Variable = @{}
     )
 
     $items = @($InputObject)
@@ -121,32 +130,127 @@ function Invoke-InRunspacePool {
     }
 
     if ($ThrottleLimit -lt 1) { $ThrottleLimit = 1 }
+    # No point opening more runspaces than there are items to put in them.
+    $runspaceCount = [System.Math]::Min($ThrottleLimit, $items.Count)
 
-    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
-    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
-    # console reaches the same one. Pester's workers are silenced, this is for anything else.
-    $pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1, $ThrottleLimit, $sessionState, $Host)
-    $pool.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
-    $pool.Open()
+    # WaitAny takes at most 64 handles, and on Windows PowerShell the main thread is STA, where the
+    # wait reserves one slot for the message pump and 64 throws. 63 is safe on both editions.
+    $waitLimit = 63
 
-    $invocations = [System.Collections.Generic.List[object]]@()
+    # Every runspace opened and every PowerShell created, so the finally can dispose all of them
+    # even when opening or starting one throws.
+    $runspaces = [System.Collections.Generic.List[object]]@()
+    $powershells = [System.Collections.Generic.List[object]]@()
+    # The runspaces not currently running an item.
+    $free = [System.Collections.Generic.Queue[object]]::new()
+    # The items still running.
+    $inFlight = [System.Collections.Generic.List[object]]@()
+
+    $next = 0
     try {
-        foreach ($item in $items) {
-            $powershell = [System.Management.Automation.PowerShell]::Create()
-            $powershell.RunspacePool = $pool
-            $null = $powershell.AddScript($ScriptBlock.ToString())
-            $null = $powershell.AddParameter($ItemParameterName, $item)
-            foreach ($key in $Parameters.Keys) {
-                $null = $powershell.AddParameter($key, $Parameters[$key])
+        while ($next -lt $items.Count -or 0 -lt $inFlight.Count) {
+            # Look for a finished item first. Taking its runspace back is always better than opening
+            # another one: without this the loop opened the full ThrottleLimit even for work that
+            # never ran that many items at once, and every extra runspace pays for importing the
+            # worker's modules again.
+            $finished = -1
+            for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                if ($inFlight[$i].Handle.IsCompleted) {
+                    $finished = $i
+                    break
+                }
             }
 
-            $invocations.Add([PSCustomObject]@{
-                    PowerShell = $powershell
-                    Handle     = $powershell.BeginInvoke()
-                })
-        }
+            while ($next -lt $items.Count) {
+                if (0 -eq $free.Count) {
+                    # Nothing free. Look again before opening another runspace: the items dispatched
+                    # a moment ago may already have finished, and reaping one is always better than
+                    # opening another. Scanning only once per outer pass was not enough, because the
+                    # whole throttle is dispatched inside this loop without ever looking back.
+                    if ($finished -lt 0) {
+                        for ($i = 0; $i -lt $inFlight.Count; $i++) {
+                            if ($inFlight[$i].Handle.IsCompleted) {
+                                $finished = $i
+                                break
+                            }
+                        }
+                    }
 
-        foreach ($invocation in $invocations) {
+                    # Nothing to reap either, so open one if the throttle still allows it.
+                    if (0 -le $finished -or $runspaces.Count -ge $runspaceCount) {
+                        break
+                    }
+
+                    # One InitialSessionState per runspace, never one instance shared by all of them.
+                    #
+                    # RunspaceFactory.CreateRunspacePool takes a single InitialSessionState and gives
+                    # that same instance to every runspace it opens. Import-Module adds a module's
+                    # FormatsToProcess entries to the runspace's InitialSessionState.Formats collection
+                    # and then enumerates that collection to update the formats, so with one shared
+                    # instance a worker enumerates while another adds, and List<T> throws "Collection
+                    # was modified; enumeration operation may not execute" (#3047). Pester itself
+                    # declares FormatsToProcess and every worker imports Pester, which is why a suite
+                    # whose own modules have no format files hit this too. ForEach-Object -Parallel
+                    # builds a session state per runspace and does not have the problem.
+                    #
+                    # CreateDefault2 rather than CreateDefault (#3066). CreateDefault loads the
+                    # built-in commands through the legacy snap-in infrastructure, which leaves
+                    # CommandInfo.Module null on a built-in command - a difference from a sequential
+                    # run that test code trips over. CreateDefault2 loads only what hosting PowerShell
+                    # needs and leaves the rest to normal module loading, which is what pwsh itself,
+                    # ForEach-Object -Parallel, Start-ThreadJob and PowerShell Editor Services all do.
+                    $sessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
+                    # A fresh runspace starts with every preference variable at its default, so without
+                    # this the worker would decide on its own what to print, no matter what the caller
+                    # asked for. Define them in the worker's global scope, which is where a sequential
+                    # run resolves them from too. Per runspace, like the session state itself.
+                    foreach ($key in $Variable.Keys) {
+                        $sessionState.Variables.Add(
+                            [System.Management.Automation.Runspaces.SessionStateVariableEntry]::new($key, $Variable[$key], ''))
+                    }
+                    # Share the host, the way ForEach-Object -Parallel does, so a worker that does write to the
+                    # console reaches the same one. Pester's workers are silenced, this is for anything else.
+                    $runspace = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspace($Host, $sessionState)
+                    $runspace.ThreadOptions = [System.Management.Automation.Runspaces.PSThreadOptions]::ReuseThread
+                    # Tracked before it is opened, so a runspace that fails to open is still disposed.
+                    $runspaces.Add($runspace)
+                    $runspace.Open()
+                    $free.Enqueue($runspace)
+                }
+
+                $powershell = [System.Management.Automation.PowerShell]::Create()
+                # Tracked before it is started, so one that fails to start is still disposed.
+                $powershells.Add($powershell)
+                $powershell.Runspace = $free.Dequeue()
+                $null = $powershell.AddScript($ScriptBlock.ToString())
+                $null = $powershell.AddParameter($ItemParameterName, $items[$next])
+                foreach ($key in $Parameters.Keys) {
+                    $null = $powershell.AddParameter($key, $Parameters[$key])
+                }
+
+                $handle = $powershell.BeginInvoke()
+                $inFlight.Add([PSCustomObject]@{
+                        PowerShell = $powershell
+                        Handle     = $handle
+                    })
+                $next++
+            }
+
+            if ($finished -lt 0) {
+                # Nothing has finished, so wait on the handles rather than spin. A high ThrottleLimit
+                # can have more in flight than WaitAny takes, hence the timeout: it brings us back to
+                # look at the rest.
+                $waitable = [System.Threading.WaitHandle[]]@(
+                    for ($i = 0; $i -lt [System.Math]::Min($waitLimit, $inFlight.Count); $i++) {
+                        $inFlight[$i].Handle.AsyncWaitHandle
+                    })
+                $null = [System.Threading.WaitHandle]::WaitAny($waitable, 200)
+                continue
+            }
+
+            $invocation = $inFlight[$finished]
+            $inFlight.RemoveAt($finished)
+
             try {
                 $invocation.PowerShell.EndInvoke($invocation.Handle)
             }
@@ -162,23 +266,66 @@ function Invoke-InRunspacePool {
                 & $SafeCommands['Write-Error'] -ErrorRecord $_ -ErrorAction Continue
             }
 
-            # The worker has no console of its own, so anything it wrote to these streams would be
-            # lost. Re-emit it here, non-terminating for the same reason as above.
+            # Only the error stream needs re-emitting. The pool shares the caller's host (see
+            # above), so a worker's warning, verbose and Write-Host output already reached the
+            # console live, while its errors only landed in Streams.Error. Re-emitting the
+            # warning stream as well printed every warning a second time, which is why this loop
+            # covers the error stream alone. Non-terminating for the same reason as above.
             foreach ($errorRecord in $invocation.PowerShell.Streams.Error) {
                 & $SafeCommands['Write-Error'] -ErrorRecord $errorRecord -ErrorAction Continue
             }
-            foreach ($warningRecord in $invocation.PowerShell.Streams.Warning) {
-                & $SafeCommands['Write-Warning'] -Message $warningRecord.Message
-            }
+
+            # Hand the runspace to the next item. Disposing the PowerShell does not close a runspace
+            # that was assigned to it, only one it created itself.
+            $runspace = $invocation.PowerShell.Runspace
+            $invocation.PowerShell.Dispose()
+            $free.Enqueue($runspace)
         }
     }
     finally {
-        foreach ($invocation in $invocations) {
-            $invocation.PowerShell.Dispose()
+        foreach ($powershell in $powershells) {
+            $powershell.Dispose()
         }
-        $pool.Close()
-        $pool.Dispose()
+        foreach ($runspace in $runspaces) {
+            $runspace.Close()
+            $runspace.Dispose()
+        }
     }
+}
+
+function Get-CallerPreferenceVariable {
+    <#
+    .SYNOPSIS
+    Reads the output preference variables the caller of Invoke-Pester was running with.
+
+    .DESCRIPTION
+    A worker runspace starts with every preference variable at its default, so on its own it
+    prints what the defaults say and not what the caller asked for. A run where the caller had
+    silenced warnings still printed them, and one where the caller had asked for verbose output
+    got none. Both differ from what the same files print in a sequential run, where the test body
+    resolves these variables from the caller's scope.
+
+    Only the preferences that decide what is printed are read. ErrorActionPreference is left out
+    on purpose, it decides how a command behaves on error and not only what reaches the screen.
+    #>
+    [CmdletBinding()]
+    param(
+        [System.Management.Automation.SessionState] $SessionState
+    )
+
+    $preferences = @{}
+    if ($null -eq $SessionState) {
+        return $preferences
+    }
+
+    foreach ($name in 'WarningPreference', 'VerbosePreference', 'DebugPreference', 'InformationPreference', 'ProgressPreference') {
+        $value = $SessionState.PSVariable.GetValue($name)
+        if ($null -ne $value) {
+            $preferences[$name] = $value
+        }
+    }
+
+    $preferences
 }
 
 function Invoke-TestInParallel {
@@ -227,7 +374,11 @@ function Invoke-TestInParallel {
         [Pester.ContainerInfo[]] $BlockContainer,
 
         [Parameter(Mandatory)]
-        $Configuration
+        $Configuration,
+
+        # The caller's session state, captured by Invoke-Pester. Used to read the preference
+        # variables the caller was running with, so the workers print what a sequential run prints.
+        [System.Management.Automation.SessionState] $CallerSessionState
     )
 
     # Which Pester.BeforeContainer.ps1 files apply depends on where the file sits, from
@@ -423,7 +574,7 @@ function Invoke-TestInParallel {
 
     $results = @()
     if (0 -lt $work.Count) {
-        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Parameters @{
+        $results = Invoke-InRunspacePool -InputObject $work -ScriptBlock $worker -ThrottleLimit $throttle -Variable (Get-CallerPreferenceVariable -SessionState $CallerSessionState) -Parameters @{
             modulePath       = $modulePath
             baseConfig       = $baseConfig
             recordedSteps    = $recordedSteps

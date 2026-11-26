@@ -87,49 +87,49 @@ InModuleScope -ModuleName Pester -ScriptBlock {
     Describe "Format-PesterPath" {
 
         It "Writes path correctly when it is given `$null" {
-            Format-PesterPath -Path $null | Should -Be $null
+            Format-PesterPath -Path $null | Should-BeNull
         }
 
         if ((GetPesterOS) -ne 'Windows') {
 
             It "Writes path correctly when it is provided as string" {
-                Format-PesterPath -Path "/home/username/folder1" | Should -Be "/home/username/folder1"
+                Format-PesterPath -Path '/home/username/folder1' | Should-BeString '/home/username/folder1'
             }
 
             It "Writes path correctly when it is provided as string[]" {
-                Format-PesterPath -Path @("/home/username/folder1", "/home/username/folder2") -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+                Format-PesterPath -Path @('/home/username/folder1', '/home/username/folder2') -Delimiter ', ' | Should-BeString '/home/username/folder1, /home/username/folder2'
             }
 
             It "Writes path correctly when provided through hashtable" {
-                Format-PesterPath -Path @{ Path = "/home/username/folder1" } | Should -Be "/home/username/folder1"
+                Format-PesterPath -Path @{ Path = '/home/username/folder1' } | Should-BeString '/home/username/folder1'
             }
 
             It "Writes path correctly when provided through array of hashtable" {
-                Format-PesterPath -Path @{ Path = "/home/username/folder1" }, @{ Path = "/home/username/folder2" } -Delimiter ', ' | Should -Be "/home/username/folder1, /home/username/folder2"
+                Format-PesterPath -Path @{ Path = '/home/username/folder1' }, @{ Path = '/home/username/folder2' } -Delimiter ', ' | Should-BeString '/home/username/folder1, /home/username/folder2'
             }
         }
         else {
 
             It "Writes path correctly when it is provided as string" {
-                Format-PesterPath -Path "C:\path" | Should -Be "C:\path"
+                Format-PesterPath -Path 'C:\path' | Should-BeString 'C:\path'
             }
 
             It "Writes path correctly when it is provided as string[]" {
-                Format-PesterPath -Path @("C:\path1", "C:\path2") -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+                Format-PesterPath -Path @('C:\path1', 'C:\path2') -Delimiter ', ' | Should-BeString 'C:\path1, C:\path2'
             }
 
             It "Writes path correctly when provided through hashtable" {
-                Format-PesterPath -Path @{ Path = "C:\path" } | Should -Be "C:\path"
+                Format-PesterPath -Path @{ Path = 'C:\path' } | Should-BeString 'C:\path'
             }
 
             It "Writes path correctly when provided through array of hashtable" {
-                Format-PesterPath -Path @{ Path = "C:\path1" }, @{ Path = "C:\path2" } -Delimiter ', ' | Should -Be "C:\path1, C:\path2"
+                Format-PesterPath -Path @{ Path = 'C:\path1' }, @{ Path = 'C:\path2' } -Delimiter ', ' | Should-BeString 'C:\path1, C:\path2'
             }
 
         }
     }
 
-    Describe ConvertTo-FailureLines {
+    Describe "ConvertTo-FailureLines" {
         BeforeAll {
 
             $showFullErrors = & (Get-Module Pester) {
@@ -160,13 +160,13 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should -be 'RuntimeException: message'
-            $r.Message.Count | Should -be 1
+            $r.Message[0] | Should-BeString 'RuntimeException: message'
+            $r.Message.Count | Should-Be 1
         }
 
         It 'failed should produces correct message lines.' {
             try {
-                'One' | Should -be 'Two' -ErrorAction Stop
+                'One' | Should-BeString 'Two' -ErrorAction Stop
             }
             catch {
                 $e = $_
@@ -174,16 +174,16 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             $r = $e | ConvertTo-FailureLines
 
-            $r.Message[0] | Should -be 'Expected strings to be the same, but they were different.'
-            $r.message[1] | Should -be 'String lengths are both 3.'
-            $r.message[2] | Should -be 'Strings differ at index 0.'
-            $r.Message[3] | Should -be "Expected: 'Two'"
-            $r.Message[4] | Should -be "But was:  'One'"
-            $r.Message[5] | Should -be "           ^"
-            $r.Message.Count | Should -be 6
+            $r.Message[0] | Should-BeString 'Expected strings to be the same, but they were different.'
+            $r.message[1] | Should-BeString 'String lengths are both 3.'
+            $r.message[2] | Should-BeString 'Strings differ at index 0.'
+            $r.Message[3] | Should-BeString "Expected: 'Two'"
+            $r.Message[4] | Should-BeString "But was:  'One'"
+            $r.Message[5] | Should-BeString '           ^'
+            $r.Message.Count | Should-Be 6
 
-            $r.Trace[0] | Should -match "'One' | Should -be 'Two'"
-            $r.Trace.Count | Should -be 1
+            $r.Trace[0] | Should-MatchString "'One' | Should-BeString 'Two'"
+            $r.Trace.Count | Should-Be 1
         }
         # TODO: should fails with a very weird error, probably has something to do with dynamic params...
         #         Context 'Should fails in file' {
@@ -252,36 +252,36 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'produces correct message lines.' {
-                $r.Message[0] | Should -be 'RuntimeException: f1 message'
+                $r.Message[0] | Should-BeString 'RuntimeException: f1 message'
             }
 
             if ((GetPesterOS) -ne 'Windows') {
                 It 'produces correct trace lines.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at f1, ${testPath}:2"
-                        $r.Trace[1] | Should -be "at f2, ${testPath}:5"
-                        $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:244"
-                        $r.Trace.Count | Should -be 4
+                        $r.Trace[0] | Should-BeString "at f1, ${testPath}:2"
+                        $r.Trace[1] | Should-BeString "at f2, ${testPath}:5"
+                        $r.Trace[2] | Should-BeString "at <ScriptBlock>, ${testPath}:7"
+                        $r.Trace[3] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:244"
+                        $r.Trace.Count | Should-Be 4
                     }
                 }
             }
             else {
                 It 'produces correct trace lines.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at f1, ${testPath}:2"
-                        $r.Trace[1] | Should -be "at f2, ${testPath}:5"
-                        $r.Trace[2] | Should -be "at <ScriptBlock>, ${testPath}:7"
-                        $r.Trace[3] | Should -be "at <ScriptBlock>, ${PSCommandPath}:244"
-                        $r.Trace.Count | Should -be 4
+                        $r.Trace[0] | Should-BeString "at f1, ${testPath}:2"
+                        $r.Trace[1] | Should-BeString "at f2, ${testPath}:5"
+                        $r.Trace[2] | Should-BeString "at <ScriptBlock>, ${testPath}:7"
+                        $r.Trace[3] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:244"
+                        $r.Trace.Count | Should-Be 4
                     }
                 }
             }
 
             It 'produces correct trace lines.' {
                 if (-not $hasStackTrace) {
-                    $r.Trace[0] | Should -be "at line: 2 in $testPath"
-                    $r.Trace.Count | Should -be 1
+                    $r.Trace[0] | Should-BeString "at line: 2 in $testPath"
+                    $r.Trace.Count | Should-Be 1
                 }
             }
         }
@@ -319,38 +319,38 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
             It 'produces correct message lines.' {
                 if (6 -ge $PSVersionTable.PSVersion.Major) {
-                    $r.Message[0] | Should -be 'ArgumentException: inner message'
-                    $r.Message[1] | Should -be 'Parameter name: param_name'
-                    $r.Message[2] | Should -be 'FormatException: outer message'
+                    $r.Message[0] | Should-BeString 'ArgumentException: inner message'
+                    $r.Message[1] | Should-BeString 'Parameter name: param_name'
+                    $r.Message[2] | Should-BeString 'FormatException: outer message'
                 }
                 else {
-                    $r.Message[0] | Should -be "ArgumentException: inner message (Parameter 'param_name')"
-                    $r.Message[1] | Should -be 'FormatException: outer message'
+                    $r.Message[0] | Should-BeString "ArgumentException: inner message (Parameter 'param_name')"
+                    $r.Message[1] | Should-BeString 'FormatException: outer message'
                 }
             }
 
             if ((GetPesterOS) -ne 'Windows') {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:310"
-                        $r.Trace.Count | Should -be 2
+                        $r.Trace[0] | Should-BeString "at <ScriptBlock>, $testPath`:10"
+                        $r.Trace[1] | Should-BeString "at <ScriptBlock>, $PSCommandPath`:310"
+                        $r.Trace.Count | Should-Be 2
                     }
                 }
             }
             else {
                 It 'produces correct trace line.' {
                     if ($hasStackTrace) {
-                        $r.Trace[0] | Should -be "at <ScriptBlock>, $testPath`:10"
-                        $r.Trace[1] | Should -be "at <ScriptBlock>, $PSCommandPath`:310"
-                        $r.Trace.Count | Should -be 2
+                        $r.Trace[0] | Should-BeString "at <ScriptBlock>, $testPath`:10"
+                        $r.Trace[1] | Should-BeString "at <ScriptBlock>, $PSCommandPath`:310"
+                        $r.Trace.Count | Should-Be 2
                     }
                 }
             }
             It 'produces correct trace line.' {
                 if (-not $hasStackTrace) {
-                    $r.Trace[0] | Should -be "at line: 10 in $testPath"
-                    $r.Trace.Count | Should -be 1
+                    $r.Trace[0] | Should-BeString "at line: 10 in $testPath"
+                    $r.Trace.Count | Should-Be 1
                 }
             }
         }
@@ -358,7 +358,7 @@ InModuleScope -ModuleName Pester -ScriptBlock {
         Context 'Exceptions with no error message property set' {
             BeforeAll {
                 try {
-                    $exceptionWithNullMessage = New-Object -TypeName "System.Management.Automation.ParentContainsErrorRecordException"
+                    $exceptionWithNullMessage = New-Object -TypeName 'System.Management.Automation.ParentContainsErrorRecordException'
                     throw $exceptionWithNullMessage
                 }
                 catch {
@@ -369,11 +369,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
 
 
             It 'produces correct message lines' {
-                $r.Message.Length | Should -Be 0
+                $r.Message.Length | Should-Be 0
             }
 
             It 'produces correct trace line' {
-                $r.Trace.Count | Should -Be 1
+                $r.Trace.Count | Should-Be 1
             }
         }
 
@@ -395,11 +395,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'keeps the line from the test file.' {
-                $r.Trace[0] | Should -Be "at <ScriptBlock>, ${testPath}:1"
+                $r.Trace[0] | Should-BeString "at <ScriptBlock>, ${testPath}:1"
             }
 
             It 'drops the frames that are inside Pester.' {
-                $r.Trace -join [Environment]::NewLine | Should -Not -Match 'Should-Be|EnsureScalar|Ensure-ExpectedIsNotCollection'
+                $r.Trace -join [Environment]::NewLine | Should-NotMatchString 'Should-Be|EnsureScalar|Ensure-ExpectedIsNotCollection'
             }
         }
 
@@ -424,8 +424,8 @@ f1
             }
 
             It 'produces the line with the assertion, and the line that called the function.' {
-                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:2"
-                $r.Trace[1] | Should -Be "at <ScriptBlock>, ${testPath}:4"
+                $r.Trace[0] | Should-BeString "at 1 | Should-Be 2, ${testPath}:2"
+                $r.Trace[1] | Should-BeString "at <ScriptBlock>, ${testPath}:4"
             }
         }
 
@@ -447,14 +447,14 @@ f1
             }
 
             It 'does not print the same file and line twice.' {
-                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:1"
-                @($r.Trace -match ([regex]::Escape("${testPath}:1"))).Count | Should -Be 1
+                $r.Trace[0] | Should-BeString "at 1 | Should-Be 2, ${testPath}:1"
+                @($r.Trace -match ([regex]::Escape("${testPath}:1"))).Count | Should-Be 1
             }
         }
     }
 
     Describe Format-ErrorMessage {
-        Context "Formats error messages for one error" {
+        Context 'Formats error messages for one error' {
             BeforeEach {
                 try {
                     1 / 0
@@ -467,61 +467,123 @@ f1
                 $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
 
                 $stackTraceText = $errorRecord.Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
-                $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $stackTraceText
+                $errorRecord | Add-Member -Name 'DisplayStackTrace' -MemberType NoteProperty -Value $stackTraceText
             }
 
-            It "When StackTraceVerbosity is None, it has only one error message in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "None"
+            It 'When StackTraceVerbosity is None, it has only one error message in output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'None'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages | Should -HaveCount 1
+                $messages[0] | Should-BeString 'Failed to divide 1/0' -CaseSensitive
+                $messages | Should-BeCollection -Count 1
             }
 
-            It "When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "FirstLine"
+            It 'When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'FirstLine'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages | Should -HaveCount 2
+                $messages[0] | Should-BeString 'Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages | Should-BeCollection -Count 2
             }
 
-            It "When StackTraceVerbosity is Filtered, it has error message and two lines of stacktrace output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "Filtered"
+            It 'When StackTraceVerbosity is Filtered, it has error message and two lines of stacktrace output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages.Count | Should -BeGreaterThan 2
+                $messages[0] | Should-BeString 'Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[2] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages.Count | Should-BeGreaterThan 2
             }
 
-            It "When StackTraceVerbosity is Full, it has error message and two lines of stacktrace output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity "Full"
+            It 'When StackTraceVerbosity is Full, it has error message and two lines of stacktrace output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages.Count | Should -BeGreaterThan 2
+                $messages[0] | Should-BeString 'Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[2] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages.Count | Should-BeGreaterThan 2
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When DisplayErrorMessage is `$null the error is filtered, and StackTraceVerbosity is honoured" {
+                # An error record that nothing has decorated, which is what a discovery failure is:
+                # a container's errors only get DisplayErrorMessage and DisplayStackTrace in
+                # PostProcess-RspecTestRun, long after discovery printed them. This used to append
+                # Exception.ToString() and the raw ScriptStackTrace, so the full exception type name
+                # followed by every Pester-internal frame, the same for every verbosity (#3057).
                 $errorRecord.DisplayErrorMessage = $null
-                $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}: line $divideLine"
-                $messages.Count | Should -BeGreaterThan 1
+                $errorRecord.DisplayStackTrace = $null
+
+                $none = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'None') -split [Environment]::NewLine
+                $none[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $none | Should-BeCollection -Count 1
+
+                $firstLine = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'FirstLine') -split [Environment]::NewLine
+                $firstLine[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $firstLine[1] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:$divideLine" -CaseSensitive
+                $firstLine | Should-BeCollection -Count 2
+
+                $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $filtered[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $filtered[1] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:$divideLine" -CaseSensitive
+
+                $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
+                $full[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $full.Count | Should-BeGreaterThanOrEqual $filtered.Count
+            }
+
+            It "With -Raw it reports the error as the runtime gave it, whatever the verbosity says" {
+                # Invoke-Pester's own catch reports an error raised inside Pester, where the internal
+                # frames, the managed frames and the inner-exception chain are the only diagnostic.
+                # Filtering those away left one line, and nothing at all when no user frame was in
+                # the trace.
+                $errorRecord.DisplayErrorMessage = $null
+                $errorRecord.DisplayStackTrace = $null
+
+                foreach ($verbosity in 'None', 'FirstLine', 'Filtered', 'Full') {
+                    $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $verbosity -Raw) -split [Environment]::NewLine
+                    # Exception.ToString(), so the full type name and not the short one.
+                    $messages[0] | Should-BeString "System.DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                    # The trace is there even for 'None', and unfiltered.
+                    $messages.Count | Should-BeGreaterThan 1
+                    ($messages -join [Environment]::NewLine) | Should-BeLikeString "*${PSCommandPath}*"
+                }
+            }
+
+            It "With StackTraceVerbosity Full an undecorated error is not filtered" {
+                # ConvertTo-FailureLines decides whether to filter from the preference, not from the
+                # caller, so 'Full' has to be passed down explicitly or it filters anyway.
+                $errorRecord.DisplayErrorMessage = $null
+                $errorRecord.DisplayStackTrace = $null
+
+                $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
+
+                $full[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                # Everything the filter dropped is a Pester frame, so Full has to have more lines
+                # than Filtered here, not the same number.
+                $full.Count | Should-BeGreaterThan $filtered.Count
+            }
+
+            It "Ignores a DisplayStackTrace that comes without a DisplayErrorMessage" {
+                # Half-decorated is not a shape anything produces, but Format-ErrorForDisplay decides
+                # on DisplayErrorMessage alone, so this pins what it does with the other half.
+                $errorRecord.DisplayErrorMessage = $null
+                # DisplayStackTrace is left as the BeforeEach set it.
+
+                $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
+                $messages[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                ($messages -join [Environment]::NewLine) | Should-NotBeLikeString '*:230*'
             }
 
             It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
                 $errorRecord.DisplayStackTrace = $null
                 $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "Failed to divide 1/0"
-                $messages | Should -HaveCount 1
+                $messages[0] | Should-BeString 'Failed to divide 1/0' -CaseSensitive
+                $messages | Should-BeCollection -Count 1
             }
         }
 
-        Context "Formats error messages for multiple errors" {
+        Context 'Formats error messages for multiple errors' {
             BeforeEach {
                 $errorRecords = @()
                 for ($i = 1; $i -lt 3; $i++) {
@@ -531,62 +593,67 @@ f1
                     catch [System.DivideByZeroException] {
                         $errorRecord = $_
                     }
-                    $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide $i/0"
+                    $errorRecord | Add-Member -Name 'DisplayErrorMessage' -MemberType NoteProperty -Value "Failed to divide $i/0"
                     $stackTraceText = $errorRecord.Exception.ToString() + "$([Environment]::NewLine)at <ScriptBlock>, ${PSCommandPath}:230"
-                    $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $stackTraceText
+                    $errorRecord | Add-Member -Name 'DisplayStackTrace' -MemberType NoteProperty -Value $stackTraceText
                     $errorRecords += $errorRecord
                 }
             }
 
-            It "When StackTraceVerbosity is None, it has only one error message in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "None"
+            It 'When StackTraceVerbosity is None, it has only one error message in output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity 'None'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "[1] Failed to divide 2/0"
-                $messages | Should -HaveCount 2
+                $messages[0] | Should-BeString '[0] Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString '[1] Failed to divide 2/0' -CaseSensitive
+                $messages | Should-BeCollection -Count 2
             }
 
-            It "When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "FirstLine"
+            It 'When StackTraceVerbosity is FirstLine, it has error message and first line of stack trace in output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity 'FirstLine'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[2] | Should -BeExactly "[1] Failed to divide 2/0"
-                $messages[3] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages | Should -HaveCount 4
+                $messages[0] | Should-BeString '[0] Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[2] | Should-BeString '[1] Failed to divide 2/0' -CaseSensitive
+                $messages[3] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages | Should-BeCollection -Count 4
             }
 
-            It "When StackTraceVerbosity is Filtered, it has two error messages and four lines stacktrace output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "Filtered"
+            It 'When StackTraceVerbosity is Filtered, it has two error messages and four lines stacktrace output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity 'Filtered'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages[3] | Should -BeExactly "[1] Failed to divide 2/0"
-                $messages[4] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[5] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages.Count | Should -BeGreaterThan 4
+                $messages[0] | Should-BeString '[0] Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[2] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages[3] | Should-BeString '[1] Failed to divide 2/0' -CaseSensitive
+                $messages[4] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[5] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages.Count | Should-BeGreaterThan 4
             }
 
-            It "When StackTraceVerbosity is Full, it has two error messages and four lines stacktrace output" {
-                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity "Full"
+            It 'When StackTraceVerbosity is Full, it has two error messages and four lines stacktrace output' {
+                $errorMessage = Format-ErrorMessage -Err $errorRecords -StackTraceVerbosity 'Full'
                 $messages = $errorMessage -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "[0] Failed to divide 1/0"
-                $messages[1] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[2] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages[3] | Should -BeExactly "[1] Failed to divide 2/0"
-                $messages[4] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                $messages[5] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:230"
-                $messages.Count | Should -BeGreaterThan 4
+                $messages[0] | Should-BeString '[0] Failed to divide 1/0' -CaseSensitive
+                $messages[1] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[2] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages[3] | Should-BeString '[1] Failed to divide 2/0' -CaseSensitive
+                $messages[4] | Should-BeString 'System.DivideByZeroException: Attempted to divide by zero.' -CaseSensitive
+                $messages[5] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:230" -CaseSensitive
+                $messages.Count | Should-BeGreaterThan 4
             }
 
-            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, it has execption message with script stack trace" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
+            It "When StackTraceVerbosity is '<_>' and DisplayErrorMessage is `$null, the error is filtered" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
                 foreach ($errorRecord in $errorRecords) {
                     $errorRecord.DisplayErrorMessage = $null
-                    $errorMessage = Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_
-                    $messages = $errorMessage -split [Environment]::NewLine
-                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
-                    $messages | Should -BeGreaterThan 1
+                    $errorRecord.DisplayStackTrace = $null
+                    $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_) -split [Environment]::NewLine
+                    $messages[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                    if ('None' -eq $_) {
+                        $messages | Should-BeCollection -Count 1
+                    }
+                    else {
+                        $messages.Count | Should-BeGreaterThan 1
+                    }
                 }
             }
 
@@ -595,8 +662,8 @@ f1
                     $errorRecords[$i].DisplayStackTrace = $null
                     $errorMessage = Format-ErrorMessage -Err $errorRecords[$i] -StackTraceVerbosity $_
                     $messages = $errorMessage -split [Environment]::NewLine
-                    $messages[0] | Should -BeExactly "Failed to divide $($i + 1)/0"
-                    $messages | Should -HaveCount 1
+                    $messages[0] | Should-BeString "Failed to divide $($i + 1)/0" -CaseSensitive
+                    $messages | Should-BeCollection -Count 1
                 }
             }
         }
@@ -610,16 +677,16 @@ f1
             catch [System.DivideByZeroException] {
                 $errorRecord = $_
             }
-            $errorRecord | Add-Member -Name "DisplayErrorMessage" -MemberType NoteProperty -Value "Failed to divide 1/0"
-            $errorRecord | Add-Member -Name "DisplayStackTrace" -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
+            $errorRecord | Add-Member -Name 'DisplayErrorMessage' -MemberType NoteProperty -Value 'Failed to divide 1/0'
+            $errorRecord | Add-Member -Name 'DisplayStackTrace' -MemberType NoteProperty -Value $errorRecord.Exception.ToString()
         }
-        It "Throw error message" {
-            { Write-ErrorToScreen -Err $errorRecord -Throw } | Should -Throw
+        It 'Throw error message' {
+            { Write-ErrorToScreen -Err $errorRecord -Throw } | Should-Throw
         }
     }
 
     Describe Format-CIErrorMessage {
-        Context "Azure Devops Error Format" {
+        Context 'Azure Devops Error Format' {
             It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
                 @{
                     Header   = 'header'
@@ -639,11 +706,11 @@ f1
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Error' -Header $Header -Message $Message | Should-BeCollection $Expected
             }
         }
 
-        Context "Azure Devops Warning Format" {
+        Context 'Azure Devops Warning Format' {
             It "Header '<header>' and Message '<message>' returns '<expected>'" -TestCases @(
                 @{
                     Header   = 'header'
@@ -663,7 +730,7 @@ f1
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'AzureDevops' -CILogLevel 'Warning' -Header $Header -Message $Message | Should-BeCollection $Expected
             }
         }
 
@@ -702,7 +769,7 @@ f1
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Error' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Error' -Header $Header -Message $Message | Should-BeCollection $Expected
             }
         }
 
@@ -741,7 +808,7 @@ f1
                     )
                 }
             ) {
-                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Warning' -Header $Header -Message $Message | Should -Be $Expected
+                Format-CIErrorMessage -CIFormat 'GithubActions' -CILogLevel 'Warning' -Header $Header -Message $Message | Should-BeCollection $Expected
             }
         }
     }
@@ -761,7 +828,7 @@ f1
         }
 
         It 'returns $false when no CI debug flag is set' {
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
 
         It "returns `$true when Azure DevOps System.Debug is '<value>' (case-insensitive)" -TestCases @(
@@ -770,22 +837,22 @@ f1
             @{ Value = 'TRUE' }
         ) {
             $env:SYSTEM_DEBUG = $Value
-            Get-CIDebugFlag | Should -BeTrue
+            Get-CIDebugFlag | Should-BeTrue
         }
 
         It "returns `$false when Azure DevOps System.Debug is 'false'" {
             $env:SYSTEM_DEBUG = 'false'
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
 
         It "returns `$true when GitHub Actions RUNNER_DEBUG is '1'" {
             $env:RUNNER_DEBUG = '1'
-            Get-CIDebugFlag | Should -BeTrue
+            Get-CIDebugFlag | Should-BeTrue
         }
 
         It "returns `$false when GitHub Actions RUNNER_DEBUG is '0'" {
             $env:RUNNER_DEBUG = '0'
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
     }
 
@@ -806,19 +873,19 @@ f1
         It 'is $true when a CI debug flag is set and not opted out' {
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeTrue
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeTrue
         }
 
         It "is `$false when opted out via CIDebugOutput = 'None'" {
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'None'
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeFalse
         }
 
         It 'is $false when no CI debug flag is set' {
             $c = [PesterConfiguration]::Default
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeFalse
         }
     }
 
@@ -840,20 +907,20 @@ f1
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+            $c.Output.Verbosity.Value | Should-BeString 'Diagnostic'
         }
 
         It 'raises Verbosity to Diagnostic when GitHub Actions RUNNER_DEBUG is enabled and Verbosity is unset' {
             $env:RUNNER_DEBUG = '1'
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+            $c.Output.Verbosity.Value | Should-BeString 'Diagnostic'
         }
 
         It 'does not change Verbosity when no CI debug flag is set' {
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Normal'
+            $c.Output.Verbosity.Value | Should-BeString 'Normal'
         }
 
         It 'does not override an explicit Verbosity choice' {
@@ -861,7 +928,7 @@ f1
             $c = [PesterConfiguration]::Default
             $c.Output.Verbosity = 'Detailed'
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Detailed'
+            $c.Output.Verbosity.Value | Should-BeString 'Detailed'
         }
 
         It "does nothing when opted out via CIDebugOutput = 'None'" {
@@ -869,13 +936,13 @@ f1
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'None'
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Normal'
+            $c.Output.Verbosity.Value | Should-BeString 'Normal'
         }
 
         It 'throws for an unsupported CIDebugOutput value' {
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'Bogus'
-            { Resolve-OutputConfiguration -PesterPreference $c } | Should -Throw -ExpectedMessage '*Output.CIDebugOutput*'
+            { Resolve-OutputConfiguration -PesterPreference $c } | Should-Throw -ExceptionMessage '*Output.CIDebugOutput*'
         }
     }
 }
@@ -894,9 +961,9 @@ Describe 'Write-PesterHostMessage' {
         }
         It 'Parameter <_.Name> is equal' -TestCases $WriteHostParam {
             $param = $_
-            $param.Name | Should -BeIn $WritePesterHostMessageParam.Keys
-            $WritePesterHostMessageParam[$param.Name].ParameterType | Should -Be $param.ParameterType
-            if ($param.Aliases) { $param.Aliases | Should -BeIn $WritePesterHostMessageParam[$param.Name].Aliases }
+            $WritePesterHostMessageParam.Keys | Should-ContainCollection $param.Name
+            $WritePesterHostMessageParam[$param.Name].ParameterType | Should-Be $param.ParameterType
+            if ($param.Aliases) { $WritePesterHostMessageParam[$param.Name].Aliases | Sort-Object | Should-ContainCollection ($param.Aliases | Sort-Object) }
         }
     }
 }
@@ -904,13 +971,13 @@ Describe 'Write-PesterHostMessage' {
 Describe 'Output.ShowTags' {
     It 'defaults to $false and exposes a description' {
         $c = New-PesterConfiguration
-        $c.Output.ShowTags.Value | Should -BeFalse
-        $c.Output.ShowTags.Description | Should -Not -BeNullOrEmpty
+        $c.Output.ShowTags.Value | Should-BeFalse
+        $c.Output.ShowTags.Description | Should-NotBeNull
     }
 
     It 'round-trips when set through a hashtable' {
         $c = New-PesterConfiguration -Hashtable @{ Output = @{ ShowTags = $true } }
-        $c.Output.ShowTags.Value | Should -BeTrue
+        $c.Output.ShowTags.Value | Should-BeTrue
     }
 
     Context 'Rendering' {
@@ -919,12 +986,12 @@ Describe 'Output.ShowTags' {
                 $sb = {
                     Describe 'Planets' -Tag 'Slow' {
                         It 'tagged test' -Tag 'Fast', 'Unit' {
-                            1 | Should -Be 1
+                            1 | Should-Be 1
                         }
 
                         Context 'Filtering' -Tag 'Ctx' {
                             It 'untagged test' {
-                                2 | Should -Be 2
+                                2 | Should-Be 2
                             }
                         }
                     }
@@ -943,30 +1010,30 @@ Describe 'Output.ShowTags' {
 
         It 'does not render tags when the option is off (default behaviour is unchanged)' {
             $out = Invoke-PesterCapturingOutput -ShowTags $false
-            $out | Should -Match 'Describing Planets'
-            $out | Should -Match '\[\+\] tagged test'
-            $out | Should -Not -Match '\[Tags:'
+            $out | Should-MatchString 'Describing Planets'
+            $out | Should-MatchString '\[\+\] tagged test'
+            $out | Should-NotMatchString '\[Tags:'
         }
 
         It 'renders block tags on the Describe line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match 'Describing Planets \[Tags: Slow\]'
+            $out | Should-MatchString 'Describing Planets \[Tags: Slow\]'
         }
 
         It 'renders block tags on the Context line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match 'Context Filtering \[Tags: Ctx\]'
+            $out | Should-MatchString 'Context Filtering \[Tags: Ctx\]'
         }
 
         It 'renders test tags on the It line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match '\[\+\] tagged test \[Tags: Fast, Unit\]'
+            $out | Should-MatchString '\[\+\] tagged test \[Tags: Fast, Unit\]'
         }
 
         It 'leaves untagged blocks and tests unchanged when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
             $untaggedLine = @($out -split [Environment]::NewLine) | Where-Object { $_ -match '\[\+\] untagged test' }
-            $untaggedLine | Should -Not -Match '\[Tags:'
+            $untaggedLine | Should-NotMatchString '\[Tags:'
         }
     }
 }
