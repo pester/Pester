@@ -19,6 +19,19 @@ Describe 'Pester manifest' {
     }
 }
 
+Describe 'Pester assembly' {
+    # The reference must stay at the oldest PowerShell we support. .NET resolves an assembly
+    # reference forward to a newer version but never backward to an older one, so referencing a
+    # higher patch makes the module fail to import on every 7.4.x below it. See #3013 and the
+    # notes in src/csharp/Pester/Pester.csproj.
+    It 'references System.Management.Automation from the oldest supported PowerShell' -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
+        $reference = [PesterConfiguration].Assembly.GetReferencedAssemblies() |
+            Where-Object { $_.Name -eq 'System.Management.Automation' }
+
+        $reference.Version | Should -Be ([version] '7.4.0.0')
+    }
+}
+
 Describe 'Clean treatment of the $error variable' {
     BeforeAll {
         $error.Clear()

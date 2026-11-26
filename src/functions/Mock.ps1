@@ -170,6 +170,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
         -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' ```
+        -CallSiteFile `$MyInvocation.ScriptName ```
+        -CallSiteLine `$MyInvocation.ScriptLineNumber ```
         -MockPSCmdlet `$MyInvocation.MyCommand.Mock.PSCmdlet ```
         -Hook `$MyInvocation.MyCommand.Mock.Hook #INPUT#
 "@
@@ -1006,6 +1008,12 @@ function Invoke-MockInternal {
 
         [object] $MockPSCmdlet,
 
+        # Where the mocked command was called from, taken from the bootstrap function's own
+        # $MyInvocation, which reports the caller's position and not the bootstrap's.
+        [string] $CallSiteFile,
+
+        [int] $CallSiteLine,
+
         [Parameter(Mandatory)]
         $Behaviors,
 
@@ -1067,6 +1075,8 @@ function Invoke-MockInternal {
                     Hook                = $Hook
                     Behavior            = $behavior
                     DynamicParamAliases = $MockCallState['DynamicParamAliases']
+                    CallSiteFile        = $CallSiteFile
+                    CallSiteLine        = $CallSiteLine
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
@@ -1373,6 +1383,22 @@ function Invoke-InMockScope {
     }
 }
 
+function Format-BoundParameterValueSafely {
+    # Stringify a bound-parameter value for diagnostic text (debug messages and the failed-filter
+    # summary). This is only ever used to provide context to the user, so it must fail open: some
+    # types have a ToString that throws (e.g. mocked SMO objects created via New-MockObject), and
+    # a value like that must not make the whole mock filter throw when it is not even referenced by
+    # the filter. See #2953.
+    param($Value)
+
+    try {
+        "$Value"
+    }
+    catch {
+        '<value could not be serialized>'
+    }
+}
+
 function Test-ParameterFilter {
     [CmdletBinding()]
     param (
@@ -1433,7 +1459,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $(Format-BoundParameterValueSafely $p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
@@ -1481,7 +1507,7 @@ function Test-ParameterFilter {
         $filterText = $scriptBlock.ToString().Trim()
         $hasContext = 0 -lt $Context.Count
         $contextText = if ($hasContext) {
-            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $($_.Value)" }) -join ', ')
+            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $(Format-BoundParameterValueSafely $_.Value)" }) -join ', ')
         }
         else {
             'no bound parameters'
@@ -2275,12 +2301,24 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
         $cmd = $historyEntry.Behavior.CommandName
 
+        # The line that made the call, so the reader can tell the listed calls apart. This used to
+        # report the Mock's own ScriptBlock, which is the line the Mock was defined on, the same
+        # one for every call (#3052).
         $location = ""
-        $sb = $historyEntry.Behavior.ScriptBlock
-        if ($null -ne $sb -and $sb.File) {
-            $file = $sb.File
-            $line = $sb.StartPosition.StartLine
-            $location = " from ${file}:${line}"
+        if (0 -lt $historyEntry.CallSiteLine) {
+            $line = $historyEntry.CallSiteLine
+            if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile)) {
+                $file = $historyEntry.CallSiteFile
+                $location = " from ${file}:${line}"
+            }
+            else {
+                # The call came from a scriptblock with no file behind it, one built by
+                # [scriptblock]::Create or typed at the console. The line is the line inside that
+                # scriptblock, so it still tells the calls apart. '<ScriptBlock>' is how the rest of
+                # Pester names a location with no file, see ToStringConverter.ScriptBlockToString
+                # and the '<ScriptBlock>, <No file>: line N' frames in a stack trace.
+                $location = " from <ScriptBlock>:${line}"
+            }
         }
 
         if ($paramText) {

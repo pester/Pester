@@ -110,10 +110,19 @@
     }
 
     $filterOnMessage = -not ([string]::IsNullOrWhiteSpace($ExceptionMessage))
+    $messageFailedOnWildcard = $false
     if ($filterOnMessage) {
-        $filters += "with message like '$([System.Management.Automation.WildcardPattern]::Unescape($ExceptionMessage))'"
+        $unescapedExceptionMessage = [System.Management.Automation.WildcardPattern]::Unescape($ExceptionMessage)
+        $filters += "with message like '$unescapedExceptionMessage'"
         if ($err.ExceptionMessage -notlike $ExceptionMessage) {
             $buts += "the message was '$($err.ExceptionMessage)'"
+            # -ExceptionMessage matches with -like. When the actual message is identical to the
+            # expected one treated literally, the only reason the match failed is unescaped wildcard
+            # characters ([ ] * ?) in -ExceptionMessage. Flag it so the failure message is not
+            # baffling (#2968, #1793).
+            if ($err.ExceptionMessage -eq $unescapedExceptionMessage) {
+                $messageFailedOnWildcard = $true
+            }
         }
     }
 
@@ -133,7 +142,11 @@
         $filter = Add-SpaceToNonEmptyString ( Join-And $filters -Threshold 3 )
         $but = Join-And $buts
         $defaultMessage = "Expected an exception,$filter to be thrown, but $but."
-        $assert.Fail($defaultMessage, @{ Because = $Because })
+        $data = @{ Because = $Because }
+        if ($messageFailedOnWildcard) {
+            $data['Hint'] = "-ExceptionMessage matches using wildcards (-like). The messages are identical except for the wildcard characters [ ] * ? in -ExceptionMessage. Escape them with a backtick (``[) or use [System.Management.Automation.WildcardPattern]::Escape() to match them literally."
+        }
+        $assert.Fail($defaultMessage, $data)
     }
 
     $err.ErrorRecord
@@ -141,10 +154,17 @@
 
 function Get-ErrorObject ($ErrorRecord) {
 
-    if ($ErrorRecord.Exception -like '*"InvokeWithContext"*') {
+    if ($ErrorRecord.Exception -is [System.Management.Automation.MethodInvocationException]) {
         # The scriptblock ran via InvokeWithContext, so a terminating error is wrapped in
         # a MethodInvocationException. Unwrap it so we report the same exception that
         # & { } would have surfaced in $_ (#2873).
+        #
+        # Recognized by type, not by matching 'InvokeWithContext' in the message. The message
+        # is localized, and PowerShell quotes the method name with the quotation marks of the
+        # current UI culture, so under de-DE it is quoted with German marks and the match failed.
+        # The assertion then reported the wrapper instead of the exception the test threw (#3089).
+        # The only call in the try block above is InvokeWithContext, so a MethodInvocationException
+        # caught there is always its wrapper.
         $inner = $ErrorRecord.Exception.InnerException
         $record = $inner.ErrorRecord
 

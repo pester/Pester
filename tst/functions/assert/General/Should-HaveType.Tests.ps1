@@ -78,3 +78,11 @@ Describe "Should-HaveType input hint" {
         ($err.Exception.Message -notlike '*Hint:*') | Verify-True
     }
 }
+
+Describe "Should-HaveType rejects an expected value that is not a type" {
+    It 'Fails when Expected is neither a type nor a type name' {
+        # It used to fail saying it expected the type '$null', which says nothing (#3038).
+        $err = { 1 | Should-HaveType 42 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a type or a type name to compare the value to*which is neither*'
+    }
+}

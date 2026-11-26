@@ -86,8 +86,12 @@ function Invoke-TestRegistryWithRetry {
     catch [System.IO.IOException] {
         # when running in parallel this occasionally triggers
         # IOException: No more data is available
-        # let's just retry the operation
-        & $SafeCommands['Write-Warning'] "IO exception during a TestRegistry operation, retrying."
+        # let's just retry the operation. The operations we wrap are idempotent, so a retry that
+        # succeeds leaves no trace for the user to act on, and a retry that fails rethrows and the
+        # exception is the signal. Either way a warning is just noise, so this is a debug message.
+        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
+            Write-PesterDebugMessage -Scope Runtime "IO exception during a TestRegistry operation, retrying."
+        }
         & $ScriptBlock
     }
 }

@@ -34,6 +34,23 @@ Describe 'Invoke-TestRegistryWithRetry' {
         }
     }
 
+    It 'Does not warn when the retry recovers' {
+        InModuleScope -ModuleName Pester {
+            $calls = @{ Count = 0 }
+            $streams = Invoke-TestRegistryWithRetry {
+                $calls.Count++
+                if ($calls.Count -eq 1) {
+                    throw [System.IO.IOException] 'No more data is available'
+                }
+                'recovered'
+            } 3>&1
+
+            $calls.Count | Should -Be 2
+            @($streams | Where-Object { $_ -is [System.Management.Automation.WarningRecord] }) |
+                Should -BeNullOrEmpty -Because 'a recovered retry is idempotent, so there is nothing for the user to act on'
+        }
+    }
+
     It 'Rethrows when the transient IOException persists on retry' {
         InModuleScope -ModuleName Pester {
             { Invoke-TestRegistryWithRetry { throw [System.IO.IOException] 'No more data is available' } } |

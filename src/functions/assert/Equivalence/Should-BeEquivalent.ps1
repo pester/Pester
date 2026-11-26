@@ -260,7 +260,7 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the actual object does not have."
+            $result += "Expected$(if ($Property) { " $Property" }) has key '$k' that the actual object does not have."
             continue
         }
 
@@ -285,15 +285,16 @@ function Compare-HashtableEquivalent ($Actual, $Expected, $Property, $Options) {
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the actual object has."
+            $result += "Expected$(if ($Property) { " $Property" }) is missing key '$k' that the actual object has."
         }
     }
 
     if ($result | & $SafeCommands['Where-Object'] { $_ }) {
         Write-EquivalenceResult -Difference "Hashtables `$Actual and `$Expected are not equivalent."
-        $expectedFormatted = Format-Nicely2 -Value $Expected
-        $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected hashtable $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
+        # The leaf differences only. Repeating the whole hashtable at every level it walks through
+        # buried them, and the object comparer never did it (#3055). The Expected and Actual dumps
+        # that Should-BeEquivalent prints above the summary already show both sides in full.
+        return $result -join "`n"
     }
 
     Write-EquivalenceResult -Equivalence "Hashtables `$Actual and `$Expected are equivalent."
@@ -326,7 +327,7 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         $actualHasKey = $actualKeys -contains $k
         if (-not $actualHasKey) {
             Write-EquivalenceResult -Difference "`$Actual is missing key '$k'."
-            $result += "Expected has key '$k' that the actual object does not have."
+            $result += "Expected$(if ($Property) { " $Property" }) has key '$k' that the actual object does not have."
             continue
         }
 
@@ -349,15 +350,14 @@ function Compare-DictionaryEquivalent ($Actual, $Expected, $Property, $Options) 
         }
 
         foreach ($k in $filteredKeysNotInExpected | & $SafeCommands['Where-Object'] { $_ }) {
-            $result += "Expected is missing key '$k' that the actual object has."
+            $result += "Expected$(if ($Property) { " $Property" }) is missing key '$k' that the actual object has."
         }
     }
 
     if ($result) {
         Write-EquivalenceResult -Difference "Dictionaries `$Actual and `$Expected are not equivalent."
-        $expectedFormatted = Format-Nicely2 -Value $Expected
-        $actualFormatted = Format-Nicely2 -Value $Actual
-        return "Expected dictionary $expectedFormatted, but got $actualFormatted.`n$($result -join "`n")"
+        # Leaf differences only, see the comment in Compare-HashtableEquivalent (#3055).
+        return $result -join "`n"
     }
     Write-EquivalenceResult -Equivalence "Dictionaries `$Actual and `$Expected are equivalent."
 }
@@ -413,7 +413,14 @@ function Compare-ObjectEquivalent ($Actual, $Expected, $Property, $Options) {
             Test-IncludedPath -PathSelector Property -Options $Options -Path $Property
 
         if ($filteredPropertiesNotInExpected) {
-            Write-EquivalenceResult -Difference "`$Actual has ($(@($filteredPropertiesNotInExpected).Count)) properties that `$Expected does not have: $(Format-Nicely2 @($filteredPropertiesNotInExpected))."
+            # The names, not the PSPropertyInfo objects. Formatting those reads every property's
+            # value, and on a FileInfo or DirectoryInfo that pulls in Directory, Parent, Root,
+            # PSDrive and PSProvider and walks the object graph behind them. 14 of the 15 seconds a
+            # strict comparison of a FileInfo took were spent building this one message, which
+            # nothing prints unless the caller asked for verbose output (#3051). The names are also
+            # what the message is about.
+            $namesNotInExpected = @(foreach ($p in $filteredPropertiesNotInExpected) { $p.Name })
+            Write-EquivalenceResult -Difference "`$Actual has ($($namesNotInExpected.Count)) properties that `$Expected does not have: $(Format-Nicely2 $namesNotInExpected)."
         }
         else {
             Write-EquivalenceResult -Equivalence "`$Actual has no extra properties that `$Expected does not have."

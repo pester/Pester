@@ -54,7 +54,7 @@
         [String]$Because
     )
 
-    $null = Ensure-ExpectedIsNotCollection $Expected
+    $null = Ensure-ExpectedIsNotCollection -InputObject $Expected -Assertion $PSCmdlet.MyInvocation.MyCommand.Name
 
     $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
     $Actual = $assert.Actual()

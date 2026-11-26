@@ -12,22 +12,31 @@
         # that executes here in the child process is invisible to it. When the parent asks for it
         # (via PESTER_CC_CHILD_* env vars, which we inherit) we trace this child the same way and
         # dump the coordinates we hit, so the parent can merge them into the single coverage report.
+        # The parent hands us the tracer points in a file. Deriving them means analyzing every file
+        # in the source tree, which took longer than the test itself, and the result is the same in
+        # every child, so the parent does it once for all of us.
         # Note: this scriptblock is stringified and passed to the child as -Command, and on Windows
         # PowerShell (legacy native argument passing) only the user ScriptBlock is quote-escaped
         # below, so keep this block free of double quotes to avoid mangling the child command line.
         # Coverage collection is best-effort: any failure here must fall back to a plain run so the
         # test behaves exactly as without coverage.
         $ccDir = $env:PESTER_CC_CHILD_OUTPUT
-        $ccTarget = $env:PESTER_CC_CHILD_TARGET
+        $ccPointsFile = $env:PESTER_CC_CHILD_POINTS
         $ccTracer = $null
         $ccPatched = $false
-        if ($ccDir -and $ccTarget) {
+        if ($ccDir -and $ccPointsFile -and (Test-Path $ccPointsFile)) {
             try {
                 $pesterModule = Get-Module Pester
-                $enter = & $pesterModule { Get-Command Enter-CoverageAnalysis }
                 $start = & $pesterModule { Get-Command Start-TraceScript }
-                $bps = & $enter -CodeCoverage $ccTarget -UseBreakpoints $false
-                $ccPatched, $ccTracer = & $start $bps
+                $tab = [char] 9
+                $ccPoints = [System.Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]::new()
+                foreach ($pointLine in [System.IO.File]::ReadAllLines($ccPointsFile)) {
+                    if ([string]::IsNullOrWhiteSpace($pointLine)) { continue }
+                    $f = $pointLine.Split($tab)
+                    # command text is empty, only the parent report uses it and the parent has its own
+                    $ccPoints.Add([Pester.Tracing.CodeCoveragePoint]::Create($f[0], [int] $f[1], [int] $f[2], [int] $f[3], [int] $f[4], [string]::Empty))
+                }
+                $ccPatched, $ccTracer = & $start -Points $ccPoints
             }
             catch {
                 $ccTracer = $null

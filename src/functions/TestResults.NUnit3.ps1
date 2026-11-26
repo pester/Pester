@@ -632,11 +632,19 @@ function Write-NUnit3FailureElement ($TestResult, [System.Xml.XmlWriter] $XmlWri
 function Write-NUnitReasonElement ($TestResult, [System.Xml.XmlWriter] $XmlWriter) {
     # TODO: do not format the errors here, instead format them in the core using some unified function so we get the same thing on the screen and in nunit
 
-    $result = Get-ErrorForXmlReport -TestResult $TestResult
-    if ($result.FailureMessage) {
+    # An explicit reason (from -Skip -Because, or Set-ItResult -Because) wins over the error message,
+    # it is the thing the user wrote to explain why this test is not running.
+    $message = if (-not [string]::IsNullOrEmpty($TestResult.Reason)) {
+        $TestResult.Reason
+    }
+    else {
+        (Get-ErrorForXmlReport -TestResult $TestResult).FailureMessage
+    }
+
+    if ($message) {
         $XmlWriter.WriteStartElement('reason')
         $XmlWriter.WriteStartElement('message')
-        $XmlWriter.WriteCData((Format-CDataString $result.FailureMessage))
+        $XmlWriter.WriteCData((Format-CDataString $message))
         $XmlWriter.WriteEndElement() # Close message
         $XmlWriter.WriteEndElement() # Close reason
     }

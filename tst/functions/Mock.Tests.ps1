@@ -337,6 +337,30 @@ Describe 'When calling Mock, StrictMode is enabled, and variables are used in th
     }
 }
 
+Describe 'When a bound parameter value has a ToString that throws' {
+    # The parameter filter serializer only builds diagnostic text, so a value whose ToString throws
+    # (e.g. a mocked SMO type) must not make the mock throw when the value is not even referenced by
+    # the filter. See #2953.
+    BeforeAll {
+        function Get-Thing {
+            param (
+                [object] $InputObject,
+                [switch] $Other
+            )
+        }
+    }
+
+    It 'Does not throw when a non-matching parameter filter is present' {
+        $throwingToString = [pscustomobject]@{ Name = 'demo' }
+        $throwingToString | Add-Member -MemberType ScriptMethod -Name ToString -Value { throw 'ToString should not be called by the parameter filter serializer' } -Force
+
+        Mock Get-Thing { 'default' }
+        Mock Get-Thing -ParameterFilter { $Other.IsPresent } { 'other' }
+
+        { Get-Thing -InputObject $throwingToString } | Should -Not -Throw
+    }
+}
+
 Describe "When calling Mock on existing function without matching bound params" {
     It "Should throw because no parameter filter matched the call" {
         Mock FunctionUnderTest { return "fake results" } -parameterFilter { $param1 -eq "test" }
@@ -1066,6 +1090,37 @@ Performed invocations:
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*" -replace "`r`n", "`n")
+    }
+
+    It 'Shows the line of each call site, and names the scriptblock when there is no file' {
+        Mock FunctionUnderTest { }
+        FunctionUnderTest "one"
+        FunctionUnderTest "two"
+        # No file behind this one, so the line is the line inside the created scriptblock.
+        & ([scriptblock]::Create('FunctionUnderTest "created"'))
+
+        try {
+            Should -Invoke FunctionUnderTest -Exactly 0
+        }
+        catch {
+            $failure = $_
+        }
+
+        $historyLines = @(($failure.Exception.Message -split "`n") | Where-Object { $_ -like '  [[]*] FunctionUnderTest*' })
+        $historyLines.Count | Should -Be 3
+
+        # A call with no file is named the way the rest of Pester names a location with no file,
+        # rather than reporting the line the Mock was defined on in the shape of a real call site,
+        # where it reads as a plausible one.
+        $historyLines[2] | Should -BeLike "*FunctionUnderTest -param1 'created' from <ScriptBlock>:1"
+
+        $callSites = @(foreach ($line in $historyLines[0], $historyLines[1]) {
+                [int] ([regex]::Match($line, ':(\d+)\s*$').Groups[1].Value)
+            })
+
+        # The two direct calls are on consecutive lines. Before this, every entry reported the
+        # Mock's own line, so the difference was 0.
+        ($callSites[1] - $callSites[0]) | Should -Be 1
     }
 
     It 'Shows empty marker when mock was never called' {
