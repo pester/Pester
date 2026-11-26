@@ -29,15 +29,15 @@ InPesterModuleScope {
 
             #using the string formatter here to know how the string will be output to screen
             $Result = { Get-TestTime -Tests $TestResult | Out-String -Stream } | Using-Culture -Culture de-DE
-            $Result | Should -Be "3.5"
+            $Result | Should-BeString "3.5"
         }
         It "Time is measured in seconds with 0,1 millisecond as lowest value" {
             $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1000 }
-            Get-TestTime -Tests $TestResult | Should -Be 0.0001
+            Get-TestTime -Tests $TestResult | Should-Be 0.0001
             $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]100 }
-            Get-TestTime -Tests $TestResult | Should -Be 0
+            Get-TestTime -Tests $TestResult | Should-Be 0
             $TestResult = New-Object -TypeName psObject -Property @{ Time = [timespan]1234567 }
-            Get-TestTime -Tests $TestResult | Should -Be 0.1235
+            Get-TestTime -Tests $TestResult | Should-Be 0.1235
         }
     }
 
@@ -55,14 +55,14 @@ InPesterModuleScope {
             Push-Location -Path TestDrive:\
             $p = GetFullPath notexistingfile.txt
             Pop-Location
-            $p | Should -Be (Join-Path $TestDrive notexistingfile.txt)
+            $p | Should-Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
         It "Resolves non existing path correctly - PSDrive" {
             Push-Location -Path TestDrive:\
             $p = GetFullPath TestDrive:\notexistingfile.txt
             Pop-Location
-            $p | Should -Be (Join-Path $TestDrive notexistingfile.txt)
+            $p | Should-Be (Join-Path $TestDrive notexistingfile.txt)
         }
 
         It "Resolves existing path correctly" {
@@ -70,7 +70,7 @@ InPesterModuleScope {
             New-Item -ItemType File -Name existingfile1.txt
             $p = GetFullPath existingfile1.txt
             Pop-Location
-            $p | Should -Be (Join-Path $TestDrive existingfile1.txt)
+            $p | Should-Be (Join-Path $TestDrive existingfile1.txt)
         }
 
         It "Resolves existing path correctly - PSDrive" {
@@ -78,14 +78,14 @@ InPesterModuleScope {
             New-Item -ItemType File -Name existingfile2.txt
             $p = GetFullPath existingfile2.txt
             Pop-Location
-            $p | Should -Be (Join-Path $TestDrive existingfile2.txt)
+            $p | Should-Be (Join-Path $TestDrive existingfile2.txt)
         }
 
         It "Resolves full path correctly" {
             $powershellPath = Get-Command -Name $CommandToTest | Select-Object -ExpandProperty 'Definition'
-            $powershellPath | Should -Not -BeNullOrEmpty
+            $powershellPath | Should-NotBeEmptyString
 
-            GetFullPath $powershellPath | Should -Be $powershellPath
+            GetFullPath $powershellPath | Should-BeString $powershellPath
         }
 
         Pop-Location
@@ -99,15 +99,15 @@ InPesterModuleScope {
     Describe "Get-RunTimeEnvironment" {
         It "Returns a hashtable with expected keys without throwing" {
             $result = Get-RunTimeEnvironment
-            $result | Should -BeOfType [hashtable]
-            $result.Keys | Should -Contain 'os-version'
-            $result.Keys | Should -Contain 'platform'
-            $result.Keys | Should -Contain 'machine-name'
-            $result.Keys | Should -Contain 'user'
-            $result.Keys | Should -Contain 'cwd'
-            $result.Keys | Should -Contain 'clr-version'
-            $result['os-version'] | Should -Not -BeNullOrEmpty
-            $result['platform']   | Should -Not -BeNullOrEmpty
+            $result | Should-HaveType ([hashtable])
+            $result.Keys | Should-ContainCollection 'os-version'
+            $result.Keys | Should-ContainCollection 'platform'
+            $result.Keys | Should-ContainCollection 'machine-name'
+            $result.Keys | Should-ContainCollection 'user'
+            $result.Keys | Should-ContainCollection 'cwd'
+            $result.Keys | Should-ContainCollection 'clr-version'
+            $result['os-version'] | Should-NotBeEmptyString
+            $result['platform']   | Should-NotBeEmptyString
         }
 
         It "Falls back to Unknown OS info when Get-CimInstance returns null (access denied)" -Skip:(-not $IsWindows) {
@@ -125,8 +125,8 @@ InPesterModuleScope {
 
                 $result = Get-RunTimeEnvironment
 
-                $result['platform']   | Should -Be 'Unknown'
-                $result['os-version'] | Should -Be '0.0.0.0'
+                $result['platform']   | Should-BeString 'Unknown'
+                $result['os-version'] | Should-BeString '0.0.0.0'
             }
             finally {
                 $SafeCommands['Get-CimInstance'] = $originalCim

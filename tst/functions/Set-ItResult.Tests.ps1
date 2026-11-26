@@ -6,7 +6,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Inconclusive -Because "we are setting it to inconclusive"
         }
         catch {
-            $_.FullyQualifiedErrorID | Should -Be "PesterTestInconclusive"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestInconclusive"
         }
     }
 
@@ -15,7 +15,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped -Because "we are forcing it to skip"
         }
         catch {
-            $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestSkipped"
         }
     }
 
@@ -24,7 +24,7 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped -Because "we are forcing it to skip"
         }
         catch {
-            $_.Exception.Message | Should -Be "is skipped, because we are forcing it to skip"
+            $_.Exception.Message | Should-BeString "is skipped, because we are forcing it to skip"
         }
     }
 
@@ -33,16 +33,16 @@ Describe "Testing Set-ItResult" {
             Set-ItResult -Skipped
         }
         catch {
-            $_.FullyQualifiedErrorID | Should -Be "PesterTestSkipped"
+            $_.FullyQualifiedErrorID | Should-BeString "PesterTestSkipped"
         }
     }
 
     It "Set-ItResult has to have a switch indicating what to set it to" {
-        { Set-ItResult -Because "testing with no switch" } | Should -Throw -Because "the expected state is not selected"
+        { Set-ItResult -Because "testing with no switch" } | Should-Throw -Because "the expected state is not selected"
     }
 
     It "Set-ItResult cannot be called with two states requested" {
-        { Set-ItResult -Inconclusive -Skipped } | Should -Throw -Because "two states are requested"
+        { Set-ItResult -Inconclusive -Skipped } | Should-Throw -Because "two states are requested"
     }
 }
 

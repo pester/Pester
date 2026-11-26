@@ -11,11 +11,11 @@ Describe 'Pester manifest' {
     }
 
     It 'has the expected name' {
-        $manifest.Name | Should -Be 'Pester'
+        $manifest.Name | Should-BeString 'Pester'
     }
 
     It 'has the expected guid' {
-        $manifest.Guid | Should -Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
+        $manifest.Guid | Should-Be ([guid] 'a699dea5-2c73-4616-a270-1f7abb777e71')
     }
 }
 
@@ -28,7 +28,7 @@ Describe 'Pester assembly' {
         $reference = [PesterConfiguration].Assembly.GetReferencedAssemblies() |
             Where-Object { $_.Name -eq 'System.Management.Automation' }
 
-        $reference.Version | Should -Be ([version] '7.4.0.0')
+        $reference.Version | Should-Be ([version] '7.4.0.0')
     }
 }
 
@@ -38,12 +38,12 @@ Describe 'Clean treatment of the $error variable' {
     }
     Context 'A Context' {
         It 'Performs a successful test' {
-            $true | Should -Be $true
+            $true | Should-BeTrue
         }
     }
 
     It 'Did not add anything to the $error variable' {
-        $error.Count | Should -Be 0
+        $error.Count | Should-Be 0
     }
 }
 
@@ -79,7 +79,7 @@ InPesterModuleScope {
         }
 
         It 'The SafeCommands table contains all commands that are called from the module' {
-            $missingSafeCommands | Should -Be $null
+            $missingSafeCommands | Should-BeNull
         }
     }
 }
@@ -90,7 +90,7 @@ Describe 'Public API' {
             ? { $_.CommandType -ne 'Alias' } |
             ? { -not $_.CmdletBinding } |
             % { $_.Name }
-        $r | Should -beNullOrEmpty
+        $r | Should-BeCollection @()
     }
 }
 
@@ -123,34 +123,34 @@ InPesterModuleScope {
 
         It 'Resolves non-wildcarded file paths regardless of whether the file ends with Tests.ps1' {
             $result = @(Find-File 'TestDrive:\SomeOtherFile.ps1' -Extension ".Tests.ps1")
-            $result.Count | Should -Be 1
-            $result[0].UnresolvedPath | Should -Be 'TestDrive:\SomeOtherFile.ps1'
+            $result.Count | Should-Be 1
+            $result[0].UnresolvedPath | Should-BeString 'TestDrive:\SomeOtherFile.ps1'
         }
 
         It 'Finds only *.Tests.ps1 files when the path contains wildcards' {
             $result = @(Find-File 'TestDrive:\*.ps1' -Extension ".Tests.ps1")
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Finds only *.Tests.ps1 files when the path refers to a directory and does not contain wildcards' {
             $result = @(Find-File 'TestDrive:\' -Extension ".Tests.ps1")
 
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
 
             $paths = $result | Select-Object -ExpandProperty FullName
             $testDrive = (Get-PSDrive TestDrive).Root
-            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should -Be $true
-            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should -Be $true
+            ($paths -contains (Join-Path $testDrive "SomeFile.Tests.ps1")) | Should-BeTrue
+            ($paths -contains (Join-Path $testDrive "SomeOtherFile.Tests.ps1")) | Should-BeTrue
         }
 
         It 'Deduplicates filepaths when the provided paths overlaps' {
             $result = @(Find-File 'TestDrive:\*.ps1','TestDrive:\*.ps1' -Extension '.Tests.ps1')
-            $result.Count | Should -Be 2
+            $result.Count | Should-Be 2
         }
 
         Context 'Hidden folders and VCS metadata' {
@@ -192,12 +192,12 @@ InPesterModuleScope {
 
             It 'discovers test files inside dot-prefixed (hidden) folders' {
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Contain 'InHidden.Tests.ps1'
+                $names | Should-ContainCollection 'InHidden.Tests.ps1'
             }
 
             It 'discovers test files in nested hidden folders' {
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Contain 'NestedHidden.Tests.ps1'
+                $names | Should-ContainCollection 'NestedHidden.Tests.ps1'
             }
 
             It 'does not descend into .git directories' {
@@ -205,8 +205,8 @@ InPesterModuleScope {
                 # appear in the result, proving the walker stops at .git without
                 # opening its contents.
                 $names = @(Find-File -Path 'TestDrive:\' -Extension '.Tests.ps1' | Select-Object -ExpandProperty Name)
-                $names | Should -Not -Contain 'HeadLevel.Tests.ps1'
-                $names | Should -Not -Contain 'DeepInGit.Tests.ps1'
+                $names | Should-NotContainCollection 'HeadLevel.Tests.ps1'
+                $names | Should-NotContainCollection 'DeepInGit.Tests.ps1'
             }
 
             It 'returns the same set as Get-ChildItem -Recurse -Force minus VCS folders' {
@@ -217,7 +217,7 @@ InPesterModuleScope {
                         Select-Object -ExpandProperty FullName |
                         Sort-Object
                 )
-                $found | Should -Be $expected
+                $found | Should-BeCollection $expected
             }
         }
 
@@ -362,7 +362,7 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "*Unit*"; Collection = "Low", "Medium", "High" }
         ) {
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
-                Should -BeFalse
+                Should-BeFalse
         }
 
         It 'Given a filter <filter> that matches one or more items in collection <collection> it returns $true' -TestCases @(
@@ -374,7 +374,7 @@ InModuleScope -ModuleName Pester {
             @{ Filter = "l*"; Collection = "Low", "Medium", "High" }
         ) {
             Contain-AnyStringLike -Filter $Filter -Collection $Collection |
-                Should -BeTrue
+                Should-BeTrue
         }
     }
 }
