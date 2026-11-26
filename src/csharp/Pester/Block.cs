@@ -53,6 +53,7 @@ namespace Pester
         public string GroupId { get; set; }
         public List<string> Tag { get; set; }
         public bool Skip { get; set; }
+        public string Reason { get; set; }
 
         public string ItemType { get; } = "Block";
 
