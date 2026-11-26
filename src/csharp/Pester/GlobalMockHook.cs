@@ -9,8 +9,8 @@ namespace Pester
     // A normal Pester mock defines a bootstrap function + alias in a single session state (the test's,
     // or the -ModuleName target's). Code in another module resolves the command in its own session
     // state and never sees that alias, which is why -ModuleName exists. This hook uses
-    // InvokeCommand.PreCommandLookupAction - a runspace-global callback fired on every parser-driven
-    // command lookup - to redirect the lookup to the mock's bootstrap function no matter which module
+    // InvokeCommand.PreCommandLookupAction, a runspace-global callback fired on every parser-driven
+    // command lookup, to redirect the lookup to the mock's bootstrap function no matter which module
     // the call comes from.
     //
     // The callback does NOT fire for '& $capturedCommandInfo' (Get-Command / Pester's $SafeCommands

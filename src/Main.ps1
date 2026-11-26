@@ -463,6 +463,8 @@ function Invoke-Pester {
         # global mock hook state carried from begin to the finally in the end block (nested runs only)
         $runningPesterInPester = $false
         $savedGlobalMockState = $null
+        # parallel output tape put aside for the duration of a nested run, given back in the same finally
+        $suspendedParallelOutputTape = $null
 
         # Give this run a unique identity used to isolate global mocks between (possibly nested) runs. A
         # mock's bootstrap records the run that created it; a leaked bootstrap whose id does not match the
@@ -488,6 +490,14 @@ function Invoke-Pester {
             # clear the shared state. It is restored once this run ends (see the finally in the end block).
             $savedGlobalMockState = Get-GlobalMockHookState
             Reset-GlobalMockHook
+            # In a parallel worker the whole run is silenced and everything it writes to the host goes
+            # to a module-scope tape, so the parent can replay it in order (see Invoke-TestInParallel).
+            # The tape is module scope, so a run that starts inside the worker's run sees it as well: a
+            # test that calls Invoke-Pester itself and captures the output with 6>&1 got nothing, while
+            # that output went to the tape and was replayed later as if the worker had written it
+            # (#2991). A nested run belongs to its own caller, so put the tape aside until it ends.
+            $suspendedParallelOutputTape = $script:parallelOutputTape
+            $script:parallelOutputTape = $null
         }
 
         # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
@@ -548,6 +558,23 @@ function Invoke-Pester {
             # Write-PesterDebugMessage is used regardless of WriteScreenPlugin.
             Resolve-OutputConfiguration -PesterPreference $PesterPreference
 
+            # Resolve the repository root once for the whole run, from the location the session is
+            # actually in. The default the configuration object carries is found in C# from the
+            # process working directory, and Set-Location does not change that, so a session that
+            # started somewhere else and then changed directory into a repository kept a RepoRoot
+            # pointing at the old place, and every Pester.BeforeContainer.ps1 silently did not apply.
+            # Only when the user did not set it, an explicit RepoRoot is theirs to decide.
+            if (-not $PesterPreference.Run.RepoRoot.IsModified) {
+                $PesterPreference.Run.RepoRoot = [Pester.RunConfiguration]::FindRepoRoot($ExecutionContext.SessionState.Path.CurrentFileSystemLocation.Path)
+            }
+
+            # Resolve the shuffle seed once for the whole run (#2425), so it is reported a single
+            # time and shared by every container - including parallel workers, which each receive
+            # this resolved configuration. ShuffleSeed 0 means "pick a new seed for this run".
+            if ($PesterPreference.Run.Shuffle.Value -and 0 -eq $PesterPreference.Run.ShuffleSeed.Value) {
+                $PesterPreference.Run.ShuffleSeed = [System.Random]::new().Next(1, [int]::MaxValue)
+            }
+
             if ('None' -ne $PesterPreference.Output.Verbosity.Value) {
                 $plugins.Add((Get-WriteScreenPlugin -Verbosity $PesterPreference.Output.Verbosity.Value))
             }
@@ -580,7 +607,7 @@ function Invoke-Pester {
             }
 
             # this is here to support Pester test runner in VSCode. Don't use it unless you are prepared to get broken in the future. And if you decide to use it, let us know in https://github.com/pester/Pester/issues/2021 so we can warn you about removing this.
-            if (defined additionalPlugins) { $plugins.AddRange(@($script:additionalPlugins)) }
+            if (defined_ additionalPlugins) { $plugins.AddRange(@($script:additionalPlugins)) }
 
             $filter = New-FilterObject `
                 -Tag $PesterPreference.Filter.Tag.Value `
@@ -590,7 +617,7 @@ function Invoke-Pester {
                 -FullName $PesterPreference.Filter.FullName.Value
 
             $containers = @()
-            if (any $PesterPreference.Run.ScriptBlock.Value) {
+            if (any_ $PesterPreference.Run.ScriptBlock.Value) {
                 $containers += @( $PesterPreference.Run.ScriptBlock.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -ScriptBlock $_ })
             }
 
@@ -599,12 +626,12 @@ function Invoke-Pester {
                 $containers += (New-BlockContainerObject -Container $c -Data $c.Data)
             }
 
-            if ((any $PesterPreference.Run.Path.Value)) {
-                if (((none $PesterPreference.Run.ScriptBlock.Value) -and (none $PesterPreference.Run.Container.Value)) -or ('.' -ne $PesterPreference.Run.Path.Value[0])) {
+            if ((any_ $PesterPreference.Run.Path.Value)) {
+                if (((none_ $PesterPreference.Run.ScriptBlock.Value) -and (none_ $PesterPreference.Run.Container.Value)) -or ('.' -ne $PesterPreference.Run.Path.Value[0])) {
                     #TODO: Skipping the invocation when scriptblock is provided and the default path, later keep path in the default parameter set and remove scriptblock from it, so get-help still shows . as the default value and we can still provide script blocks via an advanced settings parameter
                     # TODO: pass the startup options as context to Start instead of just paths
 
-                    $exclusions = combineNonNull @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] { $_.Item.FullName }))
+                    $exclusions = combineNonNull_ @($PesterPreference.Run.ExcludePath.Value, ($PesterPreference.Run.Container.Value | & $SafeCommands['Where-Object'] { "File" -eq $_.Type } | & $SafeCommands['ForEach-Object'] { $_.Item.FullName }))
                     $containers += @(Find-File -Path $PesterPreference.Run.Path.Value -ExcludePath $exclusions -Extension $PesterPreference.Run.TestExtension.Value | & $SafeCommands['ForEach-Object'] { New-BlockContainerObject -File $_ })
                 }
             }
@@ -620,18 +647,17 @@ function Invoke-Pester {
                 } -ThrowOnFailure
             }
 
-            if ((none $containers)) {
+            if ((none_ $containers)) {
                 throw "No test files were found and no scriptblocks were provided. Please ensure that you provided at least one path to a *$($PesterPreference.Run.TestExtension.Value) file, or a directory that contains such file.$(if ($null -ne $PesterPreference.Run.ExcludePath.Value -and 0 -lt @($PesterPreference.Run.ExcludePath.Value).Length) {" And that there is at least one file not excluded by ExcludeFile filter '$($PesterPreference.Run.ExcludePath.Value -join "', '")'."}) Or that you provided a ScriptBlock test container."
                 return
             }
 
             # Parallel mode runs each file in its own runspace and merges the executed
-            # containers back. It only applies to file-based runs on PowerShell 7+; other cases fall
-            # back to the normal sequential path with a warning. CodeCoverage is supported: each
-            # worker measures its own file with breakpoints and the parent merges the results (see
-            # the parallel branch below).
+            # containers back. It applies to file-based runs on both Windows PowerShell 5.1 and
+            # PowerShell 7; other cases fall back to the normal sequential path with a warning.
+            # CodeCoverage is supported: each worker measures its own file with breakpoints and the
+            # parent merges the results (see the parallel branch below).
             $useParallel = $PesterPreference.Run.Parallel.Value
-            $parallelSupported = $PSVersionTable.PSVersion.Major -ge 7
             $allFileContainers = 0 -eq @($containers | & $SafeCommands['Where-Object'] { 'File' -ne $_.Type }).Count
             $coverageEnabled = $PesterPreference.CodeCoverage.Enabled.Value
             # Run.SkipRemainingOnFailure = 'Run' stops the whole run after the first failed
@@ -651,7 +677,7 @@ function Invoke-Pester {
             # them inherits those type constraints, which silently corrupts the loop variable.
             $parallelContainers = [System.Collections.Generic.List[object]]@()
             $nonParallelContainers = [System.Collections.Generic.List[object]]@()
-            if ($useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope) {
+            if ($useParallel -and $allFileContainers -and -not $skipRemainingRunScope) {
                 foreach ($fileContainer in $containers) {
                     if (Test-PesterFileIsNonParallel -Path $fileContainer.Item.FullName) {
                         $nonParallelContainers.Add($fileContainer)
@@ -662,26 +688,18 @@ function Invoke-Pester {
                 }
             }
 
-            if ($useParallel -and -not $parallelSupported) {
-                & $SafeCommands['Write-Warning'] "Run.Parallel requires PowerShell 7 or later for 'ForEach-Object -Parallel'. Running the tests sequentially instead."
-            }
-            elseif ($useParallel -and -not $allFileContainers) {
+            if ($useParallel -and -not $allFileContainers) {
                 & $SafeCommands['Write-Warning'] "Run.Parallel currently parallelizes only file-based runs (Run.Path). The provided ScriptBlock/Container test(s) will run sequentially instead."
             }
             elseif ($useParallel -and $skipRemainingRunScope) {
                 & $SafeCommands['Write-Warning'] "Run.Parallel does not support Run.SkipRemainingOnFailure = 'Run' because skipping after the first failure cannot span the isolated worker runspaces. Running the tests sequentially instead."
             }
 
-            # Resolve the BeforeContainer initialization once for the whole run. It is the same for
-            # every file (from the repo-root Pester.BeforeContainer.ps1 convention file) and
-            # runs before each container in both the parallel and sequential paths below.
-            $beforeContainerInit = Resolve-PesterBeforeContainer -Configuration $PesterPreference
-
             # Engage the parallel path only when at least one file can actually run in parallel.
             # If every file opted out with #pester:no-parallel, the run is effectively sequential,
-            # so fall through to the sequential path - which fires the framework's own global
-            # plugin steps at the correct interleaved points.
-            $ranInParallel = $useParallel -and $parallelSupported -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
+            # so fall through to the sequential path, which fires the framework's own global plugin
+            # steps at the correct interleaved points.
+            $ranInParallel = $useParallel -and $allFileContainers -and -not $skipRemainingRunScope -and 0 -lt $parallelContainers.Count
             if ($ranInParallel) {
                 $foldedContainers = [System.Collections.Generic.List[object]]@()
                 $hasNonParallel = 0 -lt $nonParallelContainers.Count
@@ -713,7 +731,7 @@ function Invoke-Pester {
                 foreach ($pl in $plugins) {
                     if ('WriteScreen' -eq $pl.Name) { $reportingPlugins.Add($pl) }
                 }
-                if (defined additionalPlugins) { $reportingPlugins.AddRange(@($script:additionalPlugins)) }
+                if (defined_ additionalPlugins) { $reportingPlugins.AddRange(@($script:additionalPlugins)) }
 
                 # Replays one segment of a worker's recorded event tape to the reporting plugins.
                 # The recorded context carries the worker's PluginConfiguration; swap in the parent's
@@ -721,9 +739,9 @@ function Invoke-Pester {
                 $replaySegment = {
                     param($entries)
                     foreach ($entry in $entries) {
-                        # Host/debug output captured in the worker carries no Step - replay it to the
+                        # Host/debug output captured in the worker carries no Step, so replay it to the
                         # real host now, in tape order, so it lands interleaved with the per-test output
-                        # it belongs to instead of appearing up front, detached from its test (#2825).
+                        # it belongs to instead of up front, detached from its test (#2825).
                         if ($null -eq $entry.Step) {
                             $hostArgs = $entry.Host
                             Write-PesterHostMessage @hostArgs
@@ -753,7 +771,7 @@ function Invoke-Pester {
                 # file's discovery segment then run segment, in discovery order, firing the global
                 # RunStart/DiscoveryEnd steps at the interleaved points a sequential run would.
                 if (0 -lt $parallelContainers.Count) {
-                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference)
+                    $parallelResults = @(Invoke-TestInParallel -BlockContainer $parallelContainers -Configuration $PesterPreference -CallerSessionState $sessionState)
                     for ($pri = 0; $pri -lt $parallelResults.Count; $pri++) {
                         $parallelResult = $parallelResults[$pri]
                         $segments = Split-PesterEventTape -Tape $parallelResult.Tape
@@ -828,7 +846,7 @@ function Invoke-Pester {
                         } -ThrowOnFailure
                     }
 
-                    $r = Invoke-Test -BlockContainer $nonParallelContainers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit $beforeContainerInit -SkipFrameworkGlobalSteps
+                    $r = Invoke-Test -BlockContainer $nonParallelContainers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit (Get-PesterBeforeContainerMap -BlockContainer $nonParallelContainers -Configuration $PesterPreference) -SkipFrameworkGlobalSteps
 
                     if ($collectCoverageInParallel) {
                         Invoke-PluginStep -Plugins $coveragePlugins -Step RunEnd -Context @{
@@ -904,7 +922,7 @@ function Invoke-Pester {
                 # Merge every batch's measured locations into one CommandCoverage list and hand it to
                 # the plugin data, so the Coverage plugin's End step (fired once below) produces the
                 # single merged report and writes the output file. A location counts as covered when
-                # any file hit it; hit counts are summed across files.
+                # any file hit it, and hit counts are summed across files.
                 if ($collectCoverageInParallel) {
                     $mergedCoverage = @(Merge-CoverageFromParallel -CommandCoverage $parallelCoverage.ToArray())
                     $pluginData['Coverage'] = @{
@@ -916,7 +934,7 @@ function Invoke-Pester {
                 }
             }
             else {
-                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit $beforeContainerInit
+                $r = Invoke-Test -BlockContainer $containers -Plugin $plugins -PluginConfiguration $pluginConfiguration -PluginData $pluginData -SessionState $sessionState -Filter $filter -Configuration $PesterPreference -BeforeContainerInit (Get-PesterBeforeContainerMap -BlockContainer $containers -Configuration $PesterPreference)
 
                 # Invoke-Test should only return [Pester.Container] objects, but stray output produced during the
                 # run - most often a native command writing to the success stream in a setup block (e.g. BeforeAll)
@@ -977,20 +995,28 @@ function Invoke-Pester {
             }
 
             $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
+            $exitCode = $failedCount
             if ($PesterPreference.Run.PassThru.Value -and -not ($PesterPreference.Run.Exit.Value -and 0 -ne $failedCount)) {
                 $run
             }
 
         }
         catch {
+            $exitCode = -1
+            # -Raw: this catch reports an error raised inside Pester, not in the test code, and
+            # there the Pester-internal frames, the managed frames and the inner-exception chain are
+            # the only diagnostic there is.
             $formatErrorParams = @{
                 Err                 = $_
                 StackTraceVerbosity = $PesterPreference.Output.StackTraceVerbosity.Value
+                Raw                 = $true
             }
 
             if ($PesterPreference.Output.CIFormat.Value -in 'AzureDevops', 'GithubActions') {
                 $errorMessage = (Format-ErrorMessage @formatErrorParams) -split [Environment]::NewLine
-                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorMessage[1..($errorMessage.Count - 1)]
+                # [1..0] on a one-line message walks the range backwards and repeats the header.
+                $errorBody = if (1 -lt $errorMessage.Count) { $errorMessage[1..($errorMessage.Count - 1)] } else { @() }
+                Write-CIErrorToScreen -CIFormat $PesterPreference.Output.CIFormat.Value -CILogLevel $PesterPreference.Output.CILogLevel.Value -Header $errorMessage[0] -Message $errorBody
             }
             else {
                 Write-ErrorToScreen @formatErrorParams -Throw:$PesterPreference.Run.Throw.Value
@@ -1006,6 +1032,8 @@ function Invoke-Pester {
             # the outer run's global mock hook clobbered or detached.
             if ($runningPesterInPester) {
                 Restore-GlobalMockHookState -State $savedGlobalMockState
+                # Give the worker its tape back, see the begin block.
+                $script:parallelOutputTape = $suspendedParallelOutputTape
             }
             # Restore the run id that was active before this run (null for a top-level run) so the nonce
             # used to isolate global mocks is correct for whatever run resumes.
@@ -1019,10 +1047,10 @@ function Invoke-Pester {
         # - avoid inheriting a previous commands non-zero exit code
         # - setting the exit code when there were some failed tests, blocks, or containers
         $failedCount = $run.FailedCount + $run.FailedBlocksCount + $run.FailedContainersCount
-        $global:LASTEXITCODE = $failedCount
+        $global:LASTEXITCODE = $exitCode
 
         if ($PesterPreference.Run.Throw.Value -and 0 -ne $failedCount) {
-            $messages = combineNonNull @(
+            $messages = combineNonNull_ @(
                 $(if (0 -lt $run.FailedCount) { "$($run.FailedCount) test$(if (1 -lt $run.FailedCount) { "s" }) failed" })
                 $(if (0 -lt $run.FailedBlocksCount) { "$($run.FailedBlocksCount) block$(if (1 -lt $run.FailedBlocksCount) { "s" }) failed" })
                 $(if (0 -lt $run.FailedContainersCount) { "$($run.FailedContainersCount) container$(if (1 -lt $run.FailedContainersCount) { "s" }) failed" })
@@ -1226,9 +1254,9 @@ function ConvertTo-Pester4Result {
                 Parameters             = $test.Data
                 ParameterizedSuiteName = $test.DisplayName
 
-                FailureMessage         = $(if (any $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
-                ErrorRecord            = $(if (any $test.ErrorRecord) { $test.ErrorRecord[-1] })
-                StackTrace             = $(if (any $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
+                FailureMessage         = $(if (any_ $test.ErrorRecord -and $null -ne $test.ErrorRecord[-1].Exception) { $test.ErrorRecord[-1].DisplayErrorMessage })
+                ErrorRecord            = $(if (any_ $test.ErrorRecord) { $test.ErrorRecord[-1] })
+                StackTrace             = $(if (any_ $test.ErrorRecord) { $test.ErrorRecord[1].DisplayStackTrace })
             }
 
             $null = $legacyResult.TestResult.Add($result)

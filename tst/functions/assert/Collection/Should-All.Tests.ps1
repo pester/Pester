@@ -115,3 +115,60 @@ Describe "Should-All input hint" {
         ($err.Exception.Message -notlike '*Hint:*') | Verify-True
     }
 }
+
+Describe "Should-All does not pass on a filter that says nothing, or says false in another type" {
+    # An assertion that cannot fail is worse than no assertion, because it reads like one (#3038).
+    It 'Fails when the filter is empty' {
+        $err = { 1, 2, 3 | Should-All { } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*the filter is empty, so it says nothing about them*'
+    }
+
+    It 'Fails when the filter returns 0, which is false but not $false' {
+        $err = { 1, 2, 3 | Should-All { 0 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*3 of them*did not pass the filter*'
+    }
+
+    It 'Fails when the filter returns an empty string' {
+        $err = { 1, 2, 3 | Should-All { '' } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*did not pass the filter*'
+    }
+
+    It 'Passes for a filter that returns a truthy value of another type' {
+        1, 2, 3 | Should-All { $_ }
+    }
+
+    It 'Passes for a filter that asserts on the item and returns nothing' {
+        1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 0 }
+    }
+
+    It 'Still fails for a filter that asserts on the item and throws' {
+        $err = { 1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 2 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*2 of them*did not pass the filter*'
+    }
+
+    It 'Accepts a filter taken from a function' {
+        # ${function:X} has a FunctionDefinitionAst, whose blocks live on .Body, so looking at
+        # EndBlock.Statements.Count on the Ast itself called it empty and rejected it.
+        function Test-Positive { $_ -gt 0 }
+        1, 2, 3 | Should-All ${function:Test-Positive}
+    }
+
+    It 'Accepts a filter written with a process block' {
+        1, 2, 3 | Should-All { process { $_ -gt 0 } }
+    }
+
+    It 'Still fails a process-block filter for the right reason' {
+        $err = { 1, 2, 3 | Should-All { process { $_ -gt 99 } } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*did not pass the filter*'
+    }
+
+    It 'Passes for a filter that returns $null, which cannot be told from no output' {
+        1, 2, 3 | Should-All { $null }
+    }
+
+    It 'Passes when something the filter called wrote to the pipeline before the predicate' {
+        $list = [System.Collections.ArrayList]::new()
+        1, 2, 3 | Should-All { $list.Add($_); $true }
+        $list.Count | Verify-Equal 3
+    }
+}

@@ -102,7 +102,7 @@
             })
 
         if ($PesterPreference.Output.Verbosity.Value -in "Detailed", "Diagnostic") {
-            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds) ms."
+            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage preparation finished after $($sw.ElapsedMilliseconds)ms."
         }
     }
 
@@ -132,10 +132,10 @@
         param($Context)
 
         # Parallel workers collect the raw breakpoint hits but must not produce the report or write
-        # the output file themselves - the parent merges every worker's CommandCoverage and generates
+        # the output file themselves, the parent merges every worker's CommandCoverage and generates
         # the report once. The flag is set on the (per-runspace) module scope only inside a worker, so
         # a normal run and the parent's own End step never see it. See Invoke-TestInParallel.
-        if (defined CodeCoverageSkipReport) {
+        if (defined_ CodeCoverageSkipReport) {
             return
         }
 
@@ -213,7 +213,7 @@
             }
         }
         if ($PesterPreference.Output.Verbosity.Value -in 'Detailed', 'Diagnostic') {
-            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds) ms."
+            Write-PesterHostMessage -ForegroundColor Magenta "Code Coverage result processed in $($sw.ElapsedMilliseconds)ms."
         }
         $reportText = Write-CoverageReport $coverageReport
 
@@ -239,5 +239,23 @@ function Resolve-CodeCoverageConfiguration {
     $supportedFormats = 'JaCoCo', 'Cobertura'
     if ($PesterPreference.CodeCoverage.OutputFormat.Value -notin $supportedFormats) {
         throw (Get-StringOptionErrorMessage -OptionPath 'CodeCoverage.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.CodeCoverage.OutputFormat.Value)
+    }
+
+    # Resolve the output path to an absolute path now, while the current location still points at
+    # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
+    # test can change the current location (e.g. Set-Location), so a relative path would resolve
+    # against the wrong directory, or one that no longer exists (#2641).
+    $PesterPreference.CodeCoverage.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.OutputPath.Value)
+
+    # Resolve the report root to an absolute path now, for the same reason. Get-ReportRoot uses it
+    # (or its Run.RepoRoot fallback) to strip the prefix off the absolute file paths when the report
+    # is written. That also happens after all tests ran, so resolving a relative ReportRoot/RepoRoot
+    # only then would use the location the last test left behind (#2923).
+    if (-not [string]::IsNullOrEmpty($PesterPreference.CodeCoverage.ReportRoot.Value)) {
+        $PesterPreference.CodeCoverage.ReportRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.CodeCoverage.ReportRoot.Value)
+    }
+
+    if (-not [string]::IsNullOrEmpty($PesterPreference.Run.RepoRoot.Value)) {
+        $PesterPreference.Run.RepoRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.Run.RepoRoot.Value)
     }
 }

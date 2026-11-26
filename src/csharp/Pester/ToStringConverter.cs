@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Management.Automation;
 
 namespace Pester
@@ -28,6 +29,26 @@ namespace Pester
                     : "<ScriptBlock>",
                 _ => $"<{type}>"
             };
+        }
+
+        internal static string ScriptBlockCollectionToString(System.Collections.Generic.List<ScriptBlock> scriptBlocks)
+        {
+            if (scriptBlocks == null || scriptBlocks.Count == 0)
+                return string.Empty;
+
+            // One is the common case, and printing just its body keeps the output identical to what
+            // a plain ScriptBlock produced before these became collections.
+            if (scriptBlocks.Count == 1)
+                return scriptBlocks[0]?.ToString() ?? string.Empty;
+
+            // More than one, so number them the same way multiple errors are numbered when they are
+            // rendered (see Get-ErrorForXmlReport and Write-ErrorToScreen): a zero-based [n] prefix,
+            // used only when there is actually more than one item.
+            var numbered = new List<string>(scriptBlocks.Count);
+            for (var i = 0; i < scriptBlocks.Count; i++)
+                numbered.Add($"[{i}] {scriptBlocks[i]?.ToString() ?? string.Empty}");
+
+            return string.Join(System.Environment.NewLine, numbered);
         }
 
         internal static string ContainerToString(Container container)

@@ -1,6 +1,7 @@
 $script:ReportStrings = DATA {
     @{
         VersionMessage    = "Pester v{0}"
+        ShuffleMessage = "Shuffling execution order using seed {0}. Set 'Run.ShuffleSeed = {0}' to repeat this order."
 
         CoverageMessage   = 'Covered {2:0.##}% / {5:0.##}%. {3:N0} analyzed {0} in {4:N0} {1}.'
         MissedSingular    = 'Missed command:'
@@ -14,6 +15,7 @@ $script:ReportStrings = DATA {
         Context           = 'Context {0}'
         Margin            = ' '
         Timing            = 'Tests completed in {0}'
+        Tags              = ' [Tags: {0}]'
 
         TestsPassed       = 'Tests Passed: {0}, '
         TestsFailed       = 'Failed: {0}, '
@@ -127,13 +129,13 @@ function Write-PesterHostMessage {
     process {
         # In a parallel worker the whole run is silenced (Output.Verbosity = 'None') and its output is
         # captured into the shared event tape (see Invoke-TestInParallel) so the parent can replay it in
-        # order. Instead of writing to the host right away - which in a ForEach-Object -Parallel runspace
-        # surfaces live and detached from the test that produced it (#2825) - append the message to the
-        # tape. The worker runs one file synchronously, so append order already is the correct order, and
-        # host/debug entries land interleaved with the per-test steps the recorder captured around them.
-        # Read the tape via GetValue (not the 'defined' helper): 'defined' returns the value through a
-        # function output, which enumerates a collection and would hand back its first element instead of
-        # the list itself. GetValue returns the list object and tolerates the variable being unset ($null).
+        # order. In a ForEach-Object -Parallel runspace writing to the host right away surfaces live and
+        # detached from the test that produced it (#2825), so instead append the message to the tape. The
+        # worker runs one file synchronously, so append order is already the correct order, and host/debug
+        # entries land interleaved with the per-test steps the recorder captured around them.
+        # Read the tape via GetValue, not the 'defined' helper: 'defined' returns the value through a
+        # function output, which enumerates a collection and hands back its first element instead of the
+        # list itself. GetValue returns the list object and tolerates the variable being unset ($null).
         $parallelOutputTape = $ExecutionContext.SessionState.PSVariable.GetValue('parallelOutputTape')
         if ($null -ne $parallelOutputTape) {
             $captured = @{}
@@ -416,7 +418,10 @@ function ConvertTo-FailureLines {
         while ($exception) {
             $exceptionName = $exception.GetType().Name
             $thisLines = $exception.Message.Split([string[]]($([System.Environment]::NewLine), "`n"), [System.StringSplitOptions]::RemoveEmptyEntries)
-            if (0 -lt @($thisLines).Count -and $ErrorRecord.FullyQualifiedErrorId -ne 'PesterAssertionFailed') {
+            # An assertion failure and a user error (a mistake in the test code, see
+            # New-PesterUserErrorRecord) are both sentences about the test file, so the exception
+            # type name in front of them only makes them look like a crash in Pester (#3057).
+            if (0 -lt @($thisLines).Count -and $ErrorRecord.FullyQualifiedErrorId -notin 'PesterAssertionFailed', 'PesterUserError') {
                 $thisLines[0] = "$exceptionName`: $($thisLines[0])"
             }
             [array]::Reverse($thisLines)
@@ -452,12 +457,9 @@ function ConvertTo-FailureLines {
             # omit the lines internal to Pester
             if ((GetPesterOS) -ne 'Windows') {
                 [String]$isPesterFunction = '^at .*, .*/Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*/Pester.psm1: line [0-9]*$'
-                # [String]$pattern6 = '^at <ScriptBlock>, (<No file>|.*/Pester.psm1): line [0-9]*$'
             }
             else {
                 [String]$isPesterFunction = '^at .*, .*\\Pester.psm1: line [0-9]*$'
-                [String]$isShould = '^at (Should<End>|Invoke-Assertion), .*\\Pester.psm1: line [0-9]*$'
             }
 
             # PESTER_BUILD
@@ -466,26 +468,42 @@ function ConvertTo-FailureLines {
                 # non inlined scripts will have different paths just omit everything from the src folder
                 $path = [regex]::Escape(($PSScriptRoot | & $SafeCommands['Split-Path']))
                 [String]$isPesterFunction = "^at .*, .*$path.*: line [0-9]*$"
-                [String]$isShould = "^at (Should<End>|Invoke-Assertion), .*$path.*: line [0-9]*$"
             }
             # end PESTER_BUILD
 
             # reducing the stack trace so we see only stack trace until the current It block and not up until the invocation of the
-            # whole test script itself. This is achieved by shortening the stack trace when any Runtime function is hit.
-            # what we don't want to do here is shorten the stack on the Should or Invoke-Assertion. That would remove any
-            # lines describing potential functions that are invoked in the test. e.g. doing function a() { 1 | Should -Be 2 }; a
-            # we want to be able to see that we invoked the assertion inside of function a
-            # the internal calls to Should and Invoke-Assertion are filtered out later by the second match
+            # whole test script itself. This is achieved by shortening the stack trace when a Pester frame is hit after we already
+            # collected at least one frame from the user code.
+            # the frames below the user code are Pester as well, e.g. Should, or Ensure-ExpectedIsNotCollection when the error is
+            # thrown from an assertion, or Mock when the error comes from Mock. We skip those, but we must not stop on them,
+            # otherwise we throw away the whole trace, including the line in the test file that the user needs. Skipping instead of
+            # stopping also keeps any function that the user invoked in the test, e.g. doing function a() { 1 | Should -Be 2 }; a
+            # shows that we invoked the assertion inside of function a.
+            # an assertion failure already has the line with the assertion itself, taken from TargetObject above,
+            # skip the first frame of the trace when it points at the same place so we don't print it twice
+            $skipFrame = if ($ErrorRecord.FullyQualifiedErrorId -eq 'PesterAssertionFailed') {
+                "$($ErrorRecord.TargetObject.File):$($ErrorRecord.TargetObject.Line)"
+            }
+
+            $userFrameFound = $false
             foreach ($line in $traceLines) {
-                if ($line -match $isPesterFunction -and $line -notmatch $isShould) {
-                    break
+                if ($line -match $isPesterFunction) {
+                    if ($userFrameFound) {
+                        break
+                    }
+
+                    continue
                 }
 
-                $isPesterInternalFunction = $line -match $isPesterFunction
+                if (-not $userFrameFound) {
+                    $userFrameFound = $true
 
-                if (-not $isPesterInternalFunction) {
-                    $lines.Trace += $line
+                    if ($null -ne $skipFrame -and $line -replace '^at [^,]*, ' -replace ':\s*line\s*(\d+)\s*$', ':$1' -eq $skipFrame) {
+                        continue
+                    }
                 }
+
+                $lines.Trace += $line
             }
         }
 
@@ -526,6 +544,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
             # the full contract. The parent sets Parallel on the context for a parallel run.
             $parallelSuffix = if ($Context.Parallel) { ' in parallel' } else { '' }
             Write-PesterHostMessage -ForegroundColor $ReportTheme.Container "`nRunning tests from $(@($Context.BlockContainers).Length) files$parallelSuffix."
+        }
+
+        if ($PesterPreference.Run.Shuffle.Value) {
+            # Report the resolved seed so a randomized run (#2425) can be repeated.
+            Write-PesterHostMessage -ForegroundColor $ReportTheme.Discovery ($ReportStrings.ShuffleMessage -f $PesterPreference.Run.ShuffleSeed.Value)
         }
     }
 
@@ -623,8 +646,11 @@ function Get-WriteScreenPlugin ($Verbosity) {
             $humanTime = "$(Get-HumanTime ($Context.Result.Duration))"
 
             if ($Context.Result.Passed) {
+                $testCount = $Context.Result.TotalCount
+                $testCountText = if (1 -eq $testCount) { '1 test' } else { "$testCount tests" }
                 Write-PesterHostMessage -ForegroundColor $ReportTheme.Pass "[+] $($Context.Result.Name)" -NoNewLine
-                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime"
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " $humanTime" -NoNewLine
+                Write-PesterHostMessage -ForegroundColor $ReportTheme.PassTime " ($testCountText)"
             }
 
             # this won't work skipping the whole file when all it's tests are skipped is not a feature yet in 5.0.0
@@ -686,6 +712,10 @@ function Get-WriteScreenPlugin ($Verbosity) {
         }
         else {
             throw "Unsupported level of output '$($PesterPreference.Output.Verbosity.Value)'"
+        }
+
+        if ($PesterPreference.Output.ShowTags.Value -and $null -ne $_test.Tag -and 0 -lt @($_test.Tag).Count) {
+            $out += $ReportStrings.Tags -f ($_test.Tag -join ', ')
         }
 
         # UserDuration and FrameworkDuration are kept on the result object for profiling,
@@ -942,69 +972,91 @@ function Write-CIErrorToScreen {
     }
 }
 
+function Format-ErrorForDisplay {
+    <#
+    .SYNOPSIS
+    The message and the filtered stack trace of an error record, ready to print.
+
+    .DESCRIPTION
+    A failed test or block carries DisplayErrorMessage and DisplayStackTrace, put there by running
+    the record through ConvertTo-FailureLines (see Add-RSpecTestObjectProperties and the container
+    post-processing). A discovery failure is printed while the run is still going, long before that
+    post-processing, so its records have neither, and Format-ErrorMessage fell back to
+    Exception.ToString() plus the raw ScriptStackTrace: the exception type name followed by every
+    Pester-internal frame, with Output.StackTraceVerbosity ignored (#3057). Filter it here instead,
+    the same way the decorated records are filtered.
+    #>
+    [CmdletBinding()]
+    param (
+        $Err,
+
+        # Report the error as the runtime handed it over: Exception.ToString(), which keeps the
+        # managed frames and the inner-exception chain, and the unfiltered ScriptStackTrace. For an
+        # error raised inside Pester itself those frames are the diagnostic rather than noise, so
+        # Invoke-Pester's own catch asks for this.
+        [switch] $Raw,
+
+        # Output.StackTraceVerbosity 'Full' means do not filter. ConvertTo-FailureLines reads that
+        # from the preference and not from its caller, so it is passed in explicitly.
+        [switch] $ForceFullError
+    )
+
+    if (-not $Raw -and $null -ne $Err.DisplayErrorMessage) {
+        return [PSCustomObject]@{
+            Message = [string] $Err.DisplayErrorMessage
+            Trace   = [string] $Err.DisplayStackTrace
+        }
+    }
+
+    if ($Raw) {
+        return [PSCustomObject]@{
+            Message = [string] $Err.Exception.ToString()
+            Trace   = [string] $Err.ScriptStackTrace
+        }
+    }
+
+    $lines = ConvertTo-FailureLines -ErrorRecord $Err -ForceFullError:$ForceFullError
+    [PSCustomObject]@{
+        Message = [string]($lines.Message -join [Environment]::NewLine)
+        Trace   = [string]($lines.Trace -join [Environment]::NewLine)
+    }
+}
+
 function Format-ErrorMessage {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
         $Err,
         [string] $ErrorMargin,
-        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
+
+        # See Format-ErrorForDisplay. Only Invoke-Pester's own catch passes it, for an error raised
+        # inside Pester rather than in the test code.
+        [switch] $Raw
     )
 
     $multipleErrors = 1 -lt $Err.Count
+    $forceFullError = 'Full' -eq $StackTraceVerbosity
 
 
     $out = if ($multipleErrors) {
         $c = 0
         $(foreach ($e in $Err) {
                 $errorMessageSb = [System.Text.StringBuilder]""
+                $display = Format-ErrorForDisplay -Err $e -Raw:$Raw -ForceFullError:$forceFullError
 
-                if ($null -ne $e.DisplayErrorMessage) {
-                    [void]$errorMessageSb.Append("[$(($c++))] $($e.DisplayErrorMessage)")
-                }
-                else {
-                    [void]$errorMessageSb.Append("[$(($c++))] $($e.Exception)")
-                }
-
-                if ($null -ne $e.DisplayStackTrace -and $StackTraceVerbosity -ne 'None') {
-                    $stackTraceLines = $e.DisplayStackTrace -split [Environment]::NewLine
-
-                    if ($StackTraceVerbosity -eq 'FirstLine') {
-                        [void]$errorMessageSb.Append([Environment]::NewLine + $stackTraceLines[0])
-                    }
-                    else {
-                        [void]$errorMessageSb.Append([Environment]::NewLine + $e.DisplayStackTrace)
-                    }
-                }
+                [void]$errorMessageSb.Append("[$(($c++))] $($display.Message)")
+                [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
 
                 $errorMessageSb.ToString()
             }) -join [Environment]::NewLine
     }
     else {
         $errorMessageSb = [System.Text.StringBuilder]""
+        $display = Format-ErrorForDisplay -Err $Err -Raw:$Raw -ForceFullError:$forceFullError
 
-        if ($null -ne $Err.DisplayErrorMessage) {
-            [void]$errorMessageSb.Append($Err.DisplayErrorMessage)
-
-            # Don't try to append the stack trace when we don't have it or when we don't want it
-            if ($null -ne $Err.DisplayStackTrace -and [string]::empty -ne $Err.DisplayStackTrace.Trim() -and $StackTraceVerbosity -ne 'None') {
-                $stackTraceLines = $Err.DisplayStackTrace -split [Environment]::NewLine
-
-                if ($StackTraceVerbosity -eq 'FirstLine') {
-                    [void]$errorMessageSb.Append([Environment]::NewLine + $stackTraceLines[0])
-                }
-                else {
-                    [void]$errorMessageSb.Append([Environment]::NewLine + $Err.DisplayStackTrace)
-                }
-            }
-        }
-        else {
-            [void]$errorMessageSb.Append($Err.Exception.ToString())
-
-            if ($null -ne $Err.ScriptStackTrace) {
-                [void]$errorMessageSb.Append([Environment]::NewLine + $Err.ScriptStackTrace)
-            }
-        }
+        [void]$errorMessageSb.Append($display.Message)
+        [void]$errorMessageSb.Append((Format-StackTraceForDisplay -Trace $display.Trace -StackTraceVerbosity $StackTraceVerbosity -Raw:$Raw))
 
         $errorMessageSb.ToString()
     }
@@ -1014,6 +1066,42 @@ function Format-ErrorMessage {
     return $withMargin
 }
 
+function Format-StackTraceForDisplay {
+    <#
+    .SYNOPSIS
+    The stack trace to append after an error message, as Output.StackTraceVerbosity asks for it.
+    Empty when there is no trace, or when the trace is not wanted.
+    #>
+    [CmdletBinding()]
+    param (
+        [string] $Trace,
+        [string] $StackTraceVerbosity,
+
+        # The whole trace, whatever the verbosity says. For an error raised inside Pester the frames
+        # are the diagnostic, and 'None' would leave nothing to go on.
+        [switch] $Raw
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Trace)) {
+        return ""
+    }
+
+    if ($Raw) {
+        return [Environment]::NewLine + $Trace
+    }
+
+    if ('None' -eq $StackTraceVerbosity) {
+        return ""
+    }
+
+    if ('FirstLine' -eq $StackTraceVerbosity) {
+        $firstLine = ($Trace -split [Environment]::NewLine)[0]
+        return [Environment]::NewLine + $firstLine
+    }
+
+    [Environment]::NewLine + $Trace
+}
+
 function Write-ErrorToScreen {
     [CmdletBinding()]
     param (
@@ -1021,10 +1109,13 @@ function Write-ErrorToScreen {
         $Err,
         [string] $ErrorMargin,
         [switch] $Throw,
-        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value
+        [string] $StackTraceVerbosity = [PesterConfiguration]::Default.Output.StackTraceVerbosity.Value,
+
+        # See Format-ErrorForDisplay.
+        [switch] $Raw
     )
 
-    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity
+    $errorMessage = Format-ErrorMessage -Err $Err -ErrorMargin:$ErrorMargin -StackTraceVerbosity:$StackTraceVerbosity -Raw:$Raw
 
     if ($Throw) {
         throw $errorMessage
@@ -1062,6 +1153,10 @@ function Write-BlockToScreen {
 
     $name = if (-not [string]::IsNullOrWhiteSpace($Block.ExpandedName)) { $Block.ExpandedName } else { $Block.Name }
     $text = $ReportStrings.$commandUsed -f $name
+
+    if ($PesterPreference.Output.ShowTags.Value -and $null -ne $Block.Tag -and 0 -lt @($Block.Tag).Count) {
+        $text += $ReportStrings.Tags -f ($Block.Tag -join ', ')
+    }
 
     if ($PesterPreference.Debug.ShowNavigationMarkers.Value) {
         $text += ", $($block.ScriptBlock.File):$($block.StartLine)"
@@ -1141,6 +1236,19 @@ function Resolve-OutputConfiguration ([PesterConfiguration]$PesterPreference) {
     $supportedCILogLevels = 'Error', 'Warning'
     if ($PesterPreference.Output.CILogLevel.Value -notin $supportedCILogLevels) {
         throw (Get-StringOptionErrorMessage -OptionPath 'Output.CILogLevel' -SupportedValues $supportedCILogLevels -Value $PesterPreference.Output.CILogLevel.Value)
+    }
+
+    $supportedCIDebugOutput = 'None', 'Auto'
+    if ($PesterPreference.Output.CIDebugOutput.Value -notin $supportedCIDebugOutput) {
+        throw (Get-StringOptionErrorMessage -OptionPath 'Output.CIDebugOutput' -SupportedValues $supportedCIDebugOutput -Value $PesterPreference.Output.CIDebugOutput.Value)
+    }
+    elseif ((-not $PesterPreference.Output.Verbosity.IsModified) -and (Test-CIDebugOutputEnabled -PesterPreference $PesterPreference)) {
+        # A CI system has its debug switch enabled and the user did not set a verbosity. Raise it to
+        # Diagnostic so the run shows detailed output and Pester's debug messages, the same way e.g.
+        # Azure DevOps' System.Debug makes the rest of the pipeline verbose. The user's own
+        # Write-Verbose and Write-Debug in tests is surfaced separately during the run, see
+        # Invoke-ContainerRun in Pester.Runtime.ps1.
+        $PesterPreference.Output.Verbosity = 'Diagnostic'
     }
 
     if ('Diagnostic' -eq $PesterPreference.Output.Verbosity.Value) {

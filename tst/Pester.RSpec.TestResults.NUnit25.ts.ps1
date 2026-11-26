@@ -436,6 +436,29 @@ i -PassThru:$PassThru {
             $null = $xmlResult.Schemas.Add($null, $schemaPath)
             $xmlResult.Validate( { throw $args[1].Exception })
         }
+
+        t 'Should validate against the nunit 2.5 schema when ForEach and plain tests are mixed' {
+            # https://github.com/pester/Pester/issues/2143
+            $sb = {
+                Describe 'Demonstrate NUnit Problem' {
+                    It 'Should return <Result> when type is <Type>' -ForEach @(
+                        @{ Type = 'String'; Variable = [String]'Test'; Result = $true }
+                        @{ Type = 'Int'; Variable = [Int]0; Result = $false }
+                    ) {
+                        ($Variable -is [String]) | Should -Be $Result
+                    }
+
+                    It 'A plain non-parameterized test' { 1 | Should -Be 1 }
+                }
+            }
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = $r | ConvertTo-NUnitReport
+
+            # verify against schema
+            $null = $xmlResult.Schemas.Add($null, $schemaPath)
+            $xmlResult.Validate( { throw $args[1].Exception })
+        }
     }
 
     b "Exporting multiple containers" {
@@ -550,6 +573,52 @@ i -PassThru:$PassThru {
             $xmlSuites[0].'results'.'test-case'.'name' | Verify-Equal "Failing describe.Test1"
             $xmlSuites[0].'results'.'test-case'.'description' | Verify-Equal "Test1"
 
+        }
+    }
+
+    b "When a container fails during discovery it is reported" {
+        # https://github.com/pester/Pester/issues/2664
+        # Passing an array directly to It (instead of via -TestCases) throws during discovery.
+        $sb = {
+            Describe "Count" {
+                It "Returns sum" @(
+                    @{ Name = 1; Expected = 2 }
+                    @{ Name = 2; Expected = 4 }
+                ) {
+                    $Name + $Name | Should -Be $Expected
+                }
+            }
+        }
+
+        t "discovery-failed container is written as a failed test-suite carrying its error" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            # sanity: the container failed during discovery and did not run any tests
+            $r.Containers[0].ShouldRun | Verify-False
+            $r.Containers[0].Result | Verify-Equal 'Failed'
+
+            $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
+
+            # the report totals reflect the failure instead of reporting zero
+            $xmlResult.'test-results'.errors | Verify-Equal '1'
+            $xmlResult.'test-results'.'test-suite'.result | Verify-Equal 'Failure'
+            $xmlResult.'test-results'.'test-suite'.success | Verify-Equal 'False'
+
+            $xmlContainer = $xmlResult.'test-results'.'test-suite'.'results'.'test-suite'
+            $xmlContainer.result | Verify-Equal 'Failure'
+            $xmlContainer.success | Verify-Equal 'False'
+            $xmlContainer.failure | Verify-NotNull
+            $xmlContainer.failure.message | Verify-NotNull
+            $xmlContainer.failure.message | Verify-Like '*ScriptBlock*'
+        }
+
+        t "discovery-failure report validates against the nunit 2.5 schema" {
+            $r = Invoke-Pester -Configuration ([PesterConfiguration]@{ Run = @{ ScriptBlock = $sb; PassThru = $true }; Output = @{ Verbosity = 'None' } })
+
+            $xmlResult = [xml] ($r | ConvertTo-NUnitReport)
+
+            $xmlResult.Schemas.Add($null, $schemaPath) > $null
+            $xmlResult.Validate( { throw $args[1].Exception })
         }
     }
 

@@ -53,6 +53,9 @@
             <xs:attribute name="assertions" type="xs:string" use="optional" />
             <xs:attribute name="time" type="xs:string" use="optional" />
             <xs:attribute name="classname" type="xs:string" use="optional" />
+            <!-- file is not in the schema linked above, but GitLab, Jenkins and pytest all
+                 read it, so Pester writes it and this copy of the schema allows it. -->
+            <xs:attribute name="file" type="xs:string" use="optional" />
             <xs:attribute name="status" type="xs:string" use="optional" />
         </xs:complexType>
     </xs:element>

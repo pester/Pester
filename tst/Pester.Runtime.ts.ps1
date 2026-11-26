@@ -82,29 +82,29 @@ i -PassThru:$PassThru {
 
     b "tryGetProperty" {
         t "given null it returns null" {
-            tryGetProperty $null Name | Verify-Null
+            tryGetProperty_ $null Name | Verify-Null
         }
 
         t "given an object that has the property it return the correct value" {
             $p = (Get-Process -Id $Pid)
-            tryGetProperty $p Name | Verify-Equal $p.Name
+            tryGetProperty_ $p Name | Verify-Equal $p.Name
         }
     }
 
     b "or" {
 
         t "given a non-null value it returns it" {
-            "a" | or "b" | Verify-Equal "a"
+            "a" | or_ "b" | Verify-Equal "a"
         }
 
         t "given null it returns the default value" {
-            $null | or "b" | Verify-Equal "b"
+            $null | or_ "b" | Verify-Equal "b"
         }
     }
 
     b "combineNonNull" {
         t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
-            $r = combineNonNull @(@(1, $null), @(1, 2, 3), $null, $null, 10)
+            $r = combineNonNull_ @(@(1, $null), @(1, 2, 3), $null, $null, 10)
             # expecting: 1, $null, 1, 2, 3, 10
             $r[0] | Verify-Equal 1
             $r[1] | Verify-Null
@@ -118,27 +118,27 @@ i -PassThru:$PassThru {
     b "any" {
 
         t "given a non-null value it returns true" {
-            any "b" | Verify-True
+            any_ "b" | Verify-True
         }
 
         t "given null it returns false" {
-            any $null | Verify-False
+            any_ $null | Verify-False
         }
 
         t "given empty array it returns false" {
-            any @() | Verify-False
+            any_ @() | Verify-False
         }
 
         t "given null in array it returns false" {
-            any @($null) | Verify-False
+            any_ @($null) | Verify-False
         }
 
         t "given array with value it returns true" {
-            any @("b") | Verify-True
+            any_ @("b") | Verify-True
         }
 
         t "given array with multiple values it returns true" {
-            any @("b", "c") | Verify-True
+            any_ @("b", "c") | Verify-True
         }
     }
 
@@ -2134,15 +2134,15 @@ i -PassThru:$PassThru {
             $totalReported = $actualDuration + $actualFrameworkDuration + $actualDiscoveryDuration
             $totalDifference = $container.Total - $totalReported
             $testCount = $cs.Count * $bs.Count * $ts.Count
-            Write-Host Test count $testCount
-            Write-Host Per test $([int]($container.Total.TotalMilliseconds / $testCount)) ms
-            Write-Host Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount)) ms
-            Write-Host Reported discovery duration $actualDiscoveryDuration.TotalMilliseconds ms
-            Write-Host Reported total duration $actualDuration.TotalMilliseconds ms
-            Write-Host Reported total overhead $actualFrameworkDuration.TotalMilliseconds ms
-            Write-Host Reported total $totalReported.TotalMilliseconds ms
-            Write-Host Measured total $container.Total.TotalMilliseconds ms
-            Write-Host Total difference $totalDifference.TotalMilliseconds ms
+            Write-Host "Test count $testCount"
+            Write-Host "Per test $([int]($container.Total.TotalMilliseconds / $testCount))ms"
+            Write-Host "Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount))ms"
+            Write-Host "Reported discovery duration $($actualDiscoveryDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total duration $($actualDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total overhead $($actualFrameworkDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total $($totalReported.TotalMilliseconds)ms"
+            Write-Host "Measured total $($container.Total.TotalMilliseconds)ms"
+            Write-Host "Total difference $($totalDifference.TotalMilliseconds)ms"
 
 
             # the difference here is because of the code that is running after all tests have been discovered

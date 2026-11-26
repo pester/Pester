@@ -20,7 +20,7 @@ function Write-NUnitTestResultAttributes {
     $XmlWriter.WriteAttributeString('xsi', 'noNamespaceSchemaLocation', [Xml.Schema.XmlSchema]::InstanceNamespace , 'nunit_schema_2.5.xsd')
     $XmlWriter.WriteAttributeString('name', $Result.Configuration.TestResult.TestSuiteName.Value)
     $XmlWriter.WriteAttributeString('total', ($Result.TotalCount - $Result.NotRunCount))
-    $XmlWriter.WriteAttributeString('errors', '0')
+    $XmlWriter.WriteAttributeString('errors', (Get-DiscoveryFailedContainerCount -Result $Result))
     $XmlWriter.WriteAttributeString('failures', $Result.FailedCount)
     $XmlWriter.WriteAttributeString('not-run', $Result.NotRunCount)
     $XmlWriter.WriteAttributeString('inconclusive', $Result.InconclusiveCount)
@@ -48,8 +48,9 @@ function Write-NUnitTestResultChildNodes {
     $XmlWriter.WriteStartElement('results')
 
     foreach ($container in $Result.Containers) {
-        if (-not $container.ShouldRun) {
-            # skip containers that were discovered but none of their tests run
+        if ((-not $container.ShouldRun) -and -not (Test-ContainerFailedDiscovery -Container $container)) {
+            # skip containers that were discovered but none of their tests run,
+            # unless they failed during discovery so the error is still reported (#2664)
             continue
         }
 
@@ -98,13 +99,26 @@ function Write-NUnitTestSuiteElements {
 
     Write-NUnitTestSuiteAttributes -TestSuiteInfo $suiteInfo -XmlWriter $XmlWriter
 
+    if ($Node -is [Pester.Container] -and (Test-ContainerFailedDiscovery -Container $Node)) {
+        # The container failed during discovery and has no tests to carry the error, so surface the
+        # discovery error on the suite itself. The schema wants the failure before any results. (#2664)
+        $discoveryError = Get-ErrorForXmlReport -TestResult $Node
+        $XmlWriter.WriteStartElement('failure')
+        $XmlWriter.WriteElementString('message', $discoveryError.FailureMessage)
+        $XmlWriter.WriteElementString('stack-trace', $discoveryError.StackTrace)
+        $XmlWriter.WriteEndElement() # Close failure tag
+    }
+
     $XmlWriter.WriteStartElement('results')
 
+    $hasRunnableChildBlocks = $false
     foreach ($action in $Node.Blocks) {
         if (-not $action.ShouldRun) {
             # skip blocks that were discovered but did not run
             continue
         }
+
+        $hasRunnableChildBlocks = $true
         Write-NUnitTestSuiteElements -Node $action -XmlWriter $XmlWriter -Path $action.ExpandedPath
     }
 
@@ -113,6 +127,15 @@ function Write-NUnitTestSuiteElements {
         # PowerShell 6.1+ sorts by default in Group-Object. We need to sort for consistent output in Windows PowerShell
         $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
+
+    $hasParameterizedTestSuites = $false
+    foreach ($suite in $suites) {
+        if ($suite.Name) {
+            $hasParameterizedTestSuites = $true
+            break
+        }
+    }
+    $requiresTestCaseWrapper = $hasRunnableChildBlocks -or $hasParameterizedTestSuites
 
     foreach ($suite in $suites) {
         # When group has name it is a parameterized tests (data-generated using -ForEach/TestCases) so we want extra level of nesting for them
@@ -133,8 +156,21 @@ function Write-NUnitTestSuiteElements {
                 continue
             }
 
+            if (-not $testGroupId -and $requiresTestCaseWrapper) {
+                $testCaseSuiteInfo = Get-TestSuiteInfoForTestResult -TestResult $testCase
+
+                $XmlWriter.WriteStartElement('test-suite')
+                Write-NUnitTestSuiteAttributes -TestSuiteInfo $testCaseSuiteInfo -XmlWriter $XmlWriter
+                $XmlWriter.WriteStartElement('results')
+            }
+
             $suiteName = if ($testGroupId) { $parameterizedSuiteInfo.Name } else { '' }
             Write-NUnitTestCaseElement -TestResult $testCase -XmlWriter $XmlWriter -Path ($testCase.Path -join '.') -ParameterizedSuiteName $suiteName
+
+            if (-not $testGroupId -and $requiresTestCaseWrapper) {
+                $XmlWriter.WriteEndElement()
+                $XmlWriter.WriteEndElement()
+            }
         }
 
         if ($testGroupId) {
@@ -186,6 +222,25 @@ function Get-ParameterizedTestSuiteInfo {
     return Get-TestSuiteInfo -TestSuite $node -Path $node.Path
 }
 
+function Get-TestSuiteInfoForTestResult {
+    param($TestResult)
+
+    $node = [PSCustomObject] @{
+        Duration          = $TestResult.Duration
+        FailedCount       = 0
+        SkippedCount      = 0
+        InconclusiveCount = 0
+    }
+
+    switch ($TestResult.Result) {
+        Failed { $node.FailedCount = 1; break }
+        Skipped { $node.SkippedCount = 1; break }
+        Inconclusive { $node.InconclusiveCount = 1; break }
+    }
+
+    return Get-TestSuiteInfo -TestSuite $node -Path $TestResult.Path
+}
+
 function Get-TestSuiteInfo {
     param($TestSuite, $Path)
     # if (-not $Path) {
@@ -218,7 +273,7 @@ function Get-TestSuiteInfo {
 
     $suite = @{
         resultMessage = 'Failure'
-        success       = if ($TestSuite.FailedCount -eq 0) {
+        success       = if ($TestSuite.FailedCount -eq 0 -and $TestSuite.Result -ne 'Failed') {
             'True'
         }
         else {
@@ -317,10 +372,9 @@ function Write-NUnitTestCaseAttributes {
             $XmlWriter.WriteAttributeString('result', 'Ignored')
             $XmlWriter.WriteAttributeString('executed', 'False')
 
-            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
-            if ($TestResult.FailureMessage) {
+            if ($TestResult.Reason) {
                 $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.FailureMessage)
+                $xmlWriter.WriteElementString('message', $TestResult.Reason)
                 $XmlWriter.WriteEndElement() # Close reason tag
             }
 
@@ -331,10 +385,9 @@ function Write-NUnitTestCaseAttributes {
             $XmlWriter.WriteAttributeString('result', 'Inconclusive')
             $XmlWriter.WriteAttributeString('executed', 'True')
 
-            # TODO: This doesn't work, FailureMessage comes from Get-ErrorForXmlReport which isn't called
-            if ($TestResult.FailureMessage) {
+            if ($TestResult.Reason) {
                 $XmlWriter.WriteStartElement('reason')
-                $xmlWriter.WriteElementString('message', $TestResult.DisplayErrorMessage)
+                $xmlWriter.WriteElementString('message', $TestResult.Reason)
                 $XmlWriter.WriteEndElement() # Close reason tag
             }
 
@@ -361,7 +414,7 @@ function Write-NUnitTestCaseAttributes {
 function Get-GroupResult ($InputObject) {
     #I am not sure about the result precedence, and can't find any good source
     #TODO: Confirm this is the correct order of precedence
-    if ($inputObject.FailedCount -gt 0) {
+    if ($inputObject.FailedCount -gt 0 -or $InputObject.Result -eq 'Failed') {
         return 'Failure'
     }
     if ($InputObject.SkippedCount -gt 0) {

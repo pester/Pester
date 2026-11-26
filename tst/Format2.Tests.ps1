@@ -131,8 +131,39 @@ InPesterModuleScope {
             param ($Value, $Expected)
             Format-Hashtable2 $Value | Verify-Equal $Expected
         }
-    }
 
+        It "Indents nested hashtables by depth when -Pretty is used" {
+            # Hashtables used to print on one line whatever -Pretty said, which made a
+            # Should-BeEquivalent failure on nested hashtables much harder to read than the same
+            # failure on objects (#3055).
+            $value = @{ a = @{ b = 1 } }
+            $expected = "@{`n    a=@{`n        b=1;`n    };`n}"
+            Format-Hashtable2 -Value $value -Pretty | Verify-Equal $expected
+        }
+
+        It "Stays on one line without -Pretty" {
+            Format-Hashtable2 -Value @{ a = @{ b = 1 } } | Verify-Equal '@{a=@{b=1}}'
+        }
+
+        It "Renders a key whose name shadows a member of the hashtable" {
+            # A hashtable resolves its own keys before its members, so $Value.Keys on
+            # @{ Keys = 'k' } is the string 'k' and the whole render came out as @{k=$null}.
+            Format-Hashtable2 @{ Keys = 'k' } | Verify-Equal "@{Keys='k'}"
+            Format-Hashtable2 @{ Count = 3 } | Verify-Equal '@{Count=3}'
+            Format-Hashtable2 @{ Values = 1 } | Verify-Equal '@{Values=1}'
+        }
+
+        It "Renders an empty hashtable as @{} with -Pretty too" {
+            Format-Hashtable2 -Value @{} -Pretty | Verify-Equal '@{}'
+        }
+
+        It "Puts a multi-line item on its own line inside a short collection" {
+            # Format-Collection2 only broke its own lines past a length limit, so a hashtable's
+            # newlines landed in the middle of the one-line form: '@(@{<newline>    a=1;<newline>}, ...)'.
+            $expected = "@(`n    @{`n        a=1;`n    },`n    @{`n        b=2;`n    }`n)"
+            Format-Nicely2 -Value @(@{ a = 1 }, @{ b = 2 }) -Pretty | Verify-Equal $expected
+        }
+    }
     Describe "Format-Dictionary2" {
         It "Formats empty dictionary as @{}" {
             Format-Dictionary2 (New-Dictionary @{}) | Verify-Equal 'Dictionary{}'
@@ -145,6 +176,12 @@ InPesterModuleScope {
         ) {
             param ($Value, $Expected)
             Format-Dictionary2 $Value | Verify-Equal $Expected
+        }
+
+        It "Indents nested dictionaries by depth when -Pretty is used" {
+            $value = New-Dictionary @{ a = (New-Dictionary @{ b = 1 }) }
+            $expected = "Dictionary{`n    a=Dictionary{`n        b=1;`n    };`n}"
+            Format-Dictionary2 -Value $value -Pretty | Verify-Equal $expected
         }
     }
 
@@ -217,6 +254,71 @@ InPesterModuleScope {
             $formatted.Contains("'bottom'") | Verify-False
             $formatted.Contains('[PSObject]') | Verify-True
         }
+
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # A shallow -MaxDepth collapses arbitrary objects to their type instead of walking their
+        # properties. This is what stops complex objects (e.g. CommandInfo) from fanning out into an
+        # enormous, deeply nested tree that takes so long to format it looks like a hang.
+        It "With -MaxDepth 1 collapses an unregistered object to its type but still renders scalars and a level of containers" {
+            $object = [PSCustomObject]@{ Name = 'Jakub'; Age = 28 }
+            # An unknown object needs more than one level of budget, so it collapses to its type ...
+            Format-Nicely2 -Value $object -MaxDepth 1 | Verify-Equal '[PSObject]'
+            # ... while scalars and a single level of arrays/hashtables still render, and objects
+            # nested inside them collapse to their type instead of expanding.
+            Format-Nicely2 -Value 'Jakub' -MaxDepth 1 | Verify-Equal "'Jakub'"
+            Format-Nicely2 -Value @(1, 2, 3) -MaxDepth 1 | Verify-Equal '@(1, 2, 3)'
+            Format-Nicely2 -Value @{ Name = 'x' } -MaxDepth 1 | Verify-Equal "@{Name='x'}"
+            Format-Nicely2 -Value @{ cmd = $object } -MaxDepth 1 | Verify-Equal '@{cmd=[PSObject]}'
+        }
+
+        It "Renders a registered type as a compact representative summary even at a shallow -MaxDepth" {
+            # A CommandInfo is registered (base type) to show only its Name, so it never fans out into a
+            # slow, deeply nested dump and stays informative at any depth (#2865).
+            $command = Get-Command -Name 'Get-Command'
+            Format-Nicely2 -Value $command -MaxDepth 1 | Verify-Equal "Management.Automation.CmdletInfo{Name='Get-Command'}"
+        }
+
+        It "Formats integers as numbers so a simple array renders at a shallow depth" {
+            # Integers must be treated as scalars (not ValueType objects), otherwise a plain array
+            # collapses to '@([int], [int], [int])' once the budget is shallow (#2865).
+            Format-Nicely2 -Value 42 -MaxDepth 1 | Verify-Equal '42'
+            Format-Nicely2 -Value @(1, 2, 3) -MaxDepth 1 | Verify-Equal '@(1, 2, 3)'
+        }
+    }
+
+    Describe "Format-NicelyForTemplate" {
+        It "Passes a top-level string through unquoted so '<user.name>' stays clean" {
+            Format-NicelyForTemplate -Value 'Jakub' | Verify-Equal 'Jakub'
+        }
+
+        It "Renders '<value>' as '<expected>'" -TestCases @(
+            @{ Value = $null; Expected = '$null' }
+            @{ Value = $true; Expected = '$true' }
+            @{ Value = 42; Expected = '42' }
+            @{ Value = @(1, 2, 3); Expected = '@(1, 2, 3)' }
+            @{ Value = @{ Name = 'x'; Age = 1 }; Expected = "@{Age=1; Name='x'}" }
+        ) {
+            param ($Value, $Expected)
+            Format-NicelyForTemplate -Value $Value | Verify-Equal $Expected
+        }
+
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # Referencing a whole complex object (like CommandInfo) in a test/block name used to expand
+        # into an enormous, deeply nested property dump that took so long to build it looked like a
+        # hang. A CommandInfo is a registered type, so it must instead render a compact representative
+        # summary (its Name) and return promptly.
+        It "Renders a registered complex type like CommandInfo as a short summary instead of hanging" {
+            $job = Start-Job -ScriptBlock {
+                param($modulePath)
+                Import-Module $modulePath
+                & (Get-Module Pester) { Format-NicelyForTemplate -Value (Get-Command -Name 'Invoke-Pester') }
+            } -ArgumentList (Get-Module Pester).Path
+            $result = $job | Wait-Job -Timeout 30 | Receive-Job
+            $job | Remove-Job -Force
+
+            # Completes at all (no hang) and shows only the representative property, not the property tree.
+            $result | Verify-Equal "Management.Automation.FunctionInfo{Name='Invoke-Pester'}"
+        }
     }
 
     Describe "Get-DisplayProperty2" {
@@ -239,6 +341,19 @@ InPesterModuleScope {
         It "Returns 'Name FullName Length' for FileInfo" {
             $Actual = Get-DisplayProperty2 -Type ([System.IO.FileInfo])
             "$Actual" | Verify-Equal "Name FullName Length"
+        }
+
+        # Regression test for https://github.com/pester/Pester/issues/2865
+        # CommandInfo is registered by base type, so all of its subtypes (FunctionInfo, CmdletInfo,
+        # AliasInfo, ExternalScriptInfo, ...) are summarised by their Name from a single entry.
+        It "Returns 'Name' for the CommandInfo subtype '<type>'" -TestCases @(
+            @{ Type = [System.Management.Automation.FunctionInfo] }
+            @{ Type = [System.Management.Automation.CmdletInfo] }
+            @{ Type = [System.Management.Automation.AliasInfo] }
+        ) {
+            param ($Type)
+            $Actual = Get-DisplayProperty2 -Type $Type
+            "$Actual" | Verify-Equal "Name"
         }
     }
 

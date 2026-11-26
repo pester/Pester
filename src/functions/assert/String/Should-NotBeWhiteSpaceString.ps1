@@ -29,7 +29,7 @@
     This test will fail, the input is a whitespace only string.
 
     .EXAMPLE
-    ```
+    ```powershell
     $null | Should-NotBeWhiteSpaceString
     "" | Should-NotBeWhiteSpaceString
     $() | Should-NotBeWhiteSpaceString
