@@ -15,8 +15,6 @@ function New-MockBehavior {
         [ScriptBlock] $ParameterFilter,
         [Parameter(Mandatory)]
         $Hook,
-        [string[]]$RemoveParameterType,
-        [string[]]$RemoveParameterValidation,
         [Switch] $Aggregate
     )
 
@@ -1151,8 +1149,8 @@ function Invoke-MockInternal {
                     return
                 }
                 else {
-                    $failedFilterInvocations = @($failedFilterInvocations)
-                    $filterList = ($failedFilterInvocations | & $SafeCommands['ForEach-Object'] { "    $_" }) -join [System.Environment]::NewLine
+                    $indentedFilters = foreach ($failedFilterInvocation in @($failedFilterInvocations)) { "    $failedFilterInvocation" }
+                    $filterList = $indentedFilters -join [System.Environment]::NewLine
                     throw "No mock for command '$($Hook.CommandName)' matched the call: none of the parameter filters matched, and there is no default mock to fall back to. Add a default mock (e.g. ``Mock $($Hook.CommandName) { ... } -Aggregate``) or adjust an existing -ParameterFilter.$([System.Environment]::NewLine)$([System.Environment]::NewLine)The following parameter filters were evaluated and did not match:$([System.Environment]::NewLine)$filterList"
                 }
             }
