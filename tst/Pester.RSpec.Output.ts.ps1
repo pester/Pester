@@ -250,6 +250,34 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'Output for container names' {
+        t 'Script Block container names are output when BeforeAll fails' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Output.RenderMode = 'ConsoleColor'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    BeforeAll {
+                        throw 'bad error'
+                    }
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $run | Verify-Like '*[-]*<ScriptBlock>* failed with:*'
+        }
+    }
+
     b 'Write-PesterHostMessage' {
         t 'Ansi output includes colors when set and always reset' {
             $sb = {
