@@ -128,7 +128,13 @@ function Write-NUnitTestSuiteElements {
         $Node.Tests | & $SafeCommands['Group-Object'] -Property GroupId | & $SafeCommands["Sort-Object"] -Property Name
     )
 
-    $hasParameterizedTestSuites = 0 -lt @($suites | & $SafeCommands['Where-Object'] { $_.Name }).Count
+    $hasParameterizedTestSuites = $false
+    foreach ($suite in $suites) {
+        if ($suite.Name) {
+            $hasParameterizedTestSuites = $true
+            break
+        }
+    }
     $requiresTestCaseWrapper = $hasRunnableChildBlocks -or $hasParameterizedTestSuites
 
     foreach ($suite in $suites) {
