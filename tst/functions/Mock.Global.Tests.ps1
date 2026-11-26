@@ -6,7 +6,7 @@ BeforeAll {
 
 Describe 'Mock.Global configuration option' {
     It 'defaults to $false' {
-        (New-PesterConfiguration).Mock.Global.Value | Should -BeFalse
+        (New-PesterConfiguration).Mock.Global.Value | Should-BeFalse
     }
 
     It 'makes every mock reach calls from any module or script' {
@@ -34,46 +34,46 @@ Describe 'Mock.Global configuration option' {
 
                 It 'reaches calls made from inside another module' {
                     Mock Get-Date { [pscustomobject]@{ Year = 1999 } }
-                    Get-YearFromModule | Should -Be 1999
+                    Get-YearFromModule | Should-Be 1999
                 }
 
                 It 'reaches module-qualified calls' {
                     Mock Get-Date { [pscustomobject]@{ Year = 1999 } }
-                    Get-QualifiedYearFromModule | Should -Be 1999
+                    Get-QualifiedYearFromModule | Should-Be 1999
                 }
 
                 It 'records the calls, so Should -Invoke works without -ModuleName' {
                     Mock Get-Date { [pscustomobject]@{ Year = 1999 } }
                     $null = Get-YearFromModule
                     $null = Get-YearFromModule
-                    Should -Invoke Get-Date -Exactly -Times 2
+                    Should-Invoke Get-Date -Exactly -Times 2
                 }
 
                 It 'uses -ModuleName only as a resolve hint, not to scope the mock' {
                     # a bogus module name is ignored, the command resolves in the caller scope anyway
                     Mock Get-Date { [pscustomobject]@{ Year = 1999 } } -ModuleName 'ThisModuleDoesNotExist'
-                    Get-YearFromModule | Should -Be 1999
+                    Get-YearFromModule | Should-Be 1999
                 }
 
                 It 'a throwing mock blocks the command everywhere and still records the call' {
                     Mock Invoke-WebRequest { throw 'blocked' }
-                    { Invoke-BlockedRequest } | Should -Throw '*blocked*'
-                    Should -Invoke Invoke-WebRequest -Exactly -Times 1
+                    { Invoke-BlockedRequest } | Should-Throw -ExceptionMessage '*blocked*'
+                    Should-Invoke Invoke-WebRequest -Exactly -Times 1
                 }
 
                 It 'a parameter filter blocks only matching calls, others fall through' {
                     Mock Get-Content { 'allowed-content' } -ParameterFilter { $Path -like '*allowed*' }
                     Mock Get-Content { throw 'blocked' } -ParameterFilter { $Path -notlike '*allowed*' }
 
-                    Read-Path -Path 'C:\allowed\file.txt' | Should -Be 'allowed-content'
-                    { Read-Path -Path 'C:\secret\file.txt' } | Should -Throw '*blocked*'
+                    Read-Path -Path 'C:\allowed\file.txt' | Should-BeString 'allowed-content'
+                    { Read-Path -Path 'C:\secret\file.txt' } | Should-Throw -ExceptionMessage '*blocked*'
                 }
 
                 It 'preserves the original cmdlet dynamic parameters' {
                     # Get-ChildItem -Hidden relies on the FileSystem provider's dynamic parameters. The
                     # global hook must not hide them when resolving the command to build the mock.
                     Mock Get-ChildItem { 'mocked' }
-                    Get-HiddenItems | Should -Be 'mocked'
+                    Get-HiddenItems | Should-BeString 'mocked'
                 }
 
                 It 'does not affect commands Pester calls internally through SafeCommands' {
@@ -81,7 +81,7 @@ Describe 'Mock.Global configuration option' {
                     # invoked with the call operator), which does not go through command lookup. A global
                     # mock of a command Pester uses internally must not break Pester itself.
                     Mock Get-Command { throw 'blocked' }
-                    { Get-Command Get-Date } | Should -Throw '*blocked*'
+                    { Get-Command Get-Date } | Should-Throw -ExceptionMessage '*blocked*'
                 }
             }
 
@@ -100,7 +100,7 @@ Describe 'Mock.Global configuration option' {
                 }
 
                 It 'removes the global mock once the defining test ends' {
-                    Get-YearAfterCleanup | Should -BeGreaterThan 2000
+                    Get-YearAfterCleanup | Should-BeGreaterThan 2000
                 }
             }
         }
@@ -112,9 +112,9 @@ Describe 'Mock.Global configuration option' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should -Be 'Passed'
-        $result.FailedCount | Should -Be 0
-        $result.PassedCount | Should -BeGreaterThan 0
+        $result.Result | Should-BeString 'Passed'
+        $result.FailedCount | Should-Be 0
+        $result.PassedCount | Should-BeGreaterThan 0
     }
 }
 
@@ -128,13 +128,13 @@ Describe 'Global mock hook lifecycle' {
             Describe 'outer' {
                 It 'keeps its own global mock across a nested run' {
                     Mock Get-Date { [pscustomobject]@{ Year = 1111 } }
-                    (Get-Date).Year | Should -Be 1111
+                    (Get-Date).Year | Should-Be 1111
 
                     $inner = New-PesterContainer -ScriptBlock {
                         Describe 'inner' {
                             It 'has its own global mock' {
                                 Mock Get-Date { [pscustomobject]@{ Year = 2222 } }
-                                (Get-Date).Year | Should -Be 2222
+                                (Get-Date).Year | Should-Be 2222
                             }
                         }
                     }
@@ -144,11 +144,11 @@ Describe 'Global mock hook lifecycle' {
                     $innerConfig.Output.Verbosity = 'None'
                     $innerConfig.Mock.Global = $true
                     $innerResult = Invoke-Pester -Configuration $innerConfig
-                    $innerResult.FailedCount | Should -Be 0
-                    $innerResult.PassedCount | Should -Be 1
+                    $innerResult.FailedCount | Should-Be 0
+                    $innerResult.PassedCount | Should-Be 1
 
                     # the outer run's global mock must still be in effect after the nested run
-                    (Get-Date).Year | Should -Be 1111
+                    (Get-Date).Year | Should-Be 1111
                 }
             }
         }
@@ -160,8 +160,8 @@ Describe 'Global mock hook lifecycle' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should -Be 'Passed'
-        $result.FailedCount | Should -Be 0
+        $result.Result | Should-BeString 'Passed'
+        $result.FailedCount | Should-Be 0
     }
 
     It 'a nested Pester run does not inherit the outer run''s global mocks' {
@@ -172,14 +172,14 @@ Describe 'Global mock hook lifecycle' {
             Describe 'outer' {
                 It 'runs a nested run that does not mock the command' {
                     Mock Get-Date { [pscustomobject]@{ Year = 1111 } }
-                    (Get-Date).Year | Should -Be 1111
+                    (Get-Date).Year | Should-Be 1111
 
                     $inner = New-PesterContainer -ScriptBlock {
                         Describe 'inner' {
                             It 'sees the real command, not the outer global mock' {
                                 # Get-Date is not mocked in this run; the outer run's global mock must not
                                 # leak in, so we must get a real date (not the fake 1111 the outer set).
-                                (Get-Date).Year | Should -Not -Be 1111
+                                (Get-Date).Year | Should-NotBe 1111
                             }
                         }
                     }
@@ -189,11 +189,11 @@ Describe 'Global mock hook lifecycle' {
                     $innerConfig.Output.Verbosity = 'None'
                     $innerConfig.Mock.Global = $true
                     $innerResult = Invoke-Pester -Configuration $innerConfig
-                    $innerResult.FailedCount | Should -Be 0
-                    $innerResult.PassedCount | Should -Be 1
+                    $innerResult.FailedCount | Should-Be 0
+                    $innerResult.PassedCount | Should-Be 1
 
                     # the outer run's global mock must still be in effect after the nested run
-                    (Get-Date).Year | Should -Be 1111
+                    (Get-Date).Year | Should-Be 1111
                 }
             }
         }
@@ -205,8 +205,8 @@ Describe 'Global mock hook lifecycle' {
         $configuration.Mock.Global = $true
 
         $result = Invoke-Pester -Configuration $configuration
-        $result.Result | Should -Be 'Passed'
-        $result.FailedCount | Should -Be 0
+        $result.Result | Should-BeString 'Passed'
+        $result.FailedCount | Should-Be 0
     }
 
     It 'a fresh top-level run clears a global mock hook left armed by a previous run' {
@@ -215,7 +215,7 @@ Describe 'Global mock hook lifecycle' {
         # be observed at the top level (a nested run snapshots/restores instead), so we use a child process:
         # arm the hook by hand, run a trivial top-level Pester run, and confirm the hook was cleared.
         $modulePath = (Get-Module -Name Pester | Select-Object -First 1).Path
-        $modulePath | Should -Not -BeNullOrEmpty
+        $modulePath | Should-NotBeEmptyString
 
         $childScript = {
             Import-Module $env:PESTER_MODULE_PATH_FOR_TEST -Force
@@ -227,7 +227,7 @@ Describe 'Global mock hook lifecycle' {
             $before = [Pester.GlobalMockHook]::Count
 
             $container = New-PesterContainer -ScriptBlock {
-                Describe 'trivial' { It 'passes' { 1 | Should -Be 1 } }
+                Describe 'trivial' { It 'passes' { 1 | Should-Be 1 } }
             }
             $c = New-PesterConfiguration
             $c.Run.Container = $container
@@ -249,8 +249,8 @@ Describe 'Global mock hook lifecycle' {
         }
 
         # the hook was armed before the run (BEFORE=1) and cleared by the fresh top-level run (AFTER=0)
-        $output | Should -Match 'BEFORE=1'
-        $output | Should -Match 'AFTER=0'
-        $output | Should -Match 'RESULT=Passed'
+        $output | Should-MatchString 'BEFORE=1'
+        $output | Should-MatchString 'AFTER=0'
+        $output | Should-MatchString 'RESULT=Passed'
     }
 }

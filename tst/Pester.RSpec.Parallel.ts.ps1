@@ -4,6 +4,7 @@ Get-Module P, PTestHelpers, Pester, Axiom | Remove-Module
 
 Import-Module $PSScriptRoot\p.psm1 -DisableNameChecking
 Import-Module $PSScriptRoot\axiom\Axiom.psm1 -DisableNameChecking
+Import-Module $PSScriptRoot\PTestHelpers.psm1 -DisableNameChecking
 
 if (-not $NoBuild) { & "$PSScriptRoot\..\build.ps1" }
 Import-Module $PSScriptRoot\..\bin\Pester.psd1
@@ -560,6 +561,36 @@ Describe 'Second' {
             finally { Remove-Item -Path $start -Recurse -Force }
         }
 
+        t "FindRepoRoot finds a root whose .git is a file, not a directory (#3069)" {
+            # A git worktree, a submodule, and a clone made with --separate-git-dir all put a .git
+            # file at the root instead of a .git directory. Looking only for a directory walked past
+            # the root and fell back to the start location.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                Set-Content -Path (Join-Path $root ".git") -Value "gitdir: /somewhere/else/.git/worktrees/wt"
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
+        t "FindRepoRoot still finds a root whose .git is a directory" {
+            # The counterpart to the test above, so accepting a file does not come at the cost of
+            # the ordinary clone.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                $null = New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
         t "applies the same cascade inside each parallel worker" {
             $folder = New-CascadingBeforeContainerFolder
             try {
@@ -942,6 +973,65 @@ BeforeAll { }
 
             ($values | Sort-Object) -join ',' | Verify-Equal '1,3'
             ($errors.Count -gt 0) | Verify-True
+        }
+
+        t "does not re-emit a worker's warnings, the shared host already showed them (#3044)" {
+            # The pool shares the caller's host, so a worker's Write-Warning reaches the console
+            # live. Re-emitting Streams.Warning on top of that printed every warning a second time.
+            # The live copy goes straight to the host and never touches this pipeline's warning
+            # stream, so anything 3>&1 captures here is a re-emitted duplicate.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Warning "worker-warning-$item"
+                    $item
+                }
+            } 3>&1
+
+            $warnings = @($out | Where-Object { $_ -is [System.Management.Automation.WarningRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.WarningRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $warnings.Count | Verify-Equal 0
+        }
+
+        t "still re-emits a worker's errors, those never reach the host on their own" {
+            # The counterpart to the test above. Unlike warnings, a worker's non-terminating errors
+            # only land in Streams.Error, so dropping this re-emit would lose them entirely.
+            $out = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -ScriptBlock {
+                    param($item)
+                    Write-Error -Message "worker-error-$item" -ErrorAction Continue
+                    $item
+                }
+            } 2>&1
+
+            $errors = @($out | Where-Object { $_ -is [System.Management.Automation.ErrorRecord] })
+            $values = @($out | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] })
+
+            ($values | Sort-Object) -join ',' | Verify-Equal '1,2'
+            $errors.Count | Verify-Equal 2
+            (($errors | Sort-Object { "$_" }) -join ',') | Verify-Equal 'worker-error-1,worker-error-2'
+        }
+
+        t "defines the given variables in every worker runspace" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1, 2) -ThrottleLimit 2 -Variable @{ WarningPreference = 'SilentlyContinue' } -ScriptBlock {
+                    param($item)
+                    "$item-$WarningPreference"
+                }
+            }
+            (@($r) | Sort-Object) -join ',' | Verify-Equal '1-SilentlyContinue,2-SilentlyContinue'
+        }
+
+        t "leaves the worker on its defaults when no variables are given" {
+            $r = & (Get-Module Pester) {
+                Invoke-InRunspacePool -InputObject @(1) -ThrottleLimit 1 -ScriptBlock {
+                    param($item)
+                    "$WarningPreference"
+                }
+            }
+            @($r)[0] | Verify-Equal 'Continue'
         }
 
         t "gives every runspace its own session state" {
@@ -1383,6 +1473,85 @@ Describe 'OuterTwo' {
                 $output | Verify-Like '*Context CtxB*'
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a nested Invoke-Pester in a worker writes to its own caller, not to the tape (#2991)" {
+            # A worker silences its run and sends everything it writes to a module-scope tape, so the
+            # parent can replay it in order. The tape was visible to a run that started inside the
+            # worker's run as well, so a test that calls Invoke-Pester itself and captures the output
+            # with 6>&1 got nothing back, and that output was replayed later as the worker's own.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'Nested.Tests.ps1') -Value @'
+Describe 'OuterNested' {
+    It 'captures the output of a run it starts itself' {
+        $c = [PesterConfiguration]::Default
+        $c.Run.ScriptBlock = { Describe 'InnerNested' { It 'i' { 1 | Should -Be 1 } } }
+        $c.Output.Verbosity = 'Detailed'
+        $c.Output.RenderMode = 'Plaintext'
+        $captured = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+        $captured | Should -BeLike '*Describing InnerNested*'
+    }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                # The nested run reached the test that started it, so that test passed,
+                $output | Verify-Like '*Describing OuterNested*'
+                # and the parent did not replay the nested run as if the worker had written it.
+                ($output -like '*Describing InnerNested*') | Verify-False
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+    }
+
+    b "Run.Parallel preference variables" {
+        t "a worker prints what a sequential run prints, not what its own defaults say (#3044)" {
+            # A worker runspace starts with every preference variable at its default, so on its own it
+            # printed a warning the caller had silenced and swallowed the verbose output the caller had
+            # asked for. Both differ from a sequential run of the same files. The worker writes to the
+            # shared host directly, which no redirection in this process can capture, so run it in a
+            # child process and read its console output.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'A.Tests.ps1') -Value @'
+Describe 'A' {
+    It 'writes to both streams' {
+        Write-Warning 'warning-from-test'
+        Write-Verbose 'verbose-from-test'
+        1 | Should -Be 1
+    }
+}
+'@
+                $run = {
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'Continue'
+                    $c = [PesterConfiguration]::Default
+                    $c.Run.Path = '<folder>'
+                    $c.Run.Parallel = $true
+                    $c.Output.RenderMode = 'Plaintext'
+                    Invoke-Pester -Configuration $c
+                }
+                $sb = [scriptblock]::Create($run.ToString().Replace('<folder>', $folder))
+                $output = @(Invoke-InNewProcess -ScriptBlock $sb) -join "`n"
+
+                # The caller silenced warnings, so the worker must not print one.
+                ($output -match 'warning-from-test') | Verify-False
+                # The caller asked for verbose, so the worker must print it.
+                ($output -match 'verbose-from-test') | Verify-True
+            }
+            finally {
+                Remove-Item -Path $folder -Recurse -Force -ErrorAction Ignore
+            }
         }
     }
 
