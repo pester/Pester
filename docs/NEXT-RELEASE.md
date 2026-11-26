@@ -18,516 +18,341 @@
   The file is copied into the GitHub release body as it is, HTML comments do not render.
   When the stable release ships it is copied one last time, then emptied for the next line.
 
-  Anchors are prefixed with the release line (6.2.0-...) so they stay valid across the
+  Anchors are prefixed with the release line (6.3.0-...) so they stay valid across the
   prereleases and do not collide with other releases on the /releases page.
 -->
 
-# Pester 6.2.0
+# Pester 6.3.0
 
 > 🙋 Want to share feedback or report a bug? Open an [issue](https://github.com/pester/Pester/issues/new/choose)
 > or start a [discussion](https://github.com/pester/Pester/discussions).
 
-`Pester.BeforeContainer.ps1` grew from one file at the repository root into a chain that
-follows your folder structure, so unit tests and integration tests can each have their own
-setup without repeating it in every test file. A block can have more than one `BeforeAll`
-now, so setup can be grouped by what it sets up instead of merged into a single block.
-`Should-BeString` prints a real diff when a long string does not match. The configuration
-now tells you when you handed it a value it cannot use, instead of quietly ignoring it. And
-the experimental parallel runner works on Windows PowerShell 5.1, which is the slowest
-edition and the one that needed it most.
+A skipped test can say why it was skipped. `It`, `Describe` and `Context` take `-Because`, and
+the reason reaches the result object and the reports. A configuration mistake is an error now,
+instead of a warning that scrolls past in CI, and one conversion names every problem it found
+instead of stopping at the first. Several assertions used to finish without asserting anything
+when the input was not a shape they handle, and they fail now, so a test of yours that was not
+testing anything will start failing. A `Should -Invoke` failure points at the line that made the
+call instead of the line the `Mock` was defined on. And the experimental parallel runner stopped
+failing to import modules.
 
-- [What's new?](#6.2.0-whats-new)
-  - [Setup that follows your folders](#6.2.0-setup-that-follows-your-folders)
-  - [`Should-BeString` shows you the whole diff](#6.2.0-should-bestring-shows-you-the-whole-diff)
-  - [The configuration rejects values it cannot use](#6.2.0-the-configuration-rejects-values-it-cannot-use)
-  - [Failures point at the line that caused them](#6.2.0-failures-point-at-the-line-that-caused-them)
-- [Experimental features](#6.2.0-experimental-features)
-  - [Parallel runs on Windows PowerShell 5.1](#6.2.0-parallel-runs-on-windows-powershell-51)
-  - [A parallel run no longer loses a file quietly](#6.2.0-a-parallel-run-no-longer-loses-a-file-quietly)
-- [Behavior changes](#6.2.0-behavior-changes)
-- [Other improvements and fixes](#6.2.0-other-improvements-and-fixes)
-- [Thank you](#6.2.0-thank-you)
-- [Questions?](#6.2.0-questions)
+- [What's new?](#6.3.0-whats-new)
+  - [Say why a test is skipped](#6.3.0-say-why-a-test-is-skipped)
+  - [A bad configuration is an error, and it names every problem](#6.3.0-a-bad-configuration-is-an-error)
+  - [Assertions stop passing on input they cannot judge](#6.3.0-assertions-stop-passing)
+  - [A mock failure points at the call site](#6.3.0-a-mock-failure-points-at-the-call-site)
+- [Experimental features](#6.3.0-experimental-features)
+  - [Every parallel worker gets its own session state](#6.3.0-every-parallel-worker-gets-its-own-session-state)
+  - [A parallel run prints what a sequential run prints](#6.3.0-a-parallel-run-prints-what-a-sequential-run-prints)
+- [Behavior changes](#6.3.0-behavior-changes)
+- [Other improvements and fixes](#6.3.0-other-improvements-and-fixes)
+- [Thank you](#6.3.0-thank-you)
+- [Questions?](#6.3.0-questions)
 
-## <a id="6.2.0-whats-new"></a>What's new?
+## <a id="6.3.0-whats-new"></a>What's new?
 
-### <a id="6.2.0-setup-that-follows-your-folders"></a>Setup that follows your folders
+### <a id="6.3.0-say-why-a-test-is-skipped"></a>Say why a test is skipped
 
-6.1.0 shipped `Pester.BeforeContainer.ps1`, a setup file that runs before every test file,
-including in parallel runs where each worker starts from a clean runspace. Only the one at
-`Run.RepoRoot` was used though, so a repository where unit tests and integration tests need
-different setup had to cram both into that single file, or repeat the setup in every test
-file.
-
-Now every `Pester.BeforeContainer.ps1` from `Run.RepoRoot` down to the test file's own folder
-is applied, outermost first:
-
-```
-reporoot/Pester.BeforeContainer.ps1                 <- applies to everything
-reporoot/tests/Pester.BeforeContainer.ps1           <- applies to tests/ and below
-reporoot/tests/unit/Pester.BeforeContainer.ps1      <- applies to tests/unit only
-reporoot/tests/integration/Pester.BeforeContainer.ps1
-```
-
-The root file holds common setups and teardowns that every test needs:
+`-Skip` said that a test was skipped and never why. Now `It`, `Describe` and `Context` take
+`-Because`:
 
 ```powershell
-# reporoot/Pester.BeforeContainer.ps1
-BeforeAll {
-    Import-Module $PSScriptRoot/src/MyModule.psd1 -Force
-    . $PSScriptRoot/tests/helpers/Assertions.ps1
-}
+It 'talks to the API' -Skip -Because 'the API is down' { }
+Describe 'integration' -Skip -Because 'needs Azure' { }
 ```
 
-`tests/` holds the helpers only tests use, and each suite holds what only it needs:
+The reason is in the output, on the result object, and in the NUnit3 and JUnit reports:
 
 ```powershell
-# reporoot/tests/Pester.BeforeContainer.ps1
-BeforeAll {
-    function New-TestUser { param($Name) [pscustomobject]@{ Name = $Name } }
-}
+$r.Skipped[0].Reason   # the API is down
 ```
+
+The parameter is `-Because` and not `-Reason` so that the whole module uses one word for why:
+`Set-ItResult -Because` and `Should -Because` already did. The result property is `.Reason`,
+which is the word NUnit and JUnit use for it.
+
+`Set-ItResult -Because` fills the same property, so a test skipped from inside its own body
+reports its reason the same way a test skipped by `-Skip` does.
+
+### <a id="6.3.0-a-bad-configuration-is-an-error"></a>A bad configuration is an error, and it names every problem
+
+6.2.0 started checking for configuration mistakes, but it treated the two kinds differently. A
+value an option cannot use threw. A key the configuration has no option for only warned, and only
+from `Invoke-Pester`, so `New-PesterConfiguration -Hashtable` and a plain `[PesterConfiguration]`
+cast said nothing at all. A warning scrolls past in CI and the run continues on the default, which
+is the silent failure the checks were added to stop.
+
+Both kinds are errors now, both when the hashtable is converted, and one conversion reports every
+problem:
 
 ```powershell
-# reporoot/tests/unit/Pester.BeforeContainer.ps1
-BeforeAll { $script:Db = 'in-memory' }
+Invoke-Pester -Configuration @{ Run = @{ Paralel = $true; Exit = "yes"; Shufle = $true } }
 ```
+
+```
+# 6.2.0
+WARNING: Ignoring configuration key 'Run.Paralel', there is no such option.
+# the run continues on the defaults, and only Run.Exit is ever mentioned
+
+# 6.3.0
+The configuration has 3 problems:
+  - Run.Paralel: no such option, did you mean 'Run.Parallel'?
+  - Run.Shufle: no such option, did you mean 'Run.Shuffle'?
+  - Run.Exit expects a bool, but got the string 'yes'.
+'Get-Help about_PesterConfiguration' lists all the options.
+```
+
+The suggestion is the closest known name within one edit per four characters, by Levenshtein
+distance, so `Paralel` finds `Parallel`, `Runn` finds `Run`, and `Zzz` finds nothing and says so.
+A single problem stays the sentence it already was, with no list around it, so every message that
+exists today is unchanged.
+
+There is no opt-out. The only real argument for not throwing is forward compatibility, a config
+written for a newer Pester running on an older 6.x, and a configuration hashtable has nothing else
+it should be carrying. Say the word if you need one.
+
+### <a id="6.3.0-assertions-stop-passing"></a>Assertions stop passing on input they cannot judge
+
+An assertion that finishes without asserting anything is worse than one that fails, because the
+test goes green and nobody looks at it again. I went through all 41 assertions in
+`src/functions/assert` looking for that one shape, then called every one of them with input it
+cannot judge and looked at which ones passed.
+
+An empty filter passed:
 
 ```powershell
-# reporoot/tests/integration/Pester.BeforeContainer.ps1
-BeforeAll { $script:Db = 'real-sql' }
+1, 2, 3 | Should-All { }    # 6.2.0: passed
+1, 2, 3 | Should-Any { }    # 6.2.0: passed
 ```
 
-A test file in `tests/unit` gets the root setup, the `tests/` setup and the `tests/unit`
-setup, in that order. A test file in `tests/integration` gets the root setup, the `tests/`
-setup and `real-sql`. It does not get `in-memory`, whichever file happens to run first:
+An empty scriptblock produces no output, and no output was taken to mean the filter asserted on
+the item and did not throw. Those are not the same thing, and a scriptblock with no statements
+cannot say anything about any item.
+
+A falsy result of another type passed:
 
 ```powershell
-# reporoot/tests/unit/Get-User.Tests.ps1
-Describe 'Get-User' {
-    It 'uses the in-memory database' {
-        $script:Db | Should-BeString 'in-memory'          # from tests/unit
-        (New-TestUser -Name 'jakub').Name | Should-BeString 'jakub'   # from tests
-    }
-}
+1, 2, 3 | Should-All { 0 }     # 6.2.0: passed
+1, 2, 3 | Should-All { '' }    # 6.2.0: passed
 ```
 
-The setup files are dot-sourced into the container's own scope now, not into the run session
-state. That is what makes the folders actually scope anything. Before this, setup dot-sourced
-for one file stayed visible to every container after it, so a file in `tests/integration`
-would silently inherit whatever `tests/unit` had set up, and the result depended on run order.
+The result counted as a failure only when it was exactly the boolean `$false`. The documented
+contract is that the filter returns true or does not throw, so the result is judged on whether it
+is true, whatever its type. A truthy value of another type still passes.
 
-A folder opts out of everything above it with `#pester:no-inherit`, the same meaning
-`root = true` has in an `.editorconfig`. Useful for something like doc tests that need their
-own cheap setup and should not pay for the expensive one:
+A date assertion compared strings:
 
 ```powershell
-# reporoot/tests/docs/Pester.BeforeContainer.ps1
-#pester:no-inherit
-BeforeAll { Import-Module $PSScriptRoot/../../src/MyModule.psd1 }
+'a string'      | Should-BeAfter (Get-Date)      # 6.2.0: passed
+[datetime]::Now | Should-BeAfter -Expected 42    # 6.2.0: passed
 ```
 
-The whole chain works in a sequential run and in a parallel run. In parallel the chain is
-resolved once in the parent and the paths are handed to the workers, because a worker is a
-separate runspace and cannot share the cache. The files run before every container, so what
-they do has to be safe to run more than once.
+`Should-BeAfter` and `Should-BeBefore` have no dispatch on type. They compare with a relational
+operator and let PowerShell decide what that means, and with a string on the left PowerShell
+compares as strings, where `'a string'` sorts after a formatted date. `-Expected 42` went wrong one
+level up, in the binder: the parameter was declared `[DateTime]`, so `42` became 42 ticks, which is
+the year 1, and every real date is after the year 1. Both parameters are checked by the assertion
+itself now. A `[datetimeoffset]` still works, it is not a `[datetime]` but compares with one.
 
-`Run.RepoRoot` is where the chain starts, and it is found for you by walking up from the
-directory you are in until a `.git` folder shows up. That walk used to start from the process
-working directory, which `Set-Location` does not change, so a session that started somewhere
-else and then changed directory into a repository got a root pointing at the old place and
-none of the setup files applied, with nothing to say why. It starts from the location the
-session is actually in now. Set `Run.RepoRoot` yourself when your tests do not live in a git
-repository, or when the root is somewhere other than where `.git` is.
-
-Which files apply is a property of the directory, not of the container, so the run shares one
-cache keyed by directory. Each directory is checked on disk once per run and each setup file
-is tokenized once per run, however many test folders sit below them. On a tree with 60 test
-folders and a 26 KB root setup file that is 23.6 ms instead of 845 ms.
-
-A container reports which setup files applied to it, outermost first, in the order they ran.
-The list is on the container in the result object, as `BeforeContainerFile`:
+And an expected value that is neither a type nor a type name passed:
 
 ```powershell
-$result = Invoke-Pester -Path ./tests -PassThru
-foreach ($container in $result.Containers) {
-    "$($container.Item.Name):"
-    $container.BeforeContainerFile | ForEach-Object { "    $_" }
-}
+1 | Should-NotHaveType 42    # 6.2.0: passed, PSTypeNames does not contain $null
+1 | Should-HaveType 42       # 6.2.0: failed saying it expected the type $null
 ```
 
-```
-D.Tests.ps1:
-    <root>/tests/docs/Pester.BeforeContainer.ps1
-U.Tests.ps1:
-    <root>/Pester.BeforeContainer.ps1
-    <root>/tests/Pester.BeforeContainer.ps1
-    <root>/tests/unit/Pester.BeforeContainer.ps1
-```
+Both say what is actually wrong now.
 
-`D.Tests.ps1` sits under a folder marked `#pester:no-inherit`, so only its own file applied. The
-folder tree cannot tell you that, which is why the list is on the result.
+### <a id="6.3.0-a-mock-failure-points-at-the-call-site"></a>A mock failure points at the call site
 
-Requested by @johlju in [#2772](https://github.com/pester/Pester/issues/2772), where he
-estimated it removes around a thousand lines of duplication in SqlServerDsc.
+The "Performed invocations" list in a `Should -Invoke` failure printed `from <file>:<line>` for
+every recorded call, and that line was the one the `Mock` was defined on, not the one that made
+the call. Every entry showed the same line, so the location could not tell the listed calls apart,
+which is the one thing it is there for. The 6.0.0 release notes example has it too.
 
-See [Behavior changes](#6.2.0-behavior-changes) below, there are three.
-
-### <a id="6.2.0-should-bestring-shows-you-the-whole-diff"></a>`Should-BeString` shows you the whole diff
-
-Comparing a long string used to give you a caret under the first character that differed.
-That answers "one thing changed". Comparing a snapshot, a rendered template or a config file
-is usually "many things changed", and a scan that stops at the first difference makes you fix
-them one run at a time.
-
-`Should-BeString` now finds every region that differs and prints them with context:
-
-```powershell
-$expected = Get-Content ./expected/package.json -Raw
-$actual   = Get-Content ./out/package.json -Raw
-$actual | Should-BeString $expected
-```
+Before:
 
 ```
-Expected strings to be the same, but they were different.
-Expected length: 234
-Actual length:   241
-Expected 16 line(s), actual 16 line(s).
-2 regions differ.
-
-   1  1 |   {
-   2  2 |     "name": "widget",
-   3    | -   "version": "1.2.0",
-      3 | +   "version": "1.3.0",
-   4    | -   "license": "MIT",
-      4 | +   "license": "Apache-2.0",
-   5  5 |     "main": "index.js",
-   6  6 |     "scripts": {
-  ...
-   9  9 |     },
-  10 10 |     "dependencies": {
-  11    | -     "left-pad": "^1.3.0"
-     11 | +     "left-pad": "^1.3.1"
-  12 12 |     },
-  13 13 |     "engines": {
-  14    | -     "node": ">=18"
-     14 | +     "node": ">=20"
-  15 15 |     }
-  16 16 |   }
+Performed invocations:
+  [*] SendEmail -To 'alice@example.com' -Subject 'Welcome' from demo.Tests.ps1:4
+  [ ] SendEmail -To 'bob@example.com' -Subject 'Welcome' from demo.Tests.ps1:4
 ```
 
-Expected line numbers on the left, actual line numbers on the right. They are separate columns
-so it stays readable when lines are added or removed and the two sides stop lining up:
+and `demo.Tests.ps1:4` is the `Mock` line. After, the lines are the two calls.
 
-```
-   1  1 |   Describe 'Api' {
-      2 | +     BeforeAll {
-      3 | +         Start-TestServer
-      4 | +     }
-      5 | + 
-   2  6 |       It 'returns 200' {
-  ...
-   9    | -         $r.ContentType | Should-BeString 'application/json'
-  10 13 |       }
-  11 14 |   }
-```
+## <a id="6.3.0-experimental-features"></a>Experimental features
 
-Only the lines that differ are expanded, so a tab or a trailing space is visible without
-turning the surrounding context into escape codes.
+### <a id="6.3.0-every-parallel-worker-gets-its-own-session-state"></a>Every parallel worker gets its own session state
 
-Fixes [#2951](https://github.com/pester/Pester/issues/2951) and
-[#3006](https://github.com/pester/Pester/issues/3006).
+`Run.Parallel` built its workers with `RunspaceFactory.CreateRunspacePool`, which takes one
+`InitialSessionState` and hands that same instance to every runspace in the pool. `Import-Module`
+adds a module's `FormatsToProcess` entries to that collection and then enumerates it, so one worker
+enumerated while another added and `List<T>` threw `Collection was modified; enumeration operation
+may not execute`. Pester declares `FormatsToProcess` itself and every worker imports Pester, which
+is why a suite whose own modules have no format files hit it too.
 
-### <a id="6.2.0-the-configuration-rejects-values-it-cannot-use"></a>The configuration rejects values it cannot use
+`RunspacePool` has no way to give each runspace a session state of its own, so
+`Invoke-InRunspacePool` keeps its own pool now, one runspace per slot, each from its own session
+state, up to `ThrottleLimit`.
 
-A configuration value of the wrong type used to be ignored, and a misspelled key was ignored
-too, so the run just did not do what you asked and nothing said why. This bites hardest with
-values that come out of a JSON or `psd1` file, because those arrive as strings.
+### <a id="6.3.0-a-parallel-run-prints-what-a-sequential-run-prints"></a>A parallel run prints what a sequential run prints
 
-A value the option cannot use now throws while the configuration is built:
+Two things made `Run.Parallel` print something other than a sequential run of the same files.
 
-```powershell
-Invoke-Pester -Configuration @{ Run = @{ Parallel = 'yes' } }
-# Cannot process argument transformation on parameter 'Configuration'. Cannot convert value
-# "System.Collections.Hashtable" to type "PesterConfiguration". Error:
-# "Run.Parallel expects a bool, but got the string 'yes'."
+Every warning was printed twice, and three times for the workers that started first. The runspace
+pool is created with the caller's `$Host`, so a worker's `Write-Warning` already reaches the console
+while the worker runs, and the loop that re-emitted `Streams.Warning` after `EndInvoke` printed it
+again. Errors keep their re-emit, they only land in `Streams.Error` and never reach the host on
+their own.
 
-New-PesterConfiguration -Hashtable @{ Run = @{ Path = @{ a = 1 } } }
-# "Run.Path expects an array of strings, but got a hashtable."
+And a worker ran with default preference variables. A fresh runspace has
+`WarningPreference = 'Continue'` and `VerbosePreference = 'SilentlyContinue'` whatever the caller
+was running with, so a caller who had silenced warnings still got them and a caller who had asked
+for verbose output got none. The worker runspaces take the caller's preferences now.
 
-New-PesterConfiguration -Hashtable @{ Run = 'nonsense' }
-# "Run expects a dictionary of options, but got the string 'nonsense'."
-```
+## <a id="6.3.0-behavior-changes"></a>Behavior changes
 
-Nobody writes a value the option cannot read on purpose, so there is nothing to lose by being
-strict here. An `int` where a `decimal` is expected is still accepted, and a key that is
-present but `$null` still means "not set", so an unset variable does not throw
-([#2219](https://github.com/pester/Pester/issues/2219)).
+Most of these come from the assertion audit above. Each one is a case where something passed, or
+reported a value, without being able to judge the input, so a test that relied on it was not
+testing what it looks like it was testing.
 
-An unknown key is collected instead of thrown on, because a hashtable may carry keys meant for
-something else, and `Invoke-Pester` warns about all of them at once:
-
-```powershell
-Invoke-Pester -Configuration @{ Nonsense = 1; Run = @{ Paralel = $true } }
-# WARNING: Ignoring configuration keys 'Nonsense', 'Run.Paralel', there are no such options.
-#          Check the spelling, 'Get-Help about_PesterConfiguration' lists all the options.
-```
-
-The warning is emitted once, in `Invoke-Pester`. That is the funnel for every path
-(`-Configuration @{ }`, `New-PesterConfiguration -Hashtable`, and `$PesterPreference = @{ }`
-in a test file), so nothing is missed and nobody gets the same warning twice. A bare
-`[PesterConfiguration]@{ }` outside a run stays silent, and `GetUnknownKeys()` is there if you
-want to look.
-
-Fix [#2975](https://github.com/pester/Pester/issues/2975), option 3 from the issue, which
-@fflaten picked.
-
-### <a id="6.2.0-failures-point-at-the-line-that-caused-them"></a>Failures point at the line that caused them
-
-An error thrown from inside a Pester function lost its whole stack trace, so a fair number of
-failures printed a message and no location at all. And an assertion that rejected your input
-said "this assertion" instead of naming itself.
-
-```powershell
-Describe 'Stack trace' {
-    It 'collection on -Expected' {
-        1, 2, 3 | Should-Be 1, 2, 3
-    }
-    It 'mock of a command that does not exist' {
-        Mock Get-NoSuchCommand { }
-    }
-    It 'assertion fails inside a helper function' {
-        function Test-Thing ($Value) {
-            $Value | Should-Be 2
-        }
-        Test-Thing -Value 1
-    }
-}
-```
-
-On 6.1.0 the first two have no location, and the third points at the assertion but not at the
-call, so in a bigger suite you do not know which of the calls to `Test-Thing` failed:
-
-```
-  [-] collection on -Expected
-   ArgumentException: You provided a collection to the -Expected parameter. Using a collection
-   on the -Expected side is not allowed by this assertion, because ...
-  [-] mock of a command that does not exist
-   CommandNotFoundException: Could not find Command Get-NoSuchCommand
-  [-] assertion fails inside a helper function
-   Expected [int] 2, but got [int] 1.
-   at $Value | Should-Be 2, demo.tests.ps1:10
-```
-
-Now:
-
-```
-  [-] collection on -Expected
-   ArgumentException: You provided a collection to the -Expected parameter. Using a collection
-   on the -Expected side is not allowed by Should-Be, because ...
-   at <ScriptBlock>, demo.tests.ps1:3
-  [-] mock of a command that does not exist
-   CommandNotFoundException: Could not find Command Get-NoSuchCommand
-   at <ScriptBlock>, demo.tests.ps1:6
-  [-] assertion fails inside a helper function
-   Expected [int] 2, but got [int] 1.
-   at $Value | Should-Be 2, demo.tests.ps1:10
-   at <ScriptBlock>, demo.tests.ps1:12
-```
-
-A `BeforeAll` that throws reports the real error too. It used to report *"A 'break' or
-'continue' statement with a label that does not match any enclosing loop escaped from your
-code"*, and the real exception was discarded, so someone whose setup failed because a database
-was down was told their code has a misspelled loop label:
-
-```powershell
-Describe 'Setup that throws' {
-    BeforeAll { throw 'the database is down' }
-    It 'never runs' { }
-}
-# [-] Describe Setup that throws failed
-#   RuntimeException: the database is down
-#   at <ScriptBlock>, demo.tests.ps1:2
-```
-
-Fixes [#2977](https://github.com/pester/Pester/issues/2977),
-[#2980](https://github.com/pester/Pester/issues/2980), and the escaped-`break` report.
-
-## <a id="6.2.0-experimental-features"></a>Experimental features
-
-These are off by default and may still change. Try them and tell us what breaks.
-
-### <a id="6.2.0-parallel-runs-on-windows-powershell-51"></a>Parallel runs on Windows PowerShell 5.1
-
-`Run.Parallel` was built on `ForEach-Object -Parallel`, which only exists on PowerShell 7, so
-Windows PowerShell 5.1 warned and ran sequentially. 5.1 is the slowest leg in our own matrix
-and it decides how long a build takes, so it is the edition that needs this most.
-
-Both editions now go through a runspace pool that 5.1 and 7 both have. No new dependency,
-and nothing changes in how you turn it on:
-
-```powershell
-$config = New-PesterConfiguration
-$config.Run.Parallel = $true
-$config.Run.ParallelThrottleLimit = 4   # default is the number of processors
-Invoke-Pester -Configuration $config
-```
-
-Three things `ForEach-Object -Parallel` did that the pool does not, none of which you have to
-think about, but they explain the shape of the change:
-
-- `$using:` is its feature, not the runspace API's, so the worker takes named parameters
-  instead. Same process either way, so the values still cross as live objects.
-- The worker scriptblock goes over as text and is re-parsed in the runspace, so nothing with
-  runspace affinity crosses.
-- A pooled runspace starts at the process working directory, not the caller's location, so the
-  worker sets the location from the parent and relative paths in test files keep resolving.
-
-Passing the values as arguments instead of capturing them with `$using:` is a tip @DarkLite1
-gave in [#2971](https://github.com/pester/Pester/issues/2971). Thanks.
-
-The parallel tests no longer skip their assertions on 5.1, they run the same ones as on 7
-including the console output snapshot.
-
-### <a id="6.2.0-a-parallel-run-no-longer-loses-a-file-quietly"></a>A parallel run no longer loses a file quietly
-
-Four files went into a `Run.Parallel` run on CI and three came back. The missing file was not
-failed, skipped or errored, it was not reported at all, and the run looked green with one test
-fewer than it should have had.
-
-`Invoke-TestInParallel` filtered worker results to guard against stray pipeline output, and
-that filter cannot tell stray output from a worker that died before it returned its result.
-Nothing afterwards compared the number of results to the number of files sent, and sorting put
-the survivors back in discovery order, so the output looked like a normal shorter run.
-
-The counts are compared after the filter now, and a short result set throws and names the files
-that went missing. Any worker that dies for any reason costs a whole test file, so this does
-not depend on why it died.
-
-Reporting a failed worker also no longer aborts the rest of the run. `Invoke-InRunspacePool`
-reports a worker that threw with `Write-Error` and keeps going, because the remaining files
-still have results worth reporting. `Write-Error` obeys the caller's `$ErrorActionPreference`
-though, so a caller running with `Stop`, which CI scripts commonly do, got a terminating error,
-the loop aborted on the first failing file, and everything that had already finished was
-dropped:
-
-```powershell
-$ErrorActionPreference = 'Stop'
-Invoke-Pester -Configuration @{ Run = @{ Path = './tests'; Parallel = $true } }
-# before: the first worker that throws takes the whole run down with it
-# after : that file is reported as failed, the rest of the files still report their results
-```
-
-Fix [#3011](https://github.com/pester/Pester/issues/3011). The import race that killed the
-worker in the first place is the other half of that issue and is not fixed yet, I could not
-reproduce it locally in 288 staggered imports, 1600 worker imports across 200 real parallel
-runs, or 400 imports timed onto the five second `validVerbs` removal.
-
-## <a id="6.2.0-behavior-changes"></a>Behavior changes
-
-Three of these come with the `Pester.BeforeContainer.ps1` cascade above.
-
-- **A block can have as many `BeforeAll`, `AfterAll`, `BeforeEach` and `AfterEach` as you
-  want.** They all run, setups in the order you wrote them and teardowns in reverse, so you
-  can group setup by what it sets up instead of merging everything into one block:
+- **`Should-BeCollection` compares the items in order.** It passed when both collections held the
+  same items in a different order:
 
   ```powershell
-  Describe 'Get-User' {
-      BeforeAll { Import-Module $PSScriptRoot/../src/MyModule.psd1 -Force }
-      BeforeAll { $script:user = New-TestUser -Name 'jakub' }
-      AfterAll  { Remove-TestUser -Name 'jakub' }
-      AfterAll  { Remove-Module MyModule -Force }
-
-      It 'finds the user' { (Get-User -Name 'jakub').Name | Should-BeString $script:user.Name }
-  }
+  1, 3, 2 | Should-BeCollection @(1, 2, 3)   # 6.2.0: passed
   ```
 
-  A second one used to throw. The folder setup and the file's own `BeforeAll` both register on
-  the container's root block and have to compose rather than one of them erroring out, and
-  once that is true for the root block there is no reason to keep the restriction anywhere
-  else.
+  The whole comparison sat inside `if (-Not $InOrder)`, and `$InOrder` was not a parameter and was
+  never assigned, so the any-order branch always ran and the in-order branch was never written.
+  In order is the default now and `-IgnoreOrder` opts out, the way `Should-ContainCollection`
+  already works.
 
-- **Top level code in `Pester.BeforeContainer.ps1` runs during discovery only.** To reach the
-  tests it has to be in `BeforeAll`, which is the same rule a test file already follows, and it
-  is what keeps a folder's setup out of the next container. If your setup file has bare
-  top-level code, wrap it:
+- **A configuration key that is not an option throws.** It used to warn, from `Invoke-Pester` only.
+  `GetUnknownKeys()` is gone with the warning that was its only caller.
 
-  ```powershell
-  # before
-  Import-Module $PSScriptRoot/src/MyModule.psd1 -Force
+- **`Should-All` and `Should-Any` reject an empty filter, and judge the result on truthiness.**
+  `{ }`, `{ 0 }` and `{ '' }` fail now.
 
-  # after
-  BeforeAll { Import-Module $PSScriptRoot/src/MyModule.psd1 -Force }
+- **`Should-HaveType` and `Should-NotHaveType` reject an expected value that is neither a type nor
+  a type name.**
+
+- **`Should-BeAfter` and `Should-BeBefore` need a `[datetime]` or a `[datetimeoffset]` on both
+  sides.** A string, a hashtable, or a number for `-Expected` fails instead of being compared as
+  text or converted to ticks.
+
+- **A fluent time string has to be the whole string, and the unit has to be spelled out.** The
+  pattern had no anchor at the end and matched the unit by its first letters:
+
+  | string | 6.2.0 | 6.3.0 |
+  | --- | --- | --- |
+  | `1month` | 1 minute | throws |
+  | `1months` | 1 minute | throws |
+  | `1 week ago` | 7 days | throws |
+  | `1sfoo` | 1 second | throws |
+  | `1 s junk` | 1 second | throws |
+
+  `1month` is the one that matters: `month` starts with `m`, so a bound of one month was read as
+  one minute and nothing was said about it. Everything that parsed before still parses.
+
+- **`Should-BeFasterThan` and `Should-BeSlowerThan` no longer write the measured scriptblock's
+  output.** `& $Actual` put whatever the scriptblock wrote into the assertion's own output, so
+  `$out = { 1, 2, 3 } | Should-BeFasterThan 30s` gave `$out.Count` of 3. The `[timespan]` branch
+  wrote nothing, and an assertion should write nothing.
+
+- **The default NUnitXml report wraps a loose test in a suite when its block also has child
+  blocks.** `resultsType` in the NUnit 2.5 schema is an `xs:choice`, so `results` holds either
+  `test-suite` children or `test-case` children and never both. A `Describe` holding a `Context`
+  plus a stray `It` produced both and the report stopped validating. Those reports were already
+  invalid and the schema leaves no narrower fix, but a consumer reading
+  `//test-suite/results/test-case` will no longer find those tests. `NUnit2.5` is an alias for
+  `NUnitXml`, which is the default `TestResult.OutputFormat`, so this is the default report.
+
+- **The JUnit `classname` is the path of the blocks, not the path of the file.** CI reports show
+  `classname` as the suite name, so the suite name used to be an absolute path including whatever
+  folders the CI runner happens to use. The file is in a new `file` attribute, relative to
+  `Run.RepoRoot` and with forward slashes:
+
+  ```xml
+  <!-- 6.2.0 -->
+  <testcase name="Calculator.addition.adds two numbers" classname="/builds/me/repo/tests/unit/Thing.Tests.ps1" />
+
+  <!-- 6.3.0 -->
+  <testcase name="Calculator.addition.adds two numbers" classname="Calculator.addition" file="tests/unit/Thing.Tests.ps1" />
   ```
 
-- **Stray output from a setup file no longer warns.** It cannot escape the container to reach
-  `Invoke-Test` anymore, so there is nothing left to warn about.
+  `name` keeps the full path of the test, because CI reports do not show a tree view.
 
-- **`Should-Be`, `Should-BeSame` and friends name themselves** in the "you provided a collection
-  to `-Expected`" error instead of saying "this assertion". If you match on that message
-  somewhere, it changed.
+- **`Run.ShuffleSeed` reproduces one file's order on its own.** One `[System.Random]` was built
+  from the seed for the whole run and consumed in sequence, the file order first and then each
+  file's blocks and tests, so a file's order depended on how many values had already been drawn.
+  Rerunning one failing file with the seed from CI, which is the point of having a seed, gave a
+  different order and the failure did not have to come back. Each file has its own generator now,
+  which means the order a given seed produces is not the order it produced in 6.2.0.
 
-- **`Should-BeFasterThan` and `Should-BeSlowerThan` fail when they get something they cannot
-  measure.** Both take a `[scriptblock]` to run or a `[timespan]` to compare. Anything else fell
-  through the function, so the assertion returned having asserted nothing and the test passed:
+- **A template keeps its text when there is no variable to put in it.** `Describe "<Foo>"` with no
+  `$Foo` printed `Describing $null`, and an invalid template like `<Foo/Bar>` printed a
+  `ParseException` showing Pester's own generated expression and the test did not run at all. Both
+  print the template as written now, and the test runs.
 
-  ```powershell
-  'a string' | Should-BeFasterThan 1s   # 6.1.0: passed
-  42         | Should-BeFasterThan 1s   # 6.1.0: passed
-  $null      | Should-BeFasterThan 1s   # 6.1.0: passed
-  ```
+## <a id="6.3.0-other-improvements-and-fixes"></a>Other improvements and fixes
 
-  They throw now:
+- `Invoke-Pester` no longer overwrites the caller's `$p` and `$d`. `Invoke-InNewScriptScope`
+  dot-sourced its wrapper, which is bound to the caller's session state, so the wrapper's
+  parameters were bound in the caller's scope and `private:` did not prevent it. A script that kept
+  its own path in `$p` and wrote to it after running tests wrote into Pester's installation
+  instead. The wrapper is called with `&` now, the way `Invoke-File` already called its own.
+- A relative `Run.RepoRoot` is resolved against the current location. Only the code coverage plugin
+  made it absolute, so without coverage it reached the setup chain as it was, `GetFullPath` resolved
+  it against the process working directory, and every `Pester.BeforeContainer.ps1` silently did not
+  apply.
+- The repository root is found when `.git` is a file instead of a directory. In a git worktree, in a
+  submodule, and in a clone made with `--separate-git-dir`, `.git` holds the path to the real git
+  directory, so the walk went past the actual root and fell back to the location the run started
+  from. That moved the `Pester.BeforeContainer.ps1` cascade and the prefix the coverage report
+  strips off its paths, and nothing reported it.
+- A verifiable mock in an outer scope that an inner scope overrides is no longer required. A mock
+  marked `-Verifiable` in a `Describe` that you then override in an `It` could never pass
+  `Should -InvokeVerifiable`: the inner mock handled the call, but the outer behavior was still
+  collected and reported as never invoked. A verifiable mock that is not shadowed by a closer
+  default mock is still required.
+- `Should-Throw` reports the exception the test threw under a non-English UI culture. It recognized
+  the `InvokeWithContext` wrapper by matching `InvokeWithContext` in the exception message, and
+  PowerShell quotes the method name with the quotation marks of the current UI culture, so under
+  de-DE the match failed and the assertion reported the wrapper instead.
+- A strict `Should-BeEquivalent` on a `FileInfo` or a `DirectoryInfo` fails in the usual
+  milliseconds instead of 12 to 30 seconds. The time went into one verbose message: listing the
+  properties the actual object has and the expected one does not formatted each `PSPropertyInfo`,
+  which reads its `Value`, so it walked `Directory`, `Parent`, `Root`, `PSDrive` and `PSProvider`
+  and formatted the object graph behind each one.
+- Hashtables are pretty-printed in a `Should-BeEquivalent` failure, and only the leaf differences
+  are reported. `Format-Hashtable2` did not take `-Pretty` at all, so it joined its entries on one
+  line while objects and collections were indented, and the hashtable comparer recorded a difference
+  at every level it walked through, prepending the whole thing to the differences below it.
+- A discovery failure reads like a user error. An empty `-ForEach` is a mistake in the test data and
+  the output made it look like a crash in Pester, with an internal stack trace that ignored
+  `Output.StackTraceVerbosity`.
+- A nested `Invoke-Pester` inside a parallel worker writes to its own caller instead of to the
+  worker's output tape.
+- `about_PesterConfiguration` says how `Run.RepoRoot` affects the paths in the reports.
 
-  ```
-  Expected a [scriptblock] to measure or a [timespan] to compare, but got [string] 'a string'.
-  ```
+**Full Changelog**: https://github.com/pester/Pester/compare/6.2.0...6.3.0
 
-  If a test of yours passed on one of those, it was not asserting anything, and it fails now.
+## <a id="6.3.0-thank-you"></a>Thank you
 
-## <a id="6.2.0-other-improvements-and-fixes"></a>Other improvements and fixes
+Thank you to everyone who filed issues and sent fixes.
 
-- A stack trace from Pester's own C# code no longer carries the path the release was built
-  from. 6.1.0 showed `D:\a\1\s\src\csharp\Pester\...`, the build agent's working directory,
-  and it now reads `/_/src/csharp/Pester/...`. Line numbers are unchanged, and a local build
-  still uses the real path so the trace points at a file you can open. A side effect is that
-  the build is reproducible now, the same source in two folders used to produce two different
-  `Pester.dll` files.
-- Pester imports again on PowerShell 7.4.0 to 7.4.5. The `net8.0` assembly referenced
-  `System.Management.Automation` 7.4.5.0, and .NET resolves such a reference forward to a newer
-  version but never backward to an older one, so on any 7.4.x below 7.4.5 the import failed with
-  `Cannot convert "PesterConfigurationDeserializer" from String to Type`. The reference is on
-  7.4.0 now, the baseline of the 7.4 line, so it loads on every 7.4.x. This affected 6.0.0 and
-  6.1.0.
-- The `Run.Parallel` help no longer claims that enabling `CodeCoverage` falls back to a
-  sequential run. It has not since workers started measuring their own file and the parent
-  started merging the hits. The fallback that was actually missing from the list is now there,
-  a run where every file opts out with `#pester:no-parallel`.
-- A `TestRegistry` retry that recovers no longer prints
-  `IO exception during a TestRegistry operation, retrying.`. The operations it wraps are
-  idempotent, and when the retry does not recover the exception propagates, which is the real
-  signal. It is a debug message now.
-- `Should-BeFasterThan` and `Should-BeSlowerThan` no longer flake on shared CI machines. Both
-  assertions bound the measured time from above, and measuring a scriptblock times compiling
-  it, GC, and whatever else the machine is doing, which has no upper bound on a shared runner.
+@GioAbq for the `$p` and `$d` fix, @TohruSu for the relative `Run.RepoRoot` fix, @fflaten for
+migrating the test suite to the v6 assertions, @dleontev for the `Run.RepoRoot` documentation, and
+@corbob, whose work on the skip reason this release finally finished.
 
-- `Run.SkipRun` applies the `Pester.BeforeContainer.ps1` cascade. Discovery-only runs, which is
-  the path the VS Code Test Explorer uses to populate the tree, went through a batch discovery
-  that never received the setup files. A file whose discovery depends on a folder setup, a
-  `-ForEach` over a variable set in `BeforeDiscovery`, found its cases in a normal run and came
-  back empty in the Test Explorer.
-- `Invoke-Pester` keeps its `-1` exit code when it fails internally. It could overwrite that with
-  `$null` when the failure happened before the run was created, or with `0` when a plugin failed
-  after an otherwise successful run.
+@AlonGvili for asking for the skip reason in the first place, @rcarpenter79 for the invalid NUnit
+report, @SESEric for the shadowed verifiable mock, @kborowinski for the duplicated parallel
+warnings, @ReneRebsdorf and @jazzdelightsme for the parallel import failure, @iRon7 for the
+templates, @LethiferousMoose for `Should-BeCollection` ignoring item order, @briantist for the JUnit
+`classname`, and @frottke for the `Should-Throw` culture bug.
 
-**Full Changelog**: https://github.com/pester/Pester/compare/6.1.0...6.2.0
-
-## <a id="6.2.0-thank-you"></a>Thank you
-
-Thank you to everyone who filed issues, tried the alphas, and sent fixes. @johlju for the
-folder-scoped setup request and @DarkLite1 for the runspace pool tip in particular.
-
-## <a id="6.2.0-questions"></a>Questions?
+## <a id="6.3.0-questions"></a>Questions?
 
 Open an [issue](https://github.com/pester/Pester/issues/new/choose) or start a
 [discussion](https://github.com/pester/Pester/discussions).
