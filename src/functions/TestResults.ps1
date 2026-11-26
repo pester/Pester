@@ -177,6 +177,21 @@ function Export-JUnitReport {
     Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
 }
 
+function Get-TestResultPathRoot {
+    # The root that file paths in a test result report are relative to. Code coverage has its own
+    # CodeCoverage.ReportRoot, which is only about the coverage report, so this uses Run.RepoRoot.
+    $repoRoot = $PesterPreference.Run.RepoRoot.Value
+
+    if ([string]::IsNullOrEmpty($repoRoot)) {
+        return $repoRoot
+    }
+
+    # Resolve to an absolute path, because the prefix is stripped off absolute file paths and a
+    # relative root would never match. Invoke-Pester resolves Run.RepoRoot before a run, but
+    # Export-JUnitReport can be called on its own, with whatever the configuration holds.
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($repoRoot)
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]
@@ -499,6 +514,27 @@ function Get-ErrorForXmlReport ($TestResult) {
     }
 }
 
+function Test-ContainerFailedDiscovery {
+    param($Container)
+    # A container that failed during discovery never runs its tests (ShouldRun = $false), but it
+    # is marked Failed and keeps the discovery error in its ErrorRecord. The report writers would
+    # otherwise skip it and drop the failure from the exported TestResult XML. (#2664)
+    (-not $Container.ShouldRun) -and ($Container.Result -eq 'Failed') -and ($Container.ErrorRecord.Count -gt 0)
+}
+
+function Get-DiscoveryFailedContainerCount {
+    param([Pester.Run] $Result)
+    # Number of containers that failed during discovery, so the exported report totals count
+    # them instead of reporting zero. (#2664)
+    $count = 0
+    foreach ($container in $Result.Containers) {
+        if (Test-ContainerFailedDiscovery -Container $container) {
+            $count++
+        }
+    }
+    $count
+}
+
 function Get-RunTimeEnvironment {
     # based on what we found during startup, use the appropriate cmdlet
     $computerName = $env:ComputerName
@@ -576,9 +612,9 @@ function Resolve-TestResultConfiguration {
         throw (Get-StringOptionErrorMessage -OptionPath 'TestResult.OutputFormat' -SupportedValues $supportedFormats -Value $PesterPreference.TestResult.OutputFormat.Value)
     }
 
-    # Resolve the output path to an absolute path now, while the current location still points to
+    # Resolve the output path to an absolute path now, while the current location still points at
     # the directory Invoke-Pester was called from. The report is written after all tests ran, and a
-    # test can change the current location (e.g. Set-Location), so a relative path would otherwise be
-    # resolved against the wrong directory or a directory that no longer exists (#2641).
+    # test can change the current location (e.g. Set-Location), so a relative path would resolve
+    # against the wrong directory, or one that no longer exists (#2641).
     $PesterPreference.TestResult.OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PesterPreference.TestResult.OutputPath.Value)
 }

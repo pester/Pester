@@ -47,7 +47,7 @@
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory)]
         $Expected,
         [string] $Because
     )
@@ -61,11 +61,15 @@
 
     if ($Actual -is [scriptblock]) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        & $Actual
+        # Assigned away, so the measured scriptblock's output does not become this assertion's
+        # output. '{ 1, 2, 3 } | Should-BeFasterThan 30s' used to write 1, 2, 3 to the caller.
+        # The [timespan] branch below writes nothing, and an assertion should write nothing.
+        $null = & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -ge $Expected) {
-            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $sw.Elapsed; Because = $Because; scriptblock = $Actual })
+        $elapsed = $sw.Elapsed
+        if ($elapsed -ge $Expected) {
+            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
         return
     }
@@ -76,4 +80,11 @@
         }
         return
     }
+
+    # Neither branch matched. Both branches above return, so reaching here means we were handed
+    # something we cannot measure or compare. Without this the assertion would return having done
+    # nothing and the test would pass, which is the worst way to fail. It also hid a CI flake: a
+    # test asserting that a 10ms sleep is slower than 1ms failed while the whole test took 3ms,
+    # because the scriptblock was never run and nothing said so.
+    $assert.Fail("Expected a [scriptblock] to measure or a [timespan] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
 }

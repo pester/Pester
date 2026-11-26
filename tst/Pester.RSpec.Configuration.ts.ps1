@@ -90,6 +90,10 @@ i -PassThru:$PassThru {
             [PesterConfiguration]::Default.Output.RenderMode.Value | Verify-Equal 'Auto'
         }
 
+        t "Output.ShowTags is `$false" {
+            [PesterConfiguration]::Default.Output.ShowTags.Value | Verify-False
+        }
+
         # CodeCoverage configuration
         t "CodeCoverage.Enabled is `$false" {
             [PesterConfiguration]::Default.CodeCoverage.Enabled.Value | Verify-False

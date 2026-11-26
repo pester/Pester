@@ -1,4 +1,4 @@
-﻿function Should-ContainAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-ContainAssertion($ActualValue, $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that collection contains a specific value.
@@ -52,7 +52,3 @@
 Set-ShouldOperatorHelpMessage -OperatorName Contain `
     -HelpMessage "Asserts that collection contains a specific value. Uses PowerShell's -contains operator to confirm."
 
-function ShouldContainFailureMessage() {
-}
-function NotShouldContainFailureMessage() {
-}

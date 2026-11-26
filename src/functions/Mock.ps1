@@ -1,21 +1,9 @@
-﻿
 
-function Add-MockBehavior {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        $Behaviors,
-        [Parameter(Mandatory)]
-        $Behavior
-    )
-
-    if ($Behavior.IsDefault) {
-        $Behaviors.Default.Add($Behavior)
-    }
-    else {
-        $Behaviors.Parametrized.Add($Behavior)
-    }
-}
+# Module-scope marker used to make Should throw (instead of recording a failure) when it runs
+# inside a Mock ParameterFilter. Initialized once so the hot save/restore in Test-ParameterFilter
+# and the read in Set-AssertionPassResult can access it directly instead of via Get-Variable, and
+# so the direct read is safe even under Set-StrictMode.
+$script:______isInMockParameterFilter = $false
 
 function New-MockBehavior {
     [CmdletBinding()]
@@ -82,10 +70,19 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
             if ($cmdletBinding -ne '[CmdletBinding()]') {
                 $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
             }
+            # When the cmdlet has no explicit DefaultParameterSetName and its dynamic parameters
+            # introduce multiple named parameter sets, PowerShell cannot resolve which set applies
+            # when the mock is called without arguments. Injecting '__AllParameterSets' as the
+            # default makes the no-argument call succeed, matching the real cmdlet's behaviour. (#1531)
+            if ([string]::IsNullOrEmpty($metadata.DefaultParameterSetName)) {
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, "DefaultParameterSetName='__AllParameterSets'")
+                $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, ',')
+            }
             $cmdletBinding = $cmdletBinding.Insert($cmdletBinding.Length - 2, 'PositionalBinding=$false')
         }
 
         $metadata = Repair-ConflictingParameters -Metadata $metadata -RemoveParameterType $RemoveParameterType -RemoveParameterValidation $RemoveParameterValidation
+        $metadata = Repair-EncodingParameters -Metadata $metadata
         $paramBlock = [Management.Automation.ProxyCommand]::GetParamBlock($metadata)
         $paramBlock = Repair-EnumParameters -ParamBlock $paramBlock -Metadata $metadata
         $paramBlock = Repair-OrderedType -ParamBlock $paramBlock -Metadata $metadata
@@ -154,7 +151,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
     }
     `$MyInvocation.MyCommand.Mock.PSCmdlet = `$MyInvocation.MyCommand.Mock.ExecutionContext.SessionState.PSVariable.GetValue('local:PSCmdlet')
 
-
     `if (`$null -ne `$MyInvocation.MyCommand.Mock.PSCmdlet)
     {
         `$MyInvocation.MyCommand.Mock.SessionState = `$MyInvocation.MyCommand.Mock.PSCmdlet.SessionState
@@ -170,6 +166,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         -CallerSessionState `$MyInvocation.MyCommand.Mock.SessionState ```
         -MockCallState `$_____MockCallState ```
         -FromBlock '#BLOCK#' ```
+        -CallSiteFile `$MyInvocation.ScriptName ```
+        -CallSiteLine `$MyInvocation.ScriptLineNumber ```
         -MockPSCmdlet `$MyInvocation.MyCommand.Mock.PSCmdlet ```
         -Hook `$MyInvocation.MyCommand.Mock.Hook #INPUT#
 "@
@@ -224,8 +222,8 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         BootstrapFunctionName   = $mockName
         IsGlobal                = $false
         # The run that created this mock. A global mock installs a script-scope bootstrap alias in this
-        # run; if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to the
-        # currently executing run and defers to the original command when they differ (see Invoke-Mock).
+        # run, and if that alias leaks into a nested Invoke-Pester run, the bootstrap compares this id to
+        # the currently executing run and defers to the original command when they differ (see Invoke-Mock).
         OwnerRunId              = [Pester.GlobalMockHook]::CurrentRunId
         BootstrapFunctionInfo   = $null
     }
@@ -257,7 +255,6 @@ function Create-MockHook ($contextInfo, $InvokeMockCallback) {
         # and so ______param from the parent scope was inherited
 
         ## THIS RUNS IN USER SCOPE, BE CAREFUL WHAT YOU PUBLISH AND CONSUME
-
 
         # it is possible to remove the script: (and -Scope Script) from here and from the alias, which makes the Mock scope just like a function.
         # but that breaks mocking inside of Pester itself, because the mock is defined in this function and dies with it
@@ -484,6 +481,11 @@ function Should-InvokeVerifiableInternal {
     }
 }
 
+function Format-TimesCalled ([int] $Count) {
+    # Format a call count with the grammatically correct noun, e.g. "1 time" or "2 times".
+    if ($Count -eq 1) { "$Count time" } else { "$Count times" }
+}
+
 function Should-InvokeInternal {
     [CmdletBinding(DefaultParameterSetName = 'ParameterFilter')]
     [OutputType([Pester.ShouldResult])]
@@ -603,63 +605,69 @@ function Should-InvokeInternal {
         }
     }
 
+    $failure = $null
     if ($Negate) {
         # Negative checks
-        if ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} not to be called exactly $Times times,$(Format-Because $Because) but it was`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} not to be called exactly $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+        if (-not $PSBoundParameters.ContainsKey('Times') -and -not $Exactly -and $matchingCalls.Count -ge 1) {
+            # Plain 'Should -Not -Invoke' (no -Times/-Exactly) means the command should not have
+            # been called at all. Word the failure that way instead of the confusing default
+            # "not to be called exactly 1 times".
+            $failure = @{
+                Expected = 'not to be called'
+                But      = "but it was called $(Format-TimesCalled $matchingCalls.Count)"
+            }
+        }
+        elseif ($matchingCalls.Count -eq $Times -and ($Exactly -or !$PSBoundParameters.ContainsKey('Times'))) {
+            $failure = @{
+                Expected = "not to be called exactly $(Format-TimesCalled $Times)"
+                But      = 'but it was'
             }
         }
         elseif ($matchingCalls.Count -ge $Times -and !$Exactly) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called less than $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called less than $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called less than $(Format-TimesCalled $Times)"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
     }
     else {
         if ($matchingCalls.Count -ne $Times -and ($Exactly -or ($Times -eq 0))) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called $Times times exactly,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called $Times times exactly"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called $(Format-TimesCalled $Times) exactly"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
         elseif ($matchingCalls.Count -lt $Times) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to be called at least $Times times,$(Format-Because $Because) but was called $($matchingCalls.Count) times`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to be called at least $Times times"
-                    Actual   = "${commandName}${moduleMessage} was called $($matchingCalls.count) times"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = "to be called at least $(Format-TimesCalled $Times)"
+                But      = "but was called $(Format-TimesCalled $matchingCalls.Count)"
             }
         }
         elseif ($filterIsExclusive -and $nonMatchingCalls.Count -gt 0) {
-            return [Pester.ShouldResult] @{
-                Succeeded      = $false
-                FailureMessage = "Expected ${commandName}${moduleMessage} to only be called with with parameters matching the specified filter,$(Format-Because $Because) but $($nonMatchingCalls.Count) non-matching calls were made`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
-                ExpectResult   = [Pester.ShouldExpectResult]@{
-                    Expected = "${commandName}${moduleMessage} to only be called with with parameters matching the specified filter"
-                    Actual   = "${commandName}${moduleMessage} was called $($nonMatchingCalls.Count) times with non-matching parameters"
-                    Because  = Format-Because $Because
-                }
+            $failure = @{
+                Expected = 'to only be called with with parameters matching the specified filter'
+                Actual   = "was called $($nonMatchingCalls.Count) times with non-matching parameters"
+                But      = "but $($nonMatchingCalls.Count) non-matching calls were made"
+            }
+        }
+    }
+
+    if ($null -ne $failure) {
+        $expected = "${commandName}${moduleMessage} $($failure.Expected)"
+        $actual = if ($failure.ContainsKey('Actual')) {
+            "${commandName}${moduleMessage} $($failure.Actual)"
+        }
+        else {
+            "${commandName}${moduleMessage} was called $(Format-TimesCalled $matchingCalls.Count)"
+        }
+
+        return [Pester.ShouldResult] @{
+            Succeeded      = $false
+            FailureMessage = "Expected $expected,$(Format-Because $Because) $($failure.But)`n$(Format-MockCallHistoryMessage $callHistory $matchingCalls $nonMatchingCalls)"
+            ExpectResult   = [Pester.ShouldExpectResult]@{
+                Expected = $expected
+                Actual   = $actual
+                Because  = Format-Because $Because
             }
         }
     }
@@ -884,10 +892,9 @@ function Resolve-Command {
         throw ([System.Management.Automation.CommandNotFoundException] "Could not find Command $CommandName")
     }
 
-
     if ($Global -and $command.Name -like 'PesterMock_*' -and $command.Mock.Hook.OwnerRunId -ne [Pester.GlobalMockHook]::CurrentRunId) {
         # The resolved command is a mock bootstrap, but it belongs to a different (outer) Pester run whose
-        # script-scope alias leaked into this run. Do not reuse it - unwrap to the original command so this
+        # script-scope alias leaked into this run. Do not reuse it, unwrap to the original command so this
         # run creates and owns its own hook, and the outer run's mock stays intact.
         if ($PesterPreference.Debug.WriteDebugMessages.Value) {
             Write-PesterDebugMessage -Scope MockCore "Resolved a global mock bootstrap owned by another run; unwrapping to the original command $($command.Mock.Hook.OriginalCommand.Name) so this run gets its own hook."
@@ -971,6 +978,12 @@ function Invoke-MockInternal {
 
         [object] $MockPSCmdlet,
 
+        # Where the mocked command was called from, taken from the bootstrap function's own
+        # $MyInvocation, which reports the caller's position and not the bootstrap's.
+        [string] $CallSiteFile,
+
+        [int] $CallSiteLine,
+
         [Parameter(Mandatory)]
         $Behaviors,
 
@@ -1017,6 +1030,8 @@ function Invoke-MockInternal {
                     Hook                = $Hook
                     Behavior            = $behavior
                     DynamicParamAliases = $MockCallState['DynamicParamAliases']
+                    CallSiteFile        = $CallSiteFile
+                    CallSiteLine        = $CallSiteLine
                 }
                 $key = "$($behavior.ModuleName)||$($behavior.CommandName)"
                 if (-not $CallHistory.ContainsKey($key)) {
@@ -1063,52 +1078,6 @@ function Invoke-MockInternal {
             }
         }
     }
-}
-
-function FindMock {
-    param (
-        [Parameter(Mandatory)]
-        [String] $CommandName,
-        $ModuleName,
-        [Parameter(Mandatory)]
-        [HashTable] $MockTable
-    )
-
-    $result = @{
-        Mock        = $null
-        MockFound   = $false
-        CommandName = $CommandName
-        ModuleName  = $ModuleName
-    }
-    if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-        Write-PesterDebugMessage -Scope Mock "Looking for mock $($ModuleName)||$CommandName."
-    }
-    $MockTable["$($ModuleName)||$CommandName"]
-
-    if ($null -ne $mock) {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "Found mock $(if (-not [string]::IsNullOrEmpty($ModuleName)) {"with module name $($ModuleName)"})||$CommandName."
-        }
-        $result.MockFound = $true
-    }
-    else {
-        if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-            Write-PesterDebugMessage -Scope Mock "No mock found, re-trying without module name ||$CommandName."
-        }
-        $mock = $MockTable["||$CommandName"]
-        $result.ModuleName = $null
-        if ($null -ne $mock) {
-            if ($PesterPreference.Debug.WriteDebugMessages.Value) {
-                Write-PesterDebugMessage -Scope Mock "Found mock without module name, setting the target module to empty."
-            }
-            $result.MockFound = $true
-        }
-        else {
-            $result.MockFound = $false
-        }
-    }
-
-    return $result
 }
 
 function FindMatchingBehavior {
@@ -1175,22 +1144,6 @@ function FindMatchingBehavior {
     }
     return $null, $failedFilterInvocations
 }
-
-function LastThat {
-    param (
-        $Collection,
-        $Predicate
-    )
-
-    $count = $Collection.Count
-    for ($i = $count; $i -gt 0; $i--) {
-        $item = $Collection[$i]
-        if (&$Predicate $Item) {
-            return $Item
-        }
-    }
-}
-
 
 function ExecuteBehavior {
     param (
@@ -1316,6 +1269,22 @@ function Invoke-InMockScope {
     }
 }
 
+function Format-BoundParameterValueSafely {
+    # Stringify a bound-parameter value for diagnostic text (debug messages and the failed-filter
+    # summary). This is only ever used to provide context to the user, so it must fail open: some
+    # types have a ToString that throws (e.g. mocked SMO objects created via New-MockObject), and
+    # a value like that must not make the whole mock filter throw when it is not even referenced by
+    # the filter. See #2953.
+    param($Value)
+
+    try {
+        "$Value"
+    }
+    catch {
+        '<value could not be serialized>'
+    }
+}
+
 function Test-ParameterFilter {
     [CmdletBinding()]
     param (
@@ -1376,7 +1345,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $(Format-BoundParameterValueSafely $p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 
@@ -1401,18 +1370,13 @@ function Test-ParameterFilter {
 
     $parameterFilterInvocations = [Collections.Generic.List[string]]@()
 
-    $previousIsInMockParameterFilter = & $SafeCommands['Get-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ValueOnly -ErrorAction Ignore
+    $previousIsInMockParameterFilter = $script:______isInMockParameterFilter
     $script:______isInMockParameterFilter = $true
     try {
         $result = & $wrapper $parameters
     }
     finally {
-        if ($null -eq $previousIsInMockParameterFilter) {
-            & $SafeCommands['Remove-Variable'] -Name '______isInMockParameterFilter' -Scope Script -ErrorAction Ignore
-        }
-        else {
-            $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
-        }
+        $script:______isInMockParameterFilter = $previousIsInMockParameterFilter
     }
     $passed = [bool]$result
     if ($passed) {
@@ -1429,7 +1393,7 @@ function Test-ParameterFilter {
         $filterText = $scriptBlock.ToString().Trim()
         $hasContext = 0 -lt $Context.Count
         $contextText = if ($hasContext) {
-            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $($_.Value)" }) -join ', ')
+            'bound parameters: ' + (($Context.GetEnumerator() | & $SafeCommands['ForEach-Object'] { "$($_.Key) = $(Format-BoundParameterValueSafely $_.Value)" }) -join ', ')
         }
         else {
             'no bound parameters'
@@ -1476,7 +1440,9 @@ function Get-ContextToDefine {
         [System.Collections.IDictionary] $DynamicParamAliases
     )
 
-    $conflictingParameterNames = Get-ConflictingParameterNames
+    # Inlined Get-ConflictingParameterNames (body is `$script:ConflictingParameterNames`, as already used
+    # directly further down in this same function) to drop a function call from this per-mock-invocation path.
+    $conflictingParameterNames = $script:ConflictingParameterNames
     $r = @{ }
     # key the parameters by aliases so we can resolve to
     # the param itself and define it and all of it's aliases
@@ -1504,7 +1470,7 @@ function Get-ContextToDefine {
 
     foreach ($p in $Metadata.Parameters.GetEnumerator()) {
         $aliases = $p.Value.Aliases
-        if ($null -ne $aliases -and 0 -lt @($aliases).Count) {
+        if ($null -ne $aliases -and 0 -lt $aliases.Count) {
             foreach ($a in $aliases) { $h.Add($a, $p) }
         }
     }
@@ -1829,9 +1795,10 @@ function Get-DynamicParametersForCmdlet {
             $command = $ExecutionContext.InvokeCommand.GetCommand($CmdletName, [System.Management.Automation.CommandTypes]::Cmdlet, $paramsArg)
         }
         catch {
-            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that isn't
-            # available while the command is mocked - e.g. Set-PSRepository's -Location comes from the package
-            # provider and validates while resolving. Fall back to no dynamic parameters instead of failing. (#619)
+            # Resolving a cmdlet's dynamic parameters can fail when they are built from external state that
+            # isn't available while the command is mocked. For example Set-PSRepository's -Location comes from
+            # the package provider and validates while resolving. Fall back to no dynamic parameters instead
+            # of failing. (#619)
             return
         }
     }
@@ -1880,29 +1847,6 @@ function Get-DynamicParametersForMockedFunction {
             return
         }
     }
-}
-
-function Test-IsClosure {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [scriptblock]
-        $ScriptBlock
-    )
-
-    $sessionStateInternal = $script:ScriptBlockSessionStateInternalProperty.GetValue($ScriptBlock)
-    if ($null -eq $sessionStateInternal) {
-        return $false
-    }
-
-    $flags = [System.Reflection.BindingFlags]'Instance,NonPublic'
-    $module = $sessionStateInternal.GetType().GetProperty('Module', $flags).GetValue($sessionStateInternal, $null)
-
-    return (
-        $null -ne $module -and
-        $module.Name -match '^__DynamicModule_([a-f\d-]+)$' -and
-        $null -ne ($matches[1] -as [guid])
-    )
 }
 
 function Remove-MockFunctionsAndAliases ($SessionState) {
@@ -2030,31 +1974,51 @@ function Repair-ConflictingParameters {
     $repairedMetadata
 }
 
-function Reset-ConflictingParameters {
+function Repair-EncodingParameters {
     [CmdletBinding()]
-    [OutputType([hashtable])]
+    [OutputType([System.Management.Automation.CommandMetadata])]
     param(
         [Parameter(Mandatory = $true)]
-        [hashtable]
-        $BoundParameters
+        [System.Management.Automation.CommandMetadata]
+        $Metadata
     )
 
-    $parameters = $BoundParameters.Clone()
-    # unnecessary function call that could be replaced by variable access, but is needed for tests
-    $names = Get-ConflictingParameterNames
+    # PowerShell 6+ cmdlets that accept an -Encoding parameter (Out-File, Export-Csv,
+    # Import-Csv, Export-Clixml, ...) declare it as [System.Text.Encoding] and rely on an
+    # internal ArgumentToEncodingTransformationAttribute to turn friendly names such as
+    # 'utf8NoBOM' into a System.Text.Encoding value while the code is parsed. ProxyCommand's
+    # GetParamBlock cannot reproduce that internal attribute, so the generated mock ends up with
+    # a bare [System.Text.Encoding] parameter that rejects the string names. Calling the mock
+    # with e.g. -Encoding utf8NoBOM then throws a ParameterBindingArgumentTransformationException.
+    # https://github.com/pester/Pester/issues/1877
+    #
+    # Relax the parameter type to [object] so any value the real command accepts (a friendly
+    # name, a code-page name or an actual System.Text.Encoding object) binds and routes to the
+    # mock, while the original argument is preserved for -ParameterFilter. A [ValidateSet] of the
+    # known names is intentionally not added: it would reject valid inputs the real cmdlet accepts,
+    # such as code-page names and System.Text.Encoding objects. The [System.Text.Encoding] check
+    # is self-gating to PowerShell 6+; Windows PowerShell declares -Encoding as an enum instead.
+    $repairedMetadata = [System.Management.Automation.CommandMetadata]$Metadata
 
-    foreach ($param in $names) {
-        $fixedName = "_$param"
-
-        if (-not $parameters.ContainsKey($fixedName)) {
+    foreach ($paramMetadata in $repairedMetadata.Parameters.Values) {
+        if ($paramMetadata.IsDynamic -or $paramMetadata.ParameterType -ne [System.Text.Encoding]) {
             continue
         }
 
-        $parameters[$param] = $parameters[$fixedName]
-        $null = $parameters.Remove($fixedName)
+        $hasEncodingTransform = $false
+        foreach ($attr in $paramMetadata.Attributes) {
+            if ($attr -is [System.Management.Automation.ArgumentTransformationAttribute]) {
+                $hasEncodingTransform = $true
+                break
+            }
+        }
+
+        if ($hasEncodingTransform) {
+            $paramMetadata.ParameterType = [object]
+        }
     }
 
-    $parameters
+    $repairedMetadata
 }
 
 $script:ConflictingParameterNames = @(
@@ -2101,50 +2065,6 @@ function Get-ScriptBlockAST {
     }
 
     return $ast
-}
-
-# TODO: Remove?
-function New-BlockWithoutParameterAliases {
-    [OutputType([scriptblock])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [System.Management.Automation.CommandMetadata]
-        $Metadata,
-        [Parameter(Mandatory = $true)]
-        [ValidateNotNull()]
-        [scriptblock]
-        $Block
-    )
-    try {
-        $params = $Metadata.Parameters.Values
-        $ast = Get-ScriptBlockAST $Block
-        $blockText = $ast.Extent.Text
-        $variables = [array]($Ast.FindAll( { param($ast) $ast -is [System.Management.Automation.Language.VariableExpressionAst] }, $true))
-        [array]::Reverse($variables)
-
-        foreach ($var in $variables) {
-            $varName = $var.VariablePath.UserPath
-            $length = $varName.Length
-
-            foreach ($param in $params) {
-                if ($param.Aliases -contains $varName) {
-                    $startIndex = $var.Extent.StartOffset - $ast.Extent.StartOffset + 1 # move one position after the dollar sign
-
-                    $blockText = $blockText.Remove($startIndex, $length).Insert($startIndex, $param.Name)
-
-                    break # It is safe to stop checking for further params here, since aliases cannot be shared by parameters
-                }
-            }
-        }
-
-        $Block = [scriptblock]::Create($blockText)
-
-        $Block
-    }
-    catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
 }
 
 function Repair-EnumParameters {
@@ -2208,11 +2128,11 @@ function Repair-OrderedType {
     )
 
     # ProxyCommand.GetParamBlock serializes [System.Collections.Specialized.OrderedDictionary]
-    # parameters using the [ordered] type accelerator on PowerShell 7+ (Windows PowerShell 5.1 emits
-    # the full type name). That accelerator is only valid as a cast on a hash literal ([ordered]@{}),
-    # not as a parameter type constraint, so [scriptblock]::Create would throw a ParseException before
-    # the mock is ever invoked. Replace the accelerator with the full type name for each affected
-    # parameter. https://github.com/pester/Pester/issues/2370
+    # parameters with the [ordered] type accelerator on PowerShell 7+ (Windows PowerShell 5.1 emits
+    # the full type name). The accelerator is only valid as a cast on a hash literal ([ordered]@{}),
+    # not as a parameter type constraint, so [scriptblock]::Create throws a ParseException before the
+    # mock ever runs. Replace the accelerator with the full type name for each affected parameter.
+    # https://github.com/pester/Pester/issues/2370
     if ($ParamBlock -notmatch '\[ordered(?:\[\])?\]') {
         # No ordered accelerator present (e.g. Windows PowerShell). Return original string.
         return $ParamBlock
@@ -2230,9 +2150,8 @@ function Repair-OrderedType {
         $fullType = if ($isArray) { '[System.Collections.Specialized.OrderedDictionary[]]' } else { '[System.Collections.Specialized.OrderedDictionary]' }
         $paramName = $param.Name
 
-        # Only rewrite the accelerator that is the type constraint for this specific parameter,
-        # i.e. the token immediately preceding ${ParameterName}. This avoids touching any legitimate
-        # [ordered]@{} cast that might appear elsewhere.
+        # Only rewrite the accelerator that is the type constraint for this parameter, the token
+        # right before ${ParameterName}. This leaves any legitimate [ordered]@{} cast elsewhere alone.
         $pattern = "$([regex]::Escape($accelerator))(?<ws>\s*)$([regex]::Escape('${' + $paramName + '}'))"
         $evaluator = {
             param($match)
@@ -2268,12 +2187,24 @@ function Format-MockCallHistoryMessage ($callHistory, $matchingCalls, $nonMatchi
         $marker = if ($historyEntry -in $matchingCalls) { "[*]" } else { "[ ]" }
         $cmd = $historyEntry.Behavior.CommandName
 
+        # The line that made the call, so the reader can tell the listed calls apart. This used to
+        # report the Mock's own ScriptBlock, which is the line the Mock was defined on, the same
+        # one for every call (#3052).
         $location = ""
-        $sb = $historyEntry.Behavior.ScriptBlock
-        if ($null -ne $sb -and $sb.File) {
-            $file = $sb.File
-            $line = $sb.StartPosition.StartLine
-            $location = " from ${file}:${line}"
+        if (0 -lt $historyEntry.CallSiteLine) {
+            $line = $historyEntry.CallSiteLine
+            if (-not [string]::IsNullOrEmpty($historyEntry.CallSiteFile)) {
+                $file = $historyEntry.CallSiteFile
+                $location = " from ${file}:${line}"
+            }
+            else {
+                # The call came from a scriptblock with no file behind it, one built by
+                # [scriptblock]::Create or typed at the console. The line is the line inside that
+                # scriptblock, so it still tells the calls apart. '<ScriptBlock>' is how the rest of
+                # Pester names a location with no file, see ToStringConverter.ScriptBlockToString
+                # and the '<ScriptBlock>, <No file>: line N' frames in a stack trace.
+                $location = " from <ScriptBlock>:${line}"
+            }
         }
 
         if ($paramText) {

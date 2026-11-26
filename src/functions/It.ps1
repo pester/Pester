@@ -31,6 +31,8 @@
     Use this parameter to explicitly mark the test to be skipped. This is preferable to temporarily
     commenting out a test, because the test remains listed in the output.
 
+    .PARAMETER Because
+    Use it with -Skip to say why this test is not running. The reason is recorded on the result as .Reason and written to the test result file, so a skipped test explains itself instead of just being skipped.
     .PARAMETER AllowNullOrEmptyForEach
     Allows empty or null values for -ForEach when Run.FailOnNullOrEmptyForEach is enabled.
     This might be excepted in certain scenarios like using external data.
@@ -133,10 +135,12 @@
 
         [Parameter(ParameterSetName = 'Skip')]
         [Switch] $Skip,
-        [Switch] $AllowNullOrEmptyForEach
+        [Switch] $AllowNullOrEmptyForEach,
 
-        # [Parameter(ParameterSetName = 'Skip')]
-        # [String] $SkipBecause,
+        # Why the test is skipped. Recorded on the result as .Reason and written to the test
+        # result file, so a skipped test says why instead of just being skipped.
+        [Parameter(ParameterSetName = 'Skip')]
+        [String] $Because
     )
 
     if ($null -eq $Test) {
@@ -153,15 +157,15 @@
     if ($PSBoundParameters.ContainsKey('ForEach')) {
         if ($null -eq $ForEach -or 0 -eq @($ForEach).Count) {
             if ($PesterPreference.Run.FailOnNullOrEmptyForEach.Value -and -not $AllowNullOrEmptyForEach) {
-                throw [System.ArgumentException]::new('Value can not be null or empty array. If this is expected, use -AllowNullOrEmptyForEach on this It, or set the Run.FailOnNullOrEmptyForEach configuration option to $false to allow it for the whole run.', 'ForEach')
+                throw (New-PesterUserErrorRecord -Message "It '$Name' was given `$null or an empty array for -ForEach. If this is expected, use -AllowNullOrEmptyForEach on this It, or set the Run.FailOnNullOrEmptyForEach configuration option to `$false to allow it for the whole run.")
             }
             # @() or $null is provided and allowed, do nothing
             return
         }
 
-        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip
+        New-ParametrizedTest -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -StartColumn $MyInvocation.OffsetInLine -Data $ForEach -Tag $Tag -Skip:$Skip -Reason $Because
     }
     else {
-        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip
+        New-Test -Name $Name -ScriptBlock $Test -StartLine $MyInvocation.ScriptLineNumber -Tag $Tag -Skip:$Skip -Reason $Because
     }
 }

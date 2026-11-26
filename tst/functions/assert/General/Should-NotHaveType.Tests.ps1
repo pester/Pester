@@ -9,7 +9,26 @@ Describe "Should-NotHaveType" {
         1 | Should-NotHaveType ([string])
     }
 
+    It "Given a value without the expected custom PSTypeName it passes" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $actual | Should-NotHaveType 'MyApp.Animal'
+    }
+
+    It "Given a value with a matching custom PSTypeName it fails" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $err = { $actual | Should-NotHaveType 'MyApp.Person' } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like "*Expected value to be of different type or PSTypeName than*MyApp.Person*"
+    }
+
     It "Can be called with positional parameters" {
         { Should-NotHaveType ([int]) 1 } | Verify-AssertionFailed
+    }
+}
+
+Describe "Should-NotHaveType rejects an expected value that is not a type" {
+    It 'Fails when Expected is neither a type nor a type name' {
+        # It used to pass, because PSTypeNames does not contain $null (#3038).
+        $err = { 1 | Should-NotHaveType 42 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a type or a type name to compare the value to*which is neither*'
     }
 }

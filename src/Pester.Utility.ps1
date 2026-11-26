@@ -1,4 +1,4 @@
-﻿function or_ {
+function or_ {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, Position = 0)]
@@ -39,25 +39,6 @@ function tryGetProperty_ {
     # }
 }
 
-function trySetProperty_ {
-    [CmdletBinding()]
-    param (
-        [Parameter(Position = 0)]
-        $InputObject,
-        [Parameter(Mandatory = $true, Position = 1)]
-        $PropertyName,
-        [Parameter(Mandatory = $true, Position = 2)]
-        $Value
-    )
-
-    if ($null -eq $InputObject) {
-        return
-    }
-
-    $InputObject.$PropertyName = $Value
-}
-
-
 # combines collections that are not null or empty, but does not remove null values
 # from collections so e.g. combineNonNull @(@(1,$null), @(1,2,3), $null, $null, 10)
 # returns 1, $null, 1, 2, 3, 10
@@ -72,7 +53,6 @@ function combineNonNull_ ($Array) {
         }
     }
 }
-
 
 filter selectNonNull_ {
     param($Collection)
@@ -121,7 +101,6 @@ function notDefined_ {
     $null -eq ($ExecutionContext.SessionState.PSVariable.GetValue($Name))
 }
 
-
 function Get-CIDebugFlag {
     # Returns $true when a known CI system has its debug/verbose logging switch enabled.
     # Mirrors the CI detection used for Output.CIFormat so more CI systems can be added here later.
@@ -138,74 +117,6 @@ function Test-CIDebugOutputEnabled ([PesterConfiguration]$PesterPreference) {
     # not 'None') and a known CI system has its debug switch enabled. Lives here in Pester.Utility so it
     # is available both to Resolve-OutputConfiguration and to the runtime (Invoke-ContainerRun).
     ('None' -ne $PesterPreference.Output.CIDebugOutput.Value) -and (Get-CIDebugFlag)
-}
-
-
-function sum_ ($InputObject, $PropertyName, $Zero) {
-    if (none_ $InputObject.Length) {
-        return $Zero
-    }
-
-    $acc = $Zero
-    foreach ($i in $InputObject) {
-        $acc += $i.$PropertyName
-    }
-
-    $acc
-}
-
-function tryGetValue_ {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key
-    )
-
-    if ($Hashtable.ContainsKey($Key)) {
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
-    }
-}
-
-function tryAddValue_ {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key,
-        $Value
-    )
-
-    if (-not $Hashtable.ContainsKey($Key)) {
-        $null = $Hashtable.Add($Key, $Value)
-    }
-}
-
-function getOrUpdateValue_ {
-    [CmdletBinding()]
-    param(
-        $Hashtable,
-        $Key,
-        $DefaultValue
-    )
-
-    if ($Hashtable.ContainsKey($Key)) {
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($Hashtable.$Key, $false)
-    }
-    else {
-        $Hashtable.Add($Key, $DefaultValue)
-        # do not enumerate so we get the same thing back
-        # even if it is a collection
-        $PSCmdlet.WriteObject($DefaultValue, $false)
-    }
-}
-
-function tryRemoveKey_ ($Hashtable, $Key) {
-    if ($Hashtable.ContainsKey($Key)) {
-        $Hashtable.Remove($Key)
-    }
 }
 
 function Add-DataToContext ($Destination, $Data) {
@@ -233,7 +144,6 @@ function Merge-Hashtable ($Source, $Destination) {
     }
 }
 
-
 function Merge-HashtableOrObject ($Source, $Destination) {
     if ($Source -isnot [Collections.IDictionary] -and $Source -isnot [PSObject]) {
         throw "Source must be a Hashtable, IDictionary or a PSObject."
@@ -242,7 +152,6 @@ function Merge-HashtableOrObject ($Source, $Destination) {
     if ($Destination -isnot [PSObject]) {
         throw "Destination must be a PSObject."
     }
-
 
     $sourceIsPSObject = $Source -is [PSObject]
     $sourceIsDictionary = $Source -is [Collections.IDictionary]
@@ -436,24 +345,6 @@ function Contain-AnyStringLike ($Filter, $Collection) {
     return $false
 }
 
-# TODO: Remove?
-function Recurse-Up {
-    param(
-        [Parameter(Mandatory)]
-        $InputObject,
-        [ScriptBlock] $Action
-    )
-
-    $i = $InputObject
-    $level = 0
-    while ($null -ne $i) {
-        &$Action $i
-
-        $level--
-        $i = $i.Parent
-    }
-}
-
 function View-Flat {
     [CmdletBinding()]
     param (
@@ -474,4 +365,33 @@ function View-Flat {
     end {
         $tests
     }
+}
+
+function New-PesterUserErrorRecord {
+    <#
+    .SYNOPSIS
+    Builds an error that reports a mistake in the test code, rather than a failure inside Pester.
+
+    .DESCRIPTION
+    The error id marks the record so ConvertTo-FailureLines prints the message as it is, without
+    the exception type name in front of it, the same way it already treats an assertion failure.
+    A mistake in a test file should read as a sentence about that test file, and "ArgumentException:"
+    in front of it makes a user error look like a crash in Pester (#3057).
+    #>
+    [CmdletBinding()]
+    [OutputType([System.Management.Automation.ErrorRecord])]
+    param (
+        [Parameter(Mandatory)]
+        [string] $Message,
+
+        [System.Management.Automation.ErrorCategory] $Category = [System.Management.Automation.ErrorCategory]::InvalidArgument,
+
+        $TargetObject
+    )
+
+    [System.Management.Automation.ErrorRecord]::new(
+        [System.ArgumentException]::new($Message),
+        'PesterUserError',
+        $Category,
+        $TargetObject)
 }

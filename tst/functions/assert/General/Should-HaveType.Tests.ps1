@@ -9,6 +9,17 @@ Describe "Should-HaveType" {
         { 1 | Should-HaveType ([string]) } | Verify-AssertionFailed
     }
 
+    It "Given a value with a matching custom PSTypeName it passes" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $actual | Should-HaveType 'MyApp.Person'
+    }
+
+    It "Given a value without the expected custom PSTypeName it fails" {
+        $actual = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+        $err = { $actual | Should-HaveType 'MyApp.Animal' } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like "*Expected value to have type or PSTypeName*MyApp.Animal*"
+    }
+
     It "Can be called with positional parameters" {
         { Should-HaveType ([string]) 1 } | Verify-AssertionFailed
     }
@@ -65,5 +76,13 @@ Describe "Should-HaveType input hint" {
         $value = [string[]]('a', 'b')
         $err = { Should-HaveType -Actual $value -Expected ([int[]]) } | Verify-AssertionFailed
         ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}
+
+Describe "Should-HaveType rejects an expected value that is not a type" {
+    It 'Fails when Expected is neither a type nor a type name' {
+        # It used to fail saying it expected the type '$null', which says nothing (#3038).
+        $err = { 1 | Should-HaveType 42 } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Expected a type or a type name to compare the value to*which is neither*'
     }
 }
