@@ -2,7 +2,7 @@
 
 Describe "New-Fixture" {
     It "Name parameter is mandatory" {
-        (Get-Command New-Fixture).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should -Be $true
+        (Get-Command New-Fixture).Parameters.Name.ParameterSets.__AllParameterSets.IsMandatory | Should-BeTrue
     }
 
     Context "Only Name parameter is specified" {
@@ -108,14 +108,14 @@ Describe "New-Fixture" {
             New-Fixture -Name $name -Path $path | Out-Null
             New-Fixture -Name $name -Path $path -WarningVariable warnings -WarningAction SilentlyContinue | Out-Null
 
-            Should -InvokeVerifiable
+            Should-Invoke -Verifiable
         }
 
         It "Throws on whitespace in Name" {
             $name = "Test Fixture"
             $path = "TestDrive:\"
 
-            { New-Fixture -Name $name -Path $path } | Should -Throw -Because "whitespace is not allowed in fixture name"
+            { New-Fixture -Name $name -Path $path } | Should-Throw -Because "whitespace is not allowed in fixture name"
         }
     }
 }

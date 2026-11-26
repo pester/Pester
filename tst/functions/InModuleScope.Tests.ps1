@@ -7,7 +7,7 @@ Describe "Module scope separation" {
         }
 
         It "does not hide user variables" {
-            $test | Should -Be 'This is a test.'
+            $test | Should-BeString 'This is a test.'
         }
     }
 
@@ -16,7 +16,7 @@ Describe "Module scope separation" {
         # TODO: : come up with a better way of verifying that only the desired commands from the Pester
         # module are visible to the SUT.
 
-        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should -Be $null
+        (Get-Item function:\ConvertTo-PesterResult -ErrorAction SilentlyContinue) | Should-BeNull
     }
 }
 
@@ -35,29 +35,29 @@ Describe "Executing test code inside a module" {
     } | Import-Module -Force
 
     It "Cannot call module internal functions, by default" {
-        { InternalFunction } | Should -Throw
+        { InternalFunction } | Should-Throw
     }
 
     InModuleScope TestModule {
         It "Can call module internal functions using InModuleScope" {
-            InternalFunction | Should -Be 'I am the internal function'
+            InternalFunction | Should-BeString 'I am the internal function'
         }
 
         It "Can mock functions inside the module without using Mock -ModuleName" {
             Mock InternalFunction { 'I am the mock function.' }
-            InternalFunction | Should -Be 'I am the mock function.'
+            InternalFunction | Should-BeString 'I am the mock function.'
         }
     }
 
     It "Can execute bound ScriptBlock inside the module scope" {
         $ScriptBlock = { Write-Output "I am a bound ScriptBlock" }
-        InModuleScope TestModule $ScriptBlock | Should -BeExactly "I am a bound ScriptBlock"
+        InModuleScope TestModule $ScriptBlock | Should-BeString "I am a bound ScriptBlock" -CaseSensitive
     }
 
     It "Can execute unbound ScriptBlock inside the module scope" {
         $ScriptBlockString = 'Write-Output "I am an unbound ScriptBlock"'
         $ScriptBlock = [ScriptBlock]::Create($ScriptBlockString)
-        InModuleScope TestModule $ScriptBlock | Should -BeExactly "I am an unbound ScriptBlock"
+        InModuleScope TestModule $ScriptBlock | Should-BeString "I am an unbound ScriptBlock" -CaseSensitive
     }
 
     AfterAll {
@@ -72,10 +72,10 @@ Describe 'Get-CompatibleModule' {
     Context 'when module name matches imported script module' {
         It 'should return a single ModuleInfo object' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName Pester }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            @($moduleInfo).Count | Should -Be 1
-            $moduleInfo.Name | Should -Be 'Pester'
-            $moduleInfo.ModuleType | Should -Be 'Script'
+            $moduleInfo | Should-NotBeNull
+            @($moduleInfo).Count | Should-Be 1
+            $moduleInfo.Name | Should-BeString 'Pester'
+            $moduleInfo.ModuleType | Should-Be 'Script'
         }
     }
 
@@ -94,17 +94,17 @@ Describe 'Get-CompatibleModule' {
 
         It 'should return a single ModuleInfo object' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName testManifestModule }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            @($moduleInfo).Count | Should -Be 1
-            $moduleInfo.Name | Should -Be 'testManifestModule'
-            $moduleInfo.ModuleType | Should -Be 'Manifest'
+            $moduleInfo | Should-NotBeNull
+            @($moduleInfo).Count | Should-Be 1
+            $moduleInfo.Name | Should-BeString 'testManifestModule'
+            $moduleInfo.ModuleType | Should-Be 'Manifest'
         }
     }
 
     Context 'when module name does not resolve to imported module' {
         It "should throw an exception" {
             $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName MyNonExistentModule } }
-            $sb | Should -Throw "No modules named 'MyNonExistentModule' are currently loaded."
+            $sb | Should-Throw -ExceptionMessage "No modules named 'MyNonExistentModule' are currently loaded."
         }
     }
 
@@ -121,7 +121,7 @@ Describe 'Get-CompatibleModule' {
 
         It "should throw an exception" {
             $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName MyDuplicateModule } }
-            $sb | Should -Throw "Multiple script or manifest modules named 'MyDuplicateModule' are currently loaded. Make sure to remove any extra copies of the module from your session before testing."
+            $sb | Should-Throw -ExceptionMessage "Multiple script or manifest modules named 'MyDuplicateModule' are currently loaded. Make sure to remove any extra copies of the module from your session before testing."
         }
     }
 
@@ -142,41 +142,41 @@ Describe 'Get-CompatibleModule' {
 
         It 'should return the nested module via forward-slash delimiter' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule/NestedModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            @($moduleInfo).Count | Should -Be 1
-            $moduleInfo.Name | Should -Be 'NestedModule'
-            $moduleInfo.ModuleType | Should -Be 'Script'
+            $moduleInfo | Should-NotBeNull
+            @($moduleInfo).Count | Should-Be 1
+            $moduleInfo.Name | Should-BeString 'NestedModule'
+            $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should return the nested module via backslash delimiter' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule\NestedModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            @($moduleInfo).Count | Should -Be 1
-            $moduleInfo.Name | Should -Be 'NestedModule'
-            $moduleInfo.ModuleType | Should -Be 'Script'
+            $moduleInfo | Should-NotBeNull
+            @($moduleInfo).Count | Should-Be 1
+            $moduleInfo.Name | Should-BeString 'NestedModule'
+            $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should execute in the nested module session state' {
             $name = InModuleScope -ModuleName 'RootWithNestedModule/NestedModule' -ScriptBlock {
                 $ExecutionContext.SessionState.Module.Name
             }
-            $name | Should -Be 'NestedModule'
+            $name | Should-BeString 'NestedModule'
         }
 
         It 'should read a variable defined in the nested module' {
             InModuleScope -ModuleName 'RootWithNestedModule/NestedModule' -ScriptBlock {
-                $Script:NestedVar | Should -Be 'NestedValue'
+                $Script:NestedVar | Should-BeString 'NestedValue'
             }
         }
 
         It 'should throw when root module is not loaded' {
             $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName 'NonExistentRoot/NestedModule' } }
-            $sb | Should -Throw "No modules named 'NonExistentRoot' are currently loaded."
+            $sb | Should-Throw -ExceptionMessage "No modules named 'NonExistentRoot' are currently loaded."
         }
 
         It 'should throw with available names when nested module is not found in root' {
             $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName 'RootWithNestedModule/NoSuchNested' } }
-            $sb | Should -Throw "No nested module named 'NoSuchNested' was found under 'RootWithNestedModule'*"
+            $sb | Should-Throw -ExceptionMessage "No nested module named 'NoSuchNested' was found under 'RootWithNestedModule'*"
         }
     }
 
@@ -203,34 +203,34 @@ Describe 'Get-CompatibleModule' {
 
         It 'should resolve the leaf module via forward-slash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            $moduleInfo.Name | Should -Be 'DeepLeafModule'
-            $moduleInfo.ModuleType | Should -Be 'Script'
+            $moduleInfo | Should-NotBeNull
+            $moduleInfo.Name | Should-BeString 'DeepLeafModule'
+            $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should resolve the leaf module via mixed slash and backslash deep path' {
             $moduleInfo = InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule\DeepMidModule/DeepLeafModule' }
-            $moduleInfo | Should -Not -BeNullOrEmpty
-            $moduleInfo.Name | Should -Be 'DeepLeafModule'
-            $moduleInfo.ModuleType | Should -Be 'Script'
+            $moduleInfo | Should-NotBeNull
+            $moduleInfo.Name | Should-BeString 'DeepLeafModule'
+            $moduleInfo.ModuleType | Should-Be 'Script'
         }
 
         It 'should execute in the deeply nested module session state' {
             $name = InModuleScope -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' -ScriptBlock {
                 $ExecutionContext.SessionState.Module.Name
             }
-            $name | Should -Be 'DeepLeafModule'
+            $name | Should-BeString 'DeepLeafModule'
         }
 
         It 'should read a variable defined in the deeply nested module' {
             InModuleScope -ModuleName 'DeepRootModule/DeepMidModule/DeepLeafModule' -ScriptBlock {
-                $Script:DeepNestedVar | Should -Be 'DeepNestedValue'
+                $Script:DeepNestedVar | Should-BeString 'DeepNestedValue'
             }
         }
 
         It 'should throw with available names when a deeper nested segment is not found' {
             $sb = { InPesterModuleScope { Get-CompatibleModule -ModuleName 'DeepRootModule/DeepMidModule/NoSuchLeaf' } }
-            $sb | Should -Throw "No nested module named 'NoSuchLeaf' was found under 'DeepRootModule/DeepMidModule'*"
+            $sb | Should-Throw -ExceptionMessage "No nested module named 'NoSuchLeaf' was found under 'DeepRootModule/DeepMidModule'*"
         }
     }
 
@@ -261,17 +261,17 @@ Describe 'Get-CompatibleModule' {
         It 'loads both nested modules under the same name, so a plain name is ambiguous' {
             # Guard: proves the scenario actually exercises disambiguation. If only one module
             # named SharedRepository were loaded, slash notation would add nothing here.
-            @(Get-Module $sharedNestedName -All).Count | Should -BeGreaterThan 1
+            @(Get-Module $sharedNestedName -All).Count | Should-BeGreaterThan 1
         }
 
         It 'resolves to the ClientA copy via slash notation (verified by content)' {
             $repoId = InModuleScope -ModuleName "$rootA/$sharedNestedName" -ScriptBlock { $Script:RepoId }
-            $repoId | Should -Be 'RepoA'
+            $repoId | Should-BeString 'RepoA'
         }
 
         It 'resolves to the ClientB copy via slash notation (verified by content)' {
             $repoId = InModuleScope -ModuleName "$rootB/$sharedNestedName" -ScriptBlock { $Script:RepoId }
-            $repoId | Should -Be 'RepoB'
+            $repoId | Should-BeString 'RepoB'
         }
     }
 }
@@ -299,7 +299,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             "$SomeParam"
         }
 
-        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb | Should -Be $inModuleScopeParameters.SomeParam
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb | Should-Be $inModuleScopeParameters.SomeParam
     }
 
     It 'Works with parameters and arguments while using advanced function/script' {
@@ -324,7 +324,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $RemainingArgs.Count
         }
 
-        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should -Be @($inModuleScopeParameters.SomeParam, $myArgs.Count)
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ScriptBlock $sb -ArgumentList $myArgs | Should-BeCollection @($inModuleScopeParameters.SomeParam, $myArgs.Count)
     }
 
     It 'Arguments are available in scriptblock' {
@@ -335,7 +335,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args[0]
         }
 
-        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments.Count, $arguments
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should-BeCollection @($arguments.Count, $arguments[0])
     }
 
     It 'single argument works' {
@@ -344,7 +344,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args[0]
         }
 
-        InModuleScope -ModuleName TestModule2 -ArgumentList 'hello' -ScriptBlock $sb | Should -Be 1, 'hello'
+        InModuleScope -ModuleName TestModule2 -ArgumentList 'hello' -ScriptBlock $sb | Should-BeCollection @(1, 'hello')
     }
 
     It 'array argument works' {
@@ -355,7 +355,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args[1]
         }
 
-        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should -Be 2, 3, 'hello'
+        InModuleScope -ModuleName TestModule2 -ArgumentList $arguments -ScriptBlock $sb | Should-BeCollection @(2, 3, 'hello')
     }
 
     It 'Support $null as argument' {
@@ -364,7 +364,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args[0]
         }
 
-        InModuleScope -ModuleName TestModule2 -ArgumentList $null -ScriptBlock $sb | Should -Be 1, $null
+        InModuleScope -ModuleName TestModule2 -ArgumentList $null -ScriptBlock $sb | Should-BeCollection @(1, $null)
     }
 
     It 'Arguments are first in args when parameters are also used and no param-block exists' {
@@ -378,7 +378,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args[0]
         }
 
-        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ArgumentList $arguments -ScriptBlock $sb | Should -Be $arguments
+        InModuleScope -ModuleName TestModule2 -Parameters $inModuleScopeParameters -ArgumentList $arguments -ScriptBlock $sb | Should-Be $arguments
     }
 
     It '$args is empty when no arguments are provided' {
@@ -387,7 +387,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args.Count
         }
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -Be 0
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should-Be 0
     }
 
     It 'Arguments bind to remaining parameters in param-block' {
@@ -398,7 +398,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $args.Count
         }
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters @{ param1 = 'foo' } -ArgumentList 123 | Should -Be 'foo', 123, 0
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters @{ param1 = 'foo' } -ArgumentList 123 | Should-BeCollection @('foo', 123, 0)
     }
 
     It 'internal variables used in InModuleScope wrapper does not leak into scriptblock' {
@@ -406,7 +406,7 @@ Describe 'InModuleScope arguments and parameter binding' {
             $null -eq $SessionState
         }
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should -BeTrue
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb | Should-BeTrue
     }
 
     It 'Automatically imports parameters as variables in module scoped scriptblock' {
@@ -424,8 +424,8 @@ Describe 'InModuleScope arguments and parameter binding' {
             "$SomeParam2"
         }
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters $inModuleScopeParameters | Should -Be $inModuleScopeParameters.SomeParam2
-        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should -BeNullOrEmpty
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb -Parameters $inModuleScopeParameters | Should-Be $inModuleScopeParameters.SomeParam2
+        InModuleScope -ModuleName TestModule2 -ScriptBlock $sb2 | Should-BeEmptyString
     }
 
     AfterAll {
@@ -446,8 +446,8 @@ Describe "Using variables within module scope" {
         }
         InModuleScope -ModuleName TestModule2 -ScriptBlock $setup
 
-        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should -Be 'bar'
-        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should -BeNullOrEmpty
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $script:myVar } | Should-BeString 'bar'
+        InModuleScope -ModuleName TestModule2 -ScriptBlock { $myVar2 } | Should-BeNull
     }
 
     AfterAll {
@@ -482,11 +482,11 @@ Describe 'Working with manifest modules' {
 
     It "Should invoke inside module's sessions state" {
         $res = InModuleScope -ModuleName $moduleName -ScriptBlock { $ExecutionContext.SessionState.Module }
-        $res.Name | Should -Be $moduleName
+        $res.Name | Should-Be $moduleName
     }
 
     It 'Should be able to invoke private functions' {
         $res = InModuleScope -ModuleName $moduleName -ScriptBlock { myPrivateFunction }
-        $res | Should -Be 'real'
+        $res | Should-BeString 'real'
     }
 }
