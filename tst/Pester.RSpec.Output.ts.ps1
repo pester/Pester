@@ -186,6 +186,34 @@ i -PassThru:$PassThru {
         }
     }
 
+    b 'Output for container names' {
+        t 'Script Block container names are output' {
+            $sb = {
+                $PesterPreference = [PesterConfiguration]::Default
+                $PesterPreference.Output.Verbosity = 'Detailed'
+                $PesterPreference.Output.CIFormat = 'None'
+                $PesterPreference.Output.RenderMode = 'ConsoleColor'
+
+                $container = New-PesterContainer -ScriptBlock {
+                    Describe 'd1' {
+                        It 'i1' {
+                            1 | Should -Be 1
+                        }
+                    }
+                }
+                Invoke-Pester -Container $container
+            }
+
+            $output = Invoke-InNewProcess $sb
+            # only print the relevant part of output
+            $null, $run = $output -join "`n" -split 'Running tests.'
+            $run | Write-Host
+
+            $d1Running = $output | Select-String -Pattern '^Running tests from.*\<ScriptBlock\>.*$'
+            @($d1Running).Count | Verify-Equal 1
+        }
+    }
+
     b 'Output for data-driven blocks' {
         t 'Each block generated from dataset is output' {
             # we incorrectly shared reference to the same framework data hashtable

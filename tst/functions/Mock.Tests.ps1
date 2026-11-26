@@ -3136,6 +3136,42 @@ Describe 'Mocking in manifest modules' {
     }
 }
 
+Describe 'When a bound parameter value has a ToString that throws and debug messages are on' {
+    # The mock filter debug message serializes the bound parameters, so a value whose ToString throws
+    # (e.g. a mocked SMO type) must not make the mock throw when the value is not referenced by the
+    # filter. This only happens with Debug.WriteDebugMessages on in Pester 5. See #2953.
+    BeforeAll {
+        $conf = [PesterConfiguration]::Default
+        $conf.Run.PassThru = $true
+        $conf.Output.Verbosity = 'None'
+        $conf.Debug.WriteDebugMessages = $true
+        $conf.Debug.WriteDebugMessagesFrom = 'Mock'
+        $conf.Run.Container = New-PesterContainer -ScriptBlock {
+            Describe 'inner' {
+                BeforeAll {
+                    function Get-Thing { param([object] $InputObject, [switch] $Other) }
+                    $throwingToString = [pscustomobject]@{ Name = 'demo' }
+                    $throwingToString | Add-Member -MemberType ScriptMethod -Name ToString -Value { throw 'ToString should not be called by the parameter filter serializer' } -Force
+                }
+
+                It 'does not throw when a non-matching parameter filter is present' {
+                    Mock Get-Thing { 'default' }
+                    Mock Get-Thing -ParameterFilter { $Other.IsPresent } { 'other' }
+
+                    { Get-Thing -InputObject $throwingToString } | Should -Not -Throw
+                }
+            }
+        }
+
+        $innerRun = Invoke-Pester -Configuration $conf
+    }
+
+    It 'The mock filter debug message does not crash the mock' {
+        $innerRun.Result | Should -Be 'Passed'
+        $innerRun.PassedCount | Should -Be 1
+    }
+}
+
 Describe 'Mocking with nested Pester runs' {
     BeforeAll {
         Mock Get-Date { 1 }

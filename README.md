@@ -9,6 +9,8 @@
 > 👩👨 We are looking for contributors! All issues labeled [help wanted](https://github.com/pester/Pester/labels/help%20wanted) are up for grabs. They further split up into [good first issue](https://github.com/pester/Pester/labels/good%20first%20issue) that are issues I hope are easy to solve. [Bad first issue](https://github.com/pester/Pester/labels/bad%20first%20issue) where I expect the implementation to be problematic or needs to be proposed and discussed beforehand. And the rest which is somewhere in the middle. If you decide to pick up an issue please comment in the issue thread so others don't waste their time working on the same issue as you.
 > There is also [contributor's guide](https://pester.dev/docs/contributing/introduction) that will hopefully help you.
 
+> 🛠️ **Pester 5 is in maintenance mode** as of v5.9.0 (July 2026), following the release of Pester 6. It receives critical bug and security fixes only, and is tested on the PowerShell versions Microsoft currently supports — Windows PowerShell 5.1 and PowerShell 7.4+. Older PowerShell versions are no longer tested; the module manifest does not raise its minimum version, so Pester should still load there, but if you run it on an older version you are responsible for testing it yourself. New development happens in Pester 6 — see [pester.dev](https://pester.dev).
+
 Pester is the ubiquitous test and mock framework for PowerShell.
 
 ```powershell
@@ -152,9 +154,9 @@ test_script:
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
-Pester itself is built on AzureDevOps, and distributed mainly via PowerShell gallery.
+Pester itself is built on GitHub Actions, and distributed mainly via PowerShell gallery.
 
-[![Build Status](https://nohwnd.visualstudio.com/Pester/_apis/build/status/Pester%20PR?branchName=main)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6&branchName=main) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![Build Status](https://github.com/pester/Pester/actions/workflows/ci.yml/badge.svg?branch=rel%2F5.x.x)](https://github.com/pester/Pester/actions/workflows/ci.yml?query=branch%3Arel%2F5.x.x) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 

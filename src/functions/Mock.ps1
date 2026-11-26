@@ -1161,6 +1161,21 @@ function Invoke-InMockScope {
     }
 }
 
+function Format-BoundParameterValueSafely {
+    # Stringify a bound-parameter value for the debug message. This is only ever used to provide
+    # context to the user, so it must fail open: some types have a ToString that throws (e.g. mocked
+    # SMO objects created via New-MockObject), and a value like that must not make the whole mock
+    # filter throw when it is not even referenced by the filter. See #2953.
+    param($Value)
+
+    try {
+        "$Value"
+    }
+    catch {
+        '<value could not be serialized>'
+    }
+}
+
 function Test-ParameterFilter {
     [CmdletBinding()]
     param (
@@ -1218,7 +1233,7 @@ function Test-ParameterFilter {
 
     if ($PesterPreference.Debug.WriteDebugMessages.Value) {
         $hasContext = 0 -lt $Context.Count
-        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $($p.Value)" } }) -join ", "
+        $c = $(if ($hasContext) { foreach ($p in $Context.GetEnumerator()) { "$($p.Key) = $(Format-BoundParameterValueSafely $p.Value)" } }) -join ", "
         Write-PesterDebugMessage -Scope Mock -Message "Running mock filter { $scriptBlock } $(if ($hasContext) { "with context: $c" } else { "without any context"})."
     }
 

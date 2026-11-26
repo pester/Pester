@@ -92,9 +92,9 @@ Get-Help ./test.ps1 -Detailed
 
 ## Continuous Integration
 
-The Azure Devops Pipeline azure-pipelines.yml file contains the code definition used for builds, unit and integration tests in the CI pipeline.
+CI runs on GitHub Actions. `.github/workflows/ci.yml` builds the module once and then runs the test matrix: PS7 and PS5.1, on Windows, Linux (Ubuntu) and MacOS.
 
-Within the pipeline, tests are executed against PS7 Core on a strategy matrix of machines, including Ubuntu 16.04, 18.04, macOS Mojave 10.14, Catalina 10.15, Windows Server 2016, 2019. Tests are also executed against PS6.2, PS4, PS3.
+Releasing still runs on Azure DevOps (`azure-pipelines-publish.yml`), because it needs the code signing and publishing credentials.
 
 ## Documentation
 

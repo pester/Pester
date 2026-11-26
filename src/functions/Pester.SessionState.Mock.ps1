@@ -614,6 +614,9 @@ function Assert-VerifiableMock {
     THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
     USE Should -InvokeVerifiable INSTEAD.
 
+    .DESCRIPTION
+    Checks if all verifiable Mocks has been called at least once.
+
     .LINK
     https://pester.dev/docs/v5/commands/Assert-VerifiableMock
     #>
@@ -680,6 +683,10 @@ function Assert-MockCalled {
 
     THIS COMMAND IS OBSOLETE AND WILL BE REMOVED SOMEWHERE DURING v5 LIFETIME,
     USE Should -Invoke INSTEAD.
+
+    .DESCRIPTION
+    Checks if a Mocked command has been called a certain number of times
+    and throws an exception if it has not.
 
     .LINK
     https://pester.dev/docs/v5/commands/Assert-MockCalled
