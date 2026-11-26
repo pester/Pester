@@ -303,5 +303,19 @@ InPesterModuleScope {
             $err = Get-ThrownError { Get-Item "/non-existing" -ErrorAction Stop }
             $err.ExceptionType | Verify-Equal ([System.Management.Automation.ItemNotFoundException])
         }
+
+        It 'Unwraps the wrapper when its message is localized (#3089)' {
+            # PowerShell quotes the method name in this message with the quotation marks of the
+            # current UI culture, so the text around InvokeWithContext differs per language. The
+            # wrapper is recognized by its type, so a message in any language still unwraps.
+            $inner = [System.InvalidOperationException]::new('probe')
+            $wrapper = [System.Management.Automation.MethodInvocationException]::new(
+                "Exception calling 'InvokeWithContext' with '3' argument(s): 'probe'", $inner)
+            $record = [System.Management.Automation.ErrorRecord]::new($wrapper, 'MethodInvocationException', 'NotSpecified', $null)
+
+            $err = Get-ErrorObject $record
+            $err.ExceptionType | Verify-Equal ([System.InvalidOperationException])
+            $err.ExceptionMessage | Verify-Equal 'probe'
+        }
     }
 }
