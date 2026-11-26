@@ -11,11 +11,11 @@ Describe 'Pester manifest' {
     }
 
     It 'has the expected name' {
-        $manifest.Name | Should -Be 'Pester'
+        $manifest.Name | Should-BeString 'Pester'
     }
 
     It 'has the expected guid' {
-        $manifest.Guid | Should -Be 'a699dea5-2c73-4616-a270-1f7abb777e71'
+        $manifest.Guid | Should-Be ([guid] 'a699dea5-2c73-4616-a270-1f7abb777e71')
     }
 }
 
@@ -28,7 +28,7 @@ Describe 'Pester assembly' {
         $reference = [PesterConfiguration].Assembly.GetReferencedAssemblies() |
             Where-Object { $_.Name -eq 'System.Management.Automation' }
 
-        $reference.Version | Should -Be ([version] '7.4.0.0')
+        $reference.Version | Should-Be ([version] '7.4.0.0')
     }
 }
 
@@ -38,12 +38,12 @@ Describe 'Clean treatment of the $error variable' {
     }
     Context 'A Context' {
         It 'Performs a successful test' {
-            $true | Should -Be $true
+            $true | Should-BeTrue
         }
     }
 
     It 'Did not add anything to the $error variable' {
-        $error.Count | Should -Be 0
+        $error.Count | Should-Be 0
     }
 }
 
@@ -79,7 +79,7 @@ InPesterModuleScope {
         }
 
         It 'The SafeCommands table contains all commands that are called from the module' {
-            $missingSafeCommands | Should -Be $null
+            $missingSafeCommands | Should-BeNull
         }
     }
 }

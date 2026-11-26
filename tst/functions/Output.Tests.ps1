@@ -395,11 +395,11 @@ InModuleScope -ModuleName Pester -ScriptBlock {
             }
 
             It 'keeps the line from the test file.' {
-                $r.Trace[0] | Should -Be "at <ScriptBlock>, ${testPath}:1"
+                $r.Trace[0] | Should-BeString "at <ScriptBlock>, ${testPath}:1"
             }
 
             It 'drops the frames that are inside Pester.' {
-                $r.Trace -join [Environment]::NewLine | Should -Not -Match 'Should-Be|EnsureScalar|Ensure-ExpectedIsNotCollection'
+                $r.Trace -join [Environment]::NewLine | Should-NotMatchString 'Should-Be|EnsureScalar|Ensure-ExpectedIsNotCollection'
             }
         }
 
@@ -424,8 +424,8 @@ f1
             }
 
             It 'produces the line with the assertion, and the line that called the function.' {
-                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:2"
-                $r.Trace[1] | Should -Be "at <ScriptBlock>, ${testPath}:4"
+                $r.Trace[0] | Should-BeString "at 1 | Should-Be 2, ${testPath}:2"
+                $r.Trace[1] | Should-BeString "at <ScriptBlock>, ${testPath}:4"
             }
         }
 
@@ -447,8 +447,8 @@ f1
             }
 
             It 'does not print the same file and line twice.' {
-                $r.Trace[0] | Should -Be "at 1 | Should-Be 2, ${testPath}:1"
-                @($r.Trace -match ([regex]::Escape("${testPath}:1"))).Count | Should -Be 1
+                $r.Trace[0] | Should-BeString "at 1 | Should-Be 2, ${testPath}:1"
+                @($r.Trace -match ([regex]::Escape("${testPath}:1"))).Count | Should-Be 1
             }
         }
     }
@@ -513,21 +513,21 @@ f1
                 $errorRecord.DisplayStackTrace = $null
 
                 $none = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'None') -split [Environment]::NewLine
-                $none[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
-                $none | Should -HaveCount 1
+                $none[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $none | Should-BeCollection -Count 1
 
                 $firstLine = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'FirstLine') -split [Environment]::NewLine
-                $firstLine[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
-                $firstLine[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
-                $firstLine | Should -HaveCount 2
+                $firstLine[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $firstLine[1] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:$divideLine" -CaseSensitive
+                $firstLine | Should-BeCollection -Count 2
 
                 $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
-                $filtered[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
-                $filtered[1] | Should -BeExactly "at <ScriptBlock>, ${PSCommandPath}:$divideLine"
+                $filtered[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $filtered[1] | Should-BeString "at <ScriptBlock>, ${PSCommandPath}:$divideLine" -CaseSensitive
 
                 $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
-                $full[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
-                $full.Count | Should -BeGreaterOrEqual $filtered.Count
+                $full[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                $full.Count | Should-BeGreaterThanOrEqual $filtered.Count
             }
 
             It "With -Raw it reports the error as the runtime gave it, whatever the verbosity says" {
@@ -541,10 +541,10 @@ f1
                 foreach ($verbosity in 'None', 'FirstLine', 'Filtered', 'Full') {
                     $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $verbosity -Raw) -split [Environment]::NewLine
                     # Exception.ToString(), so the full type name and not the short one.
-                    $messages[0] | Should -BeExactly "System.DivideByZeroException: Attempted to divide by zero."
+                    $messages[0] | Should-BeString "System.DivideByZeroException: Attempted to divide by zero." -CaseSensitive
                     # The trace is there even for 'None', and unfiltered.
-                    $messages.Count | Should -BeGreaterThan 1
-                    ($messages -join [Environment]::NewLine) | Should -BeLike "*${PSCommandPath}*"
+                    $messages.Count | Should-BeGreaterThan 1
+                    ($messages -join [Environment]::NewLine) | Should-BeLikeString "*${PSCommandPath}*"
                 }
             }
 
@@ -557,10 +557,10 @@ f1
                 $filtered = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
                 $full = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Full') -split [Environment]::NewLine
 
-                $full[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                $full[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
                 # Everything the filter dropped is a Pester frame, so Full has to have more lines
                 # than Filtered here, not the same number.
-                $full.Count | Should -BeGreaterThan $filtered.Count
+                $full.Count | Should-BeGreaterThan $filtered.Count
             }
 
             It "Ignores a DisplayStackTrace that comes without a DisplayErrorMessage" {
@@ -570,8 +570,8 @@ f1
                 # DisplayStackTrace is left as the BeforeEach set it.
 
                 $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity 'Filtered') -split [Environment]::NewLine
-                $messages[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
-                ($messages -join [Environment]::NewLine) | Should -Not -BeLike '*:230*'
+                $messages[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
+                ($messages -join [Environment]::NewLine) | Should-NotBeLikeString '*:230*'
             }
 
             It "When StackTraceVerbosity is '<_>' and DisplayStackTrace is `$null, it has only one error message in output" -ForEach @('None', 'FirstLine', 'Filtered', 'Full') {
@@ -647,12 +647,12 @@ f1
                     $errorRecord.DisplayErrorMessage = $null
                     $errorRecord.DisplayStackTrace = $null
                     $messages = (Format-ErrorMessage -Err $errorRecord -StackTraceVerbosity $_) -split [Environment]::NewLine
-                    $messages[0] | Should -BeExactly "DivideByZeroException: Attempted to divide by zero."
+                    $messages[0] | Should-BeString "DivideByZeroException: Attempted to divide by zero." -CaseSensitive
                     if ('None' -eq $_) {
-                        $messages | Should -HaveCount 1
+                        $messages | Should-BeCollection -Count 1
                     }
                     else {
-                        $messages.Count | Should -BeGreaterThan 1
+                        $messages.Count | Should-BeGreaterThan 1
                     }
                 }
             }
@@ -828,7 +828,7 @@ f1
         }
 
         It 'returns $false when no CI debug flag is set' {
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
 
         It "returns `$true when Azure DevOps System.Debug is '<value>' (case-insensitive)" -TestCases @(
@@ -837,22 +837,22 @@ f1
             @{ Value = 'TRUE' }
         ) {
             $env:SYSTEM_DEBUG = $Value
-            Get-CIDebugFlag | Should -BeTrue
+            Get-CIDebugFlag | Should-BeTrue
         }
 
         It "returns `$false when Azure DevOps System.Debug is 'false'" {
             $env:SYSTEM_DEBUG = 'false'
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
 
         It "returns `$true when GitHub Actions RUNNER_DEBUG is '1'" {
             $env:RUNNER_DEBUG = '1'
-            Get-CIDebugFlag | Should -BeTrue
+            Get-CIDebugFlag | Should-BeTrue
         }
 
         It "returns `$false when GitHub Actions RUNNER_DEBUG is '0'" {
             $env:RUNNER_DEBUG = '0'
-            Get-CIDebugFlag | Should -BeFalse
+            Get-CIDebugFlag | Should-BeFalse
         }
     }
 
@@ -873,19 +873,19 @@ f1
         It 'is $true when a CI debug flag is set and not opted out' {
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeTrue
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeTrue
         }
 
         It "is `$false when opted out via CIDebugOutput = 'None'" {
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'None'
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeFalse
         }
 
         It 'is $false when no CI debug flag is set' {
             $c = [PesterConfiguration]::Default
-            Test-CIDebugOutputEnabled -PesterPreference $c | Should -BeFalse
+            Test-CIDebugOutputEnabled -PesterPreference $c | Should-BeFalse
         }
     }
 
@@ -907,20 +907,20 @@ f1
             $env:SYSTEM_DEBUG = 'true'
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+            $c.Output.Verbosity.Value | Should-BeString 'Diagnostic'
         }
 
         It 'raises Verbosity to Diagnostic when GitHub Actions RUNNER_DEBUG is enabled and Verbosity is unset' {
             $env:RUNNER_DEBUG = '1'
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Diagnostic'
+            $c.Output.Verbosity.Value | Should-BeString 'Diagnostic'
         }
 
         It 'does not change Verbosity when no CI debug flag is set' {
             $c = [PesterConfiguration]::Default
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Normal'
+            $c.Output.Verbosity.Value | Should-BeString 'Normal'
         }
 
         It 'does not override an explicit Verbosity choice' {
@@ -928,7 +928,7 @@ f1
             $c = [PesterConfiguration]::Default
             $c.Output.Verbosity = 'Detailed'
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Detailed'
+            $c.Output.Verbosity.Value | Should-BeString 'Detailed'
         }
 
         It "does nothing when opted out via CIDebugOutput = 'None'" {
@@ -936,13 +936,13 @@ f1
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'None'
             Resolve-OutputConfiguration -PesterPreference $c
-            $c.Output.Verbosity.Value | Should -Be 'Normal'
+            $c.Output.Verbosity.Value | Should-BeString 'Normal'
         }
 
         It 'throws for an unsupported CIDebugOutput value' {
             $c = [PesterConfiguration]::Default
             $c.Output.CIDebugOutput = 'Bogus'
-            { Resolve-OutputConfiguration -PesterPreference $c } | Should -Throw -ExpectedMessage '*Output.CIDebugOutput*'
+            { Resolve-OutputConfiguration -PesterPreference $c } | Should-Throw -ExceptionMessage '*Output.CIDebugOutput*'
         }
     }
 }
@@ -971,13 +971,13 @@ Describe 'Write-PesterHostMessage' {
 Describe 'Output.ShowTags' {
     It 'defaults to $false and exposes a description' {
         $c = New-PesterConfiguration
-        $c.Output.ShowTags.Value | Should -BeFalse
-        $c.Output.ShowTags.Description | Should -Not -BeNullOrEmpty
+        $c.Output.ShowTags.Value | Should-BeFalse
+        $c.Output.ShowTags.Description | Should-NotBeNull
     }
 
     It 'round-trips when set through a hashtable' {
         $c = New-PesterConfiguration -Hashtable @{ Output = @{ ShowTags = $true } }
-        $c.Output.ShowTags.Value | Should -BeTrue
+        $c.Output.ShowTags.Value | Should-BeTrue
     }
 
     Context 'Rendering' {
@@ -986,12 +986,12 @@ Describe 'Output.ShowTags' {
                 $sb = {
                     Describe 'Planets' -Tag 'Slow' {
                         It 'tagged test' -Tag 'Fast', 'Unit' {
-                            1 | Should -Be 1
+                            1 | Should-Be 1
                         }
 
                         Context 'Filtering' -Tag 'Ctx' {
                             It 'untagged test' {
-                                2 | Should -Be 2
+                                2 | Should-Be 2
                             }
                         }
                     }
@@ -1010,30 +1010,30 @@ Describe 'Output.ShowTags' {
 
         It 'does not render tags when the option is off (default behaviour is unchanged)' {
             $out = Invoke-PesterCapturingOutput -ShowTags $false
-            $out | Should -Match 'Describing Planets'
-            $out | Should -Match '\[\+\] tagged test'
-            $out | Should -Not -Match '\[Tags:'
+            $out | Should-MatchString 'Describing Planets'
+            $out | Should-MatchString '\[\+\] tagged test'
+            $out | Should-NotMatchString '\[Tags:'
         }
 
         It 'renders block tags on the Describe line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match 'Describing Planets \[Tags: Slow\]'
+            $out | Should-MatchString 'Describing Planets \[Tags: Slow\]'
         }
 
         It 'renders block tags on the Context line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match 'Context Filtering \[Tags: Ctx\]'
+            $out | Should-MatchString 'Context Filtering \[Tags: Ctx\]'
         }
 
         It 'renders test tags on the It line when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
-            $out | Should -Match '\[\+\] tagged test \[Tags: Fast, Unit\]'
+            $out | Should-MatchString '\[\+\] tagged test \[Tags: Fast, Unit\]'
         }
 
         It 'leaves untagged blocks and tests unchanged when the option is on' {
             $out = Invoke-PesterCapturingOutput -ShowTags $true
             $untaggedLine = @($out -split [Environment]::NewLine) | Where-Object { $_ -match '\[\+\] untagged test' }
-            $untaggedLine | Should -Not -Match '\[Tags:'
+            $untaggedLine | Should-NotMatchString '\[Tags:'
         }
     }
 }

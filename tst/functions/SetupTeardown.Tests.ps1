@@ -212,7 +212,7 @@ Describe 'Multiple setup and teardown blocks in the same block' {
             Describe 'd' {
                 BeforeAll { $script:order = @('first') }
                 BeforeAll { $script:order += 'second' }
-                It 'i' { $script:order -join '>' | Should -Be 'first>second' }
+                It 'i' { $script:order -join '>' | Should-BeString 'first>second' }
             }
         }
         $c = New-PesterConfiguration
@@ -220,8 +220,8 @@ Describe 'Multiple setup and teardown blocks in the same block' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.FailedCount | Should -Be 0
-        $r.PassedCount | Should -Be 1
+        $r.FailedCount | Should-Be 0
+        $r.PassedCount | Should-Be 1
     }
 
     It 'Runs every BeforeEach in the order they are declared' {
@@ -229,7 +229,7 @@ Describe 'Multiple setup and teardown blocks in the same block' {
             Describe 'd' {
                 BeforeEach { $script:order = @('first') }
                 BeforeEach { $script:order += 'second' }
-                It 'i' { $script:order -join '>' | Should -Be 'first>second' }
+                It 'i' { $script:order -join '>' | Should-BeString 'first>second' }
             }
         }
         $c = New-PesterConfiguration
@@ -237,8 +237,8 @@ Describe 'Multiple setup and teardown blocks in the same block' {
         $c.Run.PassThru = $true
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
-        $r.FailedCount | Should -Be 0
-        $r.PassedCount | Should -Be 1
+        $r.FailedCount | Should-Be 0
+        $r.PassedCount | Should-Be 1
     }
 
     It 'Runs every AfterAll in reverse order' {
@@ -247,7 +247,7 @@ Describe 'Multiple setup and teardown blocks in the same block' {
             Describe 'd' {
                 AfterAll { $global:PesterTestAfterAllOrder += 'first' }
                 AfterAll { $global:PesterTestAfterAllOrder += 'second' }
-                It 'i' { $true | Should -BeTrue }
+                It 'i' { $true | Should-BeTrue }
             }
         }
         $global:PesterTestAfterAllOrder = @()
@@ -257,8 +257,8 @@ Describe 'Multiple setup and teardown blocks in the same block' {
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
 
-        $r.FailedCount | Should -Be 0
-        $global:PesterTestAfterAllOrder -join '>' | Should -Be 'second>first'
+        $r.FailedCount | Should-Be 0
+        $global:PesterTestAfterAllOrder -join '>' | Should-BeString 'second>first'
         Remove-Variable -Name PesterTestAfterAllOrder -Scope Global -ErrorAction Ignore
     }
 
@@ -267,7 +267,7 @@ Describe 'Multiple setup and teardown blocks in the same block' {
             Describe 'd' {
                 AfterEach { $global:PesterTestAfterEachOrder += 'first' }
                 AfterEach { $global:PesterTestAfterEachOrder += 'second' }
-                It 'i' { $true | Should -BeTrue }
+                It 'i' { $true | Should-BeTrue }
             }
         }
         $global:PesterTestAfterEachOrder = @()
@@ -277,8 +277,8 @@ Describe 'Multiple setup and teardown blocks in the same block' {
         $c.Output.Verbosity = 'None'
         $r = Invoke-Pester -Configuration $c
 
-        $r.FailedCount | Should -Be 0
-        $global:PesterTestAfterEachOrder -join '>' | Should -Be 'second>first'
+        $r.FailedCount | Should-Be 0
+        $global:PesterTestAfterEachOrder -join '>' | Should-BeString 'second>first'
         Remove-Variable -Name PesterTestAfterEachOrder -Scope Global -ErrorAction Ignore
     }
 }

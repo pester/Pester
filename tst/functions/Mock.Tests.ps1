@@ -147,17 +147,17 @@ Describe 'When calling Mock on an external script' {
 
         $result = TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using just the script name' {
-            $result | Should -Be 'I am not tempExternalScript.ps1'
+            $result | Should-BeString 'I am not tempExternalScript.ps1'
         }
 
         $result = & TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using the command-invocation operator (&)' {
-            $result | Should -Be 'I am not tempExternalScript.ps1'
+            $result | Should-BeString 'I am not tempExternalScript.ps1'
         }
 
         $result = . TestDrive:\tempExternalScript.ps1
         It 'Should Invoke the absolute-path-qualified mocked script using dot source notation' {
-            $result | Should -Be 'I am not tempExternalScript.ps1'
+            $result | Should-BeString 'I am not tempExternalScript.ps1'
         }
     #>
 
@@ -189,7 +189,7 @@ Describe 'When calling Mock on an external script' {
 
         $result = .\tempExternalScript.ps1
         It 'Should Invoke the relative-path-qualified mocked script' {
-            $result | Should -Be 'I am not tempExternalScript.ps1'
+            $result | Should-BeString 'I am not tempExternalScript.ps1'
         }
     #>
 
@@ -767,7 +767,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 time*'
+        $result.Exception.Message | Should-BeLikeString 'Expected FunctionUnderTest to be called 0 times exactly, but was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -781,7 +781,7 @@ Describe "When Calling Should -Invoke 0 without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 time*'
+        $failure.Exception.Message | Should-BeLikeString 'Expected FunctionUnderTest to be called 0 times exactly, because of reasons, but was called 1 time*'
     }
 }
 
@@ -799,7 +799,7 @@ Describe "When Calling Should -Not -Invoke without exactly" {
     }
 
     It "Should throw if mock was called once" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 1 time*"
+        $result.Exception.Message | Should-BeLikeString "Expected FunctionUnderTest not to be called, but it was called 1 time*"
     }
 
     It "Should throw and report the call count using plural 'times' when called more than once" {
@@ -814,7 +814,7 @@ Describe "When Calling Should -Not -Invoke without exactly" {
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called, but it was called 2 times*"
+        $failure.Exception.Message | Should-BeLikeString "Expected FunctionUnderTest not to be called, but it was called 2 times*"
     }
 
     It 'Should include reason when -Because is used' {
@@ -828,7 +828,7 @@ Describe "When Calling Should -Not -Invoke without exactly" {
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
+        $failure.Exception.Message | Should-BeLikeString 'Expected FunctionUnderTest not to be called, because of reasons, but it was called 1 time*'
     }
 
     It "Should not throw if mock was not called" {
@@ -872,7 +872,7 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
 
         $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
         $callsText = if ($MockCalls -eq 1) { '1 time' } else { "$MockCalls times" }
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest to be called less than $timesText, but was called $callsText*"
+        $result.Exception.Message | Should-BeLikeString "Expected FunctionUnderTest to be called less than $timesText, but was called $callsText*"
     }
 
     It 'Should include reason when -Because is used' {
@@ -885,7 +885,7 @@ Describe "When Calling Should -Not -Invoke [Times] without exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest to be called less than 1 time, because of reasons, but was called 2 times*'
+        $failure.Exception.Message | Should-BeLikeString 'Expected FunctionUnderTest to be called less than 1 time, because of reasons, but was called 2 times*'
     }
 }
 
@@ -926,7 +926,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
     }
 
     It "Should throw if mock was called" {
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly 1 time, but it was*"
+        $result.Exception.Message | Should-BeLikeString "Expected FunctionUnderTest not to be called exactly 1 time, but it was*"
     }
 
     It "Should not throw if mock was not called" {
@@ -940,7 +940,7 @@ Describe "When Calling Should -Not -Invoke with exactly" {
         Catch {
             $failure = $_
         }
-        $failure.Exception.Message | Should -BeLike 'Expected FunctionUnderTest not to be called exactly 1 time, because of reasons, but it was*'
+        $failure.Exception.Message | Should-BeLikeString 'Expected FunctionUnderTest not to be called exactly 1 time, because of reasons, but it was*'
     }
 }
 
@@ -980,7 +980,7 @@ Describe "When Calling Should -Not -Invoke [Times] with exactly" {
         }
 
         $timesText = if ($Times -eq 1) { '1 time' } else { "$Times times" }
-        $result.Exception.Message | Should -BeLike "Expected FunctionUnderTest not to be called exactly $timesText, but it was*"
+        $result.Exception.Message | Should-BeLikeString "Expected FunctionUnderTest not to be called exactly $timesText, but it was*"
     }
 }
 
@@ -1065,7 +1065,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -BeLike ("Expected FunctionUnderTest*was called 1 time*
+        $failure.Exception.Message | Should-BeLikeString ("Expected FunctionUnderTest*was called 1 time*
 Performed invocations:
   [[] ] FunctionUnderTest -param1 'one' from *Mock.Tests.ps1:*
   [[]*] FunctionUnderTest -param1 'two' from *Mock.Tests.ps1:*
@@ -1107,12 +1107,12 @@ Performed invocations:
         }
 
         $historyLines = @(($failure.Exception.Message -split "`n") | Where-Object { $_ -like '  [[]*] FunctionUnderTest*' })
-        $historyLines.Count | Should -Be 3
+        $historyLines.Count | Should-Be 3
 
         # A call with no file is named the way the rest of Pester names a location with no file,
         # rather than reporting the line the Mock was defined on in the shape of a real call site,
         # where it reads as a plausible one.
-        $historyLines[2] | Should -BeLike "*FunctionUnderTest -param1 'created' from <ScriptBlock>:1"
+        $historyLines[2] | Should-BeLikeString "*FunctionUnderTest -param1 'created' from <ScriptBlock>:1"
 
         $callSites = @(foreach ($line in $historyLines[0], $historyLines[1]) {
                 [int] ([regex]::Match($line, ':(\d+)\s*$').Groups[1].Value)
@@ -1120,7 +1120,7 @@ Performed invocations:
 
         # The two direct calls are on consecutive lines. Before this, every entry reported the
         # Mock's own line, so the difference was 0.
-        ($callSites[1] - $callSites[0]) | Should -Be 1
+        ($callSites[1] - $callSites[0]) | Should-Be 1
     }
 
     It 'Shows empty marker when mock was never called' {
@@ -1133,7 +1133,7 @@ Performed invocations:
             $failure = $_
         }
 
-        $failure.Exception.Message | Should -Be ('Expected FunctionUnderTest to be called 1 time exactly, but was called 0 times
+        $failure.Exception.Message | Should-Be ('Expected FunctionUnderTest to be called 1 time exactly, but was called 0 times
 Performed invocations:
   <none>' -replace "`r`n", "`n")
     }
@@ -2126,7 +2126,7 @@ Describe 'Mocking a cmdlet with multiple non-default parameter sets and no Defau
         Mock Get-PackageSource { [PSCustomObject]@{ Name = 'MockedSource'; ProviderName = 'NuGet' } }
 
         $result = Get-PackageSource
-        $result.Name | Should -Be 'MockedSource'
+        $result.Name | Should-BeString 'MockedSource'
         Should -Invoke Get-PackageSource -Times 1
     }
 }
@@ -3094,7 +3094,7 @@ Describe 'Mocking command with OrderedDictionary-parameters' {
         Set-Item -Path 'function:Test-OrderedParameter' -Value ('param ( {0} )' -f $Parameter)
 
         Mock -CommandName 'Test-OrderedParameter' -MockWith { 'mock' }
-        Test-OrderedParameter | Should -Be 'mock'
+        Test-OrderedParameter | Should-BeString 'mock'
     }
 
     It 'mocked function is invoked and captures the OrderedDictionary argument' {
@@ -3103,7 +3103,7 @@ Describe 'Mocking command with OrderedDictionary-parameters' {
 
         Mock -CommandName 'Get-OrderedThing' -MockWith { 'mock' }
 
-        Invoke-OrderedWrapper | Should -Be 'mock'
+        Invoke-OrderedWrapper | Should-BeString 'mock'
         Should -Invoke Get-OrderedThing -Times 1 -Exactly
     }
 }
@@ -3123,7 +3123,7 @@ Describe 'Mocking command with an Encoding parameter' {
 
         It 'does not throw and returns the mock when called with a friendly encoding name' {
             Mock Out-File { 'mocked' }
-            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should-BeString 'mocked'
         }
 
         It 'records the invocation with the friendly encoding name available to the parameter filter' {
@@ -3134,18 +3134,18 @@ Describe 'Mocking command with an Encoding parameter' {
 
         It 'still routes to the mock when called with a System.Text.Encoding object' {
             Mock Out-File { 'mocked' }
-            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding ([System.Text.Encoding]::UTF8)) | Should -Be 'mocked'
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding ([System.Text.Encoding]::UTF8)) | Should-BeString 'mocked'
             Should -Invoke Out-File -Times 1 -Exactly
         }
 
         It 'applies to other cmdlets that use the encoding transformation (Export-Csv)' {
             Mock Export-Csv { 'mocked' }
-            ([pscustomobject]@{ A = 1 } | Export-Csv -Path 'TestDrive:/f.csv' -Encoding utf8NoBOM) | Should -Be 'mocked'
+            ([pscustomobject]@{ A = 1 } | Export-Csv -Path 'TestDrive:/f.csv' -Encoding utf8NoBOM) | Should-BeString 'mocked'
         }
 
         It 'still supports the -RemoveParameterType Encoding workaround' {
             Mock Out-File { 'mocked' } -RemoveParameterType Encoding
-            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should -Be 'mocked'
+            ('data' | Out-File -FilePath 'TestDrive:/f.txt' -Encoding utf8NoBOM) | Should-BeString 'mocked'
         }
     }
 }
