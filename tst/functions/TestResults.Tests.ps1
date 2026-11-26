@@ -137,3 +137,77 @@ InPesterModuleScope {
         }
     }
 }
+
+# Regression tests for https://github.com/pester/Pester/issues/2641
+# Relative report output paths must resolve against the directory Invoke-Pester was called from,
+# not the current location after the run. A test can change the current location (e.g. Set-Location),
+# and reports are written after all tests ran, so the path is resolved eagerly during configuration.
+Describe 'Relative report output paths (#2641)' {
+    It 'writes the TestResult report next to the invocation directory when a test changes the location' {
+        $runFrom = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'tr-run-from') -Force).FullName
+        $elsewhere = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'tr-elsewhere') -Force).FullName
+
+        $sb = {
+            Describe 'd' {
+                It 'changes the current location' {
+                    Set-Location $Elsewhere
+                }
+            }
+        }
+        $container = New-PesterContainer -ScriptBlock $sb -Data @{ Elsewhere = $elsewhere }
+
+        $conf = New-PesterConfiguration
+        $conf.Run.Container = $container
+        $conf.Run.PassThru = $true
+        $conf.Output.Verbosity = 'None'
+        $conf.TestResult.Enabled = $true
+        $conf.TestResult.OutputPath = 'testResults.xml'
+
+        Push-Location -Path $runFrom
+        try {
+            $r = Invoke-Pester -Configuration $conf
+        }
+        finally {
+            Pop-Location
+        }
+
+        $r.Result | Should -Be 'Passed'
+        Should -Exist -ActualValue (Join-Path $runFrom 'testResults.xml')
+        Should -Not -Exist -ActualValue (Join-Path $elsewhere 'testResults.xml')
+    }
+
+    It 'writes the CodeCoverage report next to the invocation directory when a test changes the location' {
+        $runFrom = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'cc-run-from') -Force).FullName
+        $elsewhere = (New-Item -ItemType Directory -Path (Join-Path $TestDrive 'cc-elsewhere') -Force).FullName
+        $covered = Join-Path $TestDrive 'covered.ps1'
+        Set-Content -Path $covered -Value 'function Get-Thing { 1 + 1 }'
+
+        $sb = {
+            Describe 'd' {
+                It 'changes the current location' {
+                    Set-Location $Elsewhere
+                }
+            }
+        }
+        $container = New-PesterContainer -ScriptBlock $sb -Data @{ Elsewhere = $elsewhere }
+
+        $conf = New-PesterConfiguration
+        $conf.Run.Container = $container
+        $conf.Run.PassThru = $true
+        $conf.Output.Verbosity = 'None'
+        $conf.CodeCoverage.Enabled = $true
+        $conf.CodeCoverage.Path = $covered
+        $conf.CodeCoverage.OutputPath = 'coverage.xml'
+
+        Push-Location -Path $runFrom
+        try {
+            $null = Invoke-Pester -Configuration $conf
+        }
+        finally {
+            Pop-Location
+        }
+
+        Should -Exist -ActualValue (Join-Path $runFrom 'coverage.xml')
+        Should -Not -Exist -ActualValue (Join-Path $elsewhere 'coverage.xml')
+    }
+}

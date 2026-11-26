@@ -58,6 +58,10 @@
     .NOTES
     The `Should-BeBefore` assertion is the opposite of the `Should-BeAfter` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeBefore
 
@@ -67,7 +71,7 @@
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding(DefaultParameterSetName = "Now")]
     param (
-        [Parameter(Position = 2, ValueFromPipeline = $true)]
+        [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
 
         [Parameter(ParameterSetName = "Now")]
@@ -83,14 +87,15 @@
         [Parameter(Mandatory, ParameterSetName = "FluentFromNow")]
         [switch] $FromNow,
 
+        # Not declared [DateTime] on purpose, see where it is checked below.
         [Parameter(Position = 0, ParameterSetName = "Expected")]
-        [DateTime] $Expected,
+        $Expected,
 
         [String] $Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     # Now is just a syntax marker, we don't need to do anything with it.
     $Now = $Now
@@ -98,7 +103,23 @@
     $currentTime = [datetime]::UtcNow.ToLocalTime()
     switch ($PSCmdlet.ParameterSetName) {
         "Expected" {
-            # do nothing we already have expected value
+            # This used to be declared [DateTime], and the binder converts whatever it is handed
+            # before the function runs: -Expected 42 became 42 ticks, the year 1, so every real
+            # date was after it and the assertion passed. Convert from a string, which is what
+            # someone writing a date as text means and what the binder did for them, and refuse
+            # anything else rather than comparing against whatever a conversion produced (#3038).
+            if ($Expected -isnot [datetime] -and $Expected -isnot [datetimeoffset]) {
+                $converted = $null
+                if ($Expected -is [string]) {
+                    try { $converted = [datetime] $Expected } catch { $converted = $null }
+                }
+
+                if ($null -eq $converted) {
+                    $assert.Fail("Expected a [datetime] to compare against,<because> but got <expectedType> <expected>.", @{ Expected = $Expected; Because = $Because })
+                }
+
+                $Expected = $converted
+            }
         }
         "Now" {
             $Expected = $currentTime
@@ -111,9 +132,30 @@
         }
     }
 
-    if ($Actual -ge $Expected) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the provided [datetime] to be before <expectedType> <expected>,<because> but it was after: <actual>"
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    # $Actual has to be a point in time. It is not typed, and a relational operator compares
+    # whatever it is handed: with a string on the left PowerShell compares as strings, and
+    # 'a string' sorts after a formatted date, so 'a string' | Should-BeBefore (Get-Date)
+    # reported that a string is a later point in time than a date, without asserting anything about
+    # time (#3038). $Expected needs no such check, it is declared [DateTime] and the binder converts
+    # it. [datetimeoffset] is allowed here, it is not a [datetime] but it compares with one.
+    if ($Actual -isnot [datetime] -and $Actual -isnot [datetimeoffset]) {
+        $assert.Fail("Expected a [datetime] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
     }
-    Set-AssertionPassResult
+
+    # A relational operator throws a native conversion error when $Actual is not a comparable single
+    # value, which is what happens when a multi-item collection is piped in and unwrapped to [object[]].
+    # Catch it so we can show the input hint instead of a cryptic "Could not compare" error; when it is
+    # not a piped-collection gotcha we have nothing to add, so the original error is rethrown.
+    $failed = $false
+    $comparisonError = $null
+    try {
+        $failed = $Actual -ge $Expected
+    }
+    catch {
+        $comparisonError = $_
+    }
+    if ($comparisonError -or $failed) {
+        if ($comparisonError -and -not $assert.Hint()) { throw $comparisonError }
+        $assert.Fail("Expected the provided [datetime] to be before <expectedType> <expected>,<because> but it was after: <actual>", @{ Expected = $Expected; Because = $Because })
+    }
 }

@@ -69,7 +69,7 @@ The example above also has an [annotated and production ready version here](docs
 
 ## Installation
 
-Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 5.1 and PowerShell 7.2 and newer.
+Pester runs on Windows, Linux, MacOS and anywhere else thanks to PowerShell. It is compatible with Windows PowerShell 5.1 and PowerShell 7.4 and newer.
 
 Pester 3 comes pre-installed with Windows 10, but we recommend updating, by running this PowerShell command _as administrator_:
 
@@ -173,9 +173,9 @@ test_script:
 See it [in action here!](https://ci.appveyor.com/project/nohwnd/planets)
 If you do not need to test your scripts against PowerShell Core, just simply remove the entire line mentioning Ubuntu.
 
-Pester itself is built on AzureDevOps, and distributed mainly via PowerShell gallery.
+Pester itself is built on GitHub Actions, and distributed mainly via PowerShell gallery.
 
-[![Build Status](https://nohwnd.visualstudio.com/Pester/_apis/build/status/Pester%20PR?branchName=main)](https://nohwnd.visualstudio.com/Pester/_build/latest?definitionId=6&branchName=main) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
+[![Build Status](https://github.com/pester/Pester/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pester/Pester/actions/workflows/ci.yml?query=branch%3Amain) [![latest version](https://img.shields.io/powershellgallery/v/Pester.svg?label=latest+version)](https://www.powershellgallery.com/packages/Pester) [![downloads](https://img.shields.io/powershellgallery/dt/Pester.svg?label=downloads)](https://www.powershellgallery.com/packages/Pester)
 
 ## Further reading
 
@@ -191,11 +191,15 @@ Got questions or you just want to get in touch? Use our issues page or one of th
 
 Pester is sponsored by:
 
-
-<a href="https://chocolatey.org/"><img src="https://chocolatey.org/assets/images/global-shared/logo-square.svg" height="64" /></a>
-<a href="https://www.lambdatest.com/" target="_blank"><img src="https://www.lambdatest.com/blue-logo.png" height="64" /></a>
-<a href="https://www.dotcom-monitor.com/" target="_blank"><img src="images/readme/dotcom-monitor-logo.png" width="255" /></a>
-<a href="https://www.loadview-testing.com/" target="_blank"><img src="images/readme/loadview-logo.png" height="64" /></a>
+<p>
+  <a href="https://chocolatey.org/"><img src="images/readme/chocolatey-logo.png" alt="Chocolatey" height="56" align="middle" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.testmu.ai/" target="_blank"><img src="images/readme/testmu-logo.png" alt="TestMu AI" height="30" align="middle" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.dotcom-monitor.com/" target="_blank"><img src="images/readme/dotcom-monitor-logo.png" alt="Dotcom-Monitor" height="26" align="middle" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.loadview-testing.com/" target="_blank"><img src="images/readme/loadview-logo.png" alt="LoadView" height="34" align="middle" /></a>
+</p>
 
 As well as all the great folks on [OpenCollective](https://opencollective.com/pester) and [GitHub](https://github.com/users/nohwnd/sponsorship#sponsors).
 

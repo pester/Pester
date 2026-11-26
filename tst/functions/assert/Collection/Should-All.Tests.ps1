@@ -88,3 +88,87 @@ catch { `$_.FullyQualifiedErrorId + '||' + (`$_.Exception.Message -split [Enviro
         $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
     }
 }
+
+Describe "Should-All input hint" {
+    It 'Hints when a single hashtable is piped' {
+        $err = { @{ Name = 'Jakub' } | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*GetEnumerator*'
+    }
+
+    It 'Hints when a hashtable is passed via -Actual' {
+        $err = { Should-All -Actual @{ Name = 'Jakub' } -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: -Actual is a single*which is not a collection*'
+    }
+
+    It 'Does not hint for a genuine collection that fails the filter' {
+        $err = { @(3, 4, 5) | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for a piped scalar, which is a valid one-item collection' {
+        $err = { 2 | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for piped $null, which is a valid one-item collection' {
+        $err = { $null | Should-All { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}
+
+Describe "Should-All does not pass on a filter that says nothing, or says false in another type" {
+    # An assertion that cannot fail is worse than no assertion, because it reads like one (#3038).
+    It 'Fails when the filter is empty' {
+        $err = { 1, 2, 3 | Should-All { } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*the filter is empty, so it says nothing about them*'
+    }
+
+    It 'Fails when the filter returns 0, which is false but not $false' {
+        $err = { 1, 2, 3 | Should-All { 0 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*3 of them*did not pass the filter*'
+    }
+
+    It 'Fails when the filter returns an empty string' {
+        $err = { 1, 2, 3 | Should-All { '' } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*did not pass the filter*'
+    }
+
+    It 'Passes for a filter that returns a truthy value of another type' {
+        1, 2, 3 | Should-All { $_ }
+    }
+
+    It 'Passes for a filter that asserts on the item and returns nothing' {
+        1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 0 }
+    }
+
+    It 'Still fails for a filter that asserts on the item and throws' {
+        $err = { 1, 2, 3 | Should-All { $_ | Should-BeGreaterThan 2 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*2 of them*did not pass the filter*'
+    }
+
+    It 'Accepts a filter taken from a function' {
+        # ${function:X} has a FunctionDefinitionAst, whose blocks live on .Body, so looking at
+        # EndBlock.Statements.Count on the Ast itself called it empty and rejected it.
+        function Test-Positive { $_ -gt 0 }
+        1, 2, 3 | Should-All ${function:Test-Positive}
+    }
+
+    It 'Accepts a filter written with a process block' {
+        1, 2, 3 | Should-All { process { $_ -gt 0 } }
+    }
+
+    It 'Still fails a process-block filter for the right reason' {
+        $err = { 1, 2, 3 | Should-All { process { $_ -gt 99 } } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*did not pass the filter*'
+    }
+
+    It 'Passes for a filter that returns $null, which cannot be told from no output' {
+        1, 2, 3 | Should-All { $null }
+    }
+
+    It 'Passes when something the filter called wrote to the pipeline before the predicate' {
+        $list = [System.Collections.ArrayList]::new()
+        1, 2, 3 | Should-All { $list.Add($_); $true }
+        $list.Count | Verify-Equal 3
+    }
+}

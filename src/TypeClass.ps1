@@ -4,23 +4,26 @@
 }
 
 function Is-Collection ($Value) {
-    # check for value types and strings explicitly
-    # because otherwise it does not work for decimal
-    # so let's skip all values we definitely know
-    # are not collections
-    if ($Value -is [ValueType] -or $Value -is [string]) {
-        return $false
-    }
-
-    -not [object]::ReferenceEquals($Value, $($Value))
+    # Use PowerShell's own enumeration logic to decide whether a value is a collection.
+    # This is the same check the pipeline and foreach use, so strings and dictionaries
+    # are correctly treated as single items and not collections. Unlike comparing $Value
+    # to $($Value), it does not copy the collection, does not consume lazy enumerators,
+    # and needs no special-casing for value types such as decimal.
+    $null -ne [System.Management.Automation.LanguagePrimitives]::GetEnumerator($Value)
 }
 
 function Is-ScriptBlock ($Value) {
     $Value -is [ScriptBlock]
 }
 
+function Is-IntegralNumber ($Value) {
+    # Note: Using .NET type names for consistency because PowerShell 5.1 doesn't support short/ushort/uint/ulong
+    $Value -is [Int32] -or $Value -is [Int64] -or $Value -is [Int16] -or $Value -is [SByte] -or
+    $Value -is [UInt32] -or $Value -is [UInt64] -or $Value -is [UInt16] -or $Value -is [Byte]
+}
+
 function Is-DecimalNumber ($Value) {
-    $Value -is [float] -or $Value -is [single] -or $Value -is [double] -or $Value -is [decimal]
+    $Value -is [Single] -or $Value -is [Double] -or $Value -is [Decimal]
 }
 
 function Is-Hashtable ($Value) {

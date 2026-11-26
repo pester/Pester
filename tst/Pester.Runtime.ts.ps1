@@ -64,7 +64,6 @@ i -PassThru:$PassThru {
             [System.Collections.IDictionary] $Data,
             [ScriptBlock] $ScriptBlock,
             [int] $StartLine,
-            [Switch] $Focus,
             [Switch] $Skip
         )
 
@@ -74,7 +73,6 @@ i -PassThru:$PassThru {
         $t.Path = $Path
         $t.Tag = $Tag
         $t.StartLine = $StartLine
-        $t.Focus = [Bool]$Focus
         $t.Skip = [Bool]$Skip
         $t.Data = $Data
 
@@ -84,29 +82,29 @@ i -PassThru:$PassThru {
 
     b "tryGetProperty" {
         t "given null it returns null" {
-            tryGetProperty $null Name | Verify-Null
+            tryGetProperty_ $null Name | Verify-Null
         }
 
         t "given an object that has the property it return the correct value" {
             $p = (Get-Process -Id $Pid)
-            tryGetProperty $p Name | Verify-Equal $p.Name
+            tryGetProperty_ $p Name | Verify-Equal $p.Name
         }
     }
 
     b "or" {
 
         t "given a non-null value it returns it" {
-            "a" | or "b" | Verify-Equal "a"
+            "a" | or_ "b" | Verify-Equal "a"
         }
 
         t "given null it returns the default value" {
-            $null | or "b" | Verify-Equal "b"
+            $null | or_ "b" | Verify-Equal "b"
         }
     }
 
     b "combineNonNull" {
         t "combines values from multiple arrays, skipping nulls and empty arrays, but keeping nulls in the arrays" {
-            $r = combineNonNull @(@(1, $null), @(1, 2, 3), $null, $null, 10)
+            $r = combineNonNull_ @(@(1, $null), @(1, 2, 3), $null, $null, 10)
             # expecting: 1, $null, 1, 2, 3, 10
             $r[0] | Verify-Equal 1
             $r[1] | Verify-Null
@@ -120,27 +118,27 @@ i -PassThru:$PassThru {
     b "any" {
 
         t "given a non-null value it returns true" {
-            any "b" | Verify-True
+            any_ "b" | Verify-True
         }
 
         t "given null it returns false" {
-            any $null | Verify-False
+            any_ $null | Verify-False
         }
 
         t "given empty array it returns false" {
-            any @() | Verify-False
+            any_ @() | Verify-False
         }
 
         t "given null in array it returns false" {
-            any @($null) | Verify-False
+            any_ @($null) | Verify-False
         }
 
         t "given array with value it returns true" {
-            any @("b") | Verify-True
+            any_ @("b") | Verify-True
         }
 
         t "given array with multiple values it returns true" {
-            any @("b", "c") | Verify-True
+            any_ @("b", "c") | Verify-True
         }
     }
 
@@ -1896,58 +1894,6 @@ i -PassThru:$PassThru {
         }
     }
 
-    # focus is removed and will be replaced by pins
-    # b "focus" {
-    #     t "focusing one test in group will run only it" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Name "block1" {
-
-    #                     New-Test "test 1" { }
-
-    #                     New-Block -Name "block2" {
-    #                         New-Test "test 2" { }
-    #                     }
-    #                 }
-
-    #                 New-Block -Name "block3" {
-    #                     New-Test -Focus "test 3" { }
-    #                 }
-    #             }
-    #         )
-
-    #         $testsToRun = @($actual | View-Flat | where { $_.ShouldRun })
-    #         $testsToRun.Count | Verify-Equal 1
-    #         $testsToRun[0].Name | Verify-Equal "test 3"
-    #     }
-
-    #     t "focusing one block in group will run only tests in it" {
-    #         $actual = Invoke-Test -SessionState $ExecutionContext.SessionState -BlockContainer (
-    #             New-BlockContainerObject -ScriptBlock {
-
-    #                 New-Block -Focus -Name "block1" {
-
-    #                     New-Test "test 1" { }
-
-    #                     New-Block -Name "block2" {
-    #                         New-Test "test 2" { }
-    #                     }
-    #                 }
-
-    #                 New-Block -Name "block3" {
-    #                     New-Test  "test 3" { }
-    #                 }
-    #             }
-    #         )
-
-    #         $testsToRun = $actual | View-Flat | where { $_.ShouldRun }
-    #         $testsToRun.Count | Verify-Equal 2
-    #         $testsToRun[0].Name | Verify-Equal "test 1"
-    #         $testsToRun[1].Name | Verify-Equal "test 2"
-    #     }
-    # }
-
     b "expandable variables in names" {
         t "can run tests that have expandable variable in their name" {
             # this should cause no problems, the test name is the same during
@@ -2080,8 +2026,8 @@ i -PassThru:$PassThru {
             Write-Host Total difference $totalDifference.TotalMilliseconds
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
@@ -2143,8 +2089,8 @@ i -PassThru:$PassThru {
             Write-Host Total difference $totalDifference.TotalMilliseconds
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
         }
@@ -2188,20 +2134,20 @@ i -PassThru:$PassThru {
             $totalReported = $actualDuration + $actualFrameworkDuration + $actualDiscoveryDuration
             $totalDifference = $container.Total - $totalReported
             $testCount = $cs.Count * $bs.Count * $ts.Count
-            Write-Host Test count $testCount
-            Write-Host Per test $([int]($container.Total.TotalMilliseconds / $testCount)) ms
-            Write-Host Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount)) ms
-            Write-Host Reported discovery duration $actualDiscoveryDuration.TotalMilliseconds ms
-            Write-Host Reported total duration $actualDuration.TotalMilliseconds ms
-            Write-Host Reported total overhead $actualFrameworkDuration.TotalMilliseconds ms
-            Write-Host Reported total $totalReported.TotalMilliseconds ms
-            Write-Host Measured total $container.Total.TotalMilliseconds ms
-            Write-Host Total difference $totalDifference.TotalMilliseconds ms
+            Write-Host "Test count $testCount"
+            Write-Host "Per test $([int]($container.Total.TotalMilliseconds / $testCount))ms"
+            Write-Host "Per test without discovery $([int](($actualDuration + $actualFrameworkDuration).TotalMilliseconds / $testCount))ms"
+            Write-Host "Reported discovery duration $($actualDiscoveryDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total duration $($actualDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total overhead $($actualFrameworkDuration.TotalMilliseconds)ms"
+            Write-Host "Reported total $($totalReported.TotalMilliseconds)ms"
+            Write-Host "Measured total $($container.Total.TotalMilliseconds)ms"
+            Write-Host "Total difference $($totalDifference.TotalMilliseconds)ms"
 
 
             # the difference here is because of the code that is running after all tests have been discovered
-            # such as figuring out if there are focused tests, setting filters and determining which tests to run
-            # this needs to be done over all blocks at the same time because of the focused tests
+            # such as setting filters and determining which tests to run
+            # this needs to be done over all blocks at the same time
             # the difference here is actually <10ms but let's make this less finicky
             $totalDifference.TotalMilliseconds -lt 100 | Verify-True
 

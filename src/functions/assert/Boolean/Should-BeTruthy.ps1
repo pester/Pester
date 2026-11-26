@@ -35,6 +35,10 @@
     .NOTES
     The `Should-BeTruthy` assertion is the opposite of the `Should-BeFalsy` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeTruthy
 
@@ -44,16 +48,14 @@
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseProcessBlockForPipelineCommand', '')]
     [CmdletBinding()]
     param (
-        [Parameter(ValueFromPipeline = $true)]
+        [Parameter(Position = 0, ValueFromPipeline = $true)]
         $Actual,
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
     if (-not $Actual) {
-        $Message = Get-AssertionMessage -Expected $true -Actual $Actual -Because $Because -DefaultMessage "Expected <expectedType> <expected> or a truthy value,<because> but got: <actualType> <actual>."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected <expectedType> <expected> or a truthy value,<because> but got: <actualType> <actual>.", @{ Expected = $true; Because = $Because })
     }
-    Set-AssertionPassResult
 }

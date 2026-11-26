@@ -33,6 +33,10 @@
     .NOTES
     The `Should-BeLessThanOrEqual` assertion is the opposite of the `Should-BeGreaterThan` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeLessThanOrEqual
 
@@ -49,11 +53,23 @@
         [String]$Because
     )
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
-    if ((Ensure-ExpectedIsNotCollection $Expected) -lt $Actual) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected the actual value to be less than or equal to <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>"
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
+    $expectedValue = $assert.EnsureScalar($Expected)
+    # The comparison operators throw a native conversion error when $Actual is not a comparable
+    # scalar, which is exactly what happens when a collection is piped in and unwrapped to [object[]].
+    # Catch it so we can show the input hint instead of a cryptic "Could not compare" error. When it
+    # is not a piped-collection gotcha we have nothing to add, so the original error is rethrown.
+    $failed = $false
+    $comparisonError = $null
+    try {
+        $failed = $expectedValue -lt $Actual
     }
-    Set-AssertionPassResult
+    catch {
+        $comparisonError = $_
+    }
+    if ($comparisonError -or $failed) {
+        if ($comparisonError -and -not $assert.Hint()) { throw $comparisonError }
+        $assert.Fail("Expected the actual value to be less than or equal to <expectedType> <expected>,<because> but it was not. Actual: <actualType> <actual>", @{ Expected = $Expected; Because = $Because })
+    }
 }

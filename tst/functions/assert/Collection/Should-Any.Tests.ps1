@@ -92,3 +92,68 @@ catch { `$_.FullyQualifiedErrorId + '||' + (`$_.Exception.Message -split [Enviro
         $ex.Exception.Message | Verify-Like 'Unbound scriptblock*'
     }
 }
+
+Describe "Should-Any input hint" {
+    It 'Hints when a single hashtable is piped' {
+        $err = { @{ Name = 'Jakub' } | Should-Any { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: You piped a single*PowerShell treats a dictionary as a single object*GetEnumerator*'
+    }
+
+    It 'Hints when a hashtable is passed via -Actual' {
+        $err = { Should-Any -Actual @{ Name = 'Jakub' } -FilterScript { $_ -eq 1 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*Hint: -Actual is a single*which is not a collection*'
+    }
+
+    It 'Does not hint for a genuine collection where none pass the filter' {
+        $err = { @(1, 2, 3) | Should-Any { $_ -eq 0 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for a piped scalar, which is a valid one-item collection' {
+        $err = { 3 | Should-Any { $_ -eq 0 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+
+    It 'Does not hint for piped $null, which is a valid one-item collection' {
+        $err = { $null | Should-Any { $_ -eq 1 } } | Verify-AssertionFailed
+        ($err.Exception.Message -notlike '*Hint:*') | Verify-True
+    }
+}
+
+Describe "Should-Any does not pass on a filter that says nothing, or says false in another type" {
+    It 'Fails when the filter is empty' {
+        $err = { 1, 2, 3 | Should-Any { } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*the filter is empty, so it says nothing about them*'
+    }
+
+    It 'Fails when the filter returns 0 for every item, which is false but not $false' {
+        $err = { 1, 2, 3 | Should-Any { 0 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*none of the items passed the filter*'
+    }
+
+    It 'Passes for a filter that returns a truthy value of another type' {
+        1, 2, 3 | Should-Any { $_ }
+    }
+
+    It 'Passes for a filter that asserts on the item and returns nothing for one item' {
+        1, 2, 3 | Should-Any { $_ | Should-BeGreaterThan 2 }
+    }
+
+    It 'Still fails when no item passes' {
+        $err = { 1, 2, 3 | Should-Any { $_ -gt 9 } } | Verify-AssertionFailed
+        $err.Exception.Message | Verify-Like '*none of the items passed the filter*'
+    }
+
+    It 'Accepts a filter taken from a function' {
+        function Test-BigEnough { $_ -gt 2 }
+        1, 2, 3 | Should-Any ${function:Test-BigEnough}
+    }
+
+    It 'Accepts a filter written with a process block' {
+        1, 2, 3 | Should-Any { process { $_ -gt 2 } }
+    }
+
+    It 'Passes for a filter that returns $null, which cannot be told from no output' {
+        1, 2, 3 | Should-Any { $null }
+    }
+}

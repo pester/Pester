@@ -1,4 +1,4 @@
-﻿# PESTER_BUILD
+# PESTER_BUILD
 if (-not (Get-Variable -Name "PESTER_BUILD" -ValueOnly -ErrorAction Ignore)) {
     . "$PSScriptRoot/functions/Pester.SafeCommands.ps1"
     . "$PSScriptRoot/TypeClass.ps1"
@@ -25,25 +25,6 @@ function Format-Collection ($Value, [switch]$Pretty) {
     }
 
     '@(' + ($formattedCollection -join $separator) + $(if ($trimmed) { ", ...$($count - $limit) more" }) + ')'
-}
-
-function Format-Object ($Value, $Property, [switch]$Pretty) {
-    if ($null -eq $Property) {
-        $Property = $Value.PSObject.Properties | & $SafeCommands['Select-Object'] -ExpandProperty Name
-    }
-    $valueType = Get-ShortType $Value
-    $valueFormatted = ([string]([PSObject]$Value | & $SafeCommands['Select-Object'] -Property $Property))
-
-    if ($Pretty) {
-        $margin = "    "
-        $valueFormatted = $valueFormatted `
-            -replace '^@{', "@{`n$margin" `
-            -replace '; ', ";`n$margin" `
-            -replace '}$', "`n}" `
-
-    }
-
-    $valueFormatted -replace "^@", $valueType
 }
 
 function Format-Null {
@@ -74,28 +55,6 @@ function Format-Number ($Value) {
     [string]$Value
 }
 
-function Format-Hashtable ($Value) {
-    $head = '@{'
-    $tail = '}'
-
-    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
-        $formattedValue = Format-Nicely $Value.$_
-        "$_=$formattedValue" }
-
-    $head + ( $entries -join '; ') + $tail
-}
-
-function Format-Dictionary ($Value) {
-    $head = 'Dictionary{'
-    $tail = '}'
-
-    $entries = $Value.Keys | & $SafeCommands['Sort-Object'] | & $SafeCommands['ForEach-Object'] {
-        $formattedValue = Format-Nicely $Value.$_
-        "$_=$formattedValue" }
-
-    $head + ( $entries -join '; ') + $tail
-}
-
 function Format-Nicely ($Value, [switch]$Pretty) {
     if ($null -eq $Value) {
         return Format-Null -Value $Value
@@ -117,7 +76,7 @@ function Format-Nicely ($Value, [switch]$Pretty) {
         return '[' + (Format-Type -Value $Value) + ']'
     }
 
-    if (Is-DecimalNumber -Value $Value) {
+    if ((Is-IntegralNumber -Value $Value) -or (Is-DecimalNumber -Value $Value)) {
         return Format-Number -Value $Value
     }
 
@@ -170,10 +129,6 @@ function Sort-Property ($InputObject, [string[]]$SignificantProperties, $Limit =
     #todo: I am assuming id, name properties, so I am just sorting the selected ones by name.
     (@($significant | & $SafeCommands['Sort-Object']) + $rest) | & $SafeCommands['Select-Object'] -First $Limit
 
-}
-
-function Get-DisplayProperty ($Value) {
-    Sort-Property -InputObject $Value -SignificantProperties 'id', 'name'
 }
 
 function Get-ShortType ($Value) {

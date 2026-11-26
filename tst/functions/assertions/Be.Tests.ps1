@@ -23,6 +23,10 @@ InPesterModuleScope {
             $array | Should -EQ $array
         }
 
+        It 'Passes for equal arrays with the same length' {
+            @(1, 2, 3) | Should -Be @(1, 2, 3)
+        }
+
         It 'Compares arrays with correct case-insensitive behavior' {
             $string = 'I am a string'
             $array = @(1, 2, 3, 4, $string)
@@ -71,6 +75,49 @@ InPesterModuleScope {
 
             $array1 | Should -Not -Be $array3
             $array1 | Should -Not -EQ $array3
+        }
+
+        It 'Enumerates non-IList collections such as hashtable keys and values (#1200)' {
+            # [hashtable].Keys/.Values are enumerable but not IList, so binding them to an [object[]] parameter
+            # used to wrap them as a single element and report two equal collections as different.
+            $hashtable = @{ One = 1; Two = 2 }
+            $hashtable.Keys | Should -Be $hashtable.Keys
+            $hashtable.Values | Should -Be $hashtable.Values
+            $hashtable.Keys | Should -Not -Be @('One')
+
+            # [Dictionary`2].Keys/.Values are not IList either, and are a common thing to assert on.
+            $dictionary = [System.Collections.Generic.Dictionary[string, int]]::new()
+            $dictionary.Add('One', 1)
+            $dictionary.Add('Two', 2)
+            $dictionary.Keys | Should -Be $dictionary.Keys
+            $dictionary.Values | Should -Be $dictionary.Values
+
+            $ordered = [ordered]@{ One = 1; Two = 2 }
+            @('One', 'Two') | Should -Be $ordered.Keys
+        }
+
+        It 'Enumerates the non-IList collection <Description> the same way the pipeline does (#1200)' -TestCases @(
+            @{ Description = 'Queue'; Collection = ([System.Collections.Queue]@(1, 2, 3)); Expected = @(1, 2, 3) }
+            @{ Description = 'Stack'; Collection = ([System.Collections.Stack]@(1, 2, 3)); Expected = @(3, 2, 1) }
+            @{ Description = 'SortedSet'; Collection = ([System.Collections.Generic.SortedSet[int]]@(3, 1, 2)); Expected = @(1, 2, 3) }
+        ) {
+            # None of these implement IList, so passing them as the -Be argument used to wrap them as a
+            # single element (#1200). The collection has to be on the right to trigger the bug, because the
+            # piped (actual) side is always enumerated by the pipeline before it reaches the comparison.
+            $Collection -is [System.Collections.IList] | Should -BeFalse
+            $Expected | Should -Be $Collection
+            $Expected | Should -BeExactly $Collection
+            $Collection | Should -Be $Expected
+            @(1, 2) | Should -Not -Be $Collection
+        }
+
+        It 'Still compares IList collections that already worked, such as a generic list (#1200)' {
+            # Guards against regressing the path that bound fine before: arrays and other IList collections.
+            $list = [System.Collections.Generic.List[int]]@(1, 2, 3)
+            $list -is [System.Collections.IList] | Should -BeTrue
+            @(1, 2, 3) | Should -Be $list
+            @(1, 2, 3) | Should -BeExactly $list
+            @(1, 2) | Should -Not -Be $list
         }
 
         It "returns true if the actual value can be cast to the expected value and they are the same value" {
@@ -146,8 +193,8 @@ InPesterModuleScope {
             ShouldBeFailureMessage (, (1, 2, 3)) (1, 2, 3) -Because 'reason' | Verify-Equal "Expected a collection @(1, 2, 3) with length 3, because reason, but got a collection @(@(1, 2, 3)) with length 1."
         }
 
-        It "Keeps the plain message for collections of equal length" {
-            ShouldBeFailureMessage (1, 2, 3) (1, 2, 4) | Verify-Equal "Expected @(1, 2, 4), but got @(1, 2, 3)."
+        It "Outputs the differing index for collections of equal length" {
+            ShouldBeFailureMessage (1, 2, 3) (1, 2, 4) | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 3.`nCollections differ at index 2.`nExpected: @(1, 2, 4)`nBut was:  @(1, 2, 3)"
         }
 
         It "Outputs verbose message for two strings of different length" {
@@ -208,6 +255,10 @@ InPesterModuleScope {
     Describe "ShouldBeExactlyFailureMessage" {
         It "Writes verbose message for strings that differ by case" {
             ShouldBeExactlyFailureMessage "a" "A" -Because "reason" | Verify-Equal "Expected strings to be the same, because reason, but they were different.`nString lengths are both 1.`nStrings differ at index 0.`nExpected: 'A'`nBut was:  'a'`n           ^"
+        }
+
+        It "Outputs the differing index for collections of equal length" {
+            ShouldBeExactlyFailureMessage ('a', 'b') ('a', 'B') | Verify-Equal "Expected collections to be the same, but they were different.`nCollection lengths are both 2.`nCollections differ at index 1.`nExpected: @('a', 'B')`nBut was:  @('a', 'b')"
         }
     }
 }

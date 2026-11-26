@@ -1,142 +1,108 @@
 ﻿Set-StrictMode -Version Latest
 
-# TODO: GetPesterPsVersion & GetPesterOs are used in critical paths in Pester
-# I debugged quite a few test here, and will test this later via P, but here
-# it is impractical to test the functions via mocking because the mocks then
-# break the framework itself / another option would be to determine the version
-# and os once on the start and use those values during the whole run
-return
-
 InModuleScope -ModuleName Pester {
-    Describe 'GetPesterPsVersion' {
-        It 'Returns value of $PSVersionTable.PsVersion.Major' {
+    BeforeAll {
+        # GetPesterPsVersion and GetPesterOs read $PSVersionTable and the
+        # $IsWindows / $IsMacOS / $IsLinux automatic variables through
+        # $SafeCommands['Get-Variable']. Going through $SafeCommands bypasses command
+        # resolution, so Mock cannot intercept these calls. To simulate a different
+        # PowerShell version or operating system we temporarily swap the SafeCommands
+        # entry for a stub and restore it afterwards. The stub only fakes PSVersionTable
+        # and the three OS switches and delegates every other lookup to the real
+        # Get-Variable, so the override does not leak into Pester's own machinery, which
+        # relies on these same functions while the test runs.
+        function Invoke-WithFakedEnvironment {
+            param(
+                [int] $Version = 7,
+                [hashtable] $Variable = @{ },
+                [Parameter(Mandatory)] [scriptblock] $Test
+            )
 
-            Mock Get-Variable -ParameterFilter { $Name -eq 'PSVersionTable' -and $ValueOnly } -MockWIth {
-                @{ PSVersion = [Version]'1.0.0' }
+            $original = $SafeCommands['Get-Variable']
+            try {
+                $SafeCommands['Get-Variable'] = {
+                    param([string] $Name, [switch] $ValueOnly, $ErrorAction)
+                    if ('PSVersionTable' -eq $Name) {
+                        return @{ PSVersion = [version]::new($Version, 0) }
+                    }
+                    if ($Name -in 'IsWindows', 'IsMacOS', 'IsLinux') {
+                        if ($Variable.ContainsKey($Name)) { return $Variable[$Name] }
+                        return $false
+                    }
+                    return & $original @PSBoundParameters
+                }.GetNewClosure()
+
+                & $Test
             }
-
-            GetPesterPsVersion | Should -Be 1
+            finally {
+                $SafeCommands['Get-Variable'] = $original
+            }
         }
     }
 
-    # these tests mock GetPesterOs on which It and Context depend
-    # for figuring out if TestRegistry should be used, so keep the mocks
-    # inside of It blocks otherwise the framework thinks we are on windows and
-    # tries to activate TestRegistry on Linux which fails, because there are no registry
-    Describe "GetPesterOs" {
-        Context "Windows with PowerShell 5 and lower" {
-            It "Returns 'Windows' when PowerShell version is lower than 6" {
-                Mock GetPesterPsVersion { 5 }
+    Describe 'GetPesterPsVersion' {
+        It 'Returns the major version of $PSVersionTable.PSVersion' {
+            Invoke-WithFakedEnvironment -Version 4 -Test {
+                GetPesterPsVersion | Should -Be 4
+            }
+        }
+    }
 
+    Describe 'GetPesterOs' {
+        It "Returns 'Windows' on Windows PowerShell (version below 7)" {
+            # Pester 6 supports Windows PowerShell 5.1 and PowerShell 7+. PowerShell 6 is
+            # EOL and is treated as Windows-only, so any version below 7 reports 'Windows'.
+            Invoke-WithFakedEnvironment -Version 5 -Test {
                 GetPesterOs | Should -Be 'Windows'
             }
         }
 
-        Context "Windows with PowerShell 6 and higher" {
-            It "Returns 'Windows' when `$IsWindows is `$true and powershell version is 6 or higher" {
-
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $true }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
-                Mock GetPesterPsVersion { 6 }
-
+        It "Returns 'Windows' when `$IsWindows is `$true on PowerShell 7+" {
+            Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsWindows = $true } -Test {
                 GetPesterOs | Should -Be 'Windows'
             }
-
-            It "Uses Get-Variable to retrieve IsWindows" {
-                # IsWindows is a constant and cannot be overwritten, so check that we are using
-                # Get-Variable to access its value, which allows us to mock it easily without
-                # depending on the OS, same for IsLinux and IsMacOS
-
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $true }
-                Mock GetPesterPsVersion { 6 }
-
-                $null = GetPesterOs
-
-                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and ($ValueOnly) } -Exactly 1 -Scope It
-            }
         }
 
-        Context "Linux with PowerShell 6 and higher" {
-            It "Returns 'Linux' when `$IsLinux is `$true and powershell version is 6 or higher" {
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $true }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $false }
-                Mock GetPesterPsVersion { 6 }
-
-                GetPesterOs | Should -Be 'Linux'
-            }
-
-            It "Uses Get-Variable to retrieve IsLinux" {
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $true }
-                Mock GetPesterPsVersion { 6 }
-
-                $null = GetPesterOs
-
-                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -Exactly 1 -Scope It
-            }
-        }
-
-        Context "macOS with PowerShell 6 and higher" {
-            It "Returns 'OSX' when `$IsMacOS is `$true and powershell version is 6 or higher" {
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsWindows' -and $ValueOnly } -MockWith { $false }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsLinux' -and $ValueOnly } -MockWith { $false }
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $true }
-                Mock GetPesterPsVersion { 6 }
-
+        It "Returns 'macOS' when `$IsMacOS is `$true on PowerShell 7+" {
+            Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsMacOS = $true } -Test {
                 GetPesterOs | Should -Be 'macOS'
             }
+        }
 
-            It "Uses Get-Variable to retrieve IsMacOS" {
-                Mock Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -MockWith { $true }
+        It "Returns 'Linux' when `$IsLinux is `$true on PowerShell 7+" {
+            Invoke-WithFakedEnvironment -Version 7 -Variable @{ IsLinux = $true } -Test {
+                GetPesterOs | Should -Be 'Linux'
+            }
+        }
 
-                $null = GetPesterOs
-
-                Should -Invoke Get-Variable -ParameterFilter { $Name -eq 'IsMacOS' -and $ValueOnly } -Exactly 1 -Scope It
+        It 'Throws for an unsupported operating system on PowerShell 7+' {
+            Invoke-WithFakedEnvironment -Version 7 -Test {
+                { GetPesterOs } | Should -Throw -ExpectedMessage 'Unsupported Operating system!'
             }
         }
     }
 
-
     Describe 'Get-TempDirectory' {
-        It 'returns the correct temp directory for Windows' -Skip:((GetPesterOs) -ne 'Windows') {
-            $expected = [System.IO.Path]::GetTempPath()
-
-            $temp = Get-TempDirectory
-            $temp | Should -Not -BeNullOrEmpty
-            $temp | Should -Be $expected
-        }
-
-        It "returns '/private/tmp' directory for MacOS" {
-            Mock 'GetPesterOs' {
-                'MacOS'
-            }
+        It "Returns '/private/tmp' on macOS" {
+            Mock GetPesterOs { 'macOS' }
             Get-TempDirectory | Should -Be '/private/tmp'
         }
 
-        It "returns '/tmp' directory for Linux" -Skip:((GetPesterOs) -ne 'Linux') {
-            Mock 'GetPesterOs' {
-                'Linux'
-            }
-            Get-TempDirectory | Should -Be '/tmp'
+        It 'Returns the system temp path on Windows' {
+            Mock GetPesterOs { 'Windows' }
+            Get-TempDirectory | Should -Be ([System.IO.Path]::GetTempPath())
+        }
+
+        It 'Returns the system temp path on Linux' {
+            Mock GetPesterOs { 'Linux' }
+            Get-TempDirectory | Should -Be ([System.IO.Path]::GetTempPath())
         }
     }
 
-    if ('Windows' -eq (GetPesterOs)) {
-        Describe 'Get-TempRegistry' {
-
-            BeforeAll {
-                Mock 'GetPesterOs' {
-                    return 'Windows'
-                }
-            }
-
-            It 'return the corret temp registry for Windows' {
-
-                $expected = 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
-                $tempPath = Get-TempRegistry
-                $tempPath | Should -Be $expected
-            }
+    Describe 'Get-TempRegistry' -Skip:((GetPesterOs) -ne 'Windows') {
+        # Get-TempRegistry uses the Windows registry provider, which only exists on Windows.
+        It 'Returns the Pester registry root path' {
+            Get-TempRegistry | Should -Be 'Microsoft.PowerShell.Core\Registry::HKEY_CURRENT_USER\Software\Pester'
         }
     }
 }

@@ -6,6 +6,8 @@
     .DESCRIPTION
     This assertion runs the filter script against every item in the collection. Nested Should-* failures are treated as filter failures and included in the reported reasons.
 
+    An item passes when the filter returns a value that is true, or returns nothing at all and does not throw, which is what a filter that asserts on the item itself does. A lone value that is false fails the item whatever its type, so `{ 0 }` and `{ '' }` fail; `$null` passes, because PowerShell does not distinguish it from no output at all. A filter that returns several values is judged on the first one only when that is the boolean `$false`, so output from something the filter called does not decide the item. An empty filter is rejected, because it says nothing about any item and every item would pass it.
+
     .PARAMETER FilterScript
     A script block that filters the input collection. The script block can use Should-* assertions or throw exceptions to indicate failure.
 
@@ -31,6 +33,11 @@
 
     The assertions will fail because not all items in the array are greater than 1.
 
+    .NOTES
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-All
 
@@ -51,12 +58,37 @@
     Assert-BoundScriptBlockInput -ScriptBlock $FilterScript
 
     $Expected = $FilterScript
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input -As 'CollectionItems'
+    $Actual = $assert.Actual()
 
     if ($null -eq $Actual -or 0 -eq @($Actual).Count) {
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare."
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail("Expected all items in collection to pass filter <expected>, but <actualType> <actual> contains no items to compare.", @{ Expected = $Expected; Because = $Because })
+    }
+
+    # Is the filter empty? A scriptblock taken from a function, ${function:Test-Positive}, has a
+    # FunctionDefinitionAst whose blocks live on .Body, and '{ process { ... } }' has no EndBlock at
+    # all. $null.Count is 0 in PowerShell, so looking at EndBlock.Statements.Count alone called both
+    # of those empty and rejected two working filter shapes. Reject only what is positively empty.
+    $filterBody = $FilterScript.Ast
+    if ($filterBody -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        $filterBody = $filterBody.Body
+    }
+
+    $filterIsEmpty = $false
+    if ($filterBody -is [System.Management.Automation.Language.ScriptBlockAst]) {
+        $filterIsEmpty = $true
+        foreach ($filterBlock in $filterBody.BeginBlock, $filterBody.ProcessBlock, $filterBody.EndBlock) {
+            if ($null -ne $filterBlock -and 0 -lt $filterBlock.Statements.Count) {
+                $filterIsEmpty = $false
+                break
+            }
+        }
+    }
+
+    # An empty filter says nothing about any item, so every item would pass it. An assertion that
+    # cannot fail is worse than no assertion, because it reads like one (#3038).
+    if ($filterIsEmpty) {
+        $assert.Fail("Expected all items in collection <actual> to pass filter <expected>,<because> but the filter is empty, so it says nothing about them.", @{ Expected = $Expected; Because = $Because })
     }
 
     $failReasons = $null
@@ -83,11 +115,19 @@
             $pass = @($false)
         }
 
-        # The API returns a collection and user can return anything from their script
-        # or there can be no output when assertion is used, so we are checking if the first item
-        # in the output is a boolean $false. The scriptblock should not fail in $null for example,
-        # hence the explicit type check
-        if (($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0])) {
+        # Did the filter say false? The boolean $false as the first output, which is what this has
+        # always looked at, and also a lone value of another type that is false, which used to pass:
+        # '1, 2, 3 | Should-All { 0 }' passed although 0 is false (#3038).
+        #
+        # $null stays a pass. The code this replaces said so on purpose, and PowerShell does not let
+        # us tell '{ $null }' apart from a filter that returned nothing at all.
+        #
+        # A filter that returns more than one value is left alone, because the extra values are
+        # usually output from something the filter called ('$list.Add($_); $true') and only the
+        # predicate was meant.
+        $saidFalse = ($pass.Count -ge 1) -and ($pass[0] -is [bool]) -and ($false -eq $pass[0])
+        $saidFalseAsAnotherType = (1 -eq $pass.Count) -and ($null -ne $pass[0]) -and ($pass[0] -isnot [bool]) -and (-not $pass[0])
+        if ($saidFalse -or $saidFalseAsAnotherType) {
             $item
         }
     }
@@ -98,9 +138,11 @@
         $data = @{
             actualFiltered      = if (1 -eq $actualFiltered.Count) { $actualFiltered[0] } else { $actualFiltered }
             actualFilteredCount = $actualFiltered.Count
+            Expected            = $Expected
+            Because             = $Because
         }
 
-        $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Data $data -Because $Because -DefaultMessage "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
+        $Message = "Expected all items in collection <actual> to pass filter <expected>, but <actualFilteredCount> of them <actualFiltered> did not pass the filter."
         if ($null -ne $failReasons) {
             $failReasons = $failReasons -join "`n"
             if ($appendMore) {
@@ -108,7 +150,6 @@
             }
             $Message += "`nReasons :`n$failReasons"
         }
-        Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $assert.Fail($Message, $data)
     }
-    Set-AssertionPassResult
 }

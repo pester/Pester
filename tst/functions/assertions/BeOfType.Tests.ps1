@@ -13,11 +13,35 @@ InPesterModuleScope {
             2.0 | Should -Not -BeOfType ([string])
         }
 
-        It "throws argument execption if type isn't a loaded type" {
-            $err = { 5 | Should -BeOfType 'UnknownType' } | Verify-Throw
-            $err.Exception | Verify-Type ([ArgumentException])
-            # Verify expected type is included in error message
-            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
+        It "passes when the actual value has a matching custom PSTypeName" {
+            $obj = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+            $obj | Should -BeOfType 'MyApp.Person'
+        }
+
+        It "passes when a custom PSTypeName was added with Add-Member" {
+            $obj = [PSCustomObject]@{ Name = 'Jane' }
+            $obj.PSObject.TypeNames.Insert(0, 'MyApp.Widget')
+            $obj | Should -BeOfType 'MyApp.Widget'
+        }
+
+        It "fails when the actual value does not have the expected custom PSTypeName" {
+            $obj = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+            $err = { $obj | Should -BeOfType 'MyApp.Animal' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Like 'Expected the value to have type or PSTypeName [[]MyApp.Animal], because reason, but got*and PSTypeNames [[]MyApp.Person]*'
+        }
+
+        It "-Not passes when the actual value does not have the expected custom PSTypeName" {
+            $obj = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+            $obj | Should -Not -BeOfType 'MyApp.Animal'
+        }
+
+        It "matches a custom PSTypeName that does not resolve as a real type instead of throwing" {
+            $err = { 5 | Should -BeOfType 'UnknownType' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Like 'Expected the value to have type or PSTypeName [[]UnknownType],*but got 5 with type [[]int]*'
+        }
+
+        It "-Not passes for a custom type name that no real value matches" {
+            5 | Should -Not -BeOfType 'UnknownType'
         }
 
         It "returns the correct assertion message when actual value has a real type" {
@@ -32,11 +56,14 @@ InPesterModuleScope {
     }
 
     Describe "Should -Not -BeOfType" {
-        It "throws argument execption if type isn't a loaded type" {
-            $err = { 5 | Should -Not -BeOfType 'UnknownType' } | Verify-Throw
-            $err.Exception | Verify-Type ([ArgumentException])
-            # Verify expected type is included in error message
-            $err.Exception.Message | Verify-Equal 'Could not find type [UnknownType]. Make sure that the assembly that contains that type is loaded.'
+        It "passes when a non-resolving type name is not among the actual value's PSTypeNames" {
+            5 | Should -Not -BeOfType 'UnknownType'
+        }
+
+        It "returns the correct assertion message when -Not is used against a matching custom PSTypeName" {
+            $obj = [PSCustomObject]@{ PSTypeName = 'MyApp.Person'; Name = 'Jane' }
+            $err = { $obj | Should -Not -BeOfType 'MyApp.Person' -Because 'reason' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Like 'Expected the value to not have type or PSTypeName [[]MyApp.Person], because reason, but got*and PSTypeNames [[]MyApp.Person]*'
         }
 
         It "returns the correct assertion message when actual value has a real type" {
@@ -77,7 +104,7 @@ InPesterModuleScope {
             # nested Invoke-Pester, but we verify the hierarchy walk works correctly.
             $obj = [System.IO.MemoryStream]::new()
             try {
-                # MemoryStream inherits from Stream — verify base type matching works
+                # MemoryStream inherits from Stream - verify base type matching works
                 $obj | Should -BeOfType 'Stream'
                 $obj | Should -BeOfType 'System.IO.Stream'
                 $obj | Should -BeOfType 'MarshalByRefObject'
@@ -87,9 +114,9 @@ InPesterModuleScope {
             }
         }
 
-        It "throws ArgumentException when actual is `$null and type is not resolvable" {
-            $err = { $null | Should -BeOfType 'SomeNonExistentClass' } | Verify-Throw
-            $err.Exception | Verify-Type ([ArgumentException])
+        It "fails with a clear message when actual is `$null and type is not resolvable" {
+            $err = { $null | Should -BeOfType 'SomeNonExistentClass' } | Verify-AssertionFailed
+            $err.Exception.Message | Verify-Like 'Expected the value to have type or PSTypeName [[]SomeNonExistentClass],*but got $null with type $null and PSTypeNames $null.'
         }
     }
 }

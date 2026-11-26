@@ -1,7 +1,14 @@
 trigger: none
 
+parameters:
+  - name: skipTests
+    displayName: Skip tests
+    type: boolean
+    default: false
+
 variables:
   - group: signing
+  - group: publishing
 
 jobs:
   - job: build
@@ -18,4 +25,11 @@ jobs:
           scriptType: ps
           scriptLocation: inlineScript
           inlineScript: |
-            .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)'
+            .\publish\release.ps1 -PsGalleryApiKey '$(PsGalleryApiKey)' -NugetApiKey '$(NugetApiKey)' -ChocolateyApiKey '$(ChocolateyApiKey)' -TenantId '$(TenantId)' -VaultUrl '$(SigningVaultURL)' -CertificateName '$(SigningCertName)' -SkipTests:$${{ parameters.skipTests }}
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish built packages
+        condition: succeededOrFailed()
+        inputs:
+          targetPath: '$(Build.SourcesDirectory)/tmp'
+          artifact: pester-packages

@@ -32,6 +32,10 @@
     .NOTES
     The `Should-BeFasterThan` assertion is the opposite of the `Should-BeSlowerThan` assertion.
 
+    Use the `-ErrorAction` parameter to control soft-assertion behavior for this assertion. `-ErrorAction Continue` records the failure and lets the rest of the test run (a soft assertion), while `-ErrorAction Stop` fails the test immediately, for example to guard a precondition before continuing.
+
+    When `-ErrorAction` is not specified, the behavior comes from `Should.ErrorAction` in the configuration, which defaults to `Stop`. See https://pester.dev/docs/assertions/soft-assertions for more about soft assertions.
+
     .LINK
     https://pester.dev/docs/commands/Should-BeFasterThan
 
@@ -43,7 +47,7 @@
     param (
         [Parameter(Position = 1, ValueFromPipeline = $true)]
         $Actual,
-        [Parameter(Position = 0)]
+        [Parameter(Position = 0, Mandatory)]
         $Expected,
         [string] $Because
     )
@@ -52,29 +56,35 @@
         $Expected = Get-TimeSpanFromStringWithUnit -Value $Expected
     }
 
-    $collectedInput = Collect-Input -ParameterInput $Actual -PipelineInput $local:Input -IsPipelineInput $MyInvocation.ExpectingInput -UnrollInput
-    $Actual = $collectedInput.Actual
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $local:Input
+    $Actual = $assert.Actual()
 
     if ($Actual -is [scriptblock]) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
-        & $Actual
+        # Assigned away, so the measured scriptblock's output does not become this assertion's
+        # output. '{ 1, 2, 3 } | Should-BeFasterThan 30s' used to write 1, 2, 3 to the caller.
+        # The [timespan] branch below writes nothing, and an assertion should write nothing.
+        $null = & $Actual
         $sw.Stop()
 
-        if ($sw.Elapsed -ge $Expected) {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $sw.Elapsed -Because $Because -Data @{ scriptblock = $Actual } -DefaultMessage "Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>"
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+        $elapsed = $sw.Elapsed
+        if ($elapsed -ge $Expected) {
+            $assert.Fail("Expected the provided [scriptblock] to execute faster than <expectedType> <expected>,<because> but it took <actual> to run.`nScriptBlock: <scriptblock>", @{ Expected = $Expected; Actual = $elapsed; Because = $Because; scriptblock = $Actual })
         }
-        Set-AssertionPassResult
         return
     }
 
     if ($Actual -is [timespan]) {
         if ($Actual -ge $Expected) {
-            $Message = Get-AssertionMessage -Expected $Expected -Actual $Actual -Because $Because -DefaultMessage "The provided [timespan] should be shorter than <expectedType> <expected>,<because> but it was longer: <actual>"
-            Invoke-AssertionFailed -Message $Message -CallerCmdlet $PSCmdlet
+            $assert.Fail("The provided [timespan] should be shorter than <expectedType> <expected>,<because> but it was longer: <actual>", @{ Expected = $Expected; Actual = $Actual; Because = $Because })
         }
-        Set-AssertionPassResult
         return
     }
-    Set-AssertionPassResult
+
+    # Neither branch matched. Both branches above return, so reaching here means we were handed
+    # something we cannot measure or compare. Without this the assertion would return having done
+    # nothing and the test would pass, which is the worst way to fail. It also hid a CI flake: a
+    # test asserting that a 10ms sleep is slower than 1ms failed while the whole test took 3ms,
+    # because the scriptblock was never run and nothing said so.
+    $assert.Fail("Expected a [scriptblock] to measure or a [timespan] to compare,<because> but got <actualType> <actual>.", @{ Actual = $Actual; Because = $Because })
 }

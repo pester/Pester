@@ -28,7 +28,7 @@
     # not actual breakpoints
     $breakpoints = @(Get-CoverageBreakpoints -CoverageInfo $coverageInfo -Logger $Logger)
     if ($null -ne $logger) {
-        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Figuring out $($breakpoints.Count) measurable code locations took $($sw.ElapsedMilliseconds)ms."
     }
 
     if ($UseBreakpoints) {
@@ -76,7 +76,7 @@
         $sw.Stop()
 
         if ($null -ne $logger) {
-            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+            & $logger "Setting $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds)ms."
         }
     }
     else {
@@ -110,7 +110,7 @@ function Exit-CoverageAnalysis {
     }
 
     if ($null -ne $logger) {
-        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds) ms."
+        & $logger "Removing $($breakpoints.Count) breakpoints took $($sw.ElapsedMilliseconds)ms."
     }
 }
 
@@ -272,7 +272,7 @@ function Get-CoverageBreakpoints {
             }
         }
         if ($null -ne $Logger) {
-            & $Logger  "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage, in $($sw.ElapsedMilliseconds) ms"
+            & $Logger  "Analyzing $analyzedCommands of $totalCommands commands in file '$($fileGroup.Name)' for code coverage, in $($sw.ElapsedMilliseconds)ms"
         }
     }
 }
@@ -425,7 +425,7 @@ function IsIgnoredCommand {
         return $true
     }
 
-    if ($Command.Extent.Text -match '^{?& \$wrappedCmd @PSBoundParameters ?}?$' -and
+    if ($Command.Extent.Text -match '^{? ?& \$wrappedCmd @PSBoundParameters ?}?$' -and
         (Get-AstTopParent -Ast $Command) -like '*$steppablePipeline.Begin($PSCmdlet)*$steppablePipeline.Process($_)*$steppablePipeline.End()*' ) {
         # Fix for proxy function wrapped pipeline command. PowerShell does not increment the hit count when
         # these functions are executed using the steppable pipeline; further, these checks are redundant, as
@@ -582,51 +582,78 @@ function Get-CoverageHitCommands {
     $CommandCoverage | & $SafeCommands['Where-Object'] { $_.Breakpoint.HitCount -gt 0 }
 }
 
-function Merge-CommandCoverage {
+function Merge-CoverageFromParallel {
+    <#
+    .SYNOPSIS
+    Merges the per-worker breakpoint coverage of a parallel run into a single CommandCoverage list.
+
+    .DESCRIPTION
+    EXPERIMENTAL. In a parallel run each file measures the same set of measurable locations
+    (CodeCoverage.Path is identical for every worker), so every worker returns a full projection of
+    those locations with its own per-location HitCount (see Invoke-TestInParallel). A location is
+    covered when at least one file hit it, so this collapses the projections by
+    "File:StartLine:StartColumn" and sums the HitCounts, keeping the first occurrence's discovery
+    order. Each merged entry is shaped like a breakpoint-based CommandCoverage item (a Breakpoint
+    with a HitCount) so Get-CoverageReport / Get-JaCoCoReportXml / Get-CoberturaReportXml consume it
+    unchanged.
+    #>
+    [CmdletBinding()]
     param ([object[]] $CommandCoverage)
 
-    # todo: this is a quick implementation of merging lists of breakpoints together, this is needed
-    # because the code coverage is stored per container and so in the end a lot of commands are missed
-    # in the container while they are hit in other, what we want is to know how many of the commands were
-    # hit in at least one file. This simple implementation does not add together the number of hits on each breakpoint
-    # so the HitCommands is not accurate, it only keeps the first breakpoint that points to that command and it's hit count
-    # this should be improved in the future.
-
-    # todo: move this implementation to the calling function so we don't need to split and merge the collection twice and we
-    # can also accumulate the hit count across the different breakpoints
-
-    $hitBps = @{}
-    $hits = [System.Collections.Generic.List[object]]@()
-    foreach ($bp in $CommandCoverage) {
-        if (0 -lt $bp.Breakpoint.HitCount) {
-            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
-            if (-not $hitBps.ContainsKey($key)) {
-                # adding to a hashtable to make sure we can look up the keys quickly
-                # and also to an array list to make sure we can later dump them in the correct order
-                $hitBps.Add($key, $bp)
-                $null = $hits.Add($bp)
+    $merged = [System.Collections.Specialized.OrderedDictionary]::new()
+    foreach ($cc in $CommandCoverage) {
+        if ($null -eq $cc) { continue }
+        $key = "$($cc.File):$($cc.StartLine):$($cc.StartColumn)"
+        if ($merged.Contains($key)) {
+            $merged[$key].Breakpoint.HitCount += [int] $cc.HitCount
+        }
+        else {
+            $merged[$key] = [PSCustomObject] @{
+                File        = $cc.File
+                Class       = $cc.Class
+                Function    = $cc.Function
+                StartLine   = $cc.StartLine
+                EndLine     = $cc.EndLine
+                StartColumn = $cc.StartColumn
+                EndColumn   = $cc.EndColumn
+                Command     = $cc.Command
+                Breakpoint  = @{ HitCount = [int] $cc.HitCount }
             }
         }
     }
 
-    $missedBps = @{}
-    $misses = [System.Collections.Generic.List[object]]@()
-    foreach ($bp in $CommandCoverage) {
-        if (0 -eq $bp.Breakpoint.HitCount) {
-            $key = "$($bp.File):$($bp.StartLine):$($bp.StartColumn)"
-            if (-not $hitBps.ContainsKey($key)) {
-                if (-not $missedBps.ContainsKey($key)) {
-                    $missedBps.Add($key, $bp)
-                    $null = $misses.Add($bp)
-                }
-            }
+    @($merged.Values)
+}
+
+function Convert-CommandCoverageToProjection {
+    <#
+    .SYNOPSIS
+    Projects raw CommandCoverage breakpoint objects into the lightweight, HitCount-carrying shape
+    that Merge-CoverageFromParallel expects.
+
+    .DESCRIPTION
+    EXPERIMENTAL. Drops the heavy Ast / live Breakpoint references and flattens the breakpoint hit
+    count onto a HitCount property, so a batch of coverage measured in-process (e.g. the sequential
+    #pester:no-parallel files of a parallel run) can be merged with the projections returned by
+    parallel workers.
+    #>
+    [CmdletBinding()]
+    param ([object[]] $CommandCoverage)
+
+    foreach ($cc in $CommandCoverage) {
+        if ($null -eq $cc) { continue }
+        [PSCustomObject] @{
+            File        = $cc.File
+            Class       = $cc.Class
+            Function    = $cc.Function
+            StartLine   = $cc.StartLine
+            EndLine     = $cc.EndLine
+            StartColumn = $cc.StartColumn
+            EndColumn   = $cc.EndColumn
+            Command     = $cc.Command
+            HitCount    = [int] $cc.Breakpoint.HitCount
         }
     }
-
-    # this is also not very efficient because in the next step we are splitting this collection again
-    # into hit and missed breakpoints
-    $c = $hits.GetEnumerator() + $misses.GetEnumerator()
-    $c
 }
 
 function Get-CoverageReport {
@@ -687,7 +714,6 @@ function Get-CoverageReport {
     $hitCommands = @(Get-CoverageHitCommands -CommandCoverage @($CommandCoverage) | & $SafeCommands['Select-Object'] $properties)
     $analyzedFiles = @(@($CommandCoverage) | & $SafeCommands['Select-Object'] -ExpandProperty File -Unique)
 
-
     [pscustomobject] @{
         NumberOfCommandsAnalyzed = $CommandCoverage.Count
         NumberOfFilesAnalyzed    = $analyzedFiles.Count
@@ -701,11 +727,23 @@ function Get-CoverageReport {
 }
 
 function Get-ReportRoot {
-    if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
-        return $PesterPreference.CodeCoverage.ReportRoot.Value
+    $reportRoot = if ($null -ne $PesterPreference.CodeCoverage.ReportRoot.Value) {
+        $PesterPreference.CodeCoverage.ReportRoot.Value
+    }
+    else {
+        $PesterPreference.Run.RepoRoot.Value
     }
 
-    $PesterPreference.Run.RepoRoot.Value
+    if ([string]::IsNullOrEmpty($reportRoot)) {
+        return $reportRoot
+    }
+
+    # Resolve to an absolute path. Get-RelativePath strips this prefix off the
+    # (absolute) file paths, so a relative ReportRoot/RepoRoot would never match
+    # and the report would keep the absolute paths instead of making them
+    # relative (#2920). GetUnresolvedProviderPathFromPSPath resolves against the
+    # current location without requiring the path to exist.
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($reportRoot)
 }
 
 function Get-RelativePath {
@@ -1190,10 +1228,13 @@ function Add-JaCoCoCounter {
         })
 }
 
-function Start-TraceScript ($Breakpoints) {
+# Translate the breakpoints into the coordinates the tracer records hits at. Split out of
+# Start-TraceScript so a caller that already has the points can reuse them instead of doing this
+# again: it walks the Ast of every analyzed file, which is the expensive part of a coverage run.
+function Get-TracerPoint ($Breakpoints) {
 
     $points = [Collections.Generic.List[Pester.Tracing.CodeCoveragePoint]]@()
-    foreach ($breakpoint in $breakpoints) {
+    foreach ($breakpoint in $Breakpoints) {
         $location = $breakpoint.BreakpointLocation
 
         $hitColumn = $location.Column
@@ -1218,7 +1259,18 @@ function Start-TraceScript ($Breakpoints) {
         $points.Add([Pester.Tracing.CodeCoveragePoint]::Create($location.Script, $hitLine, $hitColumn, $location.Line, $location.Column, $breakpoint.Command))
     }
 
-    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($points)
+    , $points
+}
+
+function Start-TraceScript ($Breakpoints, $Points) {
+
+    # Points are the already translated breakpoints. test.ps1 passes them in, so that the child
+    # processes it starts do not each redo the translation for the same source tree.
+    if ($null -eq $Points) {
+        $Points = Get-TracerPoint -Breakpoints $Breakpoints
+    }
+
+    $tracer = [Pester.Tracing.CodeCoverageTracer]::Create($Points)
 
     # detect if profiler is imported and running and in that case just add us as a second tracer
     # to not disturb the profiling session
@@ -1290,14 +1342,6 @@ function Get-TracerHitLocation ($command) {
         function Write-Host { }
     }
     # function Write-Host { }
-    function Show-ParentList ($command) {
-        $c = $command
-        "`n`nCommand: $c" | Write-Host
-        $(for ($ast = $c; $null -ne $ast; $ast = $ast.Parent) {
-                $ast | Select-Object @{n = 'type'; e = { $_.GetType().Name } } , @{n = 'extent'; e = { $_.extent } }
-            } ) | Format-Table type, extent | Out-String | Write-Host
-    }
-
     if ($env:PESTER_CC_DEBUG -eq 1) {
         Write-Host "Processing '$command' at $($command.Extent.StartLineNumber):$($command.Extent.StartColumnNumber) which is $($command.GetType().Name)."
     }

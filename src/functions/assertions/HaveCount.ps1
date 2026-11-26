@@ -1,4 +1,4 @@
-﻿function Should-HaveCountAssertion($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
+function Should-HaveCountAssertion($ActualValue, [int] $ExpectedValue, [switch] $Negate, [string] $Because) {
     <#
     .SYNOPSIS
     Asserts that a collection has the expected amount of items.
@@ -23,7 +23,6 @@
     if ($Negate) {
         $succeeded = -not $succeeded
     }
-
 
     if (-not $succeeded) {
 
@@ -94,7 +93,3 @@
 Set-ShouldOperatorHelpMessage -OperatorName HaveCount `
     -HelpMessage 'Asserts that a collection has the expected amount of items.'
 
-function ShouldHaveCountFailureMessage() {
-}
-function NotShouldHaveCountFailureMessage() {
-}
