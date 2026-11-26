@@ -28,7 +28,7 @@ function New-MockBehavior {
         IsInModule  = -not [string]::IsNullOrEmpty($ContextInfo.TargetModule)
         Verifiable  = $Verifiable
         # When set the whole pipeline is collected and MockWith runs once from the end block over
-        # all the input, instead of once per piped item. See the -End switch on Mock. (#2154)
+        # all the input, instead of once per piped item. See the -Aggregate switch on Mock. (#2154)
         Aggregate   = [bool]$Aggregate
         Executed    = $false
         ScriptBlock = $MockWith
@@ -956,7 +956,7 @@ function Resolve-Command {
 
 function Get-PipelineParameterName {
     # Return the names of the parameters that take pipeline input (ValueFromPipeline or
-    # ValueFromPipelineByPropertyName). Used by -End (aggregate) mocks to bind the whole collected
+    # ValueFromPipelineByPropertyName). Used by -Aggregate mocks to bind the whole collected
     # pipeline to the pipeline parameter, so a parameter filter can assert on all the input. Native
     # applications have no metadata and no such parameters, so this returns nothing for them. (#2154)
     param ($Metadata)
@@ -1044,7 +1044,7 @@ function Invoke-MockInternal {
         }
 
         Process {
-            # -End (aggregate) mock: do not match or execute per piped item. Collect the whole pipeline
+            # -Aggregate mock: do not match or execute per piped item. Collect the whole pipeline
             # and defer a single behavior match and a single execution to the end block. Behaviors are
             # homogeneous per command (guarded in Mock), so the first one tells us the type. We stash the
             # resolved behaviors and call history so the end block can reuse them without resolving again. (#2154)
@@ -1105,7 +1105,7 @@ function Invoke-MockInternal {
         }
 
         End {
-            # -End (aggregate) mock: the whole pipeline was collected in the process block. Now match a
+            # -Aggregate mock: the whole pipeline was collected in the process block. Now match a
             # single behavior against the collected input and run it once, piping the input in so MockWith
             # sees it as $input (and its own process/end blocks work). One call is recorded per pipeline. (#2154)
             if ($MockCallState['Aggregate']) {
@@ -1153,7 +1153,7 @@ function Invoke-MockInternal {
                 else {
                     $failedFilterInvocations = @($failedFilterInvocations)
                     $filterList = ($failedFilterInvocations | & $SafeCommands['ForEach-Object'] { "    $_" }) -join [System.Environment]::NewLine
-                    throw "No mock for command '$($Hook.CommandName)' matched the call: none of the parameter filters matched, and there is no default mock to fall back to. Add a default mock (e.g. ``Mock $($Hook.CommandName) { ... } -End``) or adjust an existing -ParameterFilter.$([System.Environment]::NewLine)$([System.Environment]::NewLine)The following parameter filters were evaluated and did not match:$([System.Environment]::NewLine)$filterList"
+                    throw "No mock for command '$($Hook.CommandName)' matched the call: none of the parameter filters matched, and there is no default mock to fall back to. Add a default mock (e.g. ``Mock $($Hook.CommandName) { ... } -Aggregate``) or adjust an existing -ParameterFilter.$([System.Environment]::NewLine)$([System.Environment]::NewLine)The following parameter filters were evaluated and did not match:$([System.Environment]::NewLine)$filterList"
                 }
             }
 
@@ -1248,7 +1248,7 @@ function ExecuteBehavior {
         $Hook,
         [hashtable] $BoundParameters = @{ },
         [object[]] $ArgumentList = @(),
-        # -End (aggregate) mocks pass the collected pipeline here and set -PipeInput so MockWith runs
+        # -Aggregate mocks pass the collected pipeline here and set -PipeInput so MockWith runs
         # once with the whole pipeline as its $input, reproducing the real command's end-block behaviour. (#2154)
         [object] $InputObject,
         [switch] $PipeInput
@@ -1308,7 +1308,7 @@ function ExecuteBehavior {
         # define this in the current scope to be used instead of $PSBoundParameter if needed
         $PesterBoundParameters = if ($null -ne $___BoundParameters___) { $___BoundParameters___ } else { @{} }
         if (${Pipe Input}) {
-            # -End (aggregate) mock: pipe the whole collected input into MockWith so it runs once and
+            # -Aggregate mock: pipe the whole collected input into MockWith so it runs once and
             # sees the pipeline as $input, the same way the real command's end block would. (#2154)
             ${I n p u t O b j e c t} | & ${Script Block} @___BoundParameters___ @___ArgumentList___
         }
