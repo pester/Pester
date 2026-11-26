@@ -463,6 +463,8 @@ function Invoke-Pester {
         # global mock hook state carried from begin to the finally in the end block (nested runs only)
         $runningPesterInPester = $false
         $savedGlobalMockState = $null
+        # parallel output tape put aside for the duration of a nested run, given back in the same finally
+        $suspendedParallelOutputTape = $null
 
         # Give this run a unique identity used to isolate global mocks between (possibly nested) runs. A
         # mock's bootstrap records the run that created it; a leaked bootstrap whose id does not match the
@@ -488,6 +490,14 @@ function Invoke-Pester {
             # clear the shared state. It is restored once this run ends (see the finally in the end block).
             $savedGlobalMockState = Get-GlobalMockHookState
             Reset-GlobalMockHook
+            # In a parallel worker the whole run is silenced and everything it writes to the host goes
+            # to a module-scope tape, so the parent can replay it in order (see Invoke-TestInParallel).
+            # The tape is module scope, so a run that starts inside the worker's run sees it as well: a
+            # test that calls Invoke-Pester itself and captures the output with 6>&1 got nothing, while
+            # that output went to the tape and was replayed later as if the worker had written it
+            # (#2991). A nested run belongs to its own caller, so put the tape aside until it ends.
+            $suspendedParallelOutputTape = $script:parallelOutputTape
+            $script:parallelOutputTape = $null
         }
 
         # this will inherit to child scopes and allow Pester to run in Pester, not checking if this is
@@ -1022,6 +1032,8 @@ function Invoke-Pester {
             # the outer run's global mock hook clobbered or detached.
             if ($runningPesterInPester) {
                 Restore-GlobalMockHookState -State $savedGlobalMockState
+                # Give the worker its tape back, see the begin block.
+                $script:parallelOutputTape = $suspendedParallelOutputTape
             }
             # Restore the run id that was active before this run (null for a top-level run) so the nonce
             # used to isolate global mocks is correct for whatever run resumes.

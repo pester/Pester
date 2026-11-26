@@ -38,6 +38,13 @@ Describe "Should-BeSlowerThan" {
         { $Actual | Should-BeSlowerThan -Expected $Expected } | Verify-AssertionFailed
     }
 
+    It "Does not pass the measured scriptblock's output on" {
+        # It used to write whatever the measured scriptblock wrote, while the [timespan] branch
+        # wrote nothing.
+        $out = { 1, 2, 3; [System.Threading.Thread]::Sleep(50) } | Should-BeSlowerThan -Expected "1ms"
+        Verify-Null -Actual $out
+    }
+
     It "Has Because parameter" -ForEach @(
         @{ Actual = [timespan]::FromMilliseconds(1); Expected = "1000ms"; Because = "I said so" }
     ) {

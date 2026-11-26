@@ -177,6 +177,21 @@ function Export-JUnitReport {
     Export-XmlReport -Result $Result -Path $Path -Format JUnitXml
 }
 
+function Get-TestResultPathRoot {
+    # The root that file paths in a test result report are relative to. Code coverage has its own
+    # CodeCoverage.ReportRoot, which is only about the coverage report, so this uses Run.RepoRoot.
+    $repoRoot = $PesterPreference.Run.RepoRoot.Value
+
+    if ([string]::IsNullOrEmpty($repoRoot)) {
+        return $repoRoot
+    }
+
+    # Resolve to an absolute path, because the prefix is stripped off absolute file paths and a
+    # relative root would never match. Invoke-Pester resolves Run.RepoRoot before a run, but
+    # Export-JUnitReport can be called on its own, with whatever the configuration holds.
+    $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($repoRoot)
+}
+
 function Export-XmlReport {
     param (
         [parameter(Mandatory = $true, ValueFromPipeline = $true)]

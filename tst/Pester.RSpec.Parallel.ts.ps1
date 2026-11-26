@@ -561,6 +561,36 @@ Describe 'Second' {
             finally { Remove-Item -Path $start -Recurse -Force }
         }
 
+        t "FindRepoRoot finds a root whose .git is a file, not a directory (#3069)" {
+            # A git worktree, a submodule, and a clone made with --separate-git-dir all put a .git
+            # file at the root instead of a .git directory. Looking only for a directory walked past
+            # the root and fell back to the start location.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                Set-Content -Path (Join-Path $root ".git") -Value "gitdir: /somewhere/else/.git/worktrees/wt"
+                # GetFullPath, because the temp path is a symlink on macOS and the walk normalizes.
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
+        t "FindRepoRoot still finds a root whose .git is a directory" {
+            # The counterpart to the test above, so accepting a file does not come at the cost of
+            # the ordinary clone.
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $sub = Join-Path $root "tst"
+            $null = New-Item -ItemType Directory -Path $sub -Force
+            try {
+                $null = New-Item -ItemType Directory -Path (Join-Path $root ".git") -Force
+                $expected = [System.IO.Path]::GetFullPath($root)
+                [Pester.RunConfiguration]::FindRepoRoot([System.IO.Path]::GetFullPath($sub)) | Verify-Equal $expected
+            }
+            finally { Remove-Item -Path $root -Recurse -Force }
+        }
+
         t "applies the same cascade inside each parallel worker" {
             $folder = New-CascadingBeforeContainerFolder
             try {
@@ -1441,6 +1471,43 @@ Describe 'OuterTwo' {
                 $output | Verify-Like '*Context CtxA*'
                 $output | Verify-Like '*Describing OuterTwo*'
                 $output | Verify-Like '*Context CtxB*'
+            }
+            finally { Remove-Item -Path $folder -Recurse -Force }
+        }
+
+        t "a nested Invoke-Pester in a worker writes to its own caller, not to the tape (#2991)" {
+            # A worker silences its run and sends everything it writes to a module-scope tape, so the
+            # parent can replay it in order. The tape was visible to a run that started inside the
+            # worker's run as well, so a test that calls Invoke-Pester itself and captures the output
+            # with 6>&1 got nothing back, and that output was replayed later as the worker's own.
+            $folder = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
+            $null = New-Item -ItemType Directory -Path $folder -Force
+            try {
+                Set-Content -Path (Join-Path $folder 'Nested.Tests.ps1') -Value @'
+Describe 'OuterNested' {
+    It 'captures the output of a run it starts itself' {
+        $c = [PesterConfiguration]::Default
+        $c.Run.ScriptBlock = { Describe 'InnerNested' { It 'i' { 1 | Should -Be 1 } } }
+        $c.Output.Verbosity = 'Detailed'
+        $c.Output.RenderMode = 'Plaintext'
+        $captured = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+        $captured | Should -BeLike '*Describing InnerNested*'
+    }
+}
+'@
+                $c = [PesterConfiguration]::Default
+                $c.Run.Path = $folder
+                $c.Run.Parallel = $true
+                $c.Run.PassThru = $true
+                $c.Output.Verbosity = 'Detailed'
+                $c.Output.RenderMode = 'Plaintext'
+
+                $output = (Invoke-Pester -Configuration $c 6>&1 | Out-String)
+
+                # The nested run reached the test that started it, so that test passed,
+                $output | Verify-Like '*Describing OuterNested*'
+                # and the parent did not replay the nested run as if the worker had written it.
+                ($output -like '*Describing InnerNested*') | Verify-False
             }
             finally { Remove-Item -Path $folder -Recurse -Force }
         }
